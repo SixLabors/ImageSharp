@@ -336,8 +336,7 @@ public class TiffMetadataTests
         iptcProfile.SetValue(IptcTag.Name, "Test name");
         rootFrameInput.Metadata.IptcProfile = iptcProfile;
 
-        IccProfileHeader iccProfileHeader = new() { Class = IccProfileClass.ColorSpace };
-        IccProfile iccProfile = new();
+        IccProfile iccProfile = new(IccTestDataProfiles.Profile_Random_Array);
         rootFrameInput.Metadata.IccProfile = iccProfile;
 
         TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();

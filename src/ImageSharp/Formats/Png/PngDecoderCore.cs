@@ -4,12 +4,10 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -282,12 +280,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Exif:
-                            if (!this.skipMetadata)
-                            {
-                                byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
-                                MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
-                            }
+                            this.ReadExifChunk(metadata, chunk);
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
@@ -467,12 +460,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            if (!this.skipMetadata)
-                            {
-                                byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
-                                MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
-                            }
+                            this.ReadExifChunk(metadata, chunk);
 
                             break;
                         case PngChunkType.End:
@@ -1408,6 +1396,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
+        if (zeroIndex + 1 >= data.Length)
+        {
+            return;
+        }
+
         byte compressionMethod = data[zeroIndex + 1];
         if (compressionMethod != 0)
         {
@@ -1436,15 +1429,20 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object to store the parsed metadata in.</param>
     /// <param name="chunkName">The name of the text chunk.</param>
     /// <param name="chunkText">The contents of the text chunk.</param>
-    /// <returns>True if metadata was successfully parsed from the text chunk. False if the
-    /// text chunk was not identified as metadata, and should be stored in the metadata
-    /// object unmodified.</returns>
+    /// <returns>True if the text chunk is a legacy EXIF profile chunk. The decoder stores a valid profile and discards
+    /// an invalid one, and never keeps the chunk as text. False if the text chunk is not identified as metadata, and
+    /// should be stored in the metadata object unmodified.</returns>
     private static bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
     {
-        if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
-            TryReadLegacyExifTextChunk(baseMetadata, chunkText))
+        // A legacy profile chunk holds metadata, not text. A valid profile becomes the image profile.
+        // An invalid profile is damaged metadata, so the decoder discards it.
+        if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase))
         {
-            // Successfully parsed legacy exif data from text
+            if (ExifReader.ReadLegacyText(chunkText) is ExifProfile exifProfile)
+            {
+                MergeOrSetExifProfile(baseMetadata, exifProfile, replaceExistingKeys: false);
+            }
+
             return true;
         }
 
@@ -1475,88 +1473,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads exif data encoded into a text chunk with the name "raw profile type exif".
-    /// This method was used by ImageMagick, exiftool, exiv2, digiKam, etc, before the
-    /// 2017 update to png that allowed a true exif chunk.
+    /// Reads an eXIf chunk and gives its tags precedence over earlier EXIF metadata.
     /// </summary>
-    /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
-    /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
-    private static bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+    /// <param name="metadata">The image metadata to update.</param>
+    /// <param name="chunk">The eXIf chunk containing the profile bytes.</param>
+    private void ReadExifChunk(ImageMetadata metadata, PngChunk chunk)
     {
-        ReadOnlySpan<char> dataSpan = data.AsSpan();
-        dataSpan = dataSpan.TrimStart();
-
-        if (!StringEqualsInsensitive(dataSpan[..4], "exif".AsSpan()))
+        if (!this.skipMetadata)
         {
-            // "exif" identifier is missing from the beginning of the text chunk
-            return false;
+            ExifProfile profile = ExifReader.ReadProfile(chunk.Data.GetSpan()[..chunk.Length]);
+            MergeOrSetExifProfile(metadata, profile, replaceExistingKeys: true);
         }
-
-        // Skip to the data length
-        dataSpan = dataSpan[4..].TrimStart();
-        int dataLengthEnd = dataSpan.IndexOf('\n');
-        int dataLength = ParseInt32(dataSpan[..dataSpan.IndexOf('\n')]);
-
-        // Skip to the hex-encoded data
-        dataSpan = dataSpan[dataLengthEnd..].Trim();
-
-        // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
-        // This doesn't actually allocate.
-        ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
-
-        if (dataLength < exifHeader.Length)
-        {
-            // Not enough room for the required exif header, this data couldn't possibly be valid
-            return false;
-        }
-
-        // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
-        byte[] exifBlob = new byte[dataLength - exifHeader.Length];
-
-        try
-        {
-            // Check for the presence of the exif header in the hex-encoded binary data
-            byte[] tempExifBuf = exifBlob;
-            if (exifBlob.Length < exifHeader.Length)
-            {
-                // Need to allocate a temporary array, this should be an extremely uncommon (TODO: impossible?) case
-                tempExifBuf = new byte[exifHeader.Length];
-            }
-
-            HexConverter.HexStringToBytes(dataSpan[..(exifHeader.Length * 2)], tempExifBuf);
-            if (!tempExifBuf.AsSpan()[..exifHeader.Length].SequenceEqual(exifHeader))
-            {
-                // Exif header in the hex data is not valid
-                return false;
-            }
-
-            // Skip over the exif header we just tested
-            dataSpan = dataSpan[(exifHeader.Length * 2)..];
-            dataLength -= exifHeader.Length;
-
-            // Load the hex-encoded data, one line at a time
-            for (int i = 0; i < dataLength;)
-            {
-                ReadOnlySpan<char> lineSpan = dataSpan;
-
-                int newlineIndex = dataSpan.IndexOf('\n');
-                if (newlineIndex != -1)
-                {
-                    lineSpan = dataSpan[..newlineIndex];
-                }
-
-                i += HexConverter.HexStringToBytes(lineSpan, exifBlob.AsSpan()[i..]);
-
-                dataSpan = dataSpan[(newlineIndex + 1)..];
-            }
-        }
-        catch
-        {
-            return false;
-        }
-
-        MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
-        return true;
     }
 
     /// <summary>
@@ -1568,6 +1495,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     {
         int zeroIndex = data.IndexOf((byte)0);
         if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
+        {
+            return;
+        }
+
+        if (zeroIndex + 1 >= data.Length)
         {
             return;
         }
@@ -1589,7 +1521,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
         {
-            metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            metadata.IccProfile = IccReader.ToProfile(iccpProfileBytes);
         }
     }
 
@@ -1636,23 +1568,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Compares two ReadOnlySpan&lt;char&gt;s in a case-insensitive method.
-    /// This is only needed because older frameworks are missing the extension method.
-    /// </summary>
-    /// <param name="span1">The first <see cref="Span{T}"/> to compare.</param>
-    /// <param name="span2">The second <see cref="Span{T}"/> to compare.</param>
-    /// <returns>True if the spans were identical, false otherwise.</returns>
-    private static bool StringEqualsInsensitive(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2)
-        => span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
-    /// </summary>
-    /// <param name="span">The <see cref="int"/> to parse.</param>
-    /// <returns>The parsed <see cref="int"/>.</returns>
-    private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span, provider: CultureInfo.InvariantCulture);
-
-    /// <summary>
     /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
     /// or copies exif tags if <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>.
     /// </summary>
@@ -1666,7 +1581,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         if (metadata.ExifProfile is null)
         {
             // No exif metadata was loaded yet, so just assign it
-            metadata.ExifProfile = newProfile;
+            metadata.TrySetExifProfile(newProfile);
         }
         else
         {
@@ -1706,6 +1621,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
+        if (zeroIndexKeyword + 4 > data.Length)
+        {
+            return;
+        }
+
         byte compressionFlag = data[zeroIndexKeyword + 1];
         if (compressionFlag is not (0 or 1))
         {
@@ -1730,6 +1650,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
         int translatedKeywordLength = data[translatedKeywordStartIdx..].IndexOf((byte)0);
+        if (translatedKeywordLength < 0)
+        {
+            return;
+        }
+
         string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
         ReadOnlySpan<byte> keywordBytes = data[..zeroIndexKeyword];
@@ -1750,7 +1675,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
         else if (IsXmpTextData(keywordBytes))
         {
-            metadata.XmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
+            metadata.XmpProfile = XmpReader.ReadProfile(data[dataStartIdx..]) ?? metadata.XmpProfile;
         }
         else
         {
@@ -1952,8 +1877,20 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         // A chunk might report a length that exceeds the length of the stream.
         // Take the minimum of the two values to ensure we don't read past the end of the stream.
         position = this.currentStream.Position;
+        long available = this.currentStream.Length - position;
+
+        // These chunks can carry profiles. Require the declared payload and all four CRC bytes.
+        // The decoder checks CRC values for critical chunks.
+        if (type is PngChunkType.Exif or PngChunkType.EmbeddedColorProfile or PngChunkType.Text
+            or PngChunkType.CompressedText or PngChunkType.InternationalText && length > available - sizeof(uint))
+        {
+            this.currentStream.Position = this.currentStream.Length;
+            chunk = default;
+            return false;
+        }
+
         chunk = new PngChunk(
-            length: (int)Math.Min(length, this.currentStream.Length - position),
+            length: (int)Math.Min(length, available),
             type: type,
             data: this.ReadChunkData(length));
 

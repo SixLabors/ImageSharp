@@ -18,8 +18,47 @@ internal sealed partial class IccDataReader
     /// <param name="info">The table entry with reading information</param>
     /// <returns>the tag data entry</returns>
     public IccTagDataEntry ReadTagDataEntry(IccTagTableEntry info)
+        => this.ReadBounded(0, info.Offset, info.DataSize, static (reader, size) => reader.ReadTagData(size));
+
+    /// <summary>
+    /// Reads a tag or an embedded element within its declared byte range.
+    /// </summary>
+    /// <typeparam name="T">The decoded value type.</typeparam>
+    /// <param name="origin">The base position of the offset.</param>
+    /// <param name="offset">The byte offset from the base position.</param>
+    /// <param name="size">The number of bytes in the range.</param>
+    /// <param name="read">The parser for the bounded range.</param>
+    /// <returns>The decoded value.</returns>
+    private T ReadBounded<T>(int origin, uint offset, uint size, Func<IccDataReader, uint, T> read)
     {
-        this.currentIndex = (int)info.Offset;
+        long start = (long)origin + offset;
+        if (start < this.tagStart || start > this.tagEnd || size > this.tagEnd - start)
+        {
+            throw new InvalidIccProfileException("ICC data extends beyond the containing tag.");
+        }
+
+        int previousStart = this.tagStart;
+        int previousEnd = this.tagEnd;
+        this.currentIndex = this.tagStart = (int)start;
+        this.tagEnd = this.tagStart + (int)size;
+        try
+        {
+            return read(this, size);
+        }
+        finally
+        {
+            this.tagStart = previousStart;
+            this.tagEnd = previousEnd;
+        }
+    }
+
+    /// <summary>
+    /// Reads the tag at the current position.
+    /// </summary>
+    /// <param name="size">The tag size in bytes, including its header.</param>
+    /// <returns>The decoded tag.</returns>
+    private IccTagDataEntry ReadTagData(uint size)
+    {
         IccTypeSignature type = this.ReadTagDataEntryHeader();
 
         switch (type)
@@ -33,7 +72,7 @@ internal sealed partial class IccDataReader
             case IccTypeSignature.Curve:
                 return this.ReadCurveTagDataEntry();
             case IccTypeSignature.Data:
-                return this.ReadDataTagDataEntry(info.DataSize);
+                return this.ReadDataTagDataEntry(size);
             case IccTypeSignature.DateTime:
                 return this.ReadDateTimeTagDataEntry();
             case IccTypeSignature.Lut16:
@@ -61,25 +100,25 @@ internal sealed partial class IccDataReader
             case IccTypeSignature.ResponseCurveSet16:
                 return this.ReadResponseCurveSet16TagDataEntry();
             case IccTypeSignature.S15Fixed16Array:
-                return this.ReadFix16ArrayTagDataEntry(info.DataSize);
+                return this.ReadFix16ArrayTagDataEntry(size);
             case IccTypeSignature.Signature:
                 return this.ReadSignatureTagDataEntry();
             case IccTypeSignature.Text:
-                return this.ReadTextTagDataEntry(info.DataSize);
+                return this.ReadTextTagDataEntry(size);
             case IccTypeSignature.U16Fixed16Array:
-                return this.ReadUFix16ArrayTagDataEntry(info.DataSize);
+                return this.ReadUFix16ArrayTagDataEntry(size);
             case IccTypeSignature.UInt16Array:
-                return this.ReadUInt16ArrayTagDataEntry(info.DataSize);
+                return this.ReadUInt16ArrayTagDataEntry(size);
             case IccTypeSignature.UInt32Array:
-                return this.ReadUInt32ArrayTagDataEntry(info.DataSize);
+                return this.ReadUInt32ArrayTagDataEntry(size);
             case IccTypeSignature.UInt64Array:
-                return this.ReadUInt64ArrayTagDataEntry(info.DataSize);
+                return this.ReadUInt64ArrayTagDataEntry(size);
             case IccTypeSignature.UInt8Array:
-                return this.ReadUInt8ArrayTagDataEntry(info.DataSize);
+                return this.ReadUInt8ArrayTagDataEntry(size);
             case IccTypeSignature.ViewingConditions:
                 return this.ReadViewingConditionsTagDataEntry();
             case IccTypeSignature.Xyz:
-                return this.ReadXyzTagDataEntry(info.DataSize);
+                return this.ReadXyzTagDataEntry(size);
 
             // V2 Types:
             case IccTypeSignature.TextDescription:
@@ -89,14 +128,14 @@ internal sealed partial class IccDataReader
             case IccTypeSignature.Screening:
                 return this.ReadScreeningTagDataEntry();
             case IccTypeSignature.UcrBg:
-                return this.ReadUcrBgTagDataEntry(info.DataSize);
+                return this.ReadUcrBgTagDataEntry(size);
 
             // Unsupported or unknown
             case IccTypeSignature.DeviceSettings:
             case IccTypeSignature.NamedColor:
             case IccTypeSignature.Unknown:
             default:
-                return this.ReadUnknownTagDataEntry(info.DataSize);
+                return this.ReadUnknownTagDataEntry(size);
         }
     }
 
@@ -152,7 +191,8 @@ internal sealed partial class IccDataReader
         }
         else
         {
-            // The type is not know, so the values need be read
+            // Each channel stores two 32-bit fixed-point coordinates.
+            this.EnsureAvailable(channelCount, 2 * sizeof(uint));
             double[][] values = new double[channelCount][];
             for (int i = 0; i < channelCount; i++)
             {
@@ -181,6 +221,7 @@ internal sealed partial class IccDataReader
     public IccColorantTableTagDataEntry ReadColorantTableTagDataEntry()
     {
         uint colorantCount = this.ReadUInt32();
+        this.EnsureAvailable(colorantCount, 38);
         var cdata = new IccColorantTableEntry[colorantCount];
         for (int i = 0; i < colorantCount; i++)
         {
@@ -208,6 +249,7 @@ internal sealed partial class IccDataReader
             return new IccCurveTagDataEntry(this.ReadUFix8());
         }
 
+        this.EnsureAvailable(pointCount, sizeof(ushort));
         float[] cdata = new float[pointCount];
         for (int i = 0; i < pointCount; i++)
         {
@@ -346,31 +388,31 @@ internal sealed partial class IccDataReader
 
         if (bCurveOffset != 0)
         {
-            this.currentIndex = (int)bCurveOffset + start;
+            this.Seek(start, bCurveOffset);
             bCurve = this.ReadCurves(outChCount);
         }
 
         if (mCurveOffset != 0)
         {
-            this.currentIndex = (int)mCurveOffset + start;
+            this.Seek(start, mCurveOffset);
             mCurve = this.ReadCurves(outChCount);
         }
 
         if (aCurveOffset != 0)
         {
-            this.currentIndex = (int)aCurveOffset + start;
+            this.Seek(start, aCurveOffset);
             aCurve = this.ReadCurves(inChCount);
         }
 
         if (clutOffset != 0)
         {
-            this.currentIndex = (int)clutOffset + start;
+            this.Seek(start, clutOffset);
             clut = this.ReadClut(inChCount, outChCount, false);
         }
 
         if (matrixOffset != 0)
         {
-            this.currentIndex = (int)matrixOffset + start;
+            this.Seek(start, matrixOffset);
             matrix3x3 = this.ReadMatrix(3, 3, false);
             matrix3x1 = this.ReadMatrix(3, false);
         }
@@ -405,31 +447,31 @@ internal sealed partial class IccDataReader
 
         if (bCurveOffset != 0)
         {
-            this.currentIndex = (int)bCurveOffset + start;
+            this.Seek(start, bCurveOffset);
             bCurve = this.ReadCurves(inChCount);
         }
 
         if (mCurveOffset != 0)
         {
-            this.currentIndex = (int)mCurveOffset + start;
+            this.Seek(start, mCurveOffset);
             mCurve = this.ReadCurves(inChCount);
         }
 
         if (aCurveOffset != 0)
         {
-            this.currentIndex = (int)aCurveOffset + start;
+            this.Seek(start, aCurveOffset);
             aCurve = this.ReadCurves(outChCount);
         }
 
         if (clutOffset != 0)
         {
-            this.currentIndex = (int)clutOffset + start;
+            this.Seek(start, clutOffset);
             clut = this.ReadClut(inChCount, outChCount, false);
         }
 
         if (matrixOffset != 0)
         {
-            this.currentIndex = (int)matrixOffset + start;
+            this.Seek(start, matrixOffset);
             matrix3x3 = this.ReadMatrix(3, 3, false);
             matrix3x1 = this.ReadMatrix(3, false);
         }
@@ -461,6 +503,7 @@ internal sealed partial class IccDataReader
         uint recordCount = this.ReadUInt32();
 
         this.ReadUInt32();  // Record size (always 12)
+        this.EnsureAvailable(recordCount, 12);
         var text = new IccLocalizedString[recordCount];
 
         var culture = new CultureInfo[recordCount];
@@ -477,10 +520,38 @@ internal sealed partial class IccDataReader
             offset[i] = this.ReadUInt32();
         }
 
+        int textStart = this.currentIndex;
+        int remainingTextBytes = this.tagEnd - textStart;
+        Dictionary<(uint Offset, uint Length), string> decoded = recordCount > 1 ? new() : null;
         for (int i = 0; i < recordCount; i++)
         {
-            this.currentIndex = (int)(start + offset[i]);
-            text[i] = new IccLocalizedString(culture[i], this.ReadUnicodeString((int)length[i]));
+            this.Seek(start, offset[i]);
+            uint byteLength = length[i];
+            if (byteLength != 0 && this.currentIndex < textStart)
+            {
+                throw new InvalidIccProfileException("ICC localized text overlaps its record table.");
+            }
+
+            // The ICC writer shares the same encoded string across cultures. Decode each range once.
+            (uint Offset, uint Length) range = (offset[i], byteLength);
+            string value;
+            if (decoded != null && decoded.TryGetValue(range, out value))
+            {
+                this.AddIndex((int)byteLength);
+            }
+            else
+            {
+                if (byteLength > (uint)remainingTextBytes)
+                {
+                    throw new InvalidIccProfileException("ICC localized strings exceed the available text data.");
+                }
+
+                value = this.ReadUnicodeString((int)byteLength);
+                remainingTextBytes -= (int)byteLength;
+                decoded?.Add(range, value);
+            }
+
+            text[i] = new IccLocalizedString(culture[i], value);
         }
 
         return new IccMultiLocalizedUnicodeTagDataEntry(text);
@@ -528,6 +599,7 @@ internal sealed partial class IccDataReader
         this.ReadUInt16();
         uint elementCount = this.ReadUInt32();
 
+        this.EnsureAvailable(elementCount, 8);
         var positionTable = new IccPositionNumber[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
@@ -537,8 +609,11 @@ internal sealed partial class IccDataReader
         var elements = new IccMultiProcessElement[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
-            this.currentIndex = (int)positionTable[i].Offset + start;
-            elements[i] = this.ReadMultiProcessElement();
+            elements[i] = this.ReadBounded(
+                start,
+                positionTable[i].Offset,
+                positionTable[i].Size,
+                static (reader, _) => reader.ReadMultiProcessElement());
         }
 
         return new IccMultiProcessElementsTagDataEntry(elements);
@@ -556,6 +631,7 @@ internal sealed partial class IccDataReader
         string prefix = this.ReadAsciiString(32);
         string suffix = this.ReadAsciiString(32);
 
+        this.EnsureAvailable(colorCount, 38 + (2UL * coordCount));
         var colors = new IccNamedColor[colorCount];
         for (int i = 0; i < colorCount; i++)
         {
@@ -581,6 +657,7 @@ internal sealed partial class IccDataReader
     public IccProfileSequenceDescTagDataEntry ReadProfileSequenceDescTagDataEntry()
     {
         uint count = this.ReadUInt32();
+        this.EnsureAvailable(count, 36);
         var description = new IccProfileDescription[count];
         for (int i = 0; i < count; i++)
         {
@@ -598,6 +675,7 @@ internal sealed partial class IccDataReader
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
         uint count = this.ReadUInt32();
+        this.EnsureAvailable(count, 8);
         var table = new IccPositionNumber[count];
         for (int i = 0; i < count; i++)
         {
@@ -607,11 +685,17 @@ internal sealed partial class IccDataReader
         var entries = new IccProfileSequenceIdentifier[count];
         for (int i = 0; i < count; i++)
         {
-            this.currentIndex = (int)(start + table[i].Offset);
-            IccProfileId id = this.ReadProfileId();
-            this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
-            IccMultiLocalizedUnicodeTagDataEntry description = this.ReadMultiLocalizedUnicodeTagDataEntry();
-            entries[i] = new IccProfileSequenceIdentifier(id, description.Texts);
+            entries[i] = this.ReadBounded(
+                start,
+                table[i].Offset,
+                table[i].Size,
+                static (reader, _) =>
+                {
+                    IccProfileId id = reader.ReadProfileId();
+                    reader.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
+                    IccMultiLocalizedUnicodeTagDataEntry description = reader.ReadMultiLocalizedUnicodeTagDataEntry();
+                    return new IccProfileSequenceIdentifier(id, description.Texts);
+                });
         }
 
         return new IccProfileSequenceIdentifierTagDataEntry(entries);
@@ -627,6 +711,7 @@ internal sealed partial class IccDataReader
         ushort channelCount = this.ReadUInt16();
         ushort measurementCount = this.ReadUInt16();
 
+        this.EnsureAvailable(measurementCount, sizeof(uint));
         uint[] offset = new uint[measurementCount];
         for (int i = 0; i < measurementCount; i++)
         {
@@ -636,7 +721,7 @@ internal sealed partial class IccDataReader
         var curves = new IccResponseCurve[measurementCount];
         for (int i = 0; i < measurementCount; i++)
         {
-            this.currentIndex = (int)(start + offset[i]);
+            this.Seek(start, offset[i]);
             curves[i] = this.ReadResponseCurve(channelCount);
         }
 
@@ -806,10 +891,11 @@ internal sealed partial class IccDataReader
         }
 
         uint unicodeLangCode = this.ReadUInt32();
-        int unicodeCount = (int)this.ReadUInt32();
+        uint unicodeCount = this.ReadUInt32();
         if (unicodeCount > 0)
         {
-            unicodeValue = this.ReadUnicodeString((unicodeCount * 2) - 2);
+            this.EnsureAvailable(unicodeCount, sizeof(char));
+            unicodeValue = this.ReadUnicodeString(((int)unicodeCount - 1) * sizeof(char));
             this.AddIndex(2);  // Null terminator
         }
 
@@ -861,6 +947,7 @@ internal sealed partial class IccDataReader
     {
         var flags = (IccScreeningFlag)this.ReadInt32();
         uint channelCount = this.ReadUInt32();
+        this.EnsureAvailable(channelCount, 12);
         var channels = new IccScreeningChannel[channelCount];
         for (int i = 0; i < channels.Length; i++)
         {
@@ -878,6 +965,7 @@ internal sealed partial class IccDataReader
     public IccUcrBgTagDataEntry ReadUcrBgTagDataEntry(uint size)
     {
         uint ucrCount = this.ReadUInt32();
+        this.EnsureAvailable(ucrCount, sizeof(ushort));
         ushort[] ucrCurve = new ushort[ucrCount];
         for (int i = 0; i < ucrCurve.Length; i++)
         {
@@ -885,6 +973,7 @@ internal sealed partial class IccDataReader
         }
 
         uint bgCount = this.ReadUInt32();
+        this.EnsureAvailable(bgCount, sizeof(ushort));
         ushort[] bgCurve = new ushort[bgCount];
         for (int i = 0; i < bgCurve.Length; i++)
         {

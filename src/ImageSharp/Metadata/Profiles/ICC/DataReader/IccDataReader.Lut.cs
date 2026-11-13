@@ -24,6 +24,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read LUT</returns>
     public IccLut ReadLut16(int count)
     {
+        this.EnsureAvailable((uint)count, sizeof(ushort));
         var values = new ushort[count];
         for (int i = 0; i < count; i++)
         {
@@ -43,9 +44,14 @@ internal sealed partial class IccDataReader
     /// <returns>The read CLUT</returns>
     public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
     {
-        // Grid-points are always 16 bytes long but only 0-inChCount are used
+        if (inChannelCount is < 1 or > IccClut.GridSizeFieldLength)
+        {
+            throw new InvalidIccProfileException("Invalid CLUT channel count.");
+        }
+
+        // The unused input-channel grid sizes are padding.
         var gridPointCount = new byte[inChannelCount];
-        Buffer.BlockCopy(this.data, this.AddIndex(16), gridPointCount, 0, inChannelCount);
+        Buffer.BlockCopy(this.data, this.AddIndex(IccClut.GridSizeFieldLength), gridPointCount, 0, inChannelCount);
 
         if (!isFloat)
         {
@@ -174,7 +180,7 @@ internal sealed partial class IccDataReader
         // complete encoded payload before allocating the node arrays from untrusted dimensions.
         long valueCount = (long)length * outputChannelCount;
         long byteCount = valueCount * bytesPerValue;
-        if (valueCount > int.MaxValue || byteCount > this.data.Length - this.currentIndex)
+        if (valueCount > int.MaxValue || byteCount > this.tagEnd - this.currentIndex)
         {
             throw new InvalidIccProfileException("The CLUT data is shorter than its declared dimensions.");
         }

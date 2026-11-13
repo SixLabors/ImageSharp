@@ -18,6 +18,12 @@ internal sealed partial class IccDataReader
     {
         ushort segmentCount = this.ReadUInt16();
         this.AddIndex(2);   // 2 bytes reserved
+        if (segmentCount == 0)
+        {
+            throw new InvalidIccProfileException("An ICC curve must contain a segment.");
+        }
+
+        this.EnsureAvailable(segmentCount, 8);
         var breakPoints = new float[segmentCount - 1];
         for (int i = 0; i < breakPoints.Length; i++)
         {
@@ -41,6 +47,7 @@ internal sealed partial class IccDataReader
     public IccResponseCurve ReadResponseCurve(int channelCount)
     {
         var type = (IccCurveMeasurementEncodings)this.ReadUInt32();
+        this.EnsureAvailable((uint)channelCount, 16);
         var measurement = new uint[channelCount];
         for (int i = 0; i < channelCount; i++)
         {
@@ -56,6 +63,7 @@ internal sealed partial class IccDataReader
         var response = new IccResponseNumber[channelCount][];
         for (int i = 0; i < channelCount; i++)
         {
+            this.EnsureAvailable(measurement[i], 6);
             response[i] = new IccResponseNumber[measurement[i]];
             for (uint j = 0; j < measurement[i]; j++)
             {
@@ -175,6 +183,7 @@ internal sealed partial class IccDataReader
     public IccSampledCurveElement ReadSampledCurveElement()
     {
         uint count = this.ReadUInt32();
+        this.EnsureAvailable(count, sizeof(float));
         var entries = new float[count];
         for (int i = 0; i < count; i++)
         {
@@ -191,6 +200,7 @@ internal sealed partial class IccDataReader
     /// <returns>The curve data</returns>
     private IccTagDataEntry[] ReadCurves(int count)
     {
+        this.EnsureAvailable((uint)count, 8);
         var tdata = new IccTagDataEntry[count];
         for (int i = 0; i < count; i++)
         {

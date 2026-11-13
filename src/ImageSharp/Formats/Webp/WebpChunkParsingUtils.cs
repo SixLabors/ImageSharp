@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -284,21 +285,30 @@ internal static class WebpChunkParsingUtils
     /// <returns>The chunk size in bytes.</returns>
     public static uint ReadChunkSize(Stream stream, Span<byte> buffer)
     {
-        DebugGuard.IsTrue(buffer.Length is 4, "buffer has wrong length");
-
-        if (stream.Read(buffer) is 4)
+        uint size = ReadChunkPayloadSize(stream, buffer);
+        if (size == uint.MaxValue)
         {
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            if (chunkSize == uint.MaxValue)
-            {
-                // The mandatory padding byte cannot fit in the returned 32-bit extent.
-                WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP chunk size.");
-            }
-
-            return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
+            WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP chunk size.");
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        return size + (size & 1);
+    }
+
+    /// <summary>
+    /// Reads a RIFF chunk size without including its padding byte.
+    /// </summary>
+    /// <param name="stream">The input positioned at the size field.</param>
+    /// <param name="buffer">A four-byte scratch buffer.</param>
+    /// <returns>The number of payload bytes.</returns>
+    public static uint ReadChunkPayloadSize(Stream stream, Span<byte> buffer)
+    {
+        DebugGuard.IsTrue(buffer.Length is 4, "buffer has wrong length");
+        if (stream.Read(buffer) != 4)
+        {
+            throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        }
+
+        return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
     }
 
     /// <summary>
@@ -323,85 +333,93 @@ internal static class WebpChunkParsingUtils
     }
 
     /// <summary>
-    /// Parses optional metadata chunks. There SHOULD be at most one chunk of each type ('EXIF' and 'XMP ').
-    /// If there are more such chunks, readers MAY ignore all except the first one.
-    /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
+    /// Reads or skips a single metadata chunk within the RIFF container.
     /// </summary>
-    public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, Span<byte> buffer)
+    /// <param name="stream">The input positioned at the chunk size.</param>
+    /// <param name="chunkType">The chunk identifier.</param>
+    /// <param name="metadata">The metadata to update.</param>
+    /// <param name="ignoreMetadata">Whether to skip the payload.</param>
+    /// <param name="buffer">A four-byte scratch buffer.</param>
+    /// <param name="containerEnd">The end of the RIFF container.</param>
+    public static void ReadMetadataChunk(
+        BufferedReadStream stream,
+        WebpChunkType chunkType,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        Span<byte> buffer,
+        long containerEnd)
     {
-        long streamLength = stream.Length;
-        while (stream.Position < streamLength)
+        uint payloadLength = ReadChunkPayloadSize(stream, buffer);
+        ulong paddedLength = (ulong)payloadLength + (payloadLength & 1);
+        long available = containerEnd - stream.Position;
+        if (available < 0 || paddedLength > (ulong)available || payloadLength > Array.MaxLength)
         {
-            int chunkLength = ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer));
-
-            if (ignoreMetaData)
+            stream.Position = containerEnd;
+            if (chunkType == WebpChunkType.Iccp && !ignoreMetadata)
             {
-                stream.Skip((int)chunkLength);
-                continue;
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICC profile.");
             }
 
-            int bytesRead;
+            return;
+        }
+
+        long end = stream.Position + (long)paddedLength;
+        if (ignoreMetadata || chunkType switch
+            {
+                WebpChunkType.Exif => metadata.ExifProfile is not null,
+                WebpChunkType.Xmp => metadata.XmpProfile is not null,
+                WebpChunkType.Iccp => metadata.IccProfile is not null,
+                _ => true,
+            })
+        {
+            stream.Position = end;
+            return;
+        }
+
+        try
+        {
             switch (chunkType)
             {
                 case WebpChunkType.Exif:
-                    byte[] exifData = new byte[chunkLength];
-                    bytesRead = stream.Read(exifData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
+                    if (ExifReader.TryReadProfile(stream, payloadLength, out ExifProfile? exif))
                     {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
-                    }
-
-                    if (metadata.ExifProfile == null)
-                    {
-                        ExifProfile exifProfile = new(exifData);
-
-                        // Set the resolution from the metadata.
-                        double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
-                        double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
-
-                        if (horizontalValue > 0 && verticalValue > 0)
+                        if (!metadata.TrySetExifProfile(exif))
                         {
-                            metadata.HorizontalResolution = horizontalValue;
-                            metadata.VerticalResolution = verticalValue;
-                            metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
+                            break;
                         }
 
-                        metadata.ExifProfile = exifProfile;
+                        double horizontal = GetExifResolutionValue(exif, ExifTag.XResolution);
+                        double vertical = GetExifResolutionValue(exif, ExifTag.YResolution);
+                        if (horizontal > 0 && vertical > 0)
+                        {
+                            metadata.HorizontalResolution = horizontal;
+                            metadata.VerticalResolution = vertical;
+                            metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exif);
+                        }
                     }
 
                     break;
                 case WebpChunkType.Xmp:
-                    byte[] xmpData = new byte[chunkLength];
-                    bytesRead = stream.Read(xmpData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
+                    if (XmpReader.TryReadProfile(stream, payloadLength, out XmpProfile? xmp))
                     {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
+                        metadata.XmpProfile = xmp;
                     }
 
-                    metadata.XmpProfile ??= new XmpProfile(xmpData);
-
                     break;
-                default:
-                    stream.Skip((int)chunkLength);
+                case WebpChunkType.Iccp:
+                    if (IccReader.TryReadProfile(stream, payloadLength, out IccProfile? icc))
+                    {
+                        metadata.IccProfile = icc;
+                    }
+
                     break;
             }
         }
-    }
-
-    /// <summary>
-    /// Validates a metadata extent before allocating or skipping its payload.
-    /// </summary>
-    /// <param name="stream">The stream positioned at the payload.</param>
-    /// <param name="chunkSize">The declared size including padding.</param>
-    /// <returns>The size supported by the array and stream read APIs.</returns>
-    public static int ValidateMetadataChunkSize(BufferedReadStream stream, uint chunkSize)
-    {
-        if (chunkSize > int.MaxValue || chunkSize > stream.Length - stream.Position)
+        finally
         {
-            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
+            // The reader consumes the payload. Only RIFF knows where the padding ends.
+            stream.Position = end;
         }
-
-        return (int)chunkSize;
     }
 
     private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)

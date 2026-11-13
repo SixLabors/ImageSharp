@@ -5,10 +5,12 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -27,6 +29,67 @@ internal class ExifReader : BaseExifReader
     }
 
     /// <summary>
+    /// Reads the complete EXIF packet after checking its length.
+    /// </summary>
+    /// <param name="stream">The input positioned at the packet.</param>
+    /// <param name="length">The declared packet length.</param>
+    /// <param name="profile">The EXIF profile when the read succeeds.</param>
+    /// <returns>Whether the entire packet was read.</returns>
+    public static bool TryReadProfile(Stream stream, long length, [NotNullWhen(true)] out ExifProfile? profile)
+    {
+        profile = null;
+        if (!stream.TryReadExactly(length, out byte[]? data))
+        {
+            return false;
+        }
+
+        profile = new ExifProfile(data);
+        return true;
+    }
+
+    /// <summary>
+    /// Creates a profile from borrowed bytes, retaining a copy for lazy tag parsing.
+    /// </summary>
+    /// <param name="data">The bounded EXIF bytes.</param>
+    /// <returns>The EXIF profile.</returns>
+    public static ExifProfile ReadProfile(ReadOnlySpan<byte> data) => new(data.ToArray());
+
+    /// <summary>
+    /// Reads EXIF from the legacy PNG text format.
+    /// </summary>
+    /// <param name="text">The EXIF label, byte length, and hex data.</param>
+    /// <returns>The decoded profile, or null if the text is invalid.</returns>
+    public static ExifProfile? ReadLegacyText(ReadOnlySpan<char> text)
+    {
+        const string Label = "exif";
+        const string Signature = "457869660000"; // "Exif" followed by two zero bytes.
+        text = text.TrimStart();
+        if (!text.StartsWith(Label, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        text = text[Label.Length..].TrimStart();
+        int lengthEnd = text.IndexOf('\n');
+        if (lengthEnd < 0 ||
+            !int.TryParse(text[..lengthEnd], NumberStyles.Integer, CultureInfo.InvariantCulture, out int length) ||
+            length < Signature.Length / 2)
+        {
+            return null;
+        }
+
+        // The declared byte length includes the signature, which ExifProfile does not store.
+        ReadOnlySpan<char> hex = text[(lengthEnd + 1)..].TrimStart();
+        if (!hex.StartsWith(Signature, StringComparison.OrdinalIgnoreCase) ||
+            !HexConverter.TryDecodeLines(hex[Signature.Length..], length - (Signature.Length / 2), out byte[]? data))
+        {
+            return null;
+        }
+
+        return new ExifProfile(data);
+    }
+
+    /// <summary>
     /// Reads and returns the collection of EXIF values.
     /// </summary>
     /// <returns>
@@ -36,8 +99,13 @@ internal class ExifReader : BaseExifReader
     {
         List<IExifValue> values = new();
 
-        // II == 0x4949
-        this.IsBigEndian = this.ReadUInt16() != 0x4949;
+        ushort byteOrder = this.ReadUInt16();
+        if (byteOrder is not (0x4949 or 0x4D4D))
+        {
+            return values;
+        }
+
+        this.IsBigEndian = byteOrder == 0x4D4D;
 
         if (this.ReadUInt16() != 0x002A)
         {
@@ -45,12 +113,12 @@ internal class ExifReader : BaseExifReader
         }
 
         uint ifdOffset = this.ReadUInt32();
-        this.ReadValues(values, ifdOffset);
+        if (ifdOffset >= 8 && this.ReadValues(values, ifdOffset))
+        {
+            this.GetThumbnail(this.ReadUInt32());
+        }
 
-        uint thumbnailOffset = this.ReadUInt32();
-        this.GetThumbnail(thumbnailOffset);
-
-        this.ReadSubIfd(values);
+        this.ReadSubIfd(values, ifdOffset);
 
         this.ReadBigValues(values);
 
@@ -78,6 +146,39 @@ internal class ExifReader : BaseExifReader
             {
                 this.ThumbnailLength = ((ExifLong)value).Value;
             }
+        }
+    }
+
+    /// <summary>
+    /// Collects complete EXIF segments before the profile is parsed.
+    /// </summary>
+    internal sealed class SegmentReader
+    {
+        private byte[]? data;
+        private int written;
+
+        /// <summary>
+        /// Appends a complete EXIF segment.
+        /// </summary>
+        /// <param name="stream">The input positioned at the segment.</param>
+        /// <param name="length">The segment payload length.</param>
+        /// <returns>Whether the segment was read in full.</returns>
+        public bool TryRead(Stream stream, int length)
+            => length == 0 || stream.TryAppendExactly(ref this.data, ref this.written, length, Array.MaxLength);
+
+        /// <summary>
+        /// Creates the profile from the complete segments.
+        /// </summary>
+        /// <returns>The assembled EXIF profile.</returns>
+        public ExifProfile? ToProfile()
+        {
+            if (this.data is null)
+            {
+                return null;
+            }
+
+            byte[] packet = this.written == this.data.Length ? this.data : this.data.AsSpan(0, this.written).ToArray();
+            return new ExifProfile(packet);
         }
     }
 }
@@ -179,30 +280,44 @@ internal abstract class BaseExifReader
     /// </summary>
     /// <param name="values">The values.</param>
     /// <param name="offset">The IFD offset.</param>
-    protected void ReadValues(List<IExifValue> values, uint offset)
+    /// <returns>Whether the entire entry table was available.</returns>
+    protected bool ReadValues(List<IExifValue> values, uint offset)
     {
-        if (offset > this.data.Length)
+        long length = this.data.Length;
+        if (length - offset < sizeof(ushort))
         {
-            return;
+            return false;
         }
 
         this.Seek(offset);
         int count = this.ReadUInt16();
 
+        // A classic directory entry is 12 bytes. Read only complete entries so callers can identify a truncated table.
+        int readableCount = (int)Math.Min(count, (length - this.data.Position) / 12);
         Span<byte> offsetBuffer = stackalloc byte[4];
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < readableCount; i++)
         {
             this.ReadValue(values, offsetBuffer);
         }
+
+        return readableCount == count;
     }
 
-    protected void ReadSubIfd(List<IExifValue> values)
+    /// <summary>
+    /// Reads referenced classic directories once, within the existing traversal limits.
+    /// </summary>
+    /// <param name="values">The collection of decoded directory entries.</param>
+    /// <param name="ifdOffset">The offset of the directory that started the traversal.</param>
+    protected void ReadSubIfd(List<IExifValue> values, ulong ifdOffset)
     {
         if (this.subIfds != null)
         {
             const int maxSubIfds = 8;
             const int maxNestingLevel = 8;
             Span<ulong> buf = stackalloc ulong[maxSubIfds];
+            Span<ulong> visited = stackalloc ulong[(maxSubIfds * maxNestingLevel) + 1];
+            visited[0] = ifdOffset;
+            int visitedCount = 1;
             for (int i = 0; i < maxNestingLevel && this.subIfds.Count > 0; i++)
             {
                 int sz = Math.Min(this.subIfds.Count, maxSubIfds);
@@ -211,7 +326,11 @@ internal abstract class BaseExifReader
                 this.subIfds.Clear();
                 foreach (ulong subIfdOffset in buf[..sz])
                 {
-                    this.ReadValues(values, (uint)subIfdOffset);
+                    if (subIfdOffset <= uint.MaxValue && !visited[..visitedCount].Contains(subIfdOffset))
+                    {
+                        visited[visitedCount++] = subIfdOffset;
+                        this.ReadValues(values, (uint)subIfdOffset);
+                    }
                 }
             }
         }

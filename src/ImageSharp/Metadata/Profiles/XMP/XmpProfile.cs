@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
-using System.Text;
 using System.Xml.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -48,28 +46,19 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// Gets the raw XML document containing the XMP profile.
     /// </summary>
     /// <returns>The <see cref="XDocument"/></returns>
-    public XDocument? GetDocument()
-    {
-        byte[]? byteArray = this.Data;
-        if (byteArray is null)
-        {
-            return null;
-        }
+    public XDocument? GetDocument() => XmpReader.ReadDocument(this.Data);
 
-        // Strip leading whitespace, as the XmlReader doesn't like them.
-        int count = byteArray.Length;
-        for (int i = count - 1; i > 0; i--)
-        {
-            if (byteArray[i] is 0 or 0x0f)
-            {
-                count--;
-            }
-        }
+    /// <summary>
+    /// Checks that the profile contains an XMP packet.
+    /// </summary>
+    /// <returns>Whether the packet is nonempty.</returns>
+    internal bool Validate() => this.Data?.Length > 0;
 
-        using MemoryStream stream = new(byteArray, 0, count);
-        using StreamReader reader = new(stream, Encoding.UTF8);
-        return XDocument.Load(reader);
-    }
+    /// <summary>
+    /// Gets the packet bytes for an encoder.
+    /// </summary>
+    /// <returns>The existing packet, or null when it is empty.</returns>
+    internal byte[]? GetDataForEncoding() => this.Validate() ? this.Data : null;
 
     /// <summary>
     /// Convert the content of this <see cref="XmpProfile"/> into a byte array.

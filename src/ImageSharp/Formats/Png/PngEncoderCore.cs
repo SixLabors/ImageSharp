@@ -906,7 +906,11 @@ internal sealed class PngEncoderCore : IDisposable
         }
 
         meta.SyncProfiles();
-        this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
+        byte[]? exifData = meta.ExifProfile.GetDataForEncoding();
+        if (exifData != null)
+        {
+            this.WriteChunk(stream, PngChunkType.Exif, exifData);
+        }
     }
 
     /// <summary>
@@ -922,14 +926,8 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        if (meta.XmpProfile is null)
-        {
-            return;
-        }
-
-        byte[]? xmpData = meta.XmpProfile.Data;
-
-        if (xmpData?.Length is 0 or null)
+        byte[]? xmpData = meta.XmpProfile?.GetDataForEncoding();
+        if (xmpData is null)
         {
             return;
         }
@@ -963,7 +961,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
-        if (metaData.CicpProfile is null)
+        if (metaData.CicpProfile?.Validate() != true)
         {
             return;
         }
@@ -989,7 +987,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="metaData">The image meta data.</param>
     private void WriteColorProfileChunk(Stream stream, ImageMetadata metaData)
     {
-        if (metaData.IccProfile is null)
+        if (metaData.IccProfile?.Validate() != true)
         {
             return;
         }

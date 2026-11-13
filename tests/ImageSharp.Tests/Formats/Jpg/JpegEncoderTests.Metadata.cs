@@ -56,8 +56,9 @@ public partial class JpegEncoderTests
     {
         // arrange
         using var input = new Image<Rgba32>(1, 1);
-        input.Metadata.ExifProfile = new ExifProfile();
-        input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "unit_test");
+        input.Metadata.ExifProfile = exifProfile;
 
         // act
         using var memStream = new MemoryStream();

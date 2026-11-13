@@ -48,6 +48,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read <see cref="IccCurveSetProcessElement"/></returns>
     public IccCurveSetProcessElement ReadCurveSetProcessElement(int inChannelCount, int outChannelCount)
     {
+        this.EnsureAvailable((uint)inChannelCount, 4);
         var curves = new IccOneDimensionalCurve[inChannelCount];
         for (int i = 0; i < inChannelCount; i++)
         {

@@ -1351,10 +1351,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
                 }
 
-                byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
                 stream.Position = profileStart;
-                stream.Read(iccProfileData);
-                this.metadata.IccProfile = new IccProfile(iccProfileData);
+                if (IccReader.TryReadProfile(stream, this.infoHeader.ProfileSize, out IccProfile? profile))
+                {
+                    this.metadata.IccProfile = profile;
+                }
+
                 stream.Position = streamPosition;
             }
         }

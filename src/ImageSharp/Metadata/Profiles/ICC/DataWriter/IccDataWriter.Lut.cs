@@ -46,7 +46,7 @@ internal sealed partial class IccDataWriter
     public int WriteClut(IccClut value)
     {
         int count = this.WriteArray(value.GridPointCount);
-        count += this.WriteEmpty(16 - value.GridPointCount.Length);
+        count += this.WriteEmpty(IccClut.GridSizeFieldLength - value.GridPointCount.Length);
 
         switch (value.DataType)
         {

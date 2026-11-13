@@ -265,7 +265,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         ImageFrameMetadata imageFrameMetaData = new();
         if (!this.skipMetadata)
         {
-            imageFrameMetaData.ExifProfile = tags;
+            imageFrameMetaData.TrySetExifProfile(tags);
         }
 
         TiffFrameMetadata.Parse(imageFrameMetaData.GetTiffMetadata(), tags);

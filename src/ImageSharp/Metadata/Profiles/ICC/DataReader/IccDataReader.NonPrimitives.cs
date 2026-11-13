@@ -104,6 +104,7 @@ internal sealed partial class IccDataReader
     {
         string name = this.ReadAsciiString(32);
         ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
+        this.EnsureAvailable(deviceCoordCount, sizeof(ushort));
         var deviceCoord = new ushort[deviceCoordCount];
 
         for (int i = 0; i < deviceCoordCount; i++)

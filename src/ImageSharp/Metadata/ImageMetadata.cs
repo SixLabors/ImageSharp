@@ -34,6 +34,11 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
     private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
+    private ExifProfile? exifProfile;
+    private XmpProfile? xmpProfile;
+    private CicpProfile? cicpProfile;
+    private IccProfile? iccProfile;
+    private IptcProfile? iptcProfile;
     private double horizontalResolution;
     private double verticalResolution;
 
@@ -65,11 +70,12 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
             this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
         }
 
-        this.ExifProfile = other.ExifProfile?.DeepClone();
-        this.IccProfile = other.IccProfile?.DeepClone();
-        this.IptcProfile = other.IptcProfile?.DeepClone();
-        this.XmpProfile = other.XmpProfile?.DeepClone();
-        this.CicpProfile = other.CicpProfile?.DeepClone();
+        this.exifProfile = other.exifProfile?.Validate() == true ? other.exifProfile.DeepClone() : null;
+        this.iccProfile = other.iccProfile?.CloneForMetadata();
+        this.iptcProfile = other.iptcProfile?.Validate() == true ? other.iptcProfile.DeepClone() : null;
+        XmpProfile? xmp = other.xmpProfile?.DeepClone();
+        this.xmpProfile = xmp?.Validate() == true ? xmp : null;
+        this.cicpProfile = other.cicpProfile?.Validate() == true ? other.cicpProfile.DeepClone() : null;
 
         // NOTE: This clone is actually shallow but we share the same format
         // instances for all images in the configuration.
@@ -140,29 +146,90 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public PixelResolutionUnit ResolutionUnits { get; set; }
 
     /// <summary>
-    /// Gets or sets the Exif profile.
+    /// Gets or sets the EXIF profile. Assign null to clear it.
     /// </summary>
-    public ExifProfile? ExifProfile { get; set; }
+    /// <exception cref="ArgumentException">The supplied profile is invalid or empty.</exception>
+    public ExifProfile? ExifProfile
+    {
+        get => this.exifProfile;
+        set
+        {
+            if (!this.TrySetExifProfile(value))
+            {
+                throw new ArgumentException("The EXIF profile is invalid or empty.", nameof(value));
+            }
+        }
+    }
 
     /// <summary>
-    /// Gets or sets the XMP profile.
+    /// Gets or sets the XMP profile. Assign null to clear it.
     /// </summary>
-    public XmpProfile? XmpProfile { get; set; }
+    /// <exception cref="ArgumentException">The supplied profile is invalid or empty.</exception>
+    public XmpProfile? XmpProfile
+    {
+        get => this.xmpProfile;
+        set
+        {
+            if (value != null && !value.Validate())
+            {
+                throw new ArgumentException("The XMP profile is invalid or empty.", nameof(value));
+            }
+
+            this.xmpProfile = value;
+        }
+    }
 
     /// <summary>
-    /// Gets or sets the ICC profile.
+    /// Gets or sets the ICC profile. Assign null to clear it.
     /// </summary>
-    public IccProfile? IccProfile { get; set; }
+    /// <exception cref="ArgumentException">The supplied profile is invalid or empty.</exception>
+    public IccProfile? IccProfile
+    {
+        get => this.iccProfile;
+        set
+        {
+            if (value != null && !value.Validate())
+            {
+                throw new ArgumentException("The ICC profile is invalid or empty.", nameof(value));
+            }
+
+            this.iccProfile = value;
+        }
+    }
 
     /// <summary>
-    /// Gets or sets the IPTC profile.
+    /// Gets or sets the IPTC profile. Assign null to clear it.
     /// </summary>
-    public IptcProfile? IptcProfile { get; set; }
+    /// <exception cref="ArgumentException">The supplied profile is invalid or empty.</exception>
+    public IptcProfile? IptcProfile
+    {
+        get => this.iptcProfile;
+        set
+        {
+            if (!this.TrySetIptcProfile(value))
+            {
+                throw new ArgumentException("The IPTC profile is invalid or empty.", nameof(value));
+            }
+        }
+    }
 
     /// <summary>
-    /// Gets or sets the CICP profile.
+    /// Gets or sets the CICP profile. Assign null to clear it.
     /// </summary>
-    public CicpProfile? CicpProfile { get; set; }
+    /// <exception cref="ArgumentException">The supplied profile is invalid or empty.</exception>
+    public CicpProfile? CicpProfile
+    {
+        get => this.cicpProfile;
+        set
+        {
+            if (value != null && !value.Validate())
+            {
+                throw new ArgumentException("The CICP profile is invalid or empty.", nameof(value));
+            }
+
+            this.cicpProfile = value;
+        }
+    }
 
     /// <summary>
     /// Gets the original format, if any, the image was decode from.
@@ -214,6 +281,38 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
 
         metadata = default;
         return false;
+    }
+
+    /// <summary>
+    /// Stores decoded EXIF metadata when the profile is valid.
+    /// </summary>
+    /// <param name="profile">The profile to store, or null to clear it.</param>
+    /// <returns>Whether the profile was stored.</returns>
+    internal bool TrySetExifProfile(ExifProfile? profile)
+    {
+        if (profile != null && !profile.Validate())
+        {
+            return false;
+        }
+
+        this.exifProfile = profile;
+        return true;
+    }
+
+    /// <summary>
+    /// Stores decoded IPTC metadata when the profile is valid.
+    /// </summary>
+    /// <param name="profile">The profile to store, or null to clear it.</param>
+    /// <returns>Whether the profile was stored.</returns>
+    internal bool TrySetIptcProfile(IptcProfile? profile)
+    {
+        if (profile != null && !profile.Validate())
+        {
+            return false;
+        }
+
+        this.iptcProfile = profile;
+        return true;
     }
 
     /// <inheritdoc/>

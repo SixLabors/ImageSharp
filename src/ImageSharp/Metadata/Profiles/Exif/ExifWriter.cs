@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 internal sealed class ExifWriter
 {
     /// <summary>
+    /// The size of the tag, type, and component count fields in a classic directory entry.
+    /// </summary>
+    internal const int DirectoryEntryHeaderLength = 8;
+
+    /// <summary>
     /// Which parts will be written.
     /// </summary>
     private readonly ExifParts allowedParts;
@@ -47,11 +52,11 @@ internal sealed class ExifWriter
         IExifValue? exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
         IExifValue? gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
 
-        uint ifdLength = GetLength(this.ifdValues);
-        uint exifLength = GetLength(this.exifValues);
-        uint gpsLength = GetLength(this.gpsValues);
+        ulong ifdLength = GetLength(this.ifdValues);
+        ulong exifLength = GetLength(this.exifValues);
+        ulong gpsLength = GetLength(this.gpsValues);
 
-        uint length = ifdLength + exifLength + gpsLength;
+        ulong length = ifdLength + exifLength + gpsLength;
 
         if (length == 0)
         {
@@ -64,7 +69,12 @@ internal sealed class ExifWriter
         // first IFD offset
         length += 4;
 
-        byte[] result = new byte[length];
+        if (length > (ulong)Array.MaxLength)
+        {
+            throw new ImageFormatException("The EXIF profile exceeds the supported size.");
+        }
+
+        byte[] result = new byte[(int)length];
 
         int i = 0;
 
@@ -74,8 +84,9 @@ internal sealed class ExifWriter
 
         uint ifdOffset = (uint)i - startIndex + 4U;
 
-        exifOffset?.TrySetValue(ifdOffset + ifdLength);
-        gpsOffset?.TrySetValue(ifdOffset + ifdLength + exifLength);
+        // The full profile fits in the output array, so its directory offsets fit in four bytes.
+        exifOffset?.TrySetValue(ifdOffset + (uint)ifdLength);
+        gpsOffset?.TrySetValue(ifdOffset + (uint)(ifdLength + exifLength));
 
         i = WriteUInt32(ifdOffset, result, i);
         i = this.WriteHeaders(this.ifdValues, result, i);
@@ -241,20 +252,26 @@ internal sealed class ExifWriter
         return true;
     }
 
-    private static uint GetLength(IList<IExifValue> values)
+    private static ulong GetLength(IList<IExifValue> values)
     {
         if (values.Count == 0)
         {
             return 0;
         }
 
-        uint length = 2;
+        if (values.Count > ushort.MaxValue)
+        {
+            throw new ImageFormatException("An EXIF directory contains too many entries.");
+        }
+
+        // Count the whole directory in 64 bits. GetData checks the total against the output array limit.
+        ulong length = 2;
 
         foreach (IExifValue value in values)
         {
             uint valueLength = GetLength(value);
 
-            length += 12;
+            length += DirectoryEntryHeaderLength + 4;
 
             if (valueLength > 4)
             {
@@ -263,12 +280,15 @@ internal sealed class ExifWriter
         }
 
         // next IFD offset
-        length += 4;
-
-        return length;
+        return length + 4;
     }
 
-    internal static uint GetLength(IExifValue value) => GetNumberOfComponents(value) * ExifDataTypes.GetSize(value.DataType);
+    /// <summary>
+    /// Gets the encoded value size in bytes. Rejects sizes that exceed the four-byte directory offset range.
+    /// </summary>
+    /// <param name="value">The value to encode.</param>
+    /// <returns>The byte count for the value.</returns>
+    internal static uint GetLength(IExifValue value) => checked(GetNumberOfComponents(value) * ExifDataTypes.GetSize(value.DataType));
 
     internal static uint GetNumberOfComponents(IExifValue exifValue)
     {
@@ -343,9 +363,8 @@ internal sealed class ExifWriter
 
         foreach (IExifValue value in values)
         {
-            newOffset = WriteUInt16((ushort)value.Tag, destination, newOffset);
-            newOffset = WriteUInt16((ushort)value.DataType, destination, newOffset);
-            newOffset = WriteUInt32(GetNumberOfComponents(value), destination, newOffset);
+            WriteEntryHeader(value, destination[newOffset..], littleEndian: true);
+            newOffset += DirectoryEntryHeaderLength;
 
             uint length = GetLength(value);
             if (length > 4)
@@ -362,6 +381,31 @@ internal sealed class ExifWriter
 
         // next IFD offset
         return WriteUInt32(0, destination, newOffset);
+    }
+
+    /// <summary>
+    /// Writes the common fields of a classic EXIF or TIFF directory entry.
+    /// </summary>
+    /// <param name="entry">The directory entry.</param>
+    /// <param name="destination">The destination for the entry header.</param>
+    /// <param name="littleEndian">Whether the directory uses little-endian byte order.</param>
+    internal static void WriteEntryHeader(IExifValue entry, Span<byte> destination, bool littleEndian)
+    {
+        ushort tag = (ushort)entry.Tag;
+        ushort type = (ushort)entry.DataType;
+        uint count = GetNumberOfComponents(entry);
+        if (littleEndian)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(destination, tag);
+            BinaryPrimitives.WriteUInt16LittleEndian(destination[2..], type);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination[4..], count);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(destination, tag);
+            BinaryPrimitives.WriteUInt16BigEndian(destination[2..], type);
+            BinaryPrimitives.WriteUInt32BigEndian(destination[4..], count);
+        }
     }
 
     private static void WriteRational(Span<byte> destination, in Rational value)

@@ -28,14 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 {
     /// <summary>
-    /// Whether the image has an EXIF marker.
+    /// Reads the EXIF packets in JPEG segments.
     /// </summary>
-    private bool hasExif;
-
-    /// <summary>
-    /// Contains exif data.
-    /// </summary>
-    private byte[] exifData;
+    private ExifReader.SegmentReader exifReader;
 
     /// <summary>
     /// Whether the image has an ICC marker.
@@ -45,27 +40,17 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <summary>
     /// Contains ICC data.
     /// </summary>
-    private byte[] iccData;
+    private IccReader iccReader;
 
     /// <summary>
-    /// Whether the image has a IPTC data.
+    /// Reads the IPTC packets in JPEG segments.
     /// </summary>
-    private bool hasIptc;
+    private IptcReader iptcReader;
 
     /// <summary>
-    /// Contains IPTC data.
+    /// Reads the XMP packets in JPEG segments.
     /// </summary>
-    private byte[] iptcData;
-
-    /// <summary>
-    /// Whether the image has a XMP data.
-    /// </summary>
-    private bool hasXmp;
-
-    /// <summary>
-    /// Contains XMP data.
-    /// </summary>
-    private byte[] xmpData;
+    private XmpReader xmpReader;
 
     /// <summary>
     /// Whether the image has a APP14 adobe marker. This is needed to determine image encoded colorspace.
@@ -635,10 +620,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitExifProfile()
     {
-        if (this.hasExif)
-        {
-            this.Metadata.ExifProfile = new ExifProfile(this.exifData);
-        }
+        this.Metadata.TrySetExifProfile(this.exifReader?.ToProfile());
     }
 
     /// <summary>
@@ -648,11 +630,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (this.hasIcc)
         {
-            IccProfile profile = new(this.iccData);
-            if (profile.CheckIsValid())
-            {
-                this.Metadata.IccProfile = profile;
-            }
+            this.Metadata.IccProfile = this.iccReader?.ToProfile();
         }
     }
 
@@ -661,10 +639,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitIptcProfile()
     {
-        if (this.hasIptc)
-        {
-            this.Metadata.IptcProfile = new IptcProfile(this.iptcData);
-        }
+        this.Metadata.TrySetIptcProfile(this.iptcReader?.ToProfile());
     }
 
     /// <summary>
@@ -672,10 +647,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitXmpProfile()
     {
-        if (this.hasXmp)
-        {
-            this.Metadata.XmpProfile = new XmpProfile(this.xmpData);
-        }
+        this.Metadata.XmpProfile = this.xmpReader?.ToProfile();
     }
 
     /// <summary>
@@ -689,7 +661,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             this.Metadata.VerticalResolution = this.jFif.YDensity;
             this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
         }
-        else if (this.hasExif)
+        else if (this.Metadata.ExifProfile is not null)
         {
             double horizontalValue = this.GetExifResolutionValue(ExifTag.XResolution);
             double verticalValue = this.GetExifResolutionValue(ExifTag.YResolution);
@@ -711,19 +683,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         }
 
         return 0;
-    }
-
-    /// <summary>
-    /// Extends the profile with additional data.
-    /// </summary>
-    /// <param name="profile">The profile data array.</param>
-    /// <param name="extension">The array containing addition profile data.</param>
-    private static void ExtendProfile(ref byte[] profile, byte[] extension)
-    {
-        int currentLength = profile.Length;
-
-        Array.Resize(ref profile, currentLength + extension.Length);
-        Buffer.BlockCopy(extension, 0, profile, currentLength, extension.Length);
     }
 
     /// <summary>
@@ -791,19 +750,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (ProfileResolver.IsProfile(temp, ProfileResolver.ExifMarker))
         {
-            this.hasExif = true;
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
-
-            if (this.exifData is null)
-            {
-                this.exifData = profile;
-            }
-            else
-            {
-                // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers.
-                ExtendProfile(ref this.exifData, profile);
-            }
+            this.exifReader ??= new ExifReader.SegmentReader();
+            _ = this.exifReader.TryRead(stream, remaining);
 
             remaining = 0;
         }
@@ -822,19 +770,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             remaining -= remainingXmpMarkerBytes;
             if (ProfileResolver.IsProfile(temp, ProfileResolver.XmpMarker))
             {
-                this.hasXmp = true;
-                byte[] profile = new byte[remaining];
-                stream.Read(profile, 0, remaining);
-
-                if (this.xmpData is null)
-                {
-                    this.xmpData = profile;
-                }
-                else
-                {
-                    // If the XMP information exceeds 64K, it will be split over multiple APP1 markers.
-                    ExtendProfile(ref this.xmpData, profile);
-                }
+                this.xmpReader ??= new XmpReader();
+                _ = this.xmpReader.TryReadSegment(stream, remaining);
 
                 remaining = 0;
             }
@@ -865,19 +802,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
         {
-            this.hasIcc = true;
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
-
-            if (this.iccData is null)
-            {
-                this.iccData = profile;
-            }
-            else
-            {
-                // If the ICC information exceeds 64K, it will be split over multiple APP2 markers
-                ExtendProfile(ref this.iccData, profile);
-            }
+            this.iccReader ??= new IccReader();
+            this.hasIcc |= this.iccReader.TryReadSegment(stream, remaining);
         }
         else
         {
@@ -894,61 +820,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="remaining">The remaining bytes in the segment block.</param>
     private void ProcessApp13Marker(BufferedReadStream stream, int remaining)
     {
-        if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.skipMetadata)
-        {
-            stream.Skip(remaining);
-            return;
-        }
-
-        Span<byte> temp = stackalloc byte[2 * 16 * 4];
-        stream.Read(temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
-        remaining -= ProfileResolver.AdobePhotoshopApp13Marker.Length;
-        if (ProfileResolver.IsProfile(temp, ProfileResolver.AdobePhotoshopApp13Marker))
-        {
-            Span<byte> blockDataSpan = remaining <= 128 ? stackalloc byte[remaining] : new byte[remaining];
-            stream.Read(blockDataSpan);
-
-            while (blockDataSpan.Length > 12)
-            {
-                if (!ProfileResolver.IsProfile(blockDataSpan[..4], ProfileResolver.AdobeImageResourceBlockMarker))
-                {
-                    return;
-                }
-
-                blockDataSpan = blockDataSpan[4..];
-                Span<byte> imageResourceBlockId = blockDataSpan[..2];
-                if (ProfileResolver.IsProfile(imageResourceBlockId, ProfileResolver.AdobeIptcMarker))
-                {
-                    int resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
-                    int resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
-                    int dataStartIdx = 2 + resourceBlockNameLength + 4;
-                    if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
-                    {
-                        this.hasIptc = true;
-                        this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
-                        break;
-                    }
-                }
-                else
-                {
-                    int resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
-                    int resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
-                    int dataStartIdx = 2 + resourceBlockNameLength + 4;
-                    if (blockDataSpan.Length < dataStartIdx + resourceDataSize)
-                    {
-                        // Not enough data or the resource data size is wrong.
-                        break;
-                    }
-
-                    blockDataSpan = blockDataSpan[(dataStartIdx + resourceDataSize)..];
-                }
-            }
-        }
-        else
-        {
-            // If the profile is unknown skip over the rest of it.
-            stream.Skip(remaining);
-        }
+        this.iptcReader ??= new IptcReader();
+        _ = this.iptcReader.TryReadPhotoshopSegment(stream, remaining, this.skipMetadata);
     }
 
     /// <summary>
@@ -991,34 +864,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             }
         }
     }
-
-    /// <summary>
-    /// Reads the adobe image resource block name: a Pascal string (padded to make size even).
-    /// </summary>
-    /// <param name="blockDataSpan">The span holding the block resource data.</param>
-    /// <returns>The length of the name.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReadImageResourceNameLength(Span<byte> blockDataSpan)
-    {
-        byte nameLength = blockDataSpan[2];
-        int nameDataSize = nameLength == 0 ? 2 : nameLength;
-        if (nameDataSize % 2 != 0)
-        {
-            nameDataSize++;
-        }
-
-        return nameDataSize;
-    }
-
-    /// <summary>
-    /// Reads the length of a adobe image resource data block.
-    /// </summary>
-    /// <param name="blockDataSpan">The span holding the block resource data.</param>
-    /// <param name="resourceBlockNameLength">The length of the block name.</param>
-    /// <returns>The block length.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReadResourceDataLength(Span<byte> blockDataSpan, int resourceBlockNameLength)
-        => BinaryPrimitives.ReadInt32BigEndian(blockDataSpan.Slice(2 + resourceBlockNameLength, 4));
 
     /// <summary>
     /// Processes the application header containing the Adobe identifier

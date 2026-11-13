@@ -43,12 +43,12 @@ internal class WebpAnimationDecoder : IDisposable
     private Rectangle? restoreArea;
 
     /// <summary>
-    /// The abstract metadata.
+    /// The metadata read before and during frame decoding.
     /// </summary>
-    private ImageMetadata? metadata;
+    private readonly ImageMetadata metadata;
 
     /// <summary>
-    /// The gif specific metadata.
+    /// The WebP metadata.
     /// </summary>
     private WebpMetadata? webpMetadata;
 
@@ -67,18 +67,21 @@ internal class WebpAnimationDecoder : IDisposable
     /// </summary>
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="configuration">The global configuration.</param>
+    /// <param name="metadata">The image metadata from the container header.</param>
     /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
     /// <param name="skipMetadata">Whether to skip metadata.</param>
     /// <param name="backgroundColorHandling">The flag to decide how to handle the background color in the Animation Chunk.</param>
     public WebpAnimationDecoder(
         MemoryAllocator memoryAllocator,
         Configuration configuration,
+        ImageMetadata metadata,
         uint maxFrames,
         bool skipMetadata,
         BackgroundColorHandling backgroundColorHandling)
     {
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
+        this.metadata = metadata;
         this.maxFrames = maxFrames;
         this.skipMetadata = skipMetadata;
         this.backgroundColorHandling = backgroundColorHandling;
@@ -92,17 +95,16 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="completeDataSize">The size of the image data in bytes.</param>
+    /// <param name="containerEnd">The end of the RIFF container.</param>
     public ImageInfo Identify(
         BufferedReadStream stream,
         int bitsPerPixel,
         WebpFeatures features,
         uint width,
         uint height,
-        uint completeDataSize)
+        long containerEnd)
     {
         List<ImageFrameMetadata> framesMetadata = new();
-        this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
@@ -112,33 +114,24 @@ internal class WebpAnimationDecoder : IDisposable
 
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
-        int remainingBytes = (int)completeDataSize;
-        while (remainingBytes > 0)
+        while (containerEnd - stream.Position >= 8)
         {
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-            remainingBytes -= 4;
             switch (chunkType)
             {
                 case WebpChunkType.FrameData:
 
                     ImageFrameMetadata frameMetadata = new();
-                    uint dataSize = ReadFrameInfo(stream, ref frameMetadata);
+                    ReadFrameInfo(stream, ref frameMetadata);
                     framesMetadata.Add(frameMetadata);
-
-                    remainingBytes -= (int)dataSize;
-                    break;
-                case WebpChunkType.Xmp:
-                case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, this.metadata, this.skipMetadata, buffer);
+                    frameCount++;
                     break;
                 default:
-
-                    // Specification explicitly states to ignore unknown chunks.
-                    // We do not support writing these chunks at present.
+                    WebpChunkParsingUtils.ReadMetadataChunk(stream, chunkType, this.metadata, this.skipMetadata, buffer, containerEnd);
                     break;
             }
 
-            if (stream.Position == stream.Length || ++frameCount == this.maxFrames)
+            if (frameCount == this.maxFrames)
             {
                 break;
             }
@@ -155,20 +148,19 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="completeDataSize">The size of the image data in bytes.</param>
+    /// <param name="containerEnd">The end of the RIFF container.</param>
     public Image<TPixel> Decode<TPixel>(
         BufferedReadStream stream,
         WebpFeatures features,
         uint width,
         uint height,
-        uint completeDataSize)
+        long containerEnd)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel>? image = null;
         ImageFrame<TPixel>? previousFrame = null;
         WebpFrameData? prevFrameData = null;
 
-        this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
@@ -181,15 +173,13 @@ internal class WebpAnimationDecoder : IDisposable
 
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
-        int remainingBytes = (int)completeDataSize;
-        while (remainingBytes > 0)
+        while (containerEnd - stream.Position >= 8)
         {
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-            remainingBytes -= 4;
             switch (chunkType)
             {
                 case WebpChunkType.FrameData:
-                    uint dataSize = this.ReadFrame(
+                    this.ReadFrame(
                         stream,
                         ref image,
                         ref previousFrame,
@@ -198,20 +188,14 @@ internal class WebpAnimationDecoder : IDisposable
                         height,
                         backgroundPixel);
 
-                    remainingBytes -= (int)dataSize;
-                    break;
-                case WebpChunkType.Xmp:
-                case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, this.skipMetadata, buffer);
+                    frameCount++;
                     break;
                 default:
-
-                    // Specification explicitly states to ignore unknown chunks.
-                    // We do not support writing these chunks at present.
+                    WebpChunkParsingUtils.ReadMetadataChunk(stream, chunkType, this.metadata, this.skipMetadata, buffer, containerEnd);
                     break;
             }
 
-            if (stream.Position == stream.Length || ++frameCount == this.maxFrames)
+            if (frameCount == this.maxFrames)
             {
                 break;
             }

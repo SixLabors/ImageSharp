@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -228,7 +229,7 @@ public class PngMetadataTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -246,6 +247,17 @@ public class PngMetadataTests
 
         Assert.NotNull(actualProfile);
         Assert.Equal(expectedProfileBytes, actualProfileBytes);
+    }
+
+    [Fact]
+    public void Decode_RetainsReadableTruncatedIccProfile()
+    {
+        // The final chromatic adaptation tag is truncated. The color lookup tables are complete.
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        using Image<Rgba32> image = Image.Load<Rgba32>(testFile.Bytes);
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.Equal(60956, image.Metadata.IccProfile.ToByteArray().Length);
     }
 
     [Theory]
@@ -335,5 +347,65 @@ public class PngMetadataTests
             exif.GetValue(ExifTag.ImageHistory).Value);
 
         Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
+    }
+
+    [Theory]
+    [InlineData("other profile")] // The text has no exif identifier.
+    [InlineData("ex")] // The text is shorter than the identifier.
+    [InlineData("exif 8")] // There is no length line.
+    [InlineData("exif\nabc\n457869660000")] // The length is not a number.
+    [InlineData("exif\n100\n457869660000")] // The length is larger than the hex data.
+    [InlineData("exif\n2000000000\n457869660000")] // The length is far larger than the hex data.
+    [InlineData("exif\n8\n457869660000\n\nab")] // The last line has fewer bytes than the length requires.
+    [InlineData("exif\n7\n457869660000gg")] // The hex data is not valid.
+    [InlineData("exif\n8\n4578696600004949")] // The hex data is valid, but 2 bytes are too short for an EXIF profile.
+    public void DecodeAndIdentify_InvalidLegacyExifText_IsDiscarded(string text)
+    {
+        const string keyword = "Raw profile type exif";
+        byte[] data = EncodeWithTextChunk(keyword, text);
+
+        // Decode and identify both read the legacy text. An invalid profile is damaged metadata,
+        // so neither creates a profile or keeps the chunk as text.
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Null(image.Metadata.ExifProfile);
+        Assert.Null(imageInfo.Metadata.ExifProfile);
+        Assert.DoesNotContain(image.Metadata.GetFormatMetadata(PngFormat.Instance).TextData, t => t.Keyword == keyword);
+        Assert.DoesNotContain(imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance).TextData, t => t.Keyword == keyword);
+    }
+
+    [Theory]
+    [InlineData("ab\n\ncd", 2, true)]
+    [InlineData("abcd", 1, false)]
+    [InlineData("abcd", 3, false)]
+    public void Decode_LegacyHexText_RequiresExactByteCount(string text, int count, bool expected)
+    {
+        bool result = HexConverter.TryDecodeLines(text, count, out byte[]? data);
+        Assert.Equal(expected, result);
+        if (expected)
+        {
+            Assert.Equal(new byte[] { 0xab, 0xcd }, data);
+        }
+        else
+        {
+            Assert.Null(data);
+        }
+    }
+
+    /// <summary>
+    /// Encodes a 1x1 PNG that stores one uncompressed text chunk.
+    /// </summary>
+    /// <param name="keyword">The text chunk keyword.</param>
+    /// <param name="text">The text chunk value.</param>
+    /// <returns>The encoded PNG.</returns>
+    private static byte[] EncodeWithTextChunk(string keyword, string text)
+    {
+        using Image<Rgba32> image = new(1, 1);
+        image.Metadata.GetFormatMetadata(PngFormat.Instance).TextData.Add(new PngTextData(keyword, text, string.Empty, string.Empty));
+
+        using MemoryStream stream = new();
+        image.SaveAsPng(stream);
+        return stream.ToArray();
     }
 }

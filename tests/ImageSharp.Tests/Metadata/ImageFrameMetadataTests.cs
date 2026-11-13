@@ -44,15 +44,10 @@ public class ImageFrameMetadataTests
         ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "UnitTest");
         exifProfile.SetValue(ExifTag.Artist, "UnitTest");
-        XmpProfile xmpProfile = new(Array.Empty<byte>());
-        IccProfile iccProfile = new()
-        {
-            Header = new IccProfileHeader()
-            {
-                CmmType = "Unittest"
-            }
-        };
+        XmpProfile xmpProfile = new("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>"u8.ToArray());
+        IccProfile iccProfile = IccTestDataProfiles.Profile_Random_Val;
         IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.Caption, "UnitTest");
         ImageFrameMetadata metaData = new()
         {
             XmpProfile = xmpProfile,

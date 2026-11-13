@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Common.Helpers;
@@ -90,5 +91,67 @@ internal static class HexConverter
         }
 
         return j;
+    }
+
+    /// <summary>
+    /// Decodes wrapped hexadecimal text into an array when it contains the expected number of bytes.
+    /// </summary>
+    /// <param name="text">The hex text, with optional whitespace around each line.</param>
+    /// <param name="expectedByteCount">The expected number of decoded bytes.</param>
+    /// <param name="data">The decoded bytes.</param>
+    /// <returns>Whether all lines contain hex pairs and match the expected byte count.</returns>
+    public static bool TryDecodeLines(ReadOnlySpan<char> text, int expectedByteCount, [NotNullWhen(true)] out byte[]? data)
+    {
+        data = null;
+        int byteCount = 0;
+        ReadOnlySpan<char> remaining = text;
+        while (!remaining.IsEmpty)
+        {
+            ReadOnlySpan<char> line = ReadLine(ref remaining);
+            if ((line.Length & 1) != 0)
+            {
+                return false;
+            }
+
+            foreach (char digit in line)
+            {
+                if (!Uri.IsHexDigit(digit))
+                {
+                    return false;
+                }
+            }
+
+            byteCount += line.Length / 2;
+        }
+
+        if (byteCount != expectedByteCount)
+        {
+            return false;
+        }
+
+        // The input determines the allocation size. The first pass also checked that every pair can be decoded.
+        byte[] bytes = new byte[byteCount];
+        int written = 0;
+        while (!text.IsEmpty)
+        {
+            ReadOnlySpan<char> line = ReadLine(ref text);
+            written += HexStringToBytes(line, bytes.AsSpan(written, line.Length / 2));
+        }
+
+        data = bytes;
+        return true;
+    }
+
+    /// <summary>
+    /// Reads one trimmed line and advances past its line ending, if present.
+    /// </summary>
+    /// <param name="text">The remaining hex text.</param>
+    /// <returns>The next line without surrounding whitespace.</returns>
+    private static ReadOnlySpan<char> ReadLine(ref ReadOnlySpan<char> text)
+    {
+        int end = text.IndexOf('\n');
+        ReadOnlySpan<char> line = end < 0 ? text : text[..end];
+        text = end < 0 ? default : text[(end + 1)..];
+        return line.Trim();
     }
 }

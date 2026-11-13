@@ -228,11 +228,12 @@ public class IptcProfileTests
     {
         // arrange
         using Image<Rgba32> image = new(1, 1);
-        image.Metadata.IptcProfile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
-        image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
-        image.Metadata.IptcProfile.SetValue(IptcTag.Caption, expectedCaption);
+        IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
+        iptcProfile.SetValue(IptcTag.Caption, expectedCaption);
+        image.Metadata.IptcProfile = iptcProfile;
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndReadJpeg(image);

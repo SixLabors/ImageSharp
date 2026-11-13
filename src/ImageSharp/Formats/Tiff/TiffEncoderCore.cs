@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -242,6 +243,7 @@ internal sealed class TiffEncoderCore
 
         // Write the metadata for the frame
         entriesCollector.ProcessMetadata(frame, this.skipMetadata);
+        entriesCollector.ProcessIccProfile(IccProfile.SelectValidProfile(frame.Metadata.IccProfile, image?.Metadata.IccProfile));
 
         entriesCollector.ProcessFrameInfo(frame, imageMetadata);
         entriesCollector.ProcessImageFormat(this);
@@ -252,9 +254,7 @@ internal sealed class TiffEncoderCore
             writer.Write(0);
         }
 
-        this.frameMarkers.Add((ifdOffset, (uint)writer.Position));
-
-        return this.WriteIfd(writer, entriesCollector.Entries);
+        return this.WriteIfd(writer, entriesCollector.Entries, ifdOffset);
     }
 
     /// <summary>
@@ -297,28 +297,38 @@ internal sealed class TiffEncoderCore
     /// </summary>
     /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
     /// <param name="entries">The IFD entries to write to the file.</param>
+    /// <param name="ifdOffsetMarker">The stream position where the offset of this directory will be written.</param>
     /// <returns>The marker to write the next IFD offset (if present).</returns>
-    private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries)
+    private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries, long ifdOffsetMarker)
     {
         if (entries.Count == 0)
         {
             TiffThrowHelper.ThrowArgumentException("There must be at least one entry per IFD.");
         }
 
-        uint dataOffset = (uint)writer.Position + (uint)(6 + (entries.Count * 12));
+        if (entries.Count > ushort.MaxValue)
+        {
+            TiffThrowHelper.ThrowArgumentException("The TIFF directory contains too many entries.");
+        }
+
+        // Classic TIFF stores offsets in four bytes. If the end of the directory fits, its start fits too.
+        long directoryOffset = writer.Position;
+        int directoryLength = 6 + (entries.Count * 12);
+        uint dataOffset = checked((uint)(directoryOffset + directoryLength));
+        this.frameMarkers.Add((ifdOffsetMarker, (uint)directoryOffset));
+
         List<byte[]> largeDataBlocks = new();
 
         entries.Sort((a, b) => (ushort)a.Tag - (ushort)b.Tag);
 
-        Span<byte> buffer = stackalloc byte[4];
+        Span<byte> buffer = stackalloc byte[ExifWriter.DirectoryEntryHeaderLength];
 
         writer.Write((ushort)entries.Count, buffer);
 
         foreach (IExifValue entry in entries)
         {
-            writer.Write((ushort)entry.Tag, buffer);
-            writer.Write((ushort)entry.DataType, buffer);
-            writer.Write(ExifWriter.GetNumberOfComponents(entry), buffer);
+            ExifWriter.WriteEntryHeader(entry, buffer, TiffStreamWriter.IsLittleEndian);
+            writer.Write(buffer);
 
             uint length = ExifWriter.GetLength(entry);
             if (length <= 4)
@@ -334,7 +344,10 @@ internal sealed class TiffEncoderCore
                 DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
                 largeDataBlocks.Add(raw);
                 writer.Write(dataOffset, buffer);
-                dataOffset += (uint)(raw.Length + (raw.Length % 2));
+
+                // The next value must start on an even byte offset that fits in four bytes.
+                uint paddedLength = (uint)raw.Length + ((uint)raw.Length & 1);
+                dataOffset = checked(dataOffset + paddedLength);
             }
         }
 

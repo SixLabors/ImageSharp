@@ -20,13 +20,14 @@ public class ImageMetadataTests
 
         var exifProfile = new ExifProfile();
 
-        metaData.ExifProfile = exifProfile;
+        Assert.Throws<ArgumentException>(() => metaData.ExifProfile = exifProfile);
         metaData.HorizontalResolution = 4;
         metaData.VerticalResolution = 2;
 
         ImageMetadata clone = metaData.DeepClone();
 
-        Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
+        Assert.Null(metaData.ExifProfile);
+        Assert.Null(clone.ExifProfile);
         Assert.Equal(4, clone.HorizontalResolution);
         Assert.Equal(2, clone.VerticalResolution);
     }
@@ -34,9 +35,11 @@ public class ImageMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "UnitTest");
         var metaData = new ImageMetadata
         {
-            ExifProfile = new ExifProfile(),
+            ExifProfile = exifProfile,
             HorizontalResolution = 4,
             VerticalResolution = 2
         };

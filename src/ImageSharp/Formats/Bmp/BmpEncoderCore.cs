@@ -671,12 +671,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 16,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizer.Options.DeepClone(o => o.MaxColors = 16));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
@@ -728,12 +725,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 4,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizer.Options.DeepClone(o => o.MaxColors = 4));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
@@ -794,12 +788,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 2,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizer.Options.DeepClone(o => o.MaxColors = 2));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 

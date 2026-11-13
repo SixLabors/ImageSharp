@@ -124,12 +124,15 @@ internal sealed class GifEncoderCore
                 int ti = GetTransparentIndex(quantized, frameMetadata);
                 if (ti >= 0 || gifMetadata.GlobalColorTable.Value.Length < 256)
                 {
-                    // We avoid dithering by default to preserve the original colors.
-                    globalQuantizer = new PaletteQuantizer(
-                        gifMetadata.GlobalColorTable.Value,
-                        options.DeepClone(o => o.Dither = null),
-                        ti,
-                        Color.Transparent);
+                    // We avoid dithering and match colors exactly to preserve the original colors. The first frame
+                    // quantizes with these options too, so they replace the default options.
+                    options = options.DeepClone(o =>
+                    {
+                        o.Dither = null;
+                        o.ColorMatchingMode = ColorMatchingMode.Exact;
+                    });
+
+                    globalQuantizer = new PaletteQuantizer(gifMetadata.GlobalColorTable.Value, options, ti, Color.Transparent);
                 }
                 else
                 {
@@ -418,7 +421,7 @@ internal sealed class GifEncoderCore
             if (metadata.LocalColorTable?.Length > 0)
             {
                 // We can use the color data from the decoded metadata here.
-                // We avoid dithering by default to preserve the original colors.
+                // We avoid dithering and match colors exactly to preserve the original colors.
                 ReadOnlyMemory<Color> palette = metadata.LocalColorTable.Value;
                 if (requiresTransparency && !metadata.HasTransparency)
                 {
@@ -438,6 +441,7 @@ internal sealed class GifEncoderCore
                         {
                             o.MaxColors = palette.Length;
                             o.Dither = null;
+                            o.ColorMatchingMode = ColorMatchingMode.Exact;
                         });
                         PaletteQuantizer quantizer = new(palette, options, transparencyIndex, transparentColor);
                         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
@@ -462,6 +466,7 @@ internal sealed class GifEncoderCore
                     {
                         o.MaxColors = palette.Length;
                         o.Dither = null;
+                        o.ColorMatchingMode = ColorMatchingMode.Exact;
                     });
                     PaletteQuantizer quantizer = new(palette, paletteOptions, transparencyIndex, transparentColor);
                     using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);

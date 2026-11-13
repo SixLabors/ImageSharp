@@ -1733,8 +1733,13 @@ internal sealed class PngEncoderCore : IDisposable
             if (metadata.ColorTable?.Length > 0)
             {
                 // We can use the color data from the decoded metadata here.
-                // We avoid dithering by default to preserve the original colors.
-                QuantizerOptions options = new() { Dither = null, TransparentColorMode = encoder.TransparentColorMode };
+                // We avoid dithering and match colors exactly to preserve the original colors.
+                QuantizerOptions options = new()
+                {
+                    Dither = null,
+                    ColorMatchingMode = ColorMatchingMode.Exact,
+                    TransparentColorMode = encoder.TransparentColorMode
+                };
                 this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, options);
             }
             else

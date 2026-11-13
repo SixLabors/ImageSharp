@@ -251,8 +251,8 @@ internal abstract class IconEncoderCore
             });
         }
 
-        // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(colorTable.Value, new QuantizerOptions { Dither = null });
+        // Don't dither, and match colors exactly, if we have a palette. We want to preserve as much information as possible.
+        return new PaletteQuantizer(colorTable.Value, new QuantizerOptions { Dither = null, ColorMatchingMode = ColorMatchingMode.Exact });
     }
 
     /// <summary>

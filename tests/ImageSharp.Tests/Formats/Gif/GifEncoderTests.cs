@@ -454,4 +454,32 @@ public class GifEncoderTests
         static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
         image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
     }
+
+    [Theory]
+    [InlineData(FrameColorTableMode.Global)]
+    [InlineData(FrameColorTableMode.Local)]
+    public void Encode_PaletteFromMetadata_KeepsExactColors(FrameColorTableMode colorTableMode)
+    {
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        GifMetadata metadata = image.Metadata.GetGifMetadata();
+        GifFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetGifMetadata();
+        metadata.ColorTableMode = colorTableMode;
+        frameMetadata.ColorTableMode = colorTableMode;
+
+        if (colorTableMode == FrameColorTableMode.Global)
+        {
+            metadata.GlobalColorTable = NearColorPalette.Palette;
+        }
+        else
+        {
+            frameMetadata.LocalColorTable = NearColorPalette.Palette;
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new GifEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
 }

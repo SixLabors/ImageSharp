@@ -172,4 +172,21 @@ public class IcoEncoderTests
 
         Assert.Equal((byte)(0b10000000 >> bitIndex), mask[byteIndex]);
     }
+
+    [Fact]
+    public void Encode_PaletteFromMetadata_KeepsExactColors()
+    {
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        IcoFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        metadata.Compression = IconFrameCompression.Bmp;
+        metadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
+        metadata.ColorTable = NearColorPalette.Palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new IcoEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
 }

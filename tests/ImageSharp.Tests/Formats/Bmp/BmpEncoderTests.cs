@@ -484,4 +484,25 @@ public class BmpEncoderTests
         // Does DebugSave & load reference CompareToReferenceInput():
         image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer);
     }
+
+    [Fact]
+    public void Encode_1BitWithPaletteQuantizer_KeepsQuantizerOptions()
+    {
+        // The 1-, 2- and 4-bit paths build their own quantizer options, so they must keep the exact color matching of
+        // the configured quantizer.
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        QuantizerOptions options = new() { Dither = null, ColorMatchingMode = ColorMatchingMode.Exact };
+        BmpEncoder encoder = new()
+        {
+            BitsPerPixel = BmpBitsPerPixel.Bit1,
+            Quantizer = new PaletteQuantizer(NearColorPalette.Palette, options)
+        };
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, encoder);
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
 }

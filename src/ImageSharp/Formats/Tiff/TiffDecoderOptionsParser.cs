@@ -580,6 +580,12 @@ internal static class TiffDecoderOptionsParser
                 break;
 
             case TiffCompression.Jpeg:
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    // The JPEG decoder writes interleaved samples. The planar path requires a separate buffer for each channel.
+                    TiffThrowHelper.ThrowNotSupported("Jpeg compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
 
                 // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
@@ -590,13 +596,8 @@ internal static class TiffDecoderOptionsParser
                     options.YcbcrSubSampling[1] = 1;
                 }
 
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
-
+                // JPEG strips without JPEGTables use the same JPEG decoder path as strips with shared tables.
+                // The JPEG decoder returns the YCbCr samples unchanged, and the TIFF YCbCr color decoder converts them.
                 break;
 
             case TiffCompression.Webp:

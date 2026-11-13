@@ -170,10 +170,10 @@ public class ExrZipDecoderTests
     /// </summary>
     /// <param name="compressed">The compressed scanline bytes.</param>
     /// <param name="pixelType">The stored sample type.</param>
-    /// <param name="compression">The ZIP compression code.</param>
+    /// <param name="compression">The compression code.</param>
     /// <param name="yMin">The data window's first row coordinate.</param>
     /// <returns>The encoded image.</returns>
-    private static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression, int yMin)
+    internal static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression, int yMin)
     {
         const int width = 256;
         const int height = 1;

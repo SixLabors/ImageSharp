@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -18,9 +17,9 @@ internal class B44ExrCompression : ExrBaseDecompressor
     // B44 encodes each 4x4 block in either 3 or 14 bytes, so both representations share this inline storage.
     private InlineArray14<byte> scratch;
 
-    private InlineArray16<ushort> s;
+    private InlineArray16<ushort> tileSamples;
 
-    private readonly IMemoryOwner<ushort> tmpBuffer;
+    private readonly bool preservePartialData;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="B44ExrCompression" /> class.
@@ -31,108 +30,117 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The width of a pixel row in pixels.</param>
     /// <param name="channelCount">The number of channels of the image.</param>
-    public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
+    /// <param name="integrityHandling">The policy for incomplete image data.</param>
+    public B44ExrCompression(
+        MemoryAllocator allocator,
+        uint bytesPerBlock,
+        uint bytesPerRow,
+        uint rowsPerBlock,
+        int width,
+        int channelCount,
+        SegmentIntegrityHandling integrityHandling)
         : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
         this.channelCount = channelCount;
-        this.tmpBuffer = allocator.Allocate<ushort>((int)(width * rowsPerBlock * channelCount));
+        this.preservePartialData = integrityHandling == SegmentIntegrityHandling.IgnoreImageData;
     }
 
     /// <inheritdoc/>
     protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
-        Span<ushort> outputBuffer = MemoryMarshal.Cast<byte, ushort>(buffer);
-        Span<ushort> decompressed = this.tmpBuffer.GetSpan();
-        Span<byte> scratch = this.scratch;
-        Span<ushort> samples = this.s;
-        int outputOffset = 0;
-        int bytesLeft = (int)compressedBytes;
-
-        for (int i = 0; i < this.channelCount && bytesLeft > 0; i++)
+        int samplesPerRow = (int)(this.BytesPerRow / sizeof(ushort));
+        int rows = (int)(uncompressedBytes / this.BytesPerRow);
+        Span<ushort> output = MemoryMarshal.Cast<byte, ushort>(buffer[..(int)uncompressedBytes]);
+        Span<ushort> samples = this.tileSamples;
+        for (int channel = 0; channel < this.channelCount; channel++)
         {
-            for (int y = 0; y < this.RowsPerBlock; y += 4)
+            int channelOffset = channel * this.Width;
+            for (int y = 0; y < rows; y += 4)
             {
-                Span<ushort> row0 = decompressed.Slice(outputOffset, this.Width);
-                outputOffset += this.Width;
-                Span<ushort> row1 = decompressed.Slice(outputOffset, this.Width);
-                outputOffset += this.Width;
-                Span<ushort> row2 = decompressed.Slice(outputOffset, this.Width);
-                outputOffset += this.Width;
-                Span<ushort> row3 = decompressed.Slice(outputOffset, this.Width);
-                outputOffset += this.Width;
-
-                int rowOffset = 0;
-                for (int x = 0; x < this.Width && bytesLeft > 0; x += 4)
+                int tileHeight = Math.Min(4, rows - y);
+                for (int x = 0; x < this.Width; x += 4)
                 {
-                    int bytesRead = stream.Read(scratch[..3]);
-                    if (bytesRead == 0)
+                    if (!this.TryReadTile(stream, ref compressedBytes, samples))
                     {
-                        ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
-                    }
-
-                    // Check if 3-byte encoded flat field.
-                    if (scratch[2] >= 13 << 2)
-                    {
-                        Unpack3(scratch, samples);
-                        bytesLeft -= 3;
-                    }
-                    else
-                    {
-                        bytesRead = stream.Read(scratch.Slice(3, 11));
-                        if (bytesRead == 0)
+                        if (!this.preservePartialData)
                         {
-                            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+                            ExrThrowHelper.ThrowInvalidImageContentException("The B44 EXR block ends before all pixel data is available.");
                         }
 
-                        Unpack14(scratch, samples);
-                        bytesLeft -= 14;
+                        this.ClearRemainingSamples(output, samplesPerRow, rows, channel, y, x);
+                        return;
                     }
 
-                    int n = x + 3 < this.Width ? 4 : this.Width - x;
-                    if (y + 3 < this.RowsPerBlock)
+                    // Input is grouped by channel. Output is grouped by row, with each channel in a separate span.
+                    // Copy only visible samples from complete tiles, including at the right and bottom edges.
+                    int tileWidth = Math.Min(4, this.Width - x);
+                    int destination = (y * samplesPerRow) + channelOffset + x;
+                    for (int row = 0; row < tileHeight; row++)
                     {
-                        samples[..n].CopyTo(row0[rowOffset..]);
-                        samples.Slice(4, n).CopyTo(row1[rowOffset..]);
-                        samples.Slice(8, n).CopyTo(row2[rowOffset..]);
-                        samples.Slice(12, n).CopyTo(row3[rowOffset..]);
+                        samples.Slice(row * 4, tileWidth).CopyTo(output.Slice(destination, tileWidth));
+                        destination += samplesPerRow;
                     }
-                    else
-                    {
-                        samples[..n].CopyTo(row0[rowOffset..]);
-                        if (y + 1 < this.RowsPerBlock)
-                        {
-                            samples.Slice(4, n).CopyTo(row1[rowOffset..]);
-                        }
-
-                        if (y + 2 < this.RowsPerBlock)
-                        {
-                            samples.Slice(8, n).CopyTo(row2[rowOffset..]);
-                        }
-                    }
-
-                    rowOffset += 4;
-                }
-
-                if (bytesLeft <= 0)
-                {
-                    break;
                 }
             }
         }
+    }
 
-        // Rearrange the decompressed data such that the data for each scan line form a contiguous block.
-        int offsetDecompressed = 0;
-        int offsetOutput = 0;
-        int blockSize = (int)(this.Width * this.RowsPerBlock);
-        for (int y = 0; y < this.RowsPerBlock; y++)
+    /// <summary>
+    /// Reads and unpacks one complete B44 tile within the declared block.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the tile.</param>
+    /// <param name="remaining">The remaining encoded bytes in the block.</param>
+    /// <param name="samples">The destination for the sixteen tile samples.</param>
+    /// <returns>Whether the complete tile was read.</returns>
+    private bool TryReadTile(BufferedReadStream stream, ref uint remaining, Span<ushort> samples)
+    {
+        Span<byte> bytes = this.scratch;
+        if (remaining < 3 || stream.ReadAtLeast(bytes[..3], 3, throwOnEndOfStream: false) != 3)
         {
-            for (int i = 0; i < this.channelCount; i++)
-            {
-                decompressed.Slice(offsetDecompressed + (i * blockSize), this.Width).CopyTo(outputBuffer[offsetOutput..]);
-                offsetOutput += this.Width;
-            }
+            return false;
+        }
 
-            offsetDecompressed += this.Width;
+        remaining -= 3;
+        if (bytes[2] >= 13 << 2)
+        {
+            Unpack3(bytes, samples);
+            return true;
+        }
+
+        if (remaining < 11 || stream.ReadAtLeast(bytes.Slice(3, 11), 11, throwOnEndOfStream: false) != 11)
+        {
+            return false;
+        }
+
+        remaining -= 11;
+        Unpack14(bytes, samples);
+        return true;
+    }
+
+    /// <summary>
+    /// Clears the samples from the first incomplete tile through the end of the block.
+    /// </summary>
+    /// <param name="output">The row-major sample buffer.</param>
+    /// <param name="samplesPerRow">The sample count across all channels in a row.</param>
+    /// <param name="rows">The number of visible rows in the block.</param>
+    /// <param name="channel">The channel of the incomplete tile.</param>
+    /// <param name="y">The first row of the incomplete tile.</param>
+    /// <param name="x">The first column of the incomplete tile.</param>
+    private void ClearRemainingSamples(Span<ushort> output, int samplesPerRow, int rows, int channel, int y, int x)
+    {
+        // Earlier tiles in this four-row band already filled the samples to the left of x.
+        // Later bands in this channel and all later channels still contain old buffer data.
+        int channelOffset = channel * this.Width;
+        for (int row = y; row < rows; row++)
+        {
+            int start = row - y < 4 ? x : 0;
+            output.Slice((row * samplesPerRow) + channelOffset + start, this.Width - start).Clear();
+        }
+
+        int remainingChannels = this.channelCount - channel - 1;
+        for (int row = 0; row < rows; row++)
+        {
+            output.Slice((row * samplesPerRow) + channelOffset + this.Width, remainingChannels * this.Width).Clear();
         }
     }
 
@@ -140,42 +148,42 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// Unpack a 14-byte block into 4 by 4 16-bit pixels.
     /// </summary>
     /// <param name="b">The source byte data to unpack.</param>
-    /// <param name="s">Destintation buffer.</param>
-    private static void Unpack14(Span<byte> b, Span<ushort> s)
+    /// <param name="samples">The destination for the tile samples.</param>
+    private static void Unpack14(Span<byte> b, Span<ushort> samples)
     {
-        s[0] = (ushort)((b[0] << 8) | b[1]);
+        samples[0] = (ushort)((b[0] << 8) | b[1]);
 
         ushort shift = (ushort)(b[2] >> 2);
         ushort bias = (ushort)(0x20u << shift);
 
-        s[4] = (ushort)(s[0] + ((((b[2] << 4) | (b[3] >> 4)) & 0x3fu) << shift) - bias);
-        s[8] = (ushort)(s[4] + ((((b[3] << 2) | (b[4] >> 6)) & 0x3fu) << shift) - bias);
-        s[12] = (ushort)(s[8] + ((b[4] & 0x3fu) << shift) - bias);
+        samples[4] = (ushort)(samples[0] + ((((b[2] << 4) | (b[3] >> 4)) & 0x3fu) << shift) - bias);
+        samples[8] = (ushort)(samples[4] + ((((b[3] << 2) | (b[4] >> 6)) & 0x3fu) << shift) - bias);
+        samples[12] = (ushort)(samples[8] + ((b[4] & 0x3fu) << shift) - bias);
 
-        s[1] = (ushort)(s[0] + ((uint)(b[5] >> 2) << shift) - bias);
-        s[5] = (ushort)(s[4] + ((((b[5] << 4) | (b[6] >> 4)) & 0x3fu) << shift) - bias);
-        s[9] = (ushort)(s[8] + ((((b[6] << 2) | (b[7] >> 6)) & 0x3fu) << shift) - bias);
-        s[13] = (ushort)(s[12] + ((b[7] & 0x3fu) << shift) - bias);
+        samples[1] = (ushort)(samples[0] + ((uint)(b[5] >> 2) << shift) - bias);
+        samples[5] = (ushort)(samples[4] + ((((b[5] << 4) | (b[6] >> 4)) & 0x3fu) << shift) - bias);
+        samples[9] = (ushort)(samples[8] + ((((b[6] << 2) | (b[7] >> 6)) & 0x3fu) << shift) - bias);
+        samples[13] = (ushort)(samples[12] + ((b[7] & 0x3fu) << shift) - bias);
 
-        s[2] = (ushort)(s[1] + ((uint)(b[8] >> 2) << shift) - bias);
-        s[6] = (ushort)(s[5] + ((((b[8] << 4) | (b[9] >> 4)) & 0x3fu) << shift) - bias);
-        s[10] = (ushort)(s[9] + ((((b[9] << 2) | (b[10] >> 6)) & 0x3fu) << shift) - bias);
-        s[14] = (ushort)(s[13] + ((b[10] & 0x3fu) << shift) - bias);
+        samples[2] = (ushort)(samples[1] + ((uint)(b[8] >> 2) << shift) - bias);
+        samples[6] = (ushort)(samples[5] + ((((b[8] << 4) | (b[9] >> 4)) & 0x3fu) << shift) - bias);
+        samples[10] = (ushort)(samples[9] + ((((b[9] << 2) | (b[10] >> 6)) & 0x3fu) << shift) - bias);
+        samples[14] = (ushort)(samples[13] + ((b[10] & 0x3fu) << shift) - bias);
 
-        s[3] = (ushort)(s[2] + ((uint)(b[11] >> 2) << shift) - bias);
-        s[7] = (ushort)(s[6] + ((((b[11] << 4) | (b[12] >> 4)) & 0x3fu) << shift) - bias);
-        s[11] = (ushort)(s[10] + ((((b[12] << 2) | (b[13] >> 6)) & 0x3fu) << shift) - bias);
-        s[15] = (ushort)(s[14] + ((b[13] & 0x3fu) << shift) - bias);
+        samples[3] = (ushort)(samples[2] + ((uint)(b[11] >> 2) << shift) - bias);
+        samples[7] = (ushort)(samples[6] + ((((b[11] << 4) | (b[12] >> 4)) & 0x3fu) << shift) - bias);
+        samples[11] = (ushort)(samples[10] + ((((b[12] << 2) | (b[13] >> 6)) & 0x3fu) << shift) - bias);
+        samples[15] = (ushort)(samples[14] + ((b[13] & 0x3fu) << shift) - bias);
 
         for (int i = 0; i < 16; ++i)
         {
-            if ((s[i] & 0x8000) != 0)
+            if ((samples[i] & 0x8000) != 0)
             {
-                s[i] &= 0x7fff;
+                samples[i] &= 0x7fff;
             }
             else
             {
-                s[i] = (ushort)~s[i];
+                samples[i] = (ushort)~samples[i];
             }
         }
     }
@@ -184,26 +192,28 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// // Unpack a 3-byte block into 4 by 4 identical 16-bit pixels.
     /// </summary>
     /// <param name="b">The source byte data to unpack.</param>
-    /// <param name="s">The destination buffer.</param>
-    private static void Unpack3(Span<byte> b, Span<ushort> s)
+    /// <param name="samples">The destination buffer.</param>
+    private static void Unpack3(Span<byte> b, Span<ushort> samples)
     {
-        s[0] = (ushort)((b[0] << 8) | b[1]);
+        samples[0] = (ushort)((b[0] << 8) | b[1]);
 
-        if ((s[0] & 0x8000) != 0)
+        if ((samples[0] & 0x8000) != 0)
         {
-            s[0] &= 0x7fff;
+            samples[0] &= 0x7fff;
         }
         else
         {
-            s[0] = (ushort)~s[0];
+            samples[0] = (ushort)~samples[0];
         }
 
         for (int i = 1; i < 16; ++i)
         {
-            s[i] = s[0];
+            samples[i] = samples[0];
         }
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+    }
 }

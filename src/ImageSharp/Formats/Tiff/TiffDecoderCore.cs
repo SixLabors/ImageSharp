@@ -418,8 +418,14 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         int tileWidth = (int)valueWidth.Value;
         int tileLength = (int)valueLength.Value;
-        int tilesAcross = (width + tileWidth - 1) / tileWidth;
-        int tilesDown = (height + tileLength - 1) / tileLength;
+        if (tileWidth <= 0 || tileLength <= 0)
+        {
+            TiffThrowHelper.ThrowImageFormatException("TIFF tile dimensions must be positive.");
+        }
+
+        // Widen the sums because edge tiles may extend beyond the frame.
+        int tilesAcross = (int)(((long)width + tileWidth - 1) / tileWidth);
+        int tilesDown = (int)(((long)height + tileLength - 1) / tileLength);
 
         Array tilesOffsetsArray;
         Array tilesByteCountsArray;
@@ -660,8 +666,18 @@ internal class TiffDecoderCore : ImageDecoderCore
                     }
 
                     Buffer2DRegion<TPixel> destination = pixels.GetRegion(0, top, width, stripHeight);
-                    decompressor.Decompress(
-                        this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripHeight, stripSamples, destination, cancellationToken);
+                    if (!decompressor.TryDecompress(
+                            this.inputStream,
+                            stripOffsets[stripIndex],
+                            stripByteCounts[stripIndex],
+                            stripHeight,
+                            stripSamples,
+                            destination,
+                            this.Options.SegmentIntegrityHandling,
+                            cancellationToken))
+                    {
+                        continue;
+                    }
 
                     // Nested decoders already wrote TPixel. Only raw TIFF samples still require color conversion and packing.
                     if (!decodesPixels)
@@ -843,8 +859,8 @@ internal class TiffDecoderCore : ImageDecoderCore
                 // Raw tile rows retain their encoded width, including padding beyond the right image edge.
                 // Reuse one sample buffer and TIFF color reader for all tiles. Nested decoders need neither resource.
                 colorDecoder = this.CreateChunkyColorDecoder<TPixel>(frame.Metadata);
-                bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * this.BitsPerPixel);
-                tileBuffer = this.memoryAllocator.Allocate<byte>(bytesPerTileRow * tileLength, AllocationOptions.Clean);
+                int tileBufferSize = GetTileBufferSize(tileWidth, tileLength, this.BitsPerPixel, out bytesPerTileRow);
+                tileBuffer = this.memoryAllocator.Allocate<byte>(tileBufferSize, AllocationOptions.Clean);
             }
 
             Span<byte> samples = tileBuffer is null ? default : tileBuffer.GetSpan();
@@ -863,13 +879,24 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                     // Decode the full encoded tile, but expose only its visible destination to the nested decoder.
                     Buffer2DRegion<TPixel> destination = pixels.GetRegion(left, top, visibleWidth, visibleHeight);
-                    decompressor.Decompress(
-                        this.inputStream, tileOffsets[tileIndex], tileByteCounts[tileIndex], tileLength, samples, destination, cancellationToken);
+                    if (!decompressor.TryDecompress(
+                            this.inputStream,
+                            tileOffsets[tileIndex],
+                            tileByteCounts[tileIndex],
+                            tileLength,
+                            samples,
+                            destination,
+                            this.Options.SegmentIntegrityHandling,
+                            cancellationToken))
+                    {
+                        tileIndex++;
+                        continue;
+                    }
 
                     if (!decodesPixels)
                     {
                         // Convert visible samples only. Advance by the full encoded row so edge padding is skipped, not decoded as pixels.
-                        int visibleRowBytes = RoundUpToMultipleOfEight(visibleWidth * this.BitsPerPixel);
+                        int visibleRowBytes = (int)RoundUpToMultipleOfEight((long)visibleWidth * this.BitsPerPixel);
                         int offset = 0;
 
                         for (int row = 0; row < visibleHeight; row++)
@@ -1104,6 +1131,33 @@ internal class TiffDecoderCore : ImageDecoderCore
             || (this.YcbcrSubSampling[0] == 1 && this.YcbcrSubSampling[1] == 1);
     }
 
+    /// <summary>
+    /// Converts a bit count to the number of bytes needed to store it.
+    /// </summary>
+    /// <param name="value">The number of bits.</param>
+    /// <returns>The number of bytes, rounded up.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int RoundUpToMultipleOfEight(int value) => (int)(((uint)value + 7) / 8);
+    private static long RoundUpToMultipleOfEight(long value) => (value + 7) / 8;
+
+    /// <summary>
+    /// Gets the byte count of a tile with byte-aligned rows and verifies it fits in a span.
+    /// </summary>
+    /// <param name="tileWidth">The encoded tile width in pixels.</param>
+    /// <param name="tileLength">The encoded tile height in rows.</param>
+    /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+    /// <param name="bytesPerTileRow">The encoded row width in bytes, including padding.</param>
+    /// <returns>The required tile buffer length in bytes.</returns>
+    private static int GetTileBufferSize(int tileWidth, int tileLength, int bitsPerPixel, out int bytesPerTileRow)
+    {
+        long rowBytes = RoundUpToMultipleOfEight((long)tileWidth * bitsPerPixel);
+
+        // Check the span limit before multiplying by the file's tile height.
+        if (rowBytes > int.MaxValue / tileLength)
+        {
+            TiffThrowHelper.ThrowNotSupported("The TIFF tile buffer exceeds Int32.MaxValue bytes.");
+        }
+
+        bytesPerTileRow = (int)rowBytes;
+        return bytesPerTileRow * tileLength;
+    }
 }

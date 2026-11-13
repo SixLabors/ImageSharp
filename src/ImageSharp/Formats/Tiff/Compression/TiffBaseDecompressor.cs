@@ -31,6 +31,13 @@ internal abstract class TiffBaseDecompressor : TiffBaseCompression
     public virtual bool DecodesPixels => false;
 
     /// <summary>
+    /// Gets a value indicating whether <see cref="SegmentIntegrityHandling.IgnoreImageData"/> can discard a block after an
+    /// <see cref="ImageFormatException"/>. A codec returns true only when it clears its sample buffer before each block and
+    /// never writes outside that buffer, so a failed block cannot leave data that a later block uses.
+    /// </summary>
+    protected virtual bool CanDiscardFailedBlock => false;
+
+    /// <summary>
     /// Decompresses a TIFF strip or tile into raw samples or final pixels.
     /// </summary>
     /// <typeparam name="TPixel">The requested image pixel format.</typeparam>
@@ -44,17 +51,59 @@ internal abstract class TiffBaseDecompressor : TiffBaseCompression
     public void Decompress<TPixel>(
         BufferedReadStream stream, ulong offset, ulong count, int height, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
+        => this.TryDecompress(stream, offset, count, height, buffer, pixels, SegmentIntegrityHandling.Strict, cancellationToken);
+
+    /// <summary>
+    /// Decompresses a TIFF strip or tile into raw samples or final pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested image pixel format.</typeparam>
+    /// <param name="stream">The <see cref="Stream" /> to read image data from.</param>
+    /// <param name="offset">The data offset within the stream.</param>
+    /// <param name="count">The number of bytes to read from the input stream.</param>
+    /// <param name="height">The encoded strip or tile height.</param>
+    /// <param name="buffer">The raw sample destination when <see cref="DecodesPixels"/> is false; otherwise, an empty span.</param>
+    /// <param name="pixels">The final pixel destination when <see cref="DecodesPixels"/> is true; otherwise, unused.</param>
+    /// <param name="integrityHandling">The policy for recoverable image data errors.</param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    /// <returns>Whether decompression succeeded. A false result discards the entire block.</returns>
+    public bool TryDecompress<TPixel>(
+        BufferedReadStream stream,
+        ulong offset,
+        ulong count,
+        int height,
+        Span<byte> buffer,
+        Buffer2DRegion<TPixel> pixels,
+        SegmentIntegrityHandling integrityHandling,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         DebugGuard.MustBeLessThanOrEqualTo(offset, (ulong)long.MaxValue, nameof(offset));
         DebugGuard.MustBeLessThanOrEqualTo(count, (ulong)int.MaxValue, nameof(count));
 
         stream.Seek((long)offset, SeekOrigin.Begin);
-        this.Decompress(stream, (int)count, height, buffer, pixels, cancellationToken);
+        try
+        {
+            this.Decompress(stream, (int)count, height, buffer, pixels, cancellationToken);
+        }
+        catch (ImageFormatException) when (integrityHandling == SegmentIntegrityHandling.IgnoreImageData && this.CanDiscardFailedBlock)
+        {
+            // Recover only inside a valid file range. A read past the declared block remains fatal.
+            if (count > int.MaxValue || !stream.IsReadRangeValid((long)offset, count) || stream.Position > (long)(offset + count))
+            {
+                throw;
+            }
+
+            // Skip pixel conversion so the failed block keeps its initialized pixels.
+            // The next block seeks to its own offset, and the codec clears the sample buffer before decoding.
+            return false;
+        }
 
         if ((long)offset + (long)count < stream.Position)
         {
             TiffThrowHelper.ThrowImageFormatException("Out of range when reading a strip.");
         }
+
+        return true;
     }
 
     /// <summary>

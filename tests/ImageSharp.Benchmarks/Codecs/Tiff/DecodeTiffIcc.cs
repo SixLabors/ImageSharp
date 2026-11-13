@@ -21,6 +21,9 @@ public class DecodeTiffIcc
     private ImageMagick.ColorProfile targetProfile;
     private RenderingIntent renderingIntent;
 
+    // Both libraries read from this stream. Each call rewinds it, so the results measure the decoders only.
+    private MemoryStream inputStream;
+
     /// <summary>
     /// Gets or sets the real TIFF supplying encoded samples and an embedded ICC profile.
     /// </summary>
@@ -56,6 +59,17 @@ public class DecodeTiffIcc
         };
 
         this.targetProfile = new ImageMagick.ColorProfile(CompactSrgbV4Profile.Profile.ToByteArray());
+        this.inputStream = new MemoryStream(this.data, false);
+    }
+
+    /// <summary>
+    /// Releases the shared input stream.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.inputStream.Dispose();
+        this.inputStream = null;
     }
 
     /// <summary>
@@ -65,8 +79,8 @@ public class DecodeTiffIcc
     [Benchmark(Baseline = true)]
     public uint ImageMagick()
     {
-        using MemoryStream source = new(this.data);
-        using MagickImage image = new(source, new MagickReadSettings { Format = MagickFormat.Tiff });
+        this.inputStream.Position = 0;
+        using MagickImage image = new(this.inputStream, new MagickReadSettings { Format = MagickFormat.Tiff });
         image.RenderingIntent = this.renderingIntent;
         image.BlackPointCompensation = false;
 
@@ -86,15 +100,15 @@ public class DecodeTiffIcc
     [Benchmark]
     public Size ImageSharp()
     {
-        using MemoryStream source = new(this.data);
+        this.inputStream.Position = 0;
         using Image<Rgba32> image = Image.Load<Rgba32>(
             new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve },
-            source);
+            this.inputStream);
         return image.Size;
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -103,22 +117,22 @@ public class DecodeTiffIcc
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method       | TestImage                                    |           Mean |          Error |      StdDev |   Ratio |   RatioSD |        Gen0 |       Gen1 |       Gen2 |    Allocated |   Alloc Ratio |
-    | ------------ | -------------------------------------------- | -------------: | -------------: | ----------: | ------: | --------: | ----------: | ---------: | ---------: | -----------: | ------------: |
-    | ImageMagick  | Tiff/icc-profiles/Perceptual_CIELAB.tiff     |    1,141.99 μs |     288.296 μs |   15.802 μs |    1.00 |      0.02 |           - |          - |          - |      6.38 KB |          1.00 |
-    | ImageSharp   | Tiff/icc-profiles/Perceptual_CIELAB.tiff     |      157.66 μs |       3.944 μs |    0.216 μs |    0.14 |      0.00 |      1.7090 |          - |          - |     29.71 KB |          4.65 |
-    |              |                                              |                |                |             |         |           |             |            |            |              |               |
-    | ImageMagick  | Tiff/icc-profiles/Perceptual_CMYK.tiff       |   56,929.37 μs |   1,550.725 μs |   85.000 μs |   1.000 |      0.00 |           - |          - |          - |      7.76 KB |          1.00 |
-    | ImageSharp   | Tiff/icc-profiles/Perceptual_CMYK.tiff       |      423.49 μs |     223.138 μs |   12.231 μs |   0.007 |      0.00 |   1000.0000 |   983.3984 |   977.5391 |   4944.71 KB |        636.98 |
-    |              |                                              |                |                |             |         |           |             |            |            |              |               |
-    | ImageMagick  | Tiff/icc-profiles/Perceptual_RGB16.tiff      |   16,853.11 μs |   1,142.062 μs |   62.600 μs |   1.000 |      0.00 |           - |          - |          - |      6.75 KB |          1.00 |
-    | ImageSharp   | Tiff/icc-profiles/Perceptual_RGB16.tiff      |       92.18 μs |      16.730 μs |    0.917 μs |   0.005 |      0.00 |      1.9531 |          - |          - |     33.05 KB |          4.89 |
-    |              |                                              |                |                |             |         |           |             |            |            |              |               |
-    | ImageMagick  | Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff  |   16,155.79 μs |     855.412 μs |   46.888 μs |   1.000 |      0.00 |           - |          - |          - |      5.93 KB |          1.00 |
-    | ImageSharp   | Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff  |       84.89 μs |       2.954 μs |    0.162 μs |   0.005 |      0.00 |      6.7139 |     1.3428 |          - |    110.75 KB |         18.66 |
-    |              |                                              |                |                |             |         |           |             |            |            |              |               |
-    | ImageMagick  | Tiff/icc-profiles/Perceptual_RGB8.tiff       |   17,147.35 μs |     823.088 μs |   45.116 μs |   1.000 |      0.00 |           - |          - |          - |      6.75 KB |          1.00 |
-    | ImageSharp   | Tiff/icc-profiles/Perceptual_RGB8.tiff       |       69.64 μs |       3.953 μs |    0.217 μs |   0.004 |      0.00 |      1.9531 |          - |          - |     32.59 KB |          4.83 |
+    | Method      | TestImage                                   | Mean         | Error        | StdDev     | Ratio | RatioSD | Gen0      | Gen1      | Gen2     | Allocated  | Alloc Ratio |
+    |------------ |-------------------------------------------- |-------------:|-------------:|-----------:|------:|--------:|----------:|----------:|---------:|-----------:|------------:|
+    | ImageMagick | Tiff/icc-profiles/Perceptual_CIELAB.tiff    |  1,235.19 us |   170.571 us |   9.350 us |  1.00 |    0.01 |         - |         - |        - |    6.32 KB |        1.00 |
+    | ImageSharp  | Tiff/icc-profiles/Perceptual_CIELAB.tiff    |    157.48 us |    39.497 us |   2.165 us |  0.13 |    0.00 |    1.7090 |         - |        - |   29.55 KB |        4.67 |
+    |             |                                             |              |              |            |       |         |           |           |          |            |             |
+    | ImageMagick | Tiff/icc-profiles/Perceptual_CMYK.tiff      | 57,363.65 us | 2,535.386 us | 138.973 us | 1.000 |    0.00 |         - |         - |        - |    7.73 KB |        1.00 |
+    | ImageSharp  | Tiff/icc-profiles/Perceptual_CMYK.tiff      |    446.96 us |   260.416 us |  14.274 us | 0.008 |    0.00 | 1018.5547 | 1001.9531 | 995.1172 | 5969.18 KB |      772.46 |
+    |             |                                             |              |              |            |       |         |           |           |          |            |             |
+    | ImageMagick | Tiff/icc-profiles/Perceptual_RGB16.tiff     | 17,495.68 us | 6,126.566 us | 335.818 us | 1.000 |    0.02 |         - |         - |        - |     6.7 KB |        1.00 |
+    | ImageSharp  | Tiff/icc-profiles/Perceptual_RGB16.tiff     |     54.46 us |     3.044 us |   0.167 us | 0.003 |    0.00 |    1.8311 |    0.1221 |        - |   30.75 KB |        4.59 |
+    |             |                                             |              |              |            |       |         |           |           |          |            |             |
+    | ImageMagick | Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff | 17,061.02 us | 4,884.549 us | 267.739 us | 1.000 |    0.02 |         - |         - |        - |    5.88 KB |        1.00 |
+    | ImageSharp  | Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff |     73.19 us |     2.252 us |   0.123 us | 0.004 |    0.00 |    6.5918 |    1.0986 |        - |  108.77 KB |       18.50 |
+    |             |                                             |              |              |            |       |         |           |           |          |            |             |
+    | ImageMagick | Tiff/icc-profiles/Perceptual_RGB8.tiff      | 17,393.21 us | 2,057.046 us | 112.754 us | 1.000 |    0.01 |         - |         - |        - |     6.7 KB |        1.00 |
+    | ImageSharp  | Tiff/icc-profiles/Perceptual_RGB8.tiff      |     56.44 us |     0.346 us |   0.019 us | 0.003 |    0.00 |    1.8311 |    0.0610 |        - |   30.52 KB |        4.56 |
 
     Allocated reports managed memory only.
     Both methods include conversion from the embedded ICC profile to sRGB. ImageMagick retains Q16 output; ImageSharp writes Rgba32.

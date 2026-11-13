@@ -21,6 +21,11 @@ public class DecodeWebp
 
     private byte[] webpLosslessBytes;
 
+    // Both libraries read from these streams. Each call rewinds its stream, so the results measure the decoders only.
+    private MemoryStream webpLossyStream;
+
+    private MemoryStream webpLosslessStream;
+
     private string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImageLossy);
 
     private string TestImageLosslessFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImageLossless);
@@ -39,22 +44,36 @@ public class DecodeWebp
 
         this.webpLossyBytes ??= File.ReadAllBytes(this.TestImageLossyFullPath);
         this.webpLosslessBytes ??= File.ReadAllBytes(this.TestImageLosslessFullPath);
+        this.webpLossyStream ??= new MemoryStream(this.webpLossyBytes, false);
+        this.webpLosslessStream ??= new MemoryStream(this.webpLosslessBytes, false);
+    }
+
+    /// <summary>
+    /// Releases the shared input streams.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.webpLossyStream.Dispose();
+        this.webpLossyStream = null;
+        this.webpLosslessStream.Dispose();
+        this.webpLosslessStream = null;
     }
 
     [Benchmark(Description = "Magick Lossy Webp")]
     public uint WebpLossyMagick()
     {
         MagickReadSettings settings = new() { Format = MagickFormat.WebP };
-        using MemoryStream memoryStream = new(this.webpLossyBytes);
-        using MagickImage image = new(memoryStream, settings);
+        this.webpLossyStream.Position = 0;
+        using MagickImage image = new(this.webpLossyStream, settings);
         return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossy Webp")]
     public int WebpLossy()
     {
-        using MemoryStream memoryStream = new(this.webpLossyBytes);
-        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        this.webpLossyStream.Position = 0;
+        using Image<Rgba32> image = Image.Load<Rgba32>(this.webpLossyStream);
         return image.Height;
     }
 
@@ -63,21 +82,21 @@ public class DecodeWebp
     {
         MagickReadSettings settings = new()
         { Format = MagickFormat.WebP };
-        using MemoryStream memoryStream = new(this.webpLosslessBytes);
-        using MagickImage image = new(memoryStream, settings);
+        this.webpLosslessStream.Position = 0;
+        using MagickImage image = new(this.webpLosslessStream, settings);
         return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossless Webp")]
     public int WebpLossless()
     {
-        using MemoryStream memoryStream = new(this.webpLosslessBytes);
-        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        this.webpLosslessStream.Position = 0;
+        using Image<Rgba32> image = Image.Load<Rgba32>(this.webpLosslessStream);
         return image.Height;
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -86,12 +105,12 @@ public class DecodeWebp
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method                      | TestImageLossy         | TestImageLossless         |        Mean |      Error |     StdDev |        Gen0 |        Gen1 |        Gen2 |    Allocated |
-    | --------------------------- | ---------------------- | ------------------------- | ----------: | ---------: | ---------: | ----------: | ----------: | ----------: | -----------: |
-    | 'Magick Lossy Webp'         | Webp/earth_lossy.webp  | Webp/earth_lossless.webp  |    65.04 ms |   2.051 ms |   0.112 ms |           - |           - |           - |      6.26 KB |
-    | 'ImageSharp Lossy Webp'     | Webp/earth_lossy.webp  | Webp/earth_lossless.webp  |    69.88 ms |   2.704 ms |   0.148 ms |   2000.0000 |   2000.0000 |   2000.0000 |   1134.94 KB |
-    | 'Magick Lossless Webp'      | Webp/earth_lossy.webp  | Webp/earth_lossless.webp  |   104.51 ms |   8.797 ms |   0.482 ms |           - |           - |           - |      7.21 KB |
-    | 'ImageSharp Lossless Webp'  | Webp/earth_lossy.webp  | Webp/earth_lossless.webp  |   104.13 ms |   7.850 ms |   0.430 ms |   2600.0000 |   2600.0000 |   2600.0000 |   1673.37 KB |
+    | Method                     | TestImageLossy        | TestImageLossless        | Mean      | Error     | StdDev   | Gen0      | Gen1      | Gen2      | Allocated  |
+    |--------------------------- |---------------------- |------------------------- |----------:|----------:|---------:|----------:|----------:|----------:|-----------:|
+    | 'Magick Lossy Webp'        | Webp/earth_lossy.webp | Webp/earth_lossless.webp |  68.13 ms | 10.892 ms | 0.597 ms |         - |         - |         - |    6.23 KB |
+    | 'ImageSharp Lossy Webp'    | Webp/earth_lossy.webp | Webp/earth_lossless.webp |  71.58 ms | 21.414 ms | 1.174 ms | 2000.0000 | 2000.0000 | 2000.0000 | 1220.14 KB |
+    | 'Magick Lossless Webp'     | Webp/earth_lossy.webp | Webp/earth_lossless.webp | 105.74 ms |  7.433 ms | 0.407 ms |         - |         - |         - |    7.19 KB |
+    | 'ImageSharp Lossless Webp' | Webp/earth_lossy.webp | Webp/earth_lossless.webp | 105.98 ms |  4.747 ms | 0.260 ms | 2600.0000 | 2600.0000 | 2600.0000 | 1706.99 KB |
 
     Allocated reports managed memory only.
     */

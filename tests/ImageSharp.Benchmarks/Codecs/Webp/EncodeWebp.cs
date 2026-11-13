@@ -19,6 +19,10 @@ public class EncodeWebp
     private MagickImage webpMagick;
     private Image<Rgba32> webp;
 
+    // Both libraries write into this stream. Each call rewinds it, so after the first call it has the full capacity,
+    // and the results measure the encoders instead of the growth of a new stream.
+    private MemoryStream outputStream;
+
     private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
     [Params(TestImages.Png.Bike)] // The bike image will have all 3 transforms as lossless webp.
@@ -31,6 +35,7 @@ public class EncodeWebp
         {
             this.webp = Image.Load<Rgba32>(this.TestImageFullPath);
             this.webpMagick = new MagickImage(this.TestImageFullPath);
+            this.outputStream = new MemoryStream();
         }
     }
 
@@ -39,12 +44,13 @@ public class EncodeWebp
     {
         this.webp.Dispose();
         this.webpMagick.Dispose();
+        this.outputStream.Dispose();
     }
 
     [Benchmark(Description = "Magick Webp Lossy")]
     public void MagickWebpLossy()
     {
-        using MemoryStream memoryStream = new();
+        this.outputStream.Position = 0;
 
         WebPWriteDefines defines = new()
         {
@@ -57,14 +63,14 @@ public class EncodeWebp
         };
 
         this.webpMagick.Quality = 75;
-        this.webpMagick.Write(memoryStream, defines);
+        this.webpMagick.Write(this.outputStream, defines);
     }
 
     [Benchmark(Description = "ImageSharp Webp Lossy")]
     public void ImageSharpWebpLossy()
     {
-        using MemoryStream memoryStream = new();
-        this.webp.Save(memoryStream, new WebpEncoder()
+        this.outputStream.Position = 0;
+        this.webp.Save(this.outputStream, new WebpEncoder()
         {
             FileFormat = WebpFileFormatType.Lossy,
             Method = WebpEncodingMethod.Level4,
@@ -78,7 +84,7 @@ public class EncodeWebp
     [Benchmark(Baseline = true, Description = "Magick Webp Lossless")]
     public void MagickWebpLossless()
     {
-        using MemoryStream memoryStream = new();
+        this.outputStream.Position = 0;
         WebPWriteDefines defines = new()
         {
             Lossless = true,
@@ -86,14 +92,14 @@ public class EncodeWebp
         };
 
         this.webpMagick.Quality = 75;
-        this.webpMagick.Write(memoryStream, defines);
+        this.webpMagick.Write(this.outputStream, defines);
     }
 
     [Benchmark(Description = "ImageSharp Webp Lossless")]
     public void ImageSharpWebpLossless()
     {
-        using MemoryStream memoryStream = new();
-        this.webp.Save(memoryStream, new WebpEncoder()
+        this.outputStream.Position = 0;
+        this.webp.Save(this.outputStream, new WebpEncoder()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = WebpEncodingMethod.Level4,
@@ -105,8 +111,8 @@ public class EncodeWebp
         });
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -115,12 +121,12 @@ public class EncodeWebp
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method                      | TestImage     |        Mean |       Error |     StdDev |   Ratio |        Gen0 |        Gen1 |        Gen2 |    Allocated |   Alloc Ratio |
-    | --------------------------- | ------------- | ----------: | ----------: | ---------: | ------: | ----------: | ----------: | ----------: | -----------: | ------------: |
-    | 'Magick Webp Lossy'         | Png/Bike.png  |    13.60 ms |    1.243 ms |   0.068 ms |    0.08 |           - |           - |           - |     58.99 KB |          0.12 |
-    | 'ImageSharp Webp Lossy'     | Png/Bike.png  |    40.14 ms |    3.336 ms |   0.183 ms |    0.25 |           - |           - |           - |    259.71 KB |          0.51 |
-    | 'Magick Webp Lossless'      | Png/Bike.png  |   162.98 ms |    4.846 ms |   0.266 ms |    1.00 |           - |           - |           - |    508.96 KB |          1.00 |
-    | 'ImageSharp Webp Lossless'  | Png/Bike.png  |   102.26 ms |   46.199 ms |   2.532 ms |    0.63 |   2000.0000 |   2000.0000 |   2000.0000 |   3898.44 KB |          7.66 |
+    | Method                     | TestImage    | Mean      | Error     | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated  | Alloc Ratio |
+    |--------------------------- |------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
+    | 'Magick Webp Lossy'        | Png/Bike.png |  13.87 ms |  2.173 ms | 0.119 ms |  0.08 |    0.00 |         - |         - |         - |    2.83 KB |        0.59 |
+    | 'ImageSharp Webp Lossy'    | Png/Bike.png |  41.50 ms |  3.320 ms | 0.182 ms |  0.25 |    0.00 |         - |         - |         - |  285.93 KB |       59.41 |
+    | 'Magick Webp Lossless'     | Png/Bike.png | 166.12 ms | 23.937 ms | 1.312 ms |  1.00 |    0.01 |         - |         - |         - |    4.81 KB |        1.00 |
+    | 'ImageSharp Webp Lossless' | Png/Bike.png | 105.27 ms | 59.800 ms | 3.278 ms |  0.63 |    0.02 | 2200.0000 | 2200.0000 | 2200.0000 | 4815.18 KB |    1,000.56 |
 
     Allocated reports managed memory only.
     Ratio uses Magick Webp Lossless as the baseline for every method, including lossy encoding.

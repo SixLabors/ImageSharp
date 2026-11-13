@@ -90,7 +90,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 for (int i = 0; i < decodedCount; i++)
                 {
                     BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
-                    BmpBit16Layout bit16Layout = BmpBit16Layout.Rgb555;
+                    BmpColorType colorType = BmpColorType.Bgra;
                     ReadOnlyMemory<Color>? colorTable = null;
                     Image<TPixel> decoded = decodedEntries[i].Image;
                     ref IconDirEntry entry = ref this.entries[decodedEntries[i].EntryIndex];
@@ -120,7 +120,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     {
                         BmpMetadata currentBmpMetadata = decoded.Metadata.GetBmpMetadata();
                         bitsPerPixel = currentBmpMetadata.BitsPerPixel;
-                        bit16Layout = currentBmpMetadata.Bit16Layout;
+                        colorType = currentBmpMetadata.ColorType;
                         colorTable = currentBmpMetadata.ColorTable;
 
                         if (i == 0)
@@ -129,7 +129,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                         }
                     }
 
-                    this.SetFrameMetadata(metadata, target.Metadata, i, entry, decodedEntries[i].Compression, bitsPerPixel, bit16Layout, colorTable);
+                    this.SetFrameMetadata(metadata, target.Metadata, i, entry, decodedEntries[i].Compression, bitsPerPixel, colorType, colorTable);
                 }
 
                 // Embedded metadata belongs to the container even though the temporary decoded images are disposed below.
@@ -190,7 +190,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 cancellationToken.ThrowIfCancellationRequested();
 
                 BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
-                BmpBit16Layout bit16Layout = BmpBit16Layout.Rgb555;
+                BmpColorType colorType = BmpColorType.Bgra;
                 ReadOnlyMemory<Color>? colorTable = null;
                 ref IconDirEntry entry = ref this.entries[entryIndex];
                 this.SetFrameStreamBounds(frameStream, stream, basePosition, entry);
@@ -232,7 +232,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 {
                     BmpMetadata currentBmpMetadata = frameInfo.Metadata.GetBmpMetadata();
                     bitsPerPixel = currentBmpMetadata.BitsPerPixel;
-                    bit16Layout = currentBmpMetadata.Bit16Layout;
+                    colorType = currentBmpMetadata.ColorType;
                     colorTable = currentBmpMetadata.ColorTable;
 
                     if (frameCount is 0)
@@ -242,7 +242,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 }
 
                 IconFrameCompression compression = isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp;
-                this.SetFrameMetadata(metadata, frameMetadata, frameCount, entry, compression, bitsPerPixel, bit16Layout, colorTable);
+                this.SetFrameMetadata(metadata, frameMetadata, frameCount, entry, compression, bitsPerPixel, colorType, colorTable);
                 frames[frameCount++] = frameMetadata;
 
                 // Identification uses the same embedded-header dimensions as decoding, without allocating pixel buffers.
@@ -284,7 +284,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
     /// <param name="entry">The directory entry.</param>
     /// <param name="compression">The embedded frame compression.</param>
     /// <param name="bitsPerPixel">The embedded bitmap bit depth.</param>
-    /// <param name="bit16Layout">The channel layout of 16-bit pixels in the embedded bitmap.</param>
+    /// <param name="colorType">The color type of the embedded bitmap.</param>
     /// <param name="colorTable">The embedded bitmap color table.</param>
     protected abstract void SetFrameMetadata(
         ImageMetadata imageMetadata,
@@ -293,7 +293,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
-        BmpBit16Layout bit16Layout,
+        BmpColorType colorType,
         ReadOnlyMemory<Color>? colorTable);
 
     /// <summary>

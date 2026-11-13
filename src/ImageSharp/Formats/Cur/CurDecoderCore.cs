@@ -29,14 +29,14 @@ internal sealed class CurDecoderCore : IconDecoderCore
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
-        BmpBit16Layout bit16Layout,
+        BmpColorType colorType,
         ReadOnlyMemory<Color>? colorTable)
     {
         CurFrameMetadata curFrameMetadata = frameMetadata.GetCurMetadata();
         curFrameMetadata.FromIconDirEntry(entry);
         curFrameMetadata.Compression = compression;
         curFrameMetadata.BmpBitsPerPixel = bitsPerPixel;
-        curFrameMetadata.Bit16Layout = bit16Layout;
+        curFrameMetadata.BmpColorType = colorType;
         curFrameMetadata.ColorTable = colorTable;
 
         if (index == 0)
@@ -44,7 +44,7 @@ internal sealed class CurDecoderCore : IconDecoderCore
             CurMetadata curMetadata = imageMetadata.GetCurMetadata();
             curMetadata.Compression = compression;
             curMetadata.BmpBitsPerPixel = bitsPerPixel;
-            curMetadata.Bit16Layout = bit16Layout;
+            curMetadata.BmpColorType = colorType;
             curMetadata.ColorTable = colorTable;
         }
     }

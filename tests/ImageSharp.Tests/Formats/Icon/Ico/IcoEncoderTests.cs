@@ -189,4 +189,23 @@ public partial class IcoEncoderTests
 
         ImageComparer.Exact.VerifySimilarity(image, output);
     }
+
+    [Fact]
+    public void Encode_DecodedBgr565Bitmap_WritesBgr()
+    {
+        // The icon format permits only BI_RGB. A decoded 5-6-5 entry keeps that color type in the metadata, so the
+        // encoder must set the color type of the bitmap and write 5-5-5 without masks.
+        using Image<Rgba32> source = IcoDecoderTests.CreateGradient();
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(IcoDecoderTests.CreateIconWithRgb565Bitmap(1, source));
+        Assert.Equal(BmpColorType.Bgr565, decoded.Frames.RootFrame.Metadata.GetIcoMetadata().BmpColorType);
+
+        using MemoryStream stream = new();
+        decoded.Save(stream, new IcoEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+        IcoFrameMetadata metadata = output.Frames.RootFrame.Metadata.GetIcoMetadata();
+
+        Assert.Equal(BmpBitsPerPixel.Bit16, metadata.BmpBitsPerPixel);
+        Assert.Equal(BmpColorType.Bgr, metadata.BmpColorType);
+    }
 }

@@ -177,13 +177,13 @@ internal abstract class IconEncoderCore
                             ProcessedAlphaMask = true,
                             UseDoubleHeight = true,
                             SkipFileHeader = true,
-                            SupportTransparency = false,
                             TransparentColorMode = this.encoder.TransparentColorMode,
                             PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                             BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
 
-                            // The icon format permits only BI_RGB, so 16-bit pixels use the 5-5-5 layout.
-                            Bit16Layout = BmpBit16Layout.Rgb555,
+                            // The icon format permits only BI_RGB: a palette, or BGR without masks. A 32-bit icon keeps
+                            // alpha in the fourth byte of each pixel, which BI_RGB does not define.
+                            ColorType = encodingMetadata.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8 ? BmpColorType.Palette : BmpColorType.Bgr,
                             SkipMetadata = this.encoder.SkipMetadata
                         };
 

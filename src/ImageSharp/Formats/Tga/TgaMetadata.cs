@@ -89,6 +89,8 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
             };
         }
 
+        // A TGA image stores blue first: in the first byte, or in the least significant bits of a 16-bit pixel. The
+        // color type is BGR, and the component precisions follow the same order.
         PixelComponentInfo info;
         PixelColorType color;
         PixelAlphaRepresentation alpha;
@@ -100,18 +102,18 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
                 alpha = PixelAlphaRepresentation.None;
                 break;
             case TgaBitsPerPixel.Bit16:
-                info = PixelComponentInfo.Create(1, bpp, 5, 5, 5, 1);
+                info = PixelComponentInfo.Create(4, bpp, 5, 5, 5, 1);
                 color = PixelColorType.BGR | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;
                 break;
             case TgaBitsPerPixel.Bit24:
                 info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
-                color = PixelColorType.RGB;
+                color = PixelColorType.BGR;
                 alpha = PixelAlphaRepresentation.None;
                 break;
             case TgaBitsPerPixel.Bit32 or _:
                 info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
-                color = PixelColorType.RGB | PixelColorType.Alpha;
+                color = PixelColorType.BGR | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;
                 break;
         }

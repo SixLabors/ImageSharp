@@ -33,7 +33,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         this.FrameFormat = other.FrameFormat;
         this.Compression = other.Compression;
         this.BmpBitsPerPixel = other.BmpBitsPerPixel;
-        this.Bit16Layout = other.Bit16Layout;
+        this.BmpColorType = other.BmpColorType;
         this.HotspotX = other.HotspotX;
         this.HotspotY = other.HotspotY;
 
@@ -83,13 +83,14 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Bit32;
 
     /// <summary>
-    /// Gets or sets the channel layout of 16-bit pixels in the embedded bitmap.
+    /// Gets or sets the color type of the embedded bitmap.
     /// </summary>
     /// <remarks>
-    /// The decoder sets the layout of the decoded bitmap. The encoder writes 16-bit pixels with the 5-5-5 layout,
-    /// because the icon format permits only BI_RGB.
+    /// The decoder sets the color type of the decoded bitmap. The icon format permits only BI_RGB, so the encoder writes
+    /// a palette for 8 bits per pixel or fewer, and BGR without masks for more bits per pixel. At 16 bits per pixel, the
+    /// layout is 5-5-5.
     /// </remarks>
-    public BmpBit16Layout Bit16Layout { get; set; }
+    public BmpColorType BmpColorType { get; set; } = BmpColorType.Bgra;
 
     /// <summary>
     /// Gets or sets the embedded bitmap color table.
@@ -200,7 +201,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
                     break;
 
                 case BmpBitsPerPixel.Bit16:
-                    componentInfo = this.Bit16Layout is BmpBit16Layout.Rgb565
+                    componentInfo = this.BmpColorType is BmpColorType.Bgr565
                         ? PixelComponentInfo.Create(3, bitsPerPixel, 5, 6, 5)
                         : PixelComponentInfo.Create(3, bitsPerPixel, 5, 5, 5);
 

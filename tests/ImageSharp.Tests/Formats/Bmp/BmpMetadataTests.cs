@@ -18,48 +18,72 @@ public class BmpMetadataTests
     public void CloneIsDeep()
     {
         BmpMetadata meta = new()
-        { BitsPerPixel = BmpBitsPerPixel.Bit24, Bit16Layout = BmpBit16Layout.Rgb565, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        { BitsPerPixel = BmpBitsPerPixel.Bit24, ColorType = BmpColorType.Bgr565, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
         BmpMetadata clone = meta.DeepClone();
 
-        Assert.Equal(meta.Bit16Layout, clone.Bit16Layout);
+        Assert.Equal(meta.ColorType, clone.ColorType);
 
         clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
-        clone.Bit16Layout = BmpBit16Layout.Rgb555;
+        clone.ColorType = BmpColorType.Bgr;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
 
         Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
-        Assert.False(meta.Bit16Layout.Equals(clone.Bit16Layout));
+        Assert.False(meta.ColorType.Equals(clone.ColorType));
         Assert.False(meta.InfoHeaderType.Equals(clone.InfoHeaderType));
     }
 
     [Fact]
-    public void FromFormatConnectingMetadata_SelectsBit16LayoutFromGreenPrecision()
+    public void FromFormatConnectingMetadata_SelectsColorType()
     {
-        BmpMetadata rgb565 = BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = Bgr565.GetPixelTypeInfo() });
-        BmpMetadata rgb555 = BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = Bgra5551.GetPixelTypeInfo() });
+        static BmpMetadata Create(PixelTypeInfo info) => BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = info });
 
-        Assert.Equal(BmpBitsPerPixel.Bit16, rgb565.BitsPerPixel);
-        Assert.Equal(BmpBit16Layout.Rgb565, rgb565.Bit16Layout);
-        Assert.Equal(BmpBitsPerPixel.Bit16, rgb555.BitsPerPixel);
-        Assert.Equal(BmpBit16Layout.Rgb555, rgb555.Bit16Layout);
+        BmpMetadata bgr565 = Create(Bgr565.GetPixelTypeInfo());
+        BmpMetadata bgra5551 = Create(Bgra5551.GetPixelTypeInfo());
+        BmpMetadata bgr = Create(Rgb24.GetPixelTypeInfo());
+        BmpMetadata bgra = Create(Rgba32.GetPixelTypeInfo());
+        BmpMetadata palette = Create(L8.GetPixelTypeInfo());
+
+        Assert.Equal((BmpBitsPerPixel.Bit16, BmpColorType.Bgr565), (bgr565.BitsPerPixel, bgr565.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit16, BmpColorType.Bgra5551), (bgra5551.BitsPerPixel, bgra5551.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit24, BmpColorType.Bgr), (bgr.BitsPerPixel, bgr.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit32, BmpColorType.Bgra), (bgra.BitsPerPixel, bgra.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit8, BmpColorType.Palette), (palette.BitsPerPixel, palette.ColorType));
     }
 
     [Theory]
-    [InlineData(Rgb16, BmpBit16Layout.Rgb555)]
-    [InlineData(Rgb16bfdef, BmpBit16Layout.Rgb555)]
-    [InlineData(Rgb16565, BmpBit16Layout.Rgb565)]
-    [InlineData(Rgb16565pal, BmpBit16Layout.Rgb565)]
-    public void Identify_DetectsBit16Layout(string imagePath, BmpBit16Layout expectedLayout)
+    [InlineData(Bit8, BmpColorType.Palette)]
+    [InlineData(Rgb16, BmpColorType.Bgr)]
+    [InlineData(Rgb16bfdef, BmpColorType.Bgr)]
+    [InlineData(Rgb16565, BmpColorType.Bgr565)]
+    [InlineData(Rgb16565pal, BmpColorType.Bgr565)]
+    [InlineData(Car, BmpColorType.Bgr)]
+    [InlineData(Bit32Rgb, BmpColorType.Bgr)]
+    [InlineData(Rgb32bf, BmpColorType.Bgr)]
+    [InlineData(Bit32Rgba, BmpColorType.Bgra)]
+    public void Identify_DetectsColorType(string imagePath, BmpColorType expectedColorType)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
 
-        Assert.Equal(expectedLayout, bitmapMetadata.Bit16Layout);
-        Assert.Equal(
-            expectedLayout is BmpBit16Layout.Rgb565 ? 6 : 5,
-            imageInfo.PixelType.ComponentInfo!.Value.GetComponentPrecision(1));
+        Assert.Equal(expectedColorType, bitmapMetadata.ColorType);
+    }
+
+    [Theory]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit8, PixelColorType.Indexed)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit16, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit24, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit32, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgra, BmpBitsPerPixel.Bit32, PixelColorType.BGR | PixelColorType.Alpha)]
+    [InlineData(BmpColorType.Bgr565, BmpBitsPerPixel.Bit16, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgra5551, BmpBitsPerPixel.Bit16, PixelColorType.BGR | PixelColorType.Alpha)]
+    public void GetPixelTypeInfo_ReportsStorageOrder(BmpColorType colorType, BmpBitsPerPixel bitsPerPixel, PixelColorType expected)
+    {
+        // A bitmap stores blue first, so each direct color type reports BGR.
+        BmpMetadata metadata = new() { ColorType = colorType, BitsPerPixel = bitsPerPixel };
+
+        Assert.Equal(expected, metadata.GetPixelTypeInfo().ColorType);
     }
 
     [Theory]

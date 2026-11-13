@@ -372,17 +372,23 @@ internal sealed class AniEncoderCore
             case AniFrameFormat.Bmp:
             {
                 ImageFrame<TPixel> frame = image.Frames[frameIndex];
+                BmpBitsPerPixel bitsPerPixel = GetBmpBitsPerPixel(bitCount);
                 BmpEncoder bmpEncoder = new()
                 {
-                    BitsPerPixel = GetBmpBitsPerPixel(bitCount),
+                    BitsPerPixel = bitsPerPixel,
 
-                    // The icon format permits only BI_RGB, so 16-bit pixels use the 5-5-5 layout.
-                    Bit16Layout = BmpBit16Layout.Rgb555,
+                    // A raw bitmap frame writes alpha through the masks of a V4 header at 32 bits per pixel. Other depths
+                    // write a palette, or BGR without masks.
+                    ColorType = bitsPerPixel switch
+                    {
+                        BmpBitsPerPixel.Bit32 => BmpColorType.Bgra,
+                        <= BmpBitsPerPixel.Bit8 => BmpColorType.Palette,
+                        _ => BmpColorType.Bgr
+                    },
                     PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                     Quantizer = this.GetBitmapQuantizer(frame.Metadata.GetAniMetadata().ColorTable, bitCount),
                     SkipFileHeader = true,
                     SkipMetadata = this.encoder.SkipMetadata,
-                    SupportTransparency = bitCount is 32,
                     TransparentColorMode = this.encoder.TransparentColorMode
                 };
 

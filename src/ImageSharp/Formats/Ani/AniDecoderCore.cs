@@ -774,7 +774,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 metadata.EncodingHeight = icoMetadata.EncodingHeight;
                 metadata.Compression = icoMetadata.Compression;
                 metadata.BmpBitsPerPixel = icoMetadata.BmpBitsPerPixel;
-                metadata.Bit16Layout = icoMetadata.Bit16Layout;
+                metadata.BmpColorType = icoMetadata.BmpColorType;
                 metadata.ColorTable = icoMetadata.ColorTable;
 
                 break;
@@ -784,7 +784,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 metadata.EncodingHeight = curMetadata.EncodingHeight;
                 metadata.Compression = curMetadata.Compression;
                 metadata.BmpBitsPerPixel = curMetadata.BmpBitsPerPixel;
-                metadata.Bit16Layout = curMetadata.Bit16Layout;
+                metadata.BmpColorType = curMetadata.BmpColorType;
                 metadata.HotspotX = curMetadata.HotspotX;
                 metadata.HotspotY = curMetadata.HotspotY;
                 metadata.ColorTable = curMetadata.ColorTable;

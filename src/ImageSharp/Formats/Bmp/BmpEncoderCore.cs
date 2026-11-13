@@ -73,20 +73,28 @@ internal sealed class BmpEncoderCore
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The color depth, in number of bits per pixel.
+    /// The color type from the encoder options, or <see langword="null"/> to use the image metadata.
     /// </summary>
-    private BmpBitsPerPixel? bitsPerPixel;
+    private readonly BmpColorType? configuredColorType;
 
     /// <summary>
-    /// The channel layout of 16-bit pixels.
+    /// The bit depth from the encoder options, or <see langword="null"/> to use the image metadata.
     /// </summary>
-    private BmpBit16Layout? bit16Layout;
+    private readonly BmpBitsPerPixel? configuredBitsPerPixel;
 
     /// <summary>
-    /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
-    /// In this case the compression type BITFIELDS will be used.
-    /// If the image contains a color profile, a bitmap v5 header is written, which is needed to write this info.
-    /// Otherwise a bitmap v3 header will be written, which is supported by almost all decoders.
+    /// The color type of the image being encoded.
+    /// </summary>
+    private BmpColorType colorType;
+
+    /// <summary>
+    /// The color depth of the image being encoded, in number of bits per pixel. It always fits <see cref="colorType"/>.
+    /// </summary>
+    private BmpBitsPerPixel bitsPerPixel;
+
+    /// <summary>
+    /// The info header version. The alpha color types write a V4 header, which holds an alpha mask. An ICC profile
+    /// needs a V5 header. Other images write a V3 header, which almost all decoders read.
     /// </summary>
     private BmpInfoHeaderType infoHeaderType;
 
@@ -141,13 +149,12 @@ internal sealed class BmpEncoderCore
     public BmpEncoderCore(BmpEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.bitsPerPixel = encoder.BitsPerPixel;
-        this.bit16Layout = encoder.Bit16Layout;
+        this.configuredColorType = encoder.ColorType;
+        this.configuredBitsPerPixel = encoder.BitsPerPixel;
 
         this.configuredQuantizer = encoder.Quantizer;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.transparentColorMode = encoder.TransparentColorMode;
-        this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
         this.processedAlphaMask = encoder.ProcessedAlphaMask;
         this.skipFileHeader = encoder.SkipFileHeader;
         this.skipMetadata = encoder.SkipMetadata;
@@ -186,8 +193,14 @@ internal sealed class BmpEncoderCore
 
         Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
-        this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
-        this.bit16Layout ??= bmpMetadata.Bit16Layout;
+
+        // As the PNG encoder does, the encoder options take precedence over the metadata, and a bit depth that does not
+        // fit the color type falls back to the default depth of that color type.
+        this.colorType = this.configuredColorType ?? bmpMetadata.ColorType;
+        this.bitsPerPixel = BmpConstants.GetBitsPerPixel(this.colorType, this.configuredBitsPerPixel ?? bmpMetadata.BitsPerPixel);
+        this.infoHeaderType = this.colorType is BmpColorType.Bgra or BmpColorType.Bgra5551
+            ? BmpInfoHeaderType.WinVersion4
+            : BmpInfoHeaderType.WinVersion3;
 
         ushort bpp = (ushort)this.bitsPerPixel;
         int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
@@ -225,11 +238,11 @@ internal sealed class BmpEncoderCore
         this.quantizerOptions = this.quantizer.Options.DeepClone(o => o.TransparentColorMode = mode);
 
         // Direct samples and palette entries store RGB. Indexed compatibility is determined by the palette, not its indices.
-        PixelColorType colorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
+        PixelColorType pixelColorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
         IccProfile? sourceIccProfile = frame.Metadata.IccProfile ?? metadata.IccProfile;
         IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
             sourceIccProfile,
-            colorType,
+            pixelColorType,
             this.memoryAllocator,
             out ColorProfileConverter? converter);
 
@@ -343,22 +356,29 @@ internal sealed class BmpEncoderCore
             clrUsed: 0,
             clrImportant: 0);
 
-        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Bit32)
+        // The color types with masks use BI_BITFIELDS. Palette and RGB use BI_RGB, which has fixed layouts.
+        switch (this.colorType)
         {
-            infoHeader.AlphaMask = Rgba32AlphaMask;
-            infoHeader.RedMask = Rgba32RedMask;
-            infoHeader.GreenMask = Rgba32GreenMask;
-            infoHeader.BlueMask = Rgba32BlueMask;
-            infoHeader.Compression = BmpCompression.BitFields;
-        }
-
-        // The 5-6-5 layout needs BI_BITFIELDS.
-        if (this.bitsPerPixel is BmpBitsPerPixel.Bit16 && this.bit16Layout is BmpBit16Layout.Rgb565)
-        {
-            infoHeader.RedMask = BmpConstants.Rgb565Masks.Red;
-            infoHeader.GreenMask = BmpConstants.Rgb565Masks.Green;
-            infoHeader.BlueMask = BmpConstants.Rgb565Masks.Blue;
-            infoHeader.Compression = BmpCompression.BitFields;
+            case BmpColorType.Bgra:
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+                infoHeader.RedMask = Rgba32RedMask;
+                infoHeader.GreenMask = Rgba32GreenMask;
+                infoHeader.BlueMask = Rgba32BlueMask;
+                infoHeader.Compression = BmpCompression.BitFields;
+                break;
+            case BmpColorType.Bgr565:
+                infoHeader.RedMask = BmpConstants.Bgr565Masks.Red;
+                infoHeader.GreenMask = BmpConstants.Bgr565Masks.Green;
+                infoHeader.BlueMask = BmpConstants.Bgr565Masks.Blue;
+                infoHeader.Compression = BmpCompression.BitFields;
+                break;
+            case BmpColorType.Bgra5551:
+                infoHeader.AlphaMask = BmpConstants.Bgr555Masks.Alpha;
+                infoHeader.RedMask = BmpConstants.Bgr555Masks.Red;
+                infoHeader.GreenMask = BmpConstants.Bgr555Masks.Green;
+                infoHeader.BlueMask = BmpConstants.Bgr555Masks.Blue;
+                infoHeader.Compression = BmpCompression.BitFields;
+                break;
         }
 
         if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && !iccProfileData.IsEmpty)
@@ -491,7 +511,7 @@ internal sealed class BmpEncoderCore
                 this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
                 break;
 
-            case BmpBitsPerPixel.Bit16 when this.bit16Layout is BmpBit16Layout.Rgb565:
+            case BmpBitsPerPixel.Bit16 when this.colorType is BmpColorType.Bgr565:
                 this.WriteDirectColorPixels<TPixel, Bgr565>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
                 break;
 

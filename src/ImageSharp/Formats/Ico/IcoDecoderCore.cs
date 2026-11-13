@@ -29,14 +29,14 @@ internal sealed class IcoDecoderCore : IconDecoderCore
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
-        BmpBit16Layout bit16Layout,
+        BmpColorType colorType,
         ReadOnlyMemory<Color>? colorTable)
     {
         IcoFrameMetadata icoFrameMetadata = frameMetadata.GetIcoMetadata();
         icoFrameMetadata.FromIconDirEntry(entry);
         icoFrameMetadata.Compression = compression;
         icoFrameMetadata.BmpBitsPerPixel = bitsPerPixel;
-        icoFrameMetadata.Bit16Layout = bit16Layout;
+        icoFrameMetadata.BmpColorType = colorType;
         icoFrameMetadata.ColorTable = colorTable;
 
         if (index == 0)
@@ -44,7 +44,7 @@ internal sealed class IcoDecoderCore : IconDecoderCore
             IcoMetadata icoMetadata = imageMetadata.GetIcoMetadata();
             icoMetadata.Compression = compression;
             icoMetadata.BmpBitsPerPixel = bitsPerPixel;
-            icoMetadata.Bit16Layout = bit16Layout;
+            icoMetadata.BmpColorType = colorType;
             icoMetadata.ColorTable = colorTable;
         }
     }

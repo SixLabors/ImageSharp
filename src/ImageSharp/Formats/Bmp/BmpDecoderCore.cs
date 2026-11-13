@@ -29,21 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 internal sealed class BmpDecoderCore : ImageDecoderCore
 {
     /// <summary>
-    /// The default mask for the red part of the color for 16 bit rgb bitmaps.
-    /// </summary>
-    private const int DefaultRgb16RMask = 0x7C00;
-
-    /// <summary>
-    /// The default mask for the green part of the color for 16 bit rgb bitmaps.
-    /// </summary>
-    private const int DefaultRgb16GMask = 0x3E0;
-
-    /// <summary>
-    /// The default mask for the blue part of the color for 16 bit rgb bitmaps.
-    /// </summary>
-    private const int DefaultRgb16BMask = 0x1F;
-
-    /// <summary>
     /// RLE flag value that indicates following byte has special meaning.
     /// </summary>
     private const int RleCommand = 0x00;
@@ -386,10 +371,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         // These masks are the 5-5-5 layout of a 16-bit RGB bitmap, with alpha in bit 15 when the alpha mask is set.
         // That is the layout of Bgra5551, so the bulk Bgra5551 conversion reads the row with no unpack.
         if (bitsPerPixel is 16
-            && redMask == DefaultRgb16RMask
-            && greenMask == DefaultRgb16GMask
-            && blueMask == DefaultRgb16BMask
-            && alphaMask is 0 or 0x8000)
+            && redMask == BmpConstants.Bgr555Masks.Red
+            && greenMask == BmpConstants.Bgr555Masks.Green
+            && blueMask == BmpConstants.Bgr555Masks.Blue
+            && alphaMask is 0 or BmpConstants.Bgr555Masks.Alpha)
         {
             this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, alphaMask != 0);
             return;
@@ -1381,16 +1366,23 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
-        // The metadata records the 5-6-5 layout only for these exact masks. The encoder writes all other 16-bit
-        // layouts as 5-5-5.
-        this.bmpMetadata.Bit16Layout =
-            bitsPerPixel is 16
-            && this.infoHeader.Compression is BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS
-            && this.infoHeader.RedMask is BmpConstants.Rgb565Masks.Red
-            && this.infoHeader.GreenMask is BmpConstants.Rgb565Masks.Green
-            && this.infoHeader.BlueMask is BmpConstants.Rgb565Masks.Blue
-            ? BmpBit16Layout.Rgb565
-            : BmpBit16Layout.Rgb555;
+        // The compression and the masks give the color type. BI_RGB and RLE24 store BGR without alpha. Bit-field masks
+        // other than the layouts of the encoder map to the nearest color type: 5-5-5-1 for 16 bits with an alpha mask,
+        // 5-5-5 for 16 bits without one, and BGRA or BGR for 32 bits.
+        bool bitFields = this.infoHeader.Compression is BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS;
+        bool alpha = bitFields && this.infoHeader.AlphaMask != 0;
+        bool rgb565 = bitFields
+            && this.infoHeader.RedMask is BmpConstants.Bgr565Masks.Red
+            && this.infoHeader.GreenMask is BmpConstants.Bgr565Masks.Green
+            && this.infoHeader.BlueMask is BmpConstants.Bgr565Masks.Blue;
+
+        this.bmpMetadata.ColorType = bitsPerPixel switch
+        {
+            <= 8 => BmpColorType.Palette,
+            16 when rgb565 => BmpColorType.Bgr565,
+            16 => alpha ? BmpColorType.Bgra5551 : BmpColorType.Bgr,
+            _ => alpha ? BmpColorType.Bgra : BmpColorType.Bgr
+        };
 
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
     }

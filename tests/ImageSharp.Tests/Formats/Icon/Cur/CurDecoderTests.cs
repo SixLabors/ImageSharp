@@ -82,7 +82,7 @@ public class CurDecoderTests
     }
 
     [Fact]
-    public void DecodeAndIdentify_Rgb565BitmapEntry_RecordsBit16Layout()
+    public void DecodeAndIdentify_Bgr565BitmapEntry_RecordsColorType()
     {
         using Image<Rgba32> source = IcoDecoderTests.CreateGradient();
         byte[] data = IcoDecoderTests.CreateIconWithRgb565Bitmap(2, source);
@@ -96,9 +96,9 @@ public class CurDecoderTests
         CurFrameMetadata decoded = image.Frames.RootFrame.Metadata.GetCurMetadata();
 
         Assert.Equal(BmpBitsPerPixel.Bit16, decoded.BmpBitsPerPixel);
-        Assert.Equal(BmpBit16Layout.Rgb565, identified.Bit16Layout);
-        Assert.Equal(BmpBit16Layout.Rgb565, decoded.Bit16Layout);
-        Assert.Equal(BmpBit16Layout.Rgb565, image.Metadata.GetCurMetadata().Bit16Layout);
+        Assert.Equal(BmpColorType.Bgr565, identified.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr565, decoded.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr565, image.Metadata.GetCurMetadata().BmpColorType);
         Assert.Equal(6, decoded.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
         ImageComparer.Exact.VerifySimilarity(expected, image);
     }

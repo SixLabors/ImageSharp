@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata;
@@ -46,8 +47,28 @@ public partial class BmpEncoderTests
         { Bit32Rgb, BmpBitsPerPixel.Bit32 }
     };
 
-    [Fact]
-    public void BmpEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(BmpEncoder.Quantizer);
+    [Theory]
+    [InlineData(Bit1)]
+    [InlineData(Bit4)]
+    [InlineData(Bit8)]
+    public void Encode_IndexedWithoutQuantizer_KeepsDecodedColorTable(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        BmpMetadata inputMetadata = input.Metadata.GetBmpMetadata();
+        using MemoryStream memStream = new();
+        input.Save(memStream, BmpEncoder);
+
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        BmpMetadata outputMetadata = output.Metadata.GetBmpMetadata();
+
+        // The output table has one entry for each index value, and the source entries come first in the same order.
+        Color[] expected = inputMetadata.ColorTable!.Value.ToArray();
+        Assert.Equal(inputMetadata.BitsPerPixel, outputMetadata.BitsPerPixel);
+        Assert.Equal(expected, outputMetadata.ColorTable!.Value[..expected.Length].ToArray());
+        ImageComparer.Exact.VerifySimilarity(input, output);
+    }
 
     [Theory]
     [MemberData(nameof(RatioFiles))]
@@ -80,6 +101,71 @@ public partial class BmpEncoderTests
         BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
+    }
+
+    [Theory]
+    [InlineData(BmpBitsPerPixel.Bit1)]
+    [InlineData(BmpBitsPerPixel.Bit8)]
+    public void Encode_PaletteFromMetadata_KeepsExactColors(BmpBitsPerPixel bitsPerPixel)
+    {
+        // The 1-bit path builds its own quantizer options, so it must keep the exact color matching of the palette.
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        BmpMetadata metadata = image.Metadata.GetBmpMetadata();
+        metadata.BitsPerPixel = bitsPerPixel;
+        metadata.ColorTable = NearColorPalette.Palette;
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, BmpEncoder);
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
+
+    [Theory]
+    [InlineData(Rgb16, null, BmpBit16Layout.Rgb555)]
+    [InlineData(Rgb16565, null, BmpBit16Layout.Rgb565)]
+    [InlineData(Rgb16565, BmpBit16Layout.Rgb555, BmpBit16Layout.Rgb555)]
+    [InlineData(Rgb16, BmpBit16Layout.Rgb565, BmpBit16Layout.Rgb565)]
+    public void Encode_Bit16Layout_EncoderOverridesMetadata(string imagePath, BmpBit16Layout? encoderLayout, BmpBit16Layout expectedLayout)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using MemoryStream memStream = new();
+        input.Save(memStream, new BmpEncoder { Bit16Layout = encoderLayout });
+
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        BmpMetadata meta = output.Metadata.GetBmpMetadata();
+
+        Assert.Equal(BmpBitsPerPixel.Bit16, meta.BitsPerPixel);
+        Assert.Equal(expectedLayout, meta.Bit16Layout);
+    }
+
+    [Theory]
+    [WithFile(Rgb16565, PixelTypes.Bgr565 | PixelTypes.Rgba32)]
+    public void Encode_16Bit565_WithV3Header_WritesMasksAndPixelsOfSource<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // The source is a V3 bitmap with the 5-6-5 masks after the header. The decoded metadata selects the same
+        // layout, so the encoder writes the same mask block and pixel data. Rgba32 pixels hold the UNORM expansion of
+        // each channel, and the pack scales each one back to the stored bits.
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        using MemoryStream memStream = new();
+        image.Save(memStream, BmpEncoder);
+
+        byte[] expected = TestFile.Create(Rgb16565).Bytes;
+        byte[] actual = memStream.ToArray();
+        int masksOffset = BmpFileHeader.Size + BmpInfoHeader.SizeV3;
+        int expectedPixelOffset = BinaryPrimitives.ReadInt32LittleEndian(expected.AsSpan(10));
+        int actualPixelOffset = BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(10));
+
+        Assert.Equal(actual.Length, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(2)));
+        Assert.Equal(masksOffset + 12, actualPixelOffset);
+        Assert.Equal(BmpInfoHeader.SizeV3, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(BmpFileHeader.Size)));
+        Assert.Equal((int)BmpCompression.BitFields, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(BmpFileHeader.Size + 16)));
+        Assert.Equal(expected.AsSpan(masksOffset, 12).ToArray(), actual.AsSpan(masksOffset, 12).ToArray());
+        Assert.Equal(expected.AsSpan(expectedPixelOffset).ToArray(), actual.AsSpan(actualPixelOffset).ToArray());
     }
 
     [Theory]
@@ -137,6 +223,20 @@ public partial class BmpEncoderTests
     [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
     public void Encode_16Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+
+    [Theory]
+    [WithFile(Rgb16565, PixelTypes.Bgr565, BmpBitsPerPixel.Bit16)]
+    [WithFile(Rgb16, PixelTypes.Bgr565, BmpBitsPerPixel.Bit16)]
+    public void Encode_16Bit565_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => TestBmpEncoderCore(provider, bitsPerPixel, false, bit16Layout: BmpBit16Layout.Rgb565);
+
+    [Theory]
+    [WithFile(Rgb16565, PixelTypes.Bgr565, BmpBitsPerPixel.Bit16)]
+    [WithFile(Rgb16, PixelTypes.Bgr565, BmpBitsPerPixel.Bit16)]
+    public void Encode_16Bit565_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => TestBmpEncoderCore(provider, bitsPerPixel, true, bit16Layout: BmpBit16Layout.Rgb565);
 
     [Theory]
     [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
@@ -463,7 +563,8 @@ public partial class BmpEncoderTests
         bool supportTransparency = true, // if set to true, will write a V4 header, otherwise a V3 header.
         IQuantizer quantizer = null,
         ImageComparer customComparer = null,
-        IImageDecoder referenceDecoder = null)
+        IImageDecoder referenceDecoder = null,
+        BmpBit16Layout? bit16Layout = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
@@ -477,6 +578,7 @@ public partial class BmpEncoderTests
         BmpEncoder encoder = new()
         {
             BitsPerPixel = bitsPerPixel,
+            Bit16Layout = bit16Layout,
             SupportTransparency = supportTransparency,
             Quantizer = quantizer ?? KnownQuantizers.Hexadecatree
         };

@@ -1008,6 +1008,51 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     [Theory]
     [MemberData(nameof(ArraySizesData))]
+    public void FromBgr565Bytes(int count)
+    {
+        int size = Unsafe.SizeOf<Bgr565>();
+        byte[] source = CreateByteTestData(count * size);
+        TPixel[] expected = new TPixel[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * size;
+
+            Bgr565 bgr = MemoryMarshal.Cast<byte, Bgr565>(source.AsSpan().Slice(offset, size))[0];
+            expected[i] = TPixel.FromBgr565(bgr);
+        }
+
+        TestOperation(
+            source,
+            expected,
+            (s, d) => this.Operations.FromBgr565Bytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToBgr565Bytes(int count)
+    {
+        int size = Unsafe.SizeOf<Bgr565>();
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * size];
+
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * size;
+            Bgr565 bgr = Bgr565.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
+            OctetBytes bytes = Unsafe.As<Bgr565, OctetBytes>(ref bgr);
+            expected[offset] = bytes[0];
+            expected[offset + 1] = bytes[1];
+        }
+
+        TestOperation(
+            source,
+            expected,
+            (s, d) => this.Operations.ToBgr565Bytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
     public void FromL8(int count)
     {
         byte[] sourceBytes = CreateByteTestData(count);

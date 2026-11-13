@@ -124,7 +124,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                         source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
                     }
 
-                    AniFrameMetadata metadata = CreateFrameMetadata(source.Metadata, format, step + 1, frameDelay, source.Size);
+                    ReadOnlyMemory<Color>? colorTable = format is AniFrameFormat.Bmp ? resourceImage.Metadata.GetBmpMetadata().ColorTable : null;
+                    AniFrameMetadata metadata = CreateFrameMetadata(source.Metadata, format, step + 1, frameDelay, source.Size, colorTable);
                     target.Metadata.SetFormatMetadata(AniFormat.Instance, metadata);
                     outputFrames.Add(target);
                 }
@@ -216,7 +217,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             {
                 // Raw BMP Identify supplies image-level metadata without a frame collection. Retain its profile on the ANI frame.
                 ImageFrameMetadata target = new() { IccProfile = info.Metadata.IccProfile?.DeepClone() };
-                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(null, format, step + 1, frameDelay, info.Size));
+                ReadOnlyMemory<Color>? colorTable = format is AniFrameFormat.Bmp ? info.Metadata.GetBmpMetadata().ColorTable : null;
+                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(null, format, step + 1, frameDelay, info.Size, colorTable));
                 outputFrames.Add(target);
                 continue;
             }
@@ -226,7 +228,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 ImageFrameMetadata source = info.FrameMetadataCollection[i];
                 ImageFrameMetadata target = source.DeepClone();
 
-                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(source, format, step + 1, frameDelay, info.Size));
+                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(source, format, step + 1, frameDelay, info.Size, null));
                 outputFrames.Add(target);
             }
         }
@@ -735,14 +737,23 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="sequenceNumber">The animation sequence number.</param>
     /// <param name="frameDelay">The display rate in sixtieths of a second.</param>
     /// <param name="size">The embedded frame size.</param>
+    /// <param name="bitmapColorTable">The color table of a raw bitmap resource, or <see langword="null"/>.</param>
     /// <returns>The ANI frame metadata.</returns>
-    private static AniFrameMetadata CreateFrameMetadata(ImageFrameMetadata? source, AniFrameFormat format, int sequenceNumber, uint frameDelay, Size size)
+    private static AniFrameMetadata CreateFrameMetadata(
+        ImageFrameMetadata? source,
+        AniFrameFormat format,
+        int sequenceNumber,
+        uint frameDelay,
+        Size size,
+        ReadOnlyMemory<Color>? bitmapColorTable)
     {
+        // A raw bitmap keeps its color table in the image-level BMP metadata, so the caller passes it.
         AniFrameMetadata metadata = new()
         {
             FrameDelay = frameDelay,
             SequenceNumber = sequenceNumber,
-            FrameFormat = format
+            FrameFormat = format,
+            ColorTable = bitmapColorTable
         };
 
         if (source is null)
@@ -763,6 +774,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 metadata.EncodingHeight = icoMetadata.EncodingHeight;
                 metadata.Compression = icoMetadata.Compression;
                 metadata.BmpBitsPerPixel = icoMetadata.BmpBitsPerPixel;
+                metadata.Bit16Layout = icoMetadata.Bit16Layout;
                 metadata.ColorTable = icoMetadata.ColorTable;
 
                 break;
@@ -772,6 +784,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 metadata.EncodingHeight = curMetadata.EncodingHeight;
                 metadata.Compression = curMetadata.Compression;
                 metadata.BmpBitsPerPixel = curMetadata.BmpBitsPerPixel;
+                metadata.Bit16Layout = curMetadata.Bit16Layout;
                 metadata.HotspotX = curMetadata.HotspotX;
                 metadata.HotspotY = curMetadata.HotspotY;
                 metadata.ColorTable = curMetadata.ColorTable;

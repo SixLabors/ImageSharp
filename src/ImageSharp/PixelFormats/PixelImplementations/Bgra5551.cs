@@ -174,6 +174,10 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra5551 FromBgr565(Bgr565 source) => FromRgba32(source.ToRgba32());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra5551 FromBgr24(Bgr24 source) => new(Pack8(source.R, source.G, source.B, byte.MaxValue));
 
     /// <inheritdoc />
@@ -232,10 +236,9 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// Packs 8-bit channel values to the 5-5-5-1 layout.
     /// </summary>
     /// <remarks>
-    /// The Direct3D UNORM rules give each color as <c>round(c * 31 / 255)</c> and alpha as <c>round(a / 255)</c>, the same
-    /// values as <see cref="Pack(Vector4)"/>. <c>c * 31 / 255</c> is never a half, because <c>62 * c</c> is even and
-    /// <c>255 * (2k + 1)</c> is odd. Thus <c>(c * 31 + 127) / 255</c> is the rounded value. <c>a &gt;&gt; 7</c> is 1 for
-    /// 128 or more.
+    /// Each color is <c>round(c * 31 / 255)</c> and alpha is <c>round(a / 255)</c>, the same values as
+    /// <see cref="Pack(Vector4)"/>. <see cref="ColorNumerics.ScaleUnorm(uint, uint, uint)"/> explains the rounding.
+    /// <c>a &gt;&gt; 7</c> is 1 for 128 or more.
     /// </remarks>
     /// <param name="r">The red value.</param>
     /// <param name="g">The green value.</param>
@@ -244,15 +247,17 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// <returns>The packed value: blue in bits 0..4, green in bits 5..9, red in bits 10..14 and alpha in bit 15.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack8(uint r, uint g, uint b, uint a)
-        => (ushort)((Scale8To5(r) << 10) | (Scale8To5(g) << 5) | Scale8To5(b) | ((a >> 7) << 15));
+        => (ushort)((ColorNumerics.ScaleUnorm(r, 255, 31) << 10)
+            | (ColorNumerics.ScaleUnorm(g, 255, 31) << 5)
+            | ColorNumerics.ScaleUnorm(b, 255, 31)
+            | ((a >> 7) << 15));
 
     /// <summary>
     /// Packs 16-bit channel values to the 5-5-5-1 layout.
     /// </summary>
     /// <remarks>
     /// Each color is <c>round(c * 31 / 65535)</c> and alpha is <c>round(a / 65535)</c>, as in
-    /// <see cref="Pack8(uint, uint, uint, uint)"/>. <c>62 * c</c> is even and <c>65535 * (2k + 1)</c> is odd, so
-    /// <c>(c * 31 + 32767) / 65535</c> is the rounded value. <c>a &gt;&gt; 15</c> is 1 for 32768 or more.
+    /// <see cref="Pack8(uint, uint, uint, uint)"/>. <c>a &gt;&gt; 15</c> is 1 for 32768 or more.
     /// </remarks>
     /// <param name="r">The red value.</param>
     /// <param name="g">The green value.</param>
@@ -261,15 +266,16 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// <returns>The packed value: blue in bits 0..4, green in bits 5..9, red in bits 10..14 and alpha in bit 15.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack16(uint r, uint g, uint b, uint a)
-        => (ushort)((Scale16To5(r) << 10) | (Scale16To5(g) << 5) | Scale16To5(b) | ((a >> 15) << 15));
+        => (ushort)((ColorNumerics.ScaleUnorm(r, 65535, 31) << 10)
+            | (ColorNumerics.ScaleUnorm(g, 65535, 31) << 5)
+            | ColorNumerics.ScaleUnorm(b, 65535, 31)
+            | ((a >> 15) << 15));
 
     /// <summary>
     /// Unpacks the 5-5-5-1 layout to 8-bit channel values.
     /// </summary>
     /// <remarks>
-    /// The Direct3D UNORM rules give each color as <c>round(c * 255 / 31)</c> and alpha as 0 or 255, the byte values of
-    /// <see cref="ToVector4"/>. <c>c * 255 / 31</c> is never a half, because <c>510 * c</c> is even and
-    /// <c>31 * (2k + 1)</c> is odd. Thus <c>(c * 255 + 15) / 31</c> is the rounded value.
+    /// Each color is <c>round(c * 255 / 31)</c> and alpha is 0 or 255, the byte values of <see cref="ToVector4"/>.
     /// </remarks>
     /// <param name="packed">The packed value: blue in bits 0..4, green in bits 5..9, red in bits 10..14 and alpha in bit 15.</param>
     /// <param name="r">The red value.</param>
@@ -279,44 +285,11 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Unpack8(uint packed, out uint r, out uint g, out uint b, out uint a)
     {
-        r = Scale5To8((packed >> 10) & 0x1F);
-        g = Scale5To8((packed >> 5) & 0x1F);
-        b = Scale5To8(packed & 0x1F);
+        r = ColorNumerics.ScaleUnorm((packed >> 10) & 0x1F, 31, 255);
+        g = ColorNumerics.ScaleUnorm((packed >> 5) & 0x1F, 31, 255);
+        b = ColorNumerics.ScaleUnorm(packed & 0x1F, 31, 255);
         a = ((packed >> 15) & 1) * 255;
     }
-
-    /// <summary>
-    /// Scales an 8-bit value to a 5-bit value: <c>round(value * 31 / 255)</c>.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Pack8(uint, uint, uint, uint)"/> explains the rounding.
-    /// </remarks>
-    /// <param name="value">The 8-bit value.</param>
-    /// <returns>The 5-bit value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Scale8To5(uint value) => ((value * 31) + 127) / 255;
-
-    /// <summary>
-    /// Scales a 16-bit value to a 5-bit value: <c>round(value * 31 / 65535)</c>.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Pack16(uint, uint, uint, uint)"/> explains the rounding.
-    /// </remarks>
-    /// <param name="value">The 16-bit value.</param>
-    /// <returns>The 5-bit value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Scale16To5(uint value) => ((value * 31) + 32767) / 65535;
-
-    /// <summary>
-    /// Scales a 5-bit value to an 8-bit value: <c>round(value * 255 / 31)</c>.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Unpack8(uint, out uint, out uint, out uint, out uint)"/> explains the rounding.
-    /// </remarks>
-    /// <param name="value">The 5-bit value.</param>
-    /// <returns>The 8-bit value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Scale5To8(uint value) => ((value * 255) + 15) / 31;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector4 vector)

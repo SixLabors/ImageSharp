@@ -181,6 +181,9 @@ internal abstract class IconEncoderCore
                             TransparentColorMode = this.encoder.TransparentColorMode,
                             PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                             BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
+
+                            // The icon format permits only BI_RGB, so 16-bit pixels use the 5-5-5 layout.
+                            Bit16Layout = BmpBit16Layout.Rgb555,
                             SkipMetadata = this.encoder.SkipMetadata
                         };
 
@@ -264,8 +267,8 @@ internal abstract class IconEncoderCore
             });
         }
 
-        // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(colorTable.Value, new QuantizerOptions { Dither = null });
+        // Keep the colors of the palette. We want to preserve as much information as possible.
+        return EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.encoder.TransparentColorMode);
     }
 
     /// <summary>

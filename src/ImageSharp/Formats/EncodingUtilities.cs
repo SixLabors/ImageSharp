@@ -9,6 +9,7 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats;
 
@@ -17,6 +18,26 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 internal static class EncodingUtilities
 {
+    /// <summary>
+    /// Creates the quantizer that maps pixels to a decoded palette, for an encoder that writes that palette again.
+    /// </summary>
+    /// <remarks>
+    /// Dithering is off and color matching is exact, so each pixel that has a palette color keeps that color. The default
+    /// coarse matching keeps 5 bits of each channel, so it can map two near palette colors to one entry.
+    /// </remarks>
+    /// <param name="palette">The decoded palette.</param>
+    /// <param name="transparentColorMode">The transparent color mode of the encoder.</param>
+    /// <returns>The quantizer.</returns>
+    public static PaletteQuantizer CreateDecodedPaletteQuantizer(ReadOnlyMemory<Color> palette, TransparentColorMode transparentColorMode)
+        => new(
+            palette,
+            new QuantizerOptions
+            {
+                Dither = null,
+                ColorMatchingMode = ColorMatchingMode.Exact,
+                TransparentColorMode = transparentColorMode
+            });
+
     /// <summary>
     /// Determines if transparent pixels can be replaced based on the specified color mode and pixel type.
     /// </summary>

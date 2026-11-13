@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
@@ -20,10 +22,10 @@ internal sealed class AniEncoderCore
 {
     private readonly AniEncoder encoder;
 
-    // Each nested encoder is configured once and reused for every resource of that type in this ANI operation.
+    // Each nested icon encoder is configured once and reused for every resource of that type in this ANI operation.
+    // Raw bitmap frames get one bitmap encoder each, because each frame selects its own quantizer.
     private IcoEncoderCore? icoEncoder;
     private CurEncoderCore? curEncoder;
-    private BmpEncoderCore? bmpEncoder;
 
     /// <summary>
     /// Reusable storage for the fixed ANI header and smaller RIFF values.
@@ -368,26 +370,52 @@ internal sealed class AniEncoderCore
 
                 break;
             case AniFrameFormat.Bmp:
-                if (this.bmpEncoder is null)
+            {
+                ImageFrame<TPixel> frame = image.Frames[frameIndex];
+                BmpEncoder bmpEncoder = new()
                 {
-                    BmpEncoder bmpEncoder = new()
-                    {
-                        BitsPerPixel = GetBmpBitsPerPixel(bitCount),
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipFileHeader = true,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        SupportTransparency = bitCount is 32,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    };
+                    BitsPerPixel = GetBmpBitsPerPixel(bitCount),
 
-                    this.bmpEncoder = new BmpEncoderCore(bmpEncoder, image.Configuration.MemoryAllocator);
-                }
+                    // The icon format permits only BI_RGB, so 16-bit pixels use the 5-5-5 layout.
+                    Bit16Layout = BmpBit16Layout.Rgb555,
+                    PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                    Quantizer = this.GetBitmapQuantizer(frame.Metadata.GetAniMetadata().ColorTable, bitCount),
+                    SkipFileHeader = true,
+                    SkipMetadata = this.encoder.SkipMetadata,
+                    SupportTransparency = bitCount is 32,
+                    TransparentColorMode = this.encoder.TransparentColorMode
+                };
 
                 // The frame overload writes the raw DIB directly and avoids constructing a temporary single-frame Image.
-                this.bmpEncoder.Encode(image.Frames[frameIndex], image.Metadata, stream, cancellationToken);
+                new BmpEncoderCore(bmpEncoder, image.Configuration.MemoryAllocator).Encode(frame, image.Metadata, stream, cancellationToken);
                 break;
+            }
         }
+    }
+
+    /// <summary>
+    /// Gets the quantizer for a raw bitmap frame, in the same order as the icon encoder: the configured quantizer, then the
+    /// palette of the frame when it fits the bit depth, then the default quantizer.
+    /// </summary>
+    /// <remarks>
+    /// The default is not the color table of the image-level BMP metadata, because each frame is a separate bitmap.
+    /// </remarks>
+    /// <param name="colorTable">The color table of the frame, if any.</param>
+    /// <param name="bitCount">The bitmap bit depth declared by the ANI header.</param>
+    /// <returns>The quantizer.</returns>
+    private IQuantizer GetBitmapQuantizer(ReadOnlyMemory<Color>? colorTable, uint bitCount)
+    {
+        if (this.encoder.Quantizer is not null)
+        {
+            return this.encoder.Quantizer;
+        }
+
+        if (bitCount is > 0 and <= 8 && colorTable?.Length > 0 && colorTable.Value.Length <= 1 << (int)bitCount)
+        {
+            return EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.encoder.TransparentColorMode);
+        }
+
+        return KnownQuantizers.Hexadecatree;
     }
 
     /// <summary>

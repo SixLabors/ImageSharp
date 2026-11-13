@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
+
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -203,6 +204,34 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra5551, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromBgra5551.ToBgra32(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
+        public override void ToBgr565(
+            Configuration configuration,
+            ReadOnlySpan<Bgra32> source,
+            Span<Bgr565> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra32, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgr565, byte>(destination);
+            PixelConverter.FromBgra32.ToBgr565(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
+        public override void FromBgr565(
+            Configuration configuration,
+            ReadOnlySpan<Bgr565> source,
+            Span<Bgra32> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgr565, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
+            PixelConverter.FromBgr565.ToBgra32(sourceBytes, destinationBytes);
         }
 
         /// <inheritdoc />

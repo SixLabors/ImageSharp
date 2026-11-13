@@ -301,6 +301,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba32 FromBgra5551(Bgra5551 source) => source.ToRgba32();
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromBgr565(Bgr565 source) => source.ToRgba32();
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba32 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);

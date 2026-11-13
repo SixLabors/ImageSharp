@@ -251,6 +251,25 @@ internal static class ColorNumerics
         => (uint)(component * 16843009);
 
     /// <summary>
+    /// Scales an unsigned normalized value to another bit depth with the Direct3D UNORM rounding:
+    /// <c>round(value * destinationMax / sourceMax)</c>.
+    /// </summary>
+    /// <remarks>
+    /// Each maximum is <c>2^n - 1</c>, an odd number. <c>value * destinationMax / sourceMax</c> is never a half, because
+    /// <c>2 * value * destinationMax</c> is even and <c>sourceMax * (2k + 1)</c> is odd. Thus the integer division of
+    /// <c>value * destinationMax + sourceMax / 2</c> by <c>sourceMax</c> is the rounded value. Callers pass constant
+    /// maximums, so the JIT replaces the division with a multiply and a shift. The caller makes sure that
+    /// <c>value * destinationMax + sourceMax / 2</c> fits in 32 bits.
+    /// </remarks>
+    /// <param name="value">The value, from 0 to <paramref name="sourceMax"/>.</param>
+    /// <param name="sourceMax">The maximum value at the source bit depth.</param>
+    /// <param name="destinationMax">The maximum value at the destination bit depth.</param>
+    /// <returns>The scaled value, from 0 to <paramref name="destinationMax"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ScaleUnorm(uint value, uint sourceMax, uint destinationMax)
+        => ((value * destinationMax) + (sourceMax / 2)) / sourceMax;
+
+    /// <summary>
     /// Returns how many bits are required to store the specified number of colors.
     /// Performs a Log2() on the value.
     /// </summary>

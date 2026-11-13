@@ -24,6 +24,27 @@ internal static class BmpConstants
     public static readonly IEnumerable<string> FileExtensions = ["bm", "bmp", "dip"];
 
     /// <summary>
+    /// The channel masks of a 16-bit bitmap with the 5-6-5 layout.
+    /// </summary>
+    internal static class Rgb565Masks
+    {
+        /// <summary>
+        /// The red mask: bits 11 to 15.
+        /// </summary>
+        public const int Red = 0xF800;
+
+        /// <summary>
+        /// The green mask: bits 5 to 10.
+        /// </summary>
+        public const int Green = 0x07E0;
+
+        /// <summary>
+        /// The blue mask: bits 0 to 4.
+        /// </summary>
+        public const int Blue = 0x001F;
+    }
+
+    /// <summary>
     /// Valid magic bytes markers identifying a Bitmap file.
     /// </summary>
     internal static class TypeMarkers

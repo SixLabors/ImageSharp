@@ -26,6 +26,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     private BmpMetadata(BmpMetadata other)
     {
         this.BitsPerPixel = other.BitsPerPixel;
+        this.Bit16Layout = other.Bit16Layout;
         this.InfoHeaderType = other.InfoHeaderType;
 
         if (other.ColorTable?.Length > 0)
@@ -45,6 +46,12 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Bit24;
 
     /// <summary>
+    /// Gets or sets the channel layout of 16-bit pixels. The value has an effect only when
+    /// <see cref="BitsPerPixel"/> is <see cref="BmpBitsPerPixel.Bit16"/>.
+    /// </summary>
+    public BmpBit16Layout Bit16Layout { get; set; }
+
+    /// <summary>
     /// Gets or sets the color table, if any.
     /// </summary>
     public ReadOnlyMemory<Color>? ColorTable { get; set; }
@@ -53,6 +60,14 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     public static BmpMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
+
+        // A green channel of 6 bits gives the 5-6-5 layout. All other 16-bit sources use 5-5-5.
+        PixelComponentInfo? components = metadata.PixelTypeInfo.ComponentInfo;
+        BmpBit16Layout bit16Layout =
+            components.HasValue && components.Value.ComponentCount == 3 && components.Value.GetComponentPrecision(1) == 6
+            ? BmpBit16Layout.Rgb565
+            : BmpBit16Layout.Rgb555;
+
         return bpp switch
         {
             1 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Bit1 },
@@ -62,6 +77,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
             <= 16 => new BmpMetadata
             {
                 BitsPerPixel = BmpBitsPerPixel.Bit16,
+                Bit16Layout = bit16Layout,
                 InfoHeaderType = BmpInfoHeaderType.WinVersion3
             },
             <= 24 => new BmpMetadata
@@ -116,10 +132,11 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
                 color = PixelColorType.Indexed;
                 break;
 
-            // Could be 555 with padding but 565 is more common in newer bitmaps and offers
-            // greater accuracy due to extra green precision.
             case BmpBitsPerPixel.Bit16:
-                info = PixelComponentInfo.Create(3, bpp, 5, 6, 5);
+                info = this.Bit16Layout is BmpBit16Layout.Rgb565
+                    ? PixelComponentInfo.Create(3, bpp, 5, 6, 5)
+                    : PixelComponentInfo.Create(3, bpp, 5, 5, 5);
+
                 color = PixelColorType.RGB;
                 break;
             case BmpBitsPerPixel.Bit24:

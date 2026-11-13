@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Cur;
@@ -77,5 +79,27 @@ public class CurDecoderTests
 
         Assert.Equal((byte)128, metadata.EncodingWidth);
         Assert.Equal((byte)128, metadata.EncodingHeight);
+    }
+
+    [Fact]
+    public void DecodeAndIdentify_Rgb565BitmapEntry_RecordsBit16Layout()
+    {
+        using Image<Rgba32> source = IcoDecoderTests.CreateGradient();
+        byte[] data = IcoDecoderTests.CreateIconWithRgb565Bitmap(2, source);
+
+        ImageInfo info = Image.Identify(data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        using Image<Bgr565> quantized = source.CloneAs<Bgr565>();
+        using Image<Rgba32> expected = quantized.CloneAs<Rgba32>();
+
+        CurFrameMetadata identified = info.FrameMetadataCollection[0].GetCurMetadata();
+        CurFrameMetadata decoded = image.Frames.RootFrame.Metadata.GetCurMetadata();
+
+        Assert.Equal(BmpBitsPerPixel.Bit16, decoded.BmpBitsPerPixel);
+        Assert.Equal(BmpBit16Layout.Rgb565, identified.Bit16Layout);
+        Assert.Equal(BmpBit16Layout.Rgb565, decoded.Bit16Layout);
+        Assert.Equal(BmpBit16Layout.Rgb565, image.Metadata.GetCurMetadata().Bit16Layout);
+        Assert.Equal(6, decoded.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
+        ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 }

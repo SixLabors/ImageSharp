@@ -164,6 +164,9 @@ GenerateToDestFormatMethods("Rgba64");
 GenerateFromMethods("Bgra5551");
 GenerateToDestFormatMethods("Bgra5551");
 
+GenerateFromMethods("Bgr565");
+GenerateToDestFormatMethods("Bgr565");
+
 GenerateFromMethods("Argb32P");
 GenerateToDestFormatMethods("Argb32P");
 

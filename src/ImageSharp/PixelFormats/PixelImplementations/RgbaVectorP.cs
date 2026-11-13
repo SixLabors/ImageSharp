@@ -161,6 +161,9 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static RgbaVectorP FromBgra5551(Bgra5551 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
+    public static RgbaVectorP FromBgr565(Bgr565 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
     public static RgbaVectorP FromBgr24(Bgr24 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

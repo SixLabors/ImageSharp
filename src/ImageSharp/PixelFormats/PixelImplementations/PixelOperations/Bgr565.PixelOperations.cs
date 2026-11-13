@@ -13,7 +13,7 @@ public partial struct Bgr565
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal class PixelOperations : PixelOperations<Bgr565>
+    internal partial class PixelOperations : PixelOperations<Bgr565>
     {
         // Alpha is implicitly one, so both outward representations already contain associated color components.
 

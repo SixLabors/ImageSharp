@@ -477,4 +477,83 @@ public class IcoDecoderTests
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
+
+    [Fact]
+    public void DecodeAndIdentify_Rgb565BitmapEntry_RecordsBit16Layout()
+    {
+        using Image<Rgba32> source = CreateGradient();
+        byte[] data = CreateIconWithRgb565Bitmap(1, source);
+
+        ImageInfo info = Image.Identify(data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        using Image<Bgr565> quantized = source.CloneAs<Bgr565>();
+        using Image<Rgba32> expected = quantized.CloneAs<Rgba32>();
+
+        IcoFrameMetadata identified = info.FrameMetadataCollection[0].GetIcoMetadata();
+        IcoFrameMetadata decoded = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+
+        Assert.Equal(BmpBitsPerPixel.Bit16, decoded.BmpBitsPerPixel);
+        Assert.Equal(BmpBit16Layout.Rgb565, identified.Bit16Layout);
+        Assert.Equal(BmpBit16Layout.Rgb565, decoded.Bit16Layout);
+        Assert.Equal(BmpBit16Layout.Rgb565, image.Metadata.GetIcoMetadata().Bit16Layout);
+        Assert.Equal(6, decoded.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
+    /// <summary>
+    /// Creates an opaque image with a different color in each pixel.
+    /// </summary>
+    /// <returns>The image.</returns>
+    internal static Image<Rgba32> CreateGradient()
+    {
+        Image<Rgba32> image = new(16, 16);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = new Rgba32((byte)(x * 17), (byte)(y * 17), (byte)((x + y) * 8), byte.MaxValue);
+            }
+        }
+
+        return image;
+    }
+
+    /// <summary>
+    /// Creates an icon or cursor file with one 16-bit bitmap entry that stores the 5-6-5 bit-field layout. The icon
+    /// format permits only BI_RGB, but the decoder reads bit-field entries that other encoders write.
+    /// </summary>
+    /// <param name="type">The directory type: 1 for an icon and 2 for a cursor.</param>
+    /// <param name="source">The pixels of the entry.</param>
+    /// <returns>The file bytes.</returns>
+    internal static byte[] CreateIconWithRgb565Bitmap(ushort type, Image<Rgba32> source)
+    {
+        // These are the bitmap options of an icon entry: no file header, the doubled height and the AND mask. The 5-6-5
+        // layout gives a V3 header with BI_BITFIELDS and the three masks after it.
+        using MemoryStream dib = new();
+        source.Save(dib, new BmpEncoder
+        {
+            BitsPerPixel = BmpBitsPerPixel.Bit16,
+            Bit16Layout = BmpBit16Layout.Rgb565,
+            SkipFileHeader = true,
+            UseDoubleHeight = true,
+            ProcessedAlphaMask = true
+        });
+
+        // The ICONDIR is reserved, type and count. The one ICONDIRENTRY is width, height, color count, reserved, planes
+        // or hotspot x, bit count or hotspot y, resource size and resource offset.
+        byte[] dibBytes = dib.ToArray();
+        byte[] data = new byte[22 + dibBytes.Length];
+        Span<byte> span = data;
+        BinaryPrimitives.WriteUInt16LittleEndian(span[2..], type);
+        BinaryPrimitives.WriteUInt16LittleEndian(span[4..], 1);
+        data[6] = (byte)source.Width;
+        data[7] = (byte)source.Height;
+        BinaryPrimitives.WriteUInt16LittleEndian(span[10..], 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(span[12..], 16);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[14..], (uint)dibBytes.Length);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[18..], 22);
+        dibBytes.CopyTo(span[22..]);
+
+        return data;
+    }
 }

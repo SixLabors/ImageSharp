@@ -112,6 +112,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra5551.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgr565.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Bgr565.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\L16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -233,6 +238,10 @@
     <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgra5551.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Bgra5551.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgr565.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Bgr565.PixelOperations.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\L8.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

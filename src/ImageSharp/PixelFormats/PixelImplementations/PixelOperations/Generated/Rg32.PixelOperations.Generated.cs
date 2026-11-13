@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
-
 using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;

@@ -78,6 +78,11 @@ internal sealed class BmpEncoderCore
     private BmpBitsPerPixel? bitsPerPixel;
 
     /// <summary>
+    /// The channel layout of 16-bit pixels.
+    /// </summary>
+    private BmpBit16Layout? bit16Layout;
+
+    /// <summary>
     /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
     /// In this case the compression type BITFIELDS will be used.
     /// If the image contains a color profile, a bitmap v5 header is written, which is needed to write this info.
@@ -86,9 +91,23 @@ internal sealed class BmpEncoderCore
     private BmpInfoHeaderType infoHeaderType;
 
     /// <summary>
-    /// The quantizer for reducing the color count in one-, two-, four- and eight-bit indexed images.
+    /// The quantizer from the encoder options, or <see langword="null"/> to select one from the image metadata.
     /// </summary>
-    private readonly IQuantizer quantizer;
+    private readonly IQuantizer? configuredQuantizer;
+
+    /// <summary>
+    /// The quantizer for reducing the color count in one-, two-, four- and eight-bit indexed images.
+    /// <see cref="Encode{TPixel}(ImageFrame{TPixel}, ImageMetadata, Stream, CancellationToken)"/> selects it for each
+    /// image before it writes the pixels.
+    /// </summary>
+    private IQuantizer quantizer = KnownQuantizers.Hexadecatree;
+
+    /// <summary>
+    /// The options of <see cref="quantizer"/> with the transparent color mode of the encoder.
+    /// <see cref="Encode{TPixel}(ImageFrame{TPixel}, ImageMetadata, Stream, CancellationToken)"/> sets them with the
+    /// quantizer.
+    /// </summary>
+    private QuantizerOptions quantizerOptions = KnownQuantizers.Hexadecatree.Options;
 
     /// <summary>
     /// The pixel sampling strategy for quantization.
@@ -123,9 +142,9 @@ internal sealed class BmpEncoderCore
     {
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
+        this.bit16Layout = encoder.Bit16Layout;
 
-        // TODO: Use a palette quantizer if supplied.
-        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Hexadecatree;
+        this.configuredQuantizer = encoder.Quantizer;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.transparentColorMode = encoder.TransparentColorMode;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
@@ -168,6 +187,7 @@ internal sealed class BmpEncoderCore
         Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
+        this.bit16Layout ??= bmpMetadata.Bit16Layout;
 
         ushort bpp = (ushort)this.bitsPerPixel;
         int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
@@ -181,6 +201,28 @@ internal sealed class BmpEncoderCore
             BmpBitsPerPixel.Bit1 => ColorPaletteSize1Bit,
             _ => 0
         };
+
+        // Without a configured quantizer, an indexed image keeps the color table of its decoded bitmap when the table fits
+        // the output depth, as the PNG, GIF and icon encoders do. Dithering stays off and color matching is exact, so
+        // each pixel that has a palette color keeps that color. Other images use the default quantizer.
+        ReadOnlyMemory<Color>? colorTable = bmpMetadata.ColorTable;
+        if (this.configuredQuantizer is not null)
+        {
+            this.quantizer = this.configuredQuantizer;
+        }
+        else if (colorPaletteSize > 0 && colorTable?.Length > 0 && colorTable.Value.Length <= 1 << bpp)
+        {
+            this.quantizer = EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.transparentColorMode);
+        }
+        else
+        {
+            this.quantizer = KnownQuantizers.Hexadecatree;
+        }
+
+        // The indexed paths quantize with these options, so the transparent color mode of the encoder applies to every
+        // quantizer, as the GIF encoder does.
+        TransparentColorMode mode = this.transparentColorMode;
+        this.quantizerOptions = this.quantizer.Options.DeepClone(o => o.TransparentColorMode = mode);
 
         // Direct samples and palette entries store RGB. Indexed compatibility is determined by the palette, not its indices.
         PixelColorType colorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
@@ -216,15 +258,23 @@ internal sealed class BmpEncoderCore
 
         BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(frame.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
 
-        Span<byte> buffer = stackalloc byte[infoHeaderSize];
+        // A V3 header has no mask fields. With BI_BITFIELDS, the red, green and blue masks follow the header in the
+        // place of the color table. V4 and V5 headers hold the masks.
+        int bitFieldsSize =
+            this.infoHeaderType is BmpInfoHeaderType.WinVersion3 && infoHeader.Compression is BmpCompression.BitFields
+            ? 3 * sizeof(int)
+            : 0;
+
+        // The largest header is the 124-byte V5 header. The V3 mask block adds 12 bytes to the 40-byte V3 header.
+        Span<byte> buffer = stackalloc byte[infoHeaderSize + bitFieldsSize];
 
         // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
         if (!this.skipFileHeader)
         {
-            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize + bitFieldsSize, iccProfileSize, infoHeader, buffer);
         }
 
-        this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
+        this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize, bitFieldsSize);
         this.WriteImage(configuration, stream, frame, converter, cancellationToken);
         WriteColorProfile(stream, iccProfileData, buffer, infoHeaderPosition);
 
@@ -302,6 +352,15 @@ internal sealed class BmpEncoderCore
             infoHeader.Compression = BmpCompression.BitFields;
         }
 
+        // The 5-6-5 layout needs BI_BITFIELDS.
+        if (this.bitsPerPixel is BmpBitsPerPixel.Bit16 && this.bit16Layout is BmpBit16Layout.Rgb565)
+        {
+            infoHeader.RedMask = BmpConstants.Rgb565Masks.Red;
+            infoHeader.GreenMask = BmpConstants.Rgb565Masks.Green;
+            infoHeader.BlueMask = BmpConstants.Rgb565Masks.Blue;
+            infoHeader.Compression = BmpCompression.BitFields;
+        }
+
         if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && !iccProfileData.IsEmpty)
         {
             infoHeader.ProfileSize = iccProfileData.Length;
@@ -341,23 +400,23 @@ internal sealed class BmpEncoderCore
     /// </summary>
     /// <param name="stream">The stream to write the header to.</param>
     /// <param name="infoHeaderSize">Size of the bitmap information header.</param>
-    /// <param name="colorPaletteSize">Size of the color palette.</param>
+    /// <param name="colorTableSize">The size in bytes of the color table: the palette, or the V3 bit-field masks.</param>
     /// <param name="iccProfileSize">The size in bytes of the color profile.</param>
     /// <param name="infoHeader">The information header to write.</param>
     /// <param name="buffer">The buffer to write to.</param>
     private static void WriteBitmapFileHeader(
         Stream stream,
         int infoHeaderSize,
-        int colorPaletteSize,
+        int colorTableSize,
         int iccProfileSize,
         BmpInfoHeader infoHeader,
         Span<byte> buffer)
     {
         BmpFileHeader fileHeader = new(
             type: BmpConstants.TypeMarkers.Bitmap,
-            fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + infoHeader.ImageSize,
+            fileSize: BmpFileHeader.Size + infoHeaderSize + colorTableSize + iccProfileSize + infoHeader.ImageSize,
             reserved: 0,
-            offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
+            offset: BmpFileHeader.Size + infoHeaderSize + colorTableSize);
 
         fileHeader.WriteTo(buffer);
         stream.Write(buffer, 0, BmpFileHeader.Size);
@@ -370,7 +429,8 @@ internal sealed class BmpEncoderCore
     /// <param name="infoHeader">The information header.</param>
     /// <param name="buffer">The buffer.</param>
     /// <param name="infoHeaderSize">Size of the information header.</param>
-    private void WriteBitmapInfoHeader(Stream stream, BmpInfoHeader infoHeader, Span<byte> buffer, int infoHeaderSize)
+    /// <param name="bitFieldsSize">The size in bytes of the mask block after a V3 header, or 0 when it has no masks.</param>
+    private void WriteBitmapInfoHeader(Stream stream, BmpInfoHeader infoHeader, Span<byte> buffer, int infoHeaderSize, int bitFieldsSize)
     {
         switch (this.infoHeaderType)
         {
@@ -385,7 +445,16 @@ internal sealed class BmpEncoderCore
                 break;
         }
 
-        stream.Write(buffer, 0, infoHeaderSize);
+        // With BI_BITFIELDS, the color table of a V3 bitmap holds three masks, in the order red, green, blue.
+        if (bitFieldsSize > 0)
+        {
+            Span<byte> masks = buffer.Slice(infoHeaderSize, bitFieldsSize);
+            BinaryPrimitives.WriteInt32LittleEndian(masks[..4], infoHeader.RedMask);
+            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(4, 4), infoHeader.GreenMask);
+            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(8, 4), infoHeader.BlueMask);
+        }
+
+        stream.Write(buffer[..(infoHeaderSize + bitFieldsSize)]);
     }
 
     /// <summary>
@@ -420,6 +489,10 @@ internal sealed class BmpEncoderCore
 
             case BmpBitsPerPixel.Bit24:
                 this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                break;
+
+            case BmpBitsPerPixel.Bit16 when this.bit16Layout is BmpBit16Layout.Rgb565:
+                this.WriteDirectColorPixels<TPixel, Bgr565>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit16:
@@ -488,7 +561,7 @@ internal sealed class BmpEncoderCore
         PixelOperations<TPixelTo> pixelOperations = PixelOperations<TPixelTo>.Instance;
         PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
-        // The destination's bulk From operation delegates to the existing BGR, BGRA or Bgra5551 source packer.
+        // The destination's bulk From operation delegates to the existing BGR, BGRA, Bgra5551 or Bgr565 source packer.
         // Keep alignment padding outside the pixel span, and allocate no ICC scratch for unchanged output.
         if (converter is null && !replaceTransparent)
         {
@@ -591,7 +664,7 @@ internal sealed class BmpEncoderCore
     {
         Configuration configuration = encodingFrame.Configuration;
 
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, this.quantizerOptions);
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
@@ -693,12 +766,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 16,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizerOptions.DeepClone(o => o.MaxColors = 16));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
@@ -755,12 +825,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 4,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizerOptions.DeepClone(o => o.MaxColors = 4));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
@@ -826,12 +893,9 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 2,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            configuration,
+            this.quantizerOptions.DeepClone(o => o.MaxColors = 2));
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 

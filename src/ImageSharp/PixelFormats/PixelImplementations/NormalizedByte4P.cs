@@ -224,6 +224,9 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     public static NormalizedByte4P FromBgra5551(Bgra5551 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
+    public static NormalizedByte4P FromBgr565(Bgr565 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
     public static NormalizedByte4P FromBgr24(Bgr24 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

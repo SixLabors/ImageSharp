@@ -27,11 +27,12 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Rgba32",
         "Rgb48",
         "Rgba64",
-        "Bgra5551"
+        "Bgra5551",
+        "Bgr565"
             ];
 
     // PixelConverter has a SIMD kernel for each ordered pair of these layouts. The byte layouts change channel order
-    // only. The Bgra5551 kernels also scale each channel, with the arithmetic that Bgra5551 owns.
+    // only. The Bgra5551 and Bgr565 kernels also scale each channel, with the arithmetic that each pixel type owns.
     private static readonly string[] OptimizedPixelTypes =
         [
             "Rgba32",
@@ -40,7 +41,8 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Bgra32",
         "Rgb24",
         "Bgr24",
-        "Bgra5551"
+        "Bgra5551",
+        "Bgr565"
             ];
 
     // These layouts store associated bytes. Channel shuffles retain those bytes; straight-alpha conversions change their meaning.

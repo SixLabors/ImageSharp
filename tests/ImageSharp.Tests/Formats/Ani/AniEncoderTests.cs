@@ -252,4 +252,52 @@ public partial class AniEncoderTests
         Assert.Throws<ImageFormatException>(() => image.Save(stream, new AniEncoder()));
         Assert.Equal(0, stream.Length);
     }
+
+    [Fact]
+    public void AniEncoder_BitmapFrames_KeepEachFramePalette()
+    {
+        // Each frame has its own palette in its own order, with one entry that no pixel uses. A new palette would drop
+        // that entry, and a shared palette would give both frames the same table.
+        Color first = NearColorPalette.Palette.Span[0];
+        Color second = NearColorPalette.Palette.Span[1];
+        Color[][] palettes =
+        [
+            [first, second, Color.FromPixel(new Rgba32(200, 100, 50, 255))],
+            [second, first, Color.FromPixel(new Rgba32(50, 100, 200, 255))]
+        ];
+
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        using (ImageFrame<Rgba32> copy = image.Frames.RootFrame.Clone())
+        {
+            image.Frames.AddFrame(copy);
+        }
+
+        AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
+        imageMetadata.DisplayRate = 6;
+        imageMetadata.BitCount = 8;
+        imageMetadata.Planes = 1;
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            AniFrameMetadata frameMetadata = image.Frames[i].Metadata.GetAniMetadata();
+            frameMetadata.FrameDelay = 6;
+            frameMetadata.SequenceNumber = i + 1;
+            frameMetadata.FrameFormat = AniFrameFormat.Bmp;
+            frameMetadata.ColorTable = palettes[i];
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new AniEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int i = 0; i < decoded.Frames.Count; i++)
+        {
+            Color[] colorTable = decoded.Frames[i].Metadata.GetAniMetadata().ColorTable!.Value.ToArray();
+            Assert.Equal(palettes[i], colorTable[..palettes[i].Length]);
+        }
+
+        ImageComparer.Exact.VerifySimilarity(image, decoded);
+    }
 }

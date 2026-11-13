@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Processing;
-
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
@@ -11,14 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 public sealed class BmpEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="BmpEncoder"/> class.
-    /// </summary>
-    public BmpEncoder() => this.Quantizer = KnownQuantizers.Hexadecatree;
-
-    /// <summary>
     /// Gets the number of bits per pixel.
     /// </summary>
     public BmpBitsPerPixel? BitsPerPixel { get; init; }
+
+    /// <summary>
+    /// Gets the channel layout of 16-bit pixels. The value has an effect only for 16-bit output.
+    /// </summary>
+    public BmpBit16Layout? Bit16Layout { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the encoder should support transparency.

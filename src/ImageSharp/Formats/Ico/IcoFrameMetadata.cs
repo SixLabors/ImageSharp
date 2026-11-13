@@ -30,6 +30,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         this.EncodingWidth = other.EncodingWidth;
         this.EncodingHeight = other.EncodingHeight;
         this.BmpBitsPerPixel = other.BmpBitsPerPixel;
+        this.Bit16Layout = other.Bit16Layout;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -59,6 +60,15 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     /// Used when <see cref="Compression"/> is <see cref="IconFrameCompression.Bmp"/>
     /// </summary>
     public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Bit32;
+
+    /// <summary>
+    /// Gets or sets the channel layout of 16-bit pixels in the embedded bitmap.
+    /// </summary>
+    /// <remarks>
+    /// The decoder sets the layout of the decoded bitmap. The encoder writes 16-bit pixels with the 5-5-5 layout,
+    /// because the icon format permits only BI_RGB.
+    /// </remarks>
+    public BmpBit16Layout Bit16Layout { get; set; }
 
     /// <summary>
     /// Gets or sets the color table, if any.
@@ -205,10 +215,11 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
                     color = PixelColorType.Indexed;
                     break;
 
-                // Could be 555 with padding but 565 is more common in newer bitmaps and offers
-                // greater accuracy due to extra green precision.
                 case BmpBitsPerPixel.Bit16:
-                    info = PixelComponentInfo.Create(3, bpp, 5, 6, 5);
+                    info = this.Bit16Layout is BmpBit16Layout.Rgb565
+                        ? PixelComponentInfo.Create(3, bpp, 5, 6, 5)
+                        : PixelComponentInfo.Create(3, bpp, 5, 5, 5);
+
                     color = PixelColorType.RGB;
                     break;
                 case BmpBitsPerPixel.Bit24:

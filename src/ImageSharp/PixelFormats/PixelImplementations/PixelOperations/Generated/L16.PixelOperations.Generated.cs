@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
+
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -270,6 +271,24 @@ public partial struct L16
             for (nuint i = 0; i < (uint)source.Length; i++)
             {
                 Unsafe.Add(ref destinationBase, i) = Bgra5551.FromL16(Unsafe.Add(ref sourceBase, i));
+            }
+        }
+
+        /// <inheritdoc />
+        public override void ToBgr565(
+            Configuration configuration,
+            ReadOnlySpan<L16> source,
+            Span<Bgr565> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ref L16 sourceBase = ref MemoryMarshal.GetReference(source);
+            ref Bgr565 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+            for (nuint i = 0; i < (uint)source.Length; i++)
+            {
+                Unsafe.Add(ref destinationBase, i) = Bgr565.FromL16(Unsafe.Add(ref sourceBase, i));
             }
         }
 

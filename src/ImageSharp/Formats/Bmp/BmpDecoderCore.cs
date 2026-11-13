@@ -1381,6 +1381,17 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
+        // The metadata records the 5-6-5 layout only for these exact masks. The encoder writes all other 16-bit
+        // layouts as 5-5-5.
+        this.bmpMetadata.Bit16Layout =
+            bitsPerPixel is 16
+            && this.infoHeader.Compression is BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS
+            && this.infoHeader.RedMask is BmpConstants.Rgb565Masks.Red
+            && this.infoHeader.GreenMask is BmpConstants.Rgb565Masks.Green
+            && this.infoHeader.BlueMask is BmpConstants.Rgb565Masks.Blue
+            ? BmpBit16Layout.Rgb565
+            : BmpBit16Layout.Rgb555;
+
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
     }
 

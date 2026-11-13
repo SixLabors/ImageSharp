@@ -162,6 +162,9 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
     public static Rgba128 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
+    public static Rgba128 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
     public static Rgba128 FromBgr24(Bgr24 source)
         => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), uint.MaxValue);
 

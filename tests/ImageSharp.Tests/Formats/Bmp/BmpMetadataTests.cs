@@ -18,14 +18,48 @@ public class BmpMetadataTests
     public void CloneIsDeep()
     {
         BmpMetadata meta = new()
-        { BitsPerPixel = BmpBitsPerPixel.Bit24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        { BitsPerPixel = BmpBitsPerPixel.Bit24, Bit16Layout = BmpBit16Layout.Rgb565, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
         BmpMetadata clone = meta.DeepClone();
 
+        Assert.Equal(meta.Bit16Layout, clone.Bit16Layout);
+
         clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
+        clone.Bit16Layout = BmpBit16Layout.Rgb555;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
 
         Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
+        Assert.False(meta.Bit16Layout.Equals(clone.Bit16Layout));
         Assert.False(meta.InfoHeaderType.Equals(clone.InfoHeaderType));
+    }
+
+    [Fact]
+    public void FromFormatConnectingMetadata_SelectsBit16LayoutFromGreenPrecision()
+    {
+        BmpMetadata rgb565 = BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = Bgr565.GetPixelTypeInfo() });
+        BmpMetadata rgb555 = BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = Bgra5551.GetPixelTypeInfo() });
+
+        Assert.Equal(BmpBitsPerPixel.Bit16, rgb565.BitsPerPixel);
+        Assert.Equal(BmpBit16Layout.Rgb565, rgb565.Bit16Layout);
+        Assert.Equal(BmpBitsPerPixel.Bit16, rgb555.BitsPerPixel);
+        Assert.Equal(BmpBit16Layout.Rgb555, rgb555.Bit16Layout);
+    }
+
+    [Theory]
+    [InlineData(Rgb16, BmpBit16Layout.Rgb555)]
+    [InlineData(Rgb16bfdef, BmpBit16Layout.Rgb555)]
+    [InlineData(Rgb16565, BmpBit16Layout.Rgb565)]
+    [InlineData(Rgb16565pal, BmpBit16Layout.Rgb565)]
+    public void Identify_DetectsBit16Layout(string imagePath, BmpBit16Layout expectedLayout)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
+
+        Assert.Equal(expectedLayout, bitmapMetadata.Bit16Layout);
+        Assert.Equal(
+            expectedLayout is BmpBit16Layout.Rgb565 ? 6 : 5,
+            imageInfo.PixelType.ComponentInfo!.Value.GetComponentPrecision(1));
     }
 
     [Theory]

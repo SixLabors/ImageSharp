@@ -255,6 +255,24 @@ public partial struct L8
         }
 
         /// <inheritdoc />
+        public override void ToBgr565(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Bgr565> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
+            ref Bgr565 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+            for (nuint i = 0; i < (uint)source.Length; i++)
+            {
+                Unsafe.Add(ref destinationBase, i) = Bgr565.FromL8(Unsafe.Add(ref sourceBase, i));
+            }
+        }
+
+        /// <inheritdoc />
         public override void From<TPixelFrom>(
             Configuration configuration,
             ReadOnlySpan<TPixelFrom> source,

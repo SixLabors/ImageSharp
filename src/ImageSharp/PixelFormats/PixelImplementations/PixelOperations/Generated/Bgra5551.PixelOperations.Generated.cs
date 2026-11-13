@@ -207,6 +207,34 @@ public partial struct Bgra5551
         }
 
         /// <inheritdoc />
+        public override void ToBgr565(
+            Configuration configuration,
+            ReadOnlySpan<Bgra5551> source,
+            Span<Bgr565> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra5551, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgr565, byte>(destination);
+            PixelConverter.FromBgra5551.ToBgr565(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
+        public override void FromBgr565(
+            Configuration configuration,
+            ReadOnlySpan<Bgr565> source,
+            Span<Bgra5551> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgr565, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra5551, byte>(destination);
+            PixelConverter.FromBgr565.ToBgra5551(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
         public override void ToL8(
             Configuration configuration,
             ReadOnlySpan<Bgra5551> source,

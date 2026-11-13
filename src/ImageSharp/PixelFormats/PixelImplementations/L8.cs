@@ -148,6 +148,10 @@ public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L8 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L8 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L8 FromBgr24(Bgr24 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B));

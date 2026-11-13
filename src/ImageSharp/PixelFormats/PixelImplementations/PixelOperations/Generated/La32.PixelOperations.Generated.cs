@@ -369,6 +369,24 @@ public partial struct La32
         }
 
         /// <inheritdoc />
+        public override void ToBgr565(
+            Configuration configuration,
+            ReadOnlySpan<La32> source,
+            Span<Bgr565> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ref La32 sourceBase = ref MemoryMarshal.GetReference(source);
+            ref Bgr565 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+            for (nuint i = 0; i < (uint)source.Length; i++)
+            {
+                Unsafe.Add(ref destinationBase, i) = Bgr565.FromLa32(Unsafe.Add(ref sourceBase, i));
+            }
+        }
+
+        /// <inheritdoc />
         public override void From<TPixelFrom>(
             Configuration configuration,
             ReadOnlySpan<TPixelFrom> source,

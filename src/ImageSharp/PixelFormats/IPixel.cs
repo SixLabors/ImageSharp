@@ -95,6 +95,13 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     public static abstract TSelf FromBgra5551(Bgra5551 source);
 
     /// <summary>
+    /// Initializes the pixel instance from an <see cref="Bgr565"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Bgr565"/> value.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromBgr565(Bgr565 source);
+
+    /// <summary>
     /// Initializes the pixel instance from an <see cref="Bgr24"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Bgr24"/> value.</param>

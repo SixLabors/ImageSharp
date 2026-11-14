@@ -5,6 +5,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Comparison;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -158,6 +160,7 @@ internal static class AotCompilerTools
         AotCompilePixelMaps<TPixel>();
         AotCompileDithers<TPixel>();
         AotCompileMemoryManagers<TPixel>();
+        AotCompileImageComparison<TPixel>();
 
         _ = Unsafe.SizeOf<TPixel>();
 
@@ -698,6 +701,24 @@ internal static class AotCompilerTools
     {
         AotCompileMemoryManager<TPixel, UniformUnmanagedMemoryPoolMemoryAllocator>();
         AotCompileMemoryManager<TPixel, SimpleGcMemoryAllocator>();
+    }
+
+    /// <summary>
+    /// This method pre-seeds the image comparison in the AoT compiler.
+    /// </summary>
+    /// <remarks>
+    /// The comparison is seeded for the same pixel type on both sides. Comparing different pixel
+    /// types is resolved at run time by the visitor dispatch and follows the same discovery
+    /// limits as other cross-type generic APIs.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [Preserve]
+    private static void AotCompileImageComparison<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ImageFrame<TPixel> frame = default;
+        _ = ImageComparisonEngine.CompareFrames<TPixel, TPixel>(0, frame, frame, 0, 0);
+        _ = ImageComparisonEngine.CreateDifferenceImage<TPixel, TPixel>(frame, frame);
     }
 
     /// <summary>

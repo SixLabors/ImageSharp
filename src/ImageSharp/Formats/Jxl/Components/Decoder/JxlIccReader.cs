@@ -89,7 +89,18 @@ internal static class JxlIccReader
                 throw new InvalidImageContentException("The JPEG XL ICC prediction preamble is invalid.");
             }
 
-            return new IccProfile(Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize, cancellationToken));
+            return IccReader.ToProfile(
+                Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize, cancellationToken),
+                handling != SegmentIntegrityHandling.Strict);
+        }
+        catch (InvalidIccProfileException ex)
+        {
+            if (handling != SegmentIntegrityHandling.Strict)
+            {
+                return null;
+            }
+
+            throw new InvalidImageContentException("Invalid JPEG XL ICC profile.", ex);
         }
         catch (InvalidImageContentException) when (handling != SegmentIntegrityHandling.Strict)
         {

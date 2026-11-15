@@ -192,7 +192,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
-            this.PixelType);
+            this.PixelType,
+            this.Options.SegmentIntegrityHandling);
 
         int decodedRows = 0;
         while (decodedRows < height)
@@ -310,7 +311,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
-            this.PixelType);
+            this.PixelType,
+            this.Options.SegmentIntegrityHandling);
 
         int decodedRows = 0;
         while (decodedRows < height)

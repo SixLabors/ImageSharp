@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using ExifProfile = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifProfile;
 using ExifTag = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
 
@@ -45,15 +46,10 @@ public class ImageFrameMetadataTests
         ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "UnitTest");
         exifProfile.SetValue(ExifTag.Artist, "UnitTest");
-        XmpProfile xmpProfile = new([]);
-        IccProfile iccProfile = new()
-        {
-            Header = new IccProfileHeader
-            {
-                CmmType = "Unittest"
-            }
-        };
+        XmpProfile xmpProfile = new("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>"u8.ToArray());
+        IccProfile iccProfile = IccTestDataProfiles.ProfileRandomVal;
         IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.Caption, "UnitTest");
         ImageFrameMetadata metaData = new()
         {
             XmpProfile = xmpProfile,

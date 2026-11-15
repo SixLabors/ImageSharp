@@ -142,18 +142,27 @@ internal abstract class BitWriterBase
         ExifProfile? exifProfile,
         XmpProfile? xmpProfile)
     {
-        if (exifProfile != null)
+        byte[]? exifData = exifProfile?.GetDataForEncoding();
+        if (exifData != null)
         {
-            // Serialization applies Parts even when the current profile has not been initialized.
-            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Exif, exifProfile.ToByteArray());
+            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Exif, exifData);
         }
 
-        if (xmpProfile != null)
+        byte[]? xmpData = xmpProfile?.GetDataForEncoding();
+        if (xmpData != null)
         {
-            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Xmp, xmpProfile.Data);
+            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Xmp, xmpData);
         }
 
-        RiffHelper.EndWriteRiffFile(stream, in vp8x, updateVp8x, initialPosition);
+        // A profile can become empty when the caller edits it or selects which EXIF sections to write.
+        WebpVp8X finalHeader = vp8x;
+        if (vp8x.HasExif && exifData == null)
+        {
+            finalHeader = new(vp8x.HasAnimation, vp8x.HasXmp, false, vp8x.HasAlpha, vp8x.HasIcc, vp8x.Width, vp8x.Height);
+            updateVp8x = true;
+        }
+
+        RiffHelper.EndWriteRiffFile(stream, in finalHeader, updateVp8x, initialPosition);
     }
 
     /// <summary>

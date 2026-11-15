@@ -17,13 +17,18 @@ internal sealed partial class IccDataReader
     /// The current reading position
     /// </summary>
     private int currentIndex;
+    private int tagStart;
+    private int tagEnd;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IccDataReader"/> class.
     /// </summary>
     /// <param name="data">The data to read</param>
     public IccDataReader(byte[] data)
-        => this.data = data ?? throw new ArgumentNullException(nameof(data));
+    {
+        this.data = data ?? throw new ArgumentNullException(nameof(data));
+        this.tagEnd = data.Length;
+    }
 
     /// <summary>
     /// Gets the length in bytes of the raw data
@@ -44,9 +49,42 @@ internal sealed partial class IccDataReader
     /// <returns>The current <see cref="currentIndex"/> without the increment</returns>
     private int AddIndex(int increment)
     {
+        this.EnsureAvailable((uint)increment, 1);
+
         int tmp = this.currentIndex;
         this.currentIndex += increment;
         return tmp;
+    }
+
+    /// <summary>
+    /// Checks that the remaining tag data can hold the requested items.
+    /// </summary>
+    /// <param name="count">The number of encoded items.</param>
+    /// <param name="bytesPerItem">The encoded size or minimum size of each item.</param>
+    private void EnsureAvailable(ulong count, ulong bytesPerItem)
+    {
+        // Divide the available bytes so the count cannot overflow a size calculation.
+        if (this.currentIndex < this.tagStart || this.currentIndex > this.tagEnd ||
+            count > (ulong)(this.tagEnd - this.currentIndex) / bytesPerItem)
+        {
+            throw new InvalidIccProfileException("ICC tag data exceeds the available bytes.");
+        }
+    }
+
+    /// <summary>
+    /// Moves to a relative offset inside the current tag.
+    /// </summary>
+    /// <param name="origin">The base position of the offset.</param>
+    /// <param name="offset">The byte offset from the base position.</param>
+    private void Seek(int origin, uint offset)
+    {
+        long position = (long)origin + offset;
+        if (position < this.tagStart || position > this.tagEnd)
+        {
+            throw new InvalidIccProfileException("ICC offset exceeds the tag data.");
+        }
+
+        this.currentIndex = (int)position;
     }
 
     /// <summary>

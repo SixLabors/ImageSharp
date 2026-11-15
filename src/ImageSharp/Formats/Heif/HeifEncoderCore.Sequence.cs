@@ -178,12 +178,17 @@ internal sealed partial class HeifEncoderCore
         };
 
         // A color track has one profile for all its samples. A separate primary image resolves its own profile.
-        IccProfile? sourceIccProfile = image.Frames[colorFrameIndex].Metadata.IccProfile ?? image.Metadata.IccProfile;
+        IccProfile? sourceIccProfile = IccProfile.SelectValidProfile(image.Frames[colorFrameIndex].Metadata.IccProfile, image.Metadata.IccProfile);
         PixelColorType colorType = isMonochrome ? PixelColorType.Luminance : PixelColorType.RGB;
-        IccProfile? iccProfile = IccProfile.GetIccProfileForEncoding(
+        IccProfile? iccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile, colorType, this.configuration.MemoryAllocator, out ColorProfileConverter? profileConverter);
 
         CicpProfile? sourceColorProfile = image.Metadata.CicpProfile;
+        if (sourceColorProfile?.Validate() != true)
+        {
+            sourceColorProfile = null;
+        }
+
         if (profileConverter is not null && sourceColorProfile is not null)
         {
             // ICC describes the transformed RGB primaries and transfer curves. Do not label these samples as working sRGB.
@@ -532,11 +537,7 @@ internal sealed partial class HeifEncoderCore
         if (!this.encoder.SkipMetadata)
         {
             exifData = GetExifData(image.Metadata, out tiffHeaderOffset);
-            byte[]? sourceXmpData = image.Metadata.XmpProfile?.Data;
-            if (sourceXmpData is not null && sourceXmpData.Length > 0)
-            {
-                xmpData = sourceXmpData;
-            }
+            xmpData = image.Metadata.XmpProfile?.GetDataForEncoding();
         }
 
         int frameCount = image.Frames.Count - firstFrameIndex;

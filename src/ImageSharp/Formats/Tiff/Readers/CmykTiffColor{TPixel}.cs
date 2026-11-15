@@ -43,8 +43,8 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             MemoryAllocator = allocator
         };
 
-        this.colorProfileConverter = new ColorProfileConverter(options);
-        this.hasProfile = hasProfile;
+        this.colorProfileConverter = ColorProfileConverter.CreateForDecoding(options);
+        this.hasProfile = this.colorProfileConverter.ShouldUseIccProfiles();
     }
 
     /// <inheritdoc/>

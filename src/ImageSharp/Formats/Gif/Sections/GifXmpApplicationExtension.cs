@@ -3,19 +3,35 @@
 
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
 
 internal readonly struct GifXmpApplicationExtension : IGifExtension
 {
-    public GifXmpApplicationExtension(byte[] data) => this.Data = data;
+    private const int TrailerLength = 257;
+    private const int ContentOverhead = 1 + GifConstants.ApplicationBlockSize + TrailerLength;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GifXmpApplicationExtension"/> struct.
+    /// </summary>
+    /// <param name="data">The XMP packet, or null for an empty extension.</param>
+    public GifXmpApplicationExtension(byte[]? data)
+    {
+        // The GIF writer adds three bytes for the introducer, label, and terminator.
+        if (data?.Length > int.MaxValue - ContentOverhead - 3)
+        {
+            throw new ImageFormatException("The GIF XMP extension exceeds the supported size.");
+        }
+
+        this.Data = data ?? Array.Empty<byte>();
+    }
 
     public byte Label => GifConstants.ApplicationExtensionLabel;
 
-    // size          : 1
-    // identifier    : 11
-    // magic trailer : 257
-    public int ContentLength => (this.Data.Length > 0) ? this.Data.Length + 269 : 0;
+    public int ContentLength => this.Data.Length > 0
+        ? this.Data.Length + ContentOverhead
+        : 0;
 
     /// <summary>
     /// Gets the raw Data.
@@ -27,26 +43,48 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="allocator">The memory allocator.</param>
-    /// <returns>The XMP metadata</returns>
-    public static GifXmpApplicationExtension Read(BufferedReadStream stream, MemoryAllocator allocator)
+    /// <param name="profile">The profile, or null when the packet is empty.</param>
+    /// <returns>Whether the application extension was read in full.</returns>
+    public static bool TryReadProfile(BufferedReadStream stream, MemoryAllocator allocator, out XmpProfile? profile)
     {
-        byte[] xmpBytes = ReadXmpData(stream, allocator, out bool terminated);
-        if (!terminated)
+        profile = null;
+        using ChunkedMemoryStream bytes = new(allocator);
+
+        // A valid XMP packet has no zero bytes. The first zero ends the GIF trailer.
+        int value;
+        while ((value = stream.ReadByte()) > 0)
+        {
+            bytes.WriteByte((byte)value);
+        }
+
+        if (value < 0)
         {
             throw new InvalidImageContentException("Unexpected end of stream while reading gif XMP data");
         }
 
-        // Exclude the "magic trailer", see XMP Specification Part 3, 1.1.2 GIF
-        int xmpLength = xmpBytes.Length - 256; // 257 - unread 0x0
-        byte[] buffer = [];
-        if (xmpLength > 0)
+        long packetLength = bytes.Length - (TrailerLength - 1);
+        if (packetLength <= 0 || value != 0)
         {
-            buffer = new byte[xmpLength];
-            xmpBytes.AsSpan(0, xmpLength).CopyTo(buffer);
-            stream.Skip(1); // Skip the terminator.
+            return false;
         }
 
-        return new GifXmpApplicationExtension(buffer);
+        bytes.Position = packetLength;
+        for (int i = 0; i < TrailerLength - 1; i++)
+        {
+            if (bytes.ReadByte() != GetTrailerByte(i))
+            {
+                return false;
+            }
+        }
+
+        // The next zero terminates the application extension. The generic GIF writer emits it.
+        if (stream.ReadByte() != 0)
+        {
+            return false;
+        }
+
+        bytes.Position = 0;
+        return XmpReader.TryReadProfile(bytes, packetLength, out profile);
     }
 
     public int WriteTo(Span<byte> buffer)
@@ -63,43 +101,18 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
         this.Data.CopyTo(buffer[bytesWritten..]);
         bytesWritten += this.Data.Length;
 
-        // Write the Magic Trailer
-        buffer[bytesWritten++] = 0x01;
-        for (byte i = 255; i > 0; i--)
+        for (int i = 0; i < TrailerLength; i++)
         {
-            buffer[bytesWritten++] = i;
+            buffer[bytesWritten++] = GetTrailerByte(i);
         }
-
-        buffer[bytesWritten++] = 0x00;
 
         return this.ContentLength;
     }
 
-    private static byte[] ReadXmpData(BufferedReadStream stream, MemoryAllocator allocator, out bool terminated)
-    {
-        using ChunkedMemoryStream bytes = new(allocator);
-
-        // XMP data doesn't have a fixed length nor is there an indicator of the length.
-        // So we simply read one byte at a time until we hit the 0x0 value at the end
-        // of the magic trailer or the end of the stream.
-        // Using ChunkedMemoryStream reduces the array resize allocation normally associated
-        // with writing from a non fixed-size buffer.
-        while (true)
-        {
-            int b = stream.ReadByte();
-            if (b == 0)
-            {
-                terminated = true;
-                return bytes.ToArray();
-            }
-
-            if (b < 0)
-            {
-                terminated = false;
-                return bytes.ToArray();
-            }
-
-            bytes.WriteByte((byte)b);
-        }
-    }
+    /// <summary>
+    /// Gets a byte from the XMP trailer defined for GIF application extensions.
+    /// </summary>
+    /// <param name="index">The position within the trailer.</param>
+    /// <returns>The trailer byte.</returns>
+    private static byte GetTrailerByte(int index) => index == 0 ? (byte)1 : (byte)(256 - index);
 }

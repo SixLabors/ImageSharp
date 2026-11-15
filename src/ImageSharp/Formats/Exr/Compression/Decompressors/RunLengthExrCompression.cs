@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
+    private readonly bool preservePartialData;
+    private readonly int bytesPerSample;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RunLengthExrCompression" /> class.
@@ -21,76 +23,109 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
     /// <param name="rowsPerBlock">The pixel rows per block.</param>
-    /// <param name="width">The witdh of one row in pixels.</param>
-    public RunLengthExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
-        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    /// <param name="width">The width of one row in pixels.</param>
+    /// <param name="bytesPerSample">The number of bytes in each source sample.</param>
+    /// <param name="integrityHandling">The policy for incomplete image data.</param>
+    public RunLengthExrCompression(
+        MemoryAllocator allocator,
+        uint bytesPerBlock,
+        uint bytesPerRow,
+        uint rowsPerBlock,
+        int width,
+        int bytesPerSample,
+        SegmentIntegrityHandling integrityHandling)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
+    {
+        this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+        this.bytesPerSample = bytesPerSample;
+        this.preservePartialData = integrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+    }
 
     /// <inheritdoc/>
     protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
-        Span<byte> uncompressed = this.tmpBuffer.GetSpan();
-        int maxLength = (int)this.BytesPerBlock;
-        int offset = 0;
-        while (compressedBytes > 0)
+        Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)uncompressedBytes];
+        int written = 0;
+        while (compressedBytes > 0 && written < uncompressed.Length)
         {
-            byte nextByte = ReadNextByte(stream);
-
-            sbyte input = (sbyte)nextByte;
-            if (input < 0)
+            int header = stream.ReadByte();
+            if (header < 0)
             {
-                int count = -input;
-                compressedBytes -= (uint)(count + 1);
+                break;
+            }
 
-                if ((maxLength -= count) < 0)
+            compressedBytes--;
+            int run = (sbyte)header;
+            if (run < 0)
+            {
+                int count = -run;
+
+                // Read only bytes inside this block and keep the part of the literal run that fits.
+                int available = (int)Math.Min(compressedBytes, (uint)Math.Min(count, uncompressed.Length - written));
+                int read = stream.ReadAtLeast(uncompressed.Slice(written, available), available, throwOnEndOfStream: false);
+                written += read;
+                if (read != count)
                 {
-                    return;
+                    break;
                 }
 
-                for (int i = 0; i < count; i++)
-                {
-                    uncompressed[offset + i] = ReadNextByte(stream);
-                }
-
-                offset += count;
+                compressedBytes -= (uint)read;
             }
             else
             {
-                int count = input;
-                byte value = ReadNextByte(stream);
-                compressedBytes -= 2;
-
-                if ((maxLength -= count + 1) < 0)
+                if (compressedBytes == 0)
                 {
-                    return;
+                    break;
                 }
 
-                for (int i = 0; i < count + 1; i++)
+                int value = stream.ReadByte();
+                if (value < 0)
                 {
-                    uncompressed[offset + i] = value;
+                    break;
                 }
 
-                offset += count + 1;
+                int count = Math.Min(run + 1, uncompressed.Length - written);
+                uncompressed.Slice(written, count).Fill((byte)value);
+                written += count;
+                if (count != run + 1)
+                {
+                    break;
+                }
+
+                compressedBytes--;
             }
         }
 
-        Reconstruct(uncompressed, this.BytesPerBlock);
-        Interleave(uncompressed, this.BytesPerBlock, buffer);
-    }
-
-    /// <summary>
-    /// Reads the next byte from the stream.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <returns>The next byte.</returns>
-    private static byte ReadNextByte(BufferedReadStream stream)
-    {
-        int nextByte = stream.ReadByte();
-        if (nextByte == -1)
+        if (!this.preservePartialData && (written != uncompressed.Length || compressedBytes != 0))
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to decompress RLE encoded EXR image!");
+            ExrThrowHelper.ThrowInvalidImageContentException("The RLE EXR block has an invalid decompressed length.");
         }
 
-        return (byte)nextByte;
+        if (written == uncompressed.Length)
+        {
+            Reconstruct(uncompressed, uncompressedBytes);
+            Interleave(uncompressed, uncompressedBytes, buffer);
+            return;
+        }
+
+        // EXR stores the even bytes first, then the odd bytes. A complete sample needs bytes from both halves.
+        int halfLength = uncompressed.Length / 2;
+        int completeBytes = Math.Max(0, written - halfLength) * 2;
+        completeBytes -= completeBytes % this.bytesPerSample;
+
+        if (completeBytes > 0)
+        {
+            // The predictor runs across both halves, so reconstruct the available prefix before copying samples.
+            Reconstruct(uncompressed, (uint)written);
+            for (int i = 0; i < completeBytes / 2; i++)
+            {
+                buffer[2 * i] = uncompressed[i];
+                buffer[(2 * i) + 1] = uncompressed[halfLength + i];
+            }
+        }
+
+        // Clear the output from the first incomplete sample to the end of the current block.
+        buffer[completeBytes..uncompressed.Length].Clear();
     }
 
     /// <inheritdoc/>

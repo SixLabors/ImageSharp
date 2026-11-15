@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
@@ -308,11 +309,8 @@ internal sealed class TiffEncoderCore
         // Their image profile copies the first frame's profile and must not be inherited by a later unprofiled frame.
         // Other formats can define one image-wide profile, which applies when the current frame has no profile of its own.
         IImageFormat? sourceFormat = frame.Metadata.DecodedImageFormat ?? imageMetadata.DecodedImageFormat;
-        IccProfile? sourceProfile = frame.Metadata.IccProfile;
-        if (sourceProfile is null && sourceFormat is not (TiffFormat or IcoFormat or CurFormat or AniFormat))
-        {
-            sourceProfile = imageMetadata.IccProfile;
-        }
+        IccProfile? imageProfile = sourceFormat is TiffFormat or IcoFormat or CurFormat or AniFormat ? null : imageMetadata.IccProfile;
+        IccProfile? sourceProfile = IccProfile.SelectValidProfile(frame.Metadata.IccProfile, imageProfile);
 
         // Byte compressors receive samples already packed by TIFF. Profile compatibility therefore follows the TIFF sample layout.
         // Indexed output checks the palette's RGB space through the shared helper; indices themselves are not color components.
@@ -336,13 +334,13 @@ internal sealed class TiffEncoderCore
         {
             // The helper compares the retained profile's data color space with sampleColorType.
             // A match retains that same profile and supplies an sRGB-to-profile converter when needed. A mismatch omits the profile.
-            outputProfile = IccProfile.GetIccProfileForEncoding(sourceProfile, sampleColorType, this.memoryAllocator, out converter);
+            outputProfile = IccProfile.GetCompatibleProfileForEncoding(sourceProfile, sampleColorType, this.memoryAllocator, out converter);
         }
         else
         {
-            // Select the profile before encoding so TIFF and JPEG write the same profile.
+            // Pass a compatible profile to JPEG. JPEG decides whether to write it.
             // JPEG creates and owns its converter. This shared compatibility check allocates no unused TIFF converter.
-            outputProfile = IccProfile.GetIccProfileForEncoding(sourceProfile, sampleColorType);
+            outputProfile = IccProfile.GetCompatibleProfileForEncoding(sourceProfile, sampleColorType);
         }
 
         // TIFF has no separate JPEG color-type option. Its resolved photometric interpretation selects the nested JPEG color type.
@@ -407,7 +405,8 @@ internal sealed class TiffEncoderCore
 
         // Write the same profile that describes the samples, including when JPEG encoded the original pixel region.
         // The TIFF IccProfile directory entry is required even when SkipMetadata omits optional metadata.
-        entriesCollector.ProcessIccProfile(outputProfile);
+        // JPEG can omit a recovered profile when it cannot convert the pixels to that profile's colors.
+        entriesCollector.ProcessIccProfile(compressor is TiffJpegCompressor jpeg ? jpeg.EncodedIccProfile : outputProfile);
 
         if (writer.Position % 2 != 0)
         {
@@ -415,9 +414,7 @@ internal sealed class TiffEncoderCore
             writer.Write(0);
         }
 
-        this.frameMarkers.Add((ifdOffset, (uint)writer.Position));
-
-        return this.WriteIfd(writer, entriesCollector.Entries);
+        return this.WriteIfd(writer, entriesCollector.Entries, ifdOffset);
     }
 
     /// <summary>
@@ -462,28 +459,38 @@ internal sealed class TiffEncoderCore
     /// </summary>
     /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
     /// <param name="entries">The IFD entries to write to the file.</param>
+    /// <param name="ifdOffsetMarker">The stream position where the offset of this directory will be written.</param>
     /// <returns>The marker to write the next IFD offset (if present).</returns>
-    private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries)
+    private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries, long ifdOffsetMarker)
     {
         if (entries.Count == 0)
         {
             TiffThrowHelper.ThrowArgumentException("There must be at least one entry per IFD.");
         }
 
-        uint dataOffset = (uint)writer.Position + (uint)(6 + (entries.Count * 12));
+        if (entries.Count > ushort.MaxValue)
+        {
+            TiffThrowHelper.ThrowArgumentException("The TIFF directory contains too many entries.");
+        }
+
+        // Classic TIFF stores offsets in four bytes. If the end of the directory fits, its start fits too.
+        long directoryOffset = writer.Position;
+        int directoryLength = 6 + (entries.Count * 12);
+        uint dataOffset = checked((uint)(directoryOffset + directoryLength));
+        this.frameMarkers.Add((ifdOffsetMarker, (uint)directoryOffset));
+
         List<byte[]> largeDataBlocks = [];
 
         entries.Sort((a, b) => (ushort)a.Tag - (ushort)b.Tag);
 
-        Span<byte> buffer = stackalloc byte[4];
+        Span<byte> buffer = stackalloc byte[ExifWriter.DirectoryEntryHeaderLength];
 
         writer.Write((ushort)entries.Count, buffer);
 
         foreach (IExifValue entry in entries)
         {
-            writer.Write((ushort)entry.Tag, buffer);
-            writer.Write((ushort)entry.DataType, buffer);
-            writer.Write(ExifWriter.GetNumberOfComponents(entry), buffer);
+            ExifWriter.WriteEntryHeader(entry, buffer, TiffStreamWriter.IsLittleEndian);
+            writer.Write(buffer);
 
             uint length = ExifWriter.GetLength(entry);
             if (length <= 4)
@@ -511,7 +518,10 @@ internal sealed class TiffEncoderCore
 
                 largeDataBlocks.Add(raw);
                 writer.Write(dataOffset, buffer);
-                dataOffset += (uint)(raw.Length + (raw.Length % 2));
+
+                // The next value must start on an even byte offset that fits in four bytes.
+                uint paddedLength = (uint)raw.Length + ((uint)raw.Length & 1);
+                dataOffset = checked(dataOffset + paddedLength);
             }
         }
 

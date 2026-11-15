@@ -19,6 +19,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -175,6 +176,21 @@ internal sealed class PngEncoderCore : IDisposable
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        IccProfile? profile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        this.Encode(image, profile, stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Encodes an image with an ICC profile that the caller has already validated.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="sourceIccProfile">The validated ICC profile, or null.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void Encode<TPixel>(Image<TPixel> image, IccProfile? sourceIccProfile, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         this.width = image.Width;
         this.height = image.Height;
 
@@ -186,8 +202,7 @@ internal sealed class PngEncoderCore : IDisposable
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         // PNG emits one profile for the whole image, including every APNG frame. Frame metadata takes precedence for container resources.
-        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? metadata.IccProfile;
-        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+        IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile, pngMetadata.GetPixelTypeInfo().ColorType, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -224,7 +239,7 @@ internal sealed class PngEncoderCore : IDisposable
             this.WriteHeaderChunk(stream);
 
             // cICP has higher precedence than iCCP, and source gamma/cICP cannot describe the fallback samples after an
-            // incompatible ICC profile is omitted. Retain the ordinary color-tag path only when there was no source ICC.
+            // incompatible ICC profile is omitted. Retain the ordinary color-tag path only when there was no valid source ICC.
             if (sourceIccProfile is null)
             {
                 this.WriteGammaChunk(stream);
@@ -886,7 +901,11 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
+        byte[]? exifData = meta.ExifProfile.GetDataForEncoding();
+        if (exifData != null)
+        {
+            this.WriteChunk(stream, PngChunkType.Exif, exifData);
+        }
     }
 
     /// <summary>
@@ -902,14 +921,8 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        if (meta.XmpProfile is null)
-        {
-            return;
-        }
-
-        byte[]? xmpData = meta.XmpProfile.Data;
-
-        if (xmpData?.Length is 0 or null)
+        byte[]? xmpData = meta.XmpProfile?.GetDataForEncoding();
+        if (xmpData is null)
         {
             return;
         }
@@ -963,9 +976,12 @@ internal sealed class PngEncoderCore : IDisposable
 
         // For interoperability, wrap raw IPTC (IIM) in a Photoshop IRB (8BIM, resource 0x0404),
         // since "Raw profile type iptc" commonly stores IRB payloads.
-        using IMemoryOwner<byte> irb = this.BuildPhotoshopIrbForIptc(iptcData);
 
-        Span<byte> irbSpan = irb.GetSpan();
+        // The complete resource must fit in one buffer, including its header and padding.
+        int irbLength = checked((int)IptcWriter.GetPhotoshopResourceLength(iptcData.Length));
+        using IMemoryOwner<byte> irb = this.memoryAllocator.Allocate<byte>(irbLength);
+        Span<byte> irbSpan = irb.GetSpan()[..irbLength];
+        IptcWriter.WritePhotoshopResource(irbSpan, iptcData);
 
         // Build "raw profile" textual wrapper:
         // "IPTC profile\n<decimal length>\n<hex bytes...>\n"
@@ -987,55 +1003,6 @@ internal sealed class PngEncoderCore : IDisposable
         compressedData.CopyTo(outputBytes[bytesWritten..]);
 
         this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes);
-    }
-
-    /// <summary>
-    /// Builds a Photoshop Image Resource Block (IRB) containing the specified IPTC-IIM data.
-    /// </summary>
-    /// <remarks>The returned IRB uses resource ID 0x0404 and an empty Pascal string for the name, as required
-    /// for IPTC-NAA record embedding in Photoshop files. The data is padded to ensure even length, as specified by the
-    /// IRB format.</remarks>
-    /// <param name="iptcIim">
-    /// The IPTC-IIM data to embed in the IRB, provided as a read-only span of bytes. The data is included as-is in the
-    /// resulting block.
-    /// </param>
-    /// <returns>
-    /// A byte array representing the Photoshop IRB with the embedded IPTC-IIM data, formatted according to the
-    /// Photoshop specification.
-    /// </returns>
-    private IMemoryOwner<byte> BuildPhotoshopIrbForIptc(ReadOnlySpan<byte> iptcIim)
-    {
-        // IRB block:
-        // 4  bytes: "8BIM"
-        // 2  bytes: resource id 0x0404 (big endian)
-        // 2  bytes: pascal name (len=0) + pad to even => 0x00 0x00
-        // 4  bytes: data size (big endian)
-        // n  bytes: IPTC-IIM data
-        // pad to even
-        int pad = (iptcIim.Length & 1) != 0 ? 1 : 0;
-        IMemoryOwner<byte> bufferOwner = this.memoryAllocator.Allocate<byte>(4 + 2 + 2 + 4 + iptcIim.Length + pad);
-        Span<byte> buffer = bufferOwner.GetSpan();
-
-        int bytesWritten = 0;
-        PngConstants.EightBim.CopyTo(buffer);
-        bytesWritten += 4;
-
-        buffer[bytesWritten++] = 0x04;
-        buffer[bytesWritten++] = 0x04;
-
-        buffer[bytesWritten++] = 0x00; // Pascal name length
-        buffer[bytesWritten++] = 0x00; // pad to even
-
-        int size = iptcIim.Length;
-        buffer[bytesWritten++] = (byte)((size >> 24) & 0xFF);
-        buffer[bytesWritten++] = (byte)((size >> 16) & 0xFF);
-        buffer[bytesWritten++] = (byte)((size >> 8) & 0xFF);
-        buffer[bytesWritten++] = (byte)(size & 0xFF);
-
-        iptcIim.CopyTo(buffer[bytesWritten..]);
-
-        // Final pad byte already zero-initialized if needed
-        return bufferOwner;
     }
 
     /// <summary>
@@ -1100,7 +1067,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
-        if (metaData.CicpProfile is null)
+        if (metaData.CicpProfile?.Validate() != true)
         {
             return;
         }

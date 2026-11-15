@@ -67,7 +67,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private IMemoryOwner<Vector4> iccRowBuffer;
 
     /// <summary>
-    /// The profile <see cref="iccConverter"/> was built for.
+    /// The profile used to configure ICC conversion for this image, even if setup failed.
     /// </summary>
     private IccProfile iccConverterProfile;
 
@@ -169,7 +169,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         // The profile is fixed for the image, so its converter and transforms are built once, not per row.
         if (iccProfile != null && !ReferenceEquals(iccProfile, this.iccConverterProfile))
         {
-            this.iccConverter = new ColorProfileConverter(new ColorConversionOptions
+            this.iccConverter = ColorProfileConverter.CreateIccForDecoding(new ColorConversionOptions
             {
                 MemoryAllocator = this.Configuration.MemoryAllocator,
                 SourceIccProfile = iccProfile,
@@ -178,8 +178,16 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             this.iccConverterProfile = iccProfile;
 
-            // One vector for each pixel can hold all JPEG source models, and the RGB result in the same place.
-            this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<Vector4>(width);
+            if (this.iccConverter != null)
+            {
+                // One vector for each pixel can hold all JPEG source models, and the RGB result in the same place.
+                this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<Vector4>(width);
+            }
+        }
+
+        if (this.iccConverter == null)
+        {
+            iccProfile = null;
         }
 
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)

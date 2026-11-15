@@ -148,7 +148,7 @@ public class IccReaderTests
     /// Checks that readable tag data outside the declared profile is skipped during lazy parsing.
     /// </summary>
     [Fact]
-    public void ToProfile_WithTagOutsideDeclaredSize_IgnoresTag()
+    public void ToProfile_WithTagOutsideDeclaredSize_UsesIntegrityPolicy()
     {
         IccProfile source = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2);
         byte[] profileData = source.ToByteArray();
@@ -164,7 +164,8 @@ public class IccReaderTests
         IccReader reader = new();
 
         Assert.Equal(data.Length, reader.Read(stream, data.Length));
-        IccProfile profile = reader.ToProfile();
+        Assert.Throws<InvalidIccProfileException>(() => reader.ToProfile());
+        IccProfile profile = reader.ToProfile(allowTruncated: true);
 
         // Malformed tags are skipped by the existing parser; trailing data must not make this tag acceptable.
         Assert.DoesNotContain(profile.Entries, entry => entry.TagSignature == source.Entries[0].TagSignature);
@@ -172,50 +173,26 @@ public class IccReaderTests
     }
 
     /// <summary>
-    /// Checks a stored profile with no tags through both validated input paths.
+    /// Checks that both input paths reject an ICC profile with no tags.
     /// </summary>
     /// <param name="completeBuffer">Whether the input arrives as one complete owned array.</param>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ReadProfile_NoEntries(bool completeBuffer)
+    public void ReadProfile_WithNoTags_Throws(bool completeBuffer)
     {
         byte[] data = IccTestDataProfiles.HeaderRandomArray;
-        IccProfile output;
         if (completeBuffer)
         {
-            output = IccReader.ToProfile(data);
+            Assert.Throws<InvalidIccProfileException>(() => IccReader.ToProfile(data));
         }
         else
         {
             using MemoryStream stream = new(data);
             IccReader reader = new();
-            reader.Read(stream, data.Length);
-            output = reader.ToProfile();
+            Assert.Equal(data.Length, reader.Read(stream, data.Length));
+            Assert.Throws<InvalidIccProfileException>(() => reader.ToProfile());
         }
-
-        Assert.Equal(0, output.Entries.Length);
-        Assert.NotNull(output.Header);
-
-        IccProfileHeader header = output.Header;
-        IccProfileHeader expected = IccTestDataProfiles.HeaderRandomRead;
-        Assert.Equal(header.Class, expected.Class);
-        Assert.Equal(header.CmmType, expected.CmmType);
-        Assert.Equal(header.CreationDate, expected.CreationDate);
-        Assert.Equal(header.CreatorSignature, expected.CreatorSignature);
-        Assert.Equal(header.DataColorSpace, expected.DataColorSpace);
-        Assert.Equal(header.DeviceAttributes, expected.DeviceAttributes);
-        Assert.Equal(header.DeviceManufacturer, expected.DeviceManufacturer);
-        Assert.Equal(header.DeviceModel, expected.DeviceModel);
-        Assert.Equal(header.FileSignature, expected.FileSignature);
-        Assert.Equal(header.Flags, expected.Flags);
-        Assert.Equal(header.Id, expected.Id);
-        Assert.Equal(header.PcsIlluminant, expected.PcsIlluminant);
-        Assert.Equal(header.PrimaryPlatformSignature, expected.PrimaryPlatformSignature);
-        Assert.Equal(header.ProfileConnectionSpace, expected.ProfileConnectionSpace);
-        Assert.Equal(header.RenderingIntent, expected.RenderingIntent);
-        Assert.Equal(header.Size, expected.Size);
-        Assert.Equal(header.Version, expected.Version);
     }
 
     [Fact]

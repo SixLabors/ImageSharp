@@ -6,6 +6,10 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// Provides choices for ICC color conversion and profile retention during decoding and identification.
 /// </summary>
+/// <remarks>
+/// If the decoder cannot build the color transform from a recovered profile, it omits that profile.
+/// Identification can retain a recovered profile when it does not need to convert colors.
+/// </remarks>
 public enum ColorProfileHandling
 {
     /// <summary>

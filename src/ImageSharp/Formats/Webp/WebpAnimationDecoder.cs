@@ -70,6 +70,11 @@ internal class WebpAnimationDecoder : IDisposable
     private readonly Action<Action> executeAncillarySegmentAction;
 
     /// <summary>
+    /// Whether to keep readable tags from an incomplete ICC profile.
+    /// </summary>
+    private readonly bool allowTruncatedIcc;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
     /// </summary>
     /// <param name="memoryAllocator">The memory allocator.</param>
@@ -77,6 +82,7 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
     /// <param name="skipMetadata">Whether to skip metadata.</param>
     /// <param name="backgroundColorHandling">The flag to decide how to handle the background color in the Animation Chunk.</param>
+    /// <param name="allowTruncatedIcc">Whether to keep readable tags from an incomplete ICC profile.</param>
     /// <param name="executeAncillarySegmentAction">Executes a known ancillary segment parsing action using the configured integrity policy.</param>
     public WebpAnimationDecoder(
         MemoryAllocator memoryAllocator,
@@ -84,6 +90,7 @@ internal class WebpAnimationDecoder : IDisposable
         uint maxFrames,
         bool skipMetadata,
         BackgroundColorHandling backgroundColorHandling,
+        bool allowTruncatedIcc,
         Action<Action> executeAncillarySegmentAction)
     {
         this.memoryAllocator = memoryAllocator;
@@ -92,6 +99,7 @@ internal class WebpAnimationDecoder : IDisposable
         this.skipMetadata = skipMetadata;
         this.backgroundColorHandling = backgroundColorHandling;
         this.executeAncillarySegmentAction = executeAncillarySegmentAction;
+        this.allowTruncatedIcc = allowTruncatedIcc;
     }
 
     /// <summary>
@@ -428,7 +436,7 @@ internal class WebpAnimationDecoder : IDisposable
                 // precede the frame data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, this.executeAncillarySegmentAction, containerEnd);
+                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, this.allowTruncatedIcc, this.executeAncillarySegmentAction, containerEnd);
                 break;
             case WebpChunkType.Exif:
                 this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata, containerEnd));

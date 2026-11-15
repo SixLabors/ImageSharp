@@ -22,10 +22,10 @@ internal class EntryReader : BaseExifReader
     {
         if (!isBigTiff)
         {
-            this.ReadValues(this.Values, (uint)ifdOffset);
-            this.NextIfdOffset = this.ReadUInt32();
+            // The next offset follows the complete directory table.
+            this.NextIfdOffset = this.ReadValues(this.Values, (uint)ifdOffset) ? this.ReadUInt32() : 0;
 
-            this.ReadSubIfd(this.Values);
+            this.ReadSubIfd(this.Values, ifdOffset);
         }
         else
         {

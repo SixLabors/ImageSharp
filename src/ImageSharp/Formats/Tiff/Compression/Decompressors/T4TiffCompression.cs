@@ -53,6 +53,10 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
     private TiffFillOrder FillOrder { get; }
 
     /// <inheritdoc/>
+    /// <remarks>The fax decoder clears the sample buffer before each block and checks the range of every write.</remarks>
+    protected override bool CanDiscardFailedBlock => true;
+
+    /// <inheritdoc/>
     protected override void Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {

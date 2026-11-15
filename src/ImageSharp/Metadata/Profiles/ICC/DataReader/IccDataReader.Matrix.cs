@@ -17,6 +17,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[,] ReadMatrix(int xCount, int yCount, bool isSingle)
     {
+        this.EnsureAvailable((ulong)(uint)xCount * (uint)yCount, sizeof(float));
         float[,] matrix = new float[xCount, yCount];
 
         if (isSingle)
@@ -51,6 +52,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[] ReadMatrix(int yCount, bool isSingle)
     {
+        this.EnsureAvailable((uint)yCount, sizeof(float));
         float[] matrix = new float[yCount];
         if (isSingle)
         {

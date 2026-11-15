@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
@@ -378,7 +377,7 @@ internal sealed class JxlEncoderCore : IDisposable
         this.orientation = ExifOrientationMode.TopLeft;
         ExifProfile? exifProfile = image.Metadata.ExifProfile;
 
-        if (!encoder.SkipMetadata && exifProfile is not null
+        if (!encoder.SkipMetadata && exifProfile?.Validate() == true
             && exifProfile.TryGetValue(ExifTag.Orientation, out IExifValue<ushort>? orientation)
             && orientation.Value is >= ExifOrientationMode.TopLeft and <= ExifOrientationMode.LeftBottom)
         {
@@ -433,7 +432,24 @@ internal sealed class JxlEncoderCore : IDisposable
 
         // XYB selects the coding transform, not an original device profile. A lossless replacement
         // uses decoded working RGB. Coding XYB keeps a gray ICC declaration when that profile requires it.
-        IccProfile? sourceProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+        IccProfile? sourceProfile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+
+        // Native JPEG XL requires a complete ICC profile. Its decoder checks the profile in strict mode.
+        // XYB uses the profile only to describe suggested output colors.
+        if (encoder.Distance == 0F && sourceProfile is { WasRecovered: true })
+        {
+            sourceProfile = null;
+        }
+
+        if (colorType == JxlColorType.Other && sourceProfile == null)
+        {
+            if (encoder.ColorType == JxlColorType.Other)
+            {
+                throw new ImageFormatException("JPEG XL Other color requires a usable ICC profile.");
+            }
+
+            colorType = JxlColorType.Rgb;
+        }
 
         // An ICC-defined request takes its color model from the profile, as in libjxl. Reuse the
         // shared ICC mapping and the metadata mapping so grayscale has one component and CMYK retains its black channel.
@@ -459,12 +475,6 @@ internal sealed class JxlEncoderCore : IDisposable
         this.blackBitDepth = black?.BitDepth ?? bitDepth;
         this.alphaName = alpha?.Name ?? string.Empty;
         this.blackName = black?.Name ?? string.Empty;
-
-        if (this.colorType == JxlColorType.Other)
-        {
-            // Other has no compact color description, including when its profile is suggested output for coding XYB.
-            Guard.IsTrue(sourceProfile is not null, nameof(image), "JPEG XL Other color requires an ICC profile.");
-        }
 
         this.hasBlack = !this.usesXyb && this.colorType != JxlColorType.Luminance
             && sourceProfile?.Header.DataColorSpace == IccColorSpaceType.Cmyk;
@@ -528,24 +538,19 @@ internal sealed class JxlEncoderCore : IDisposable
         {
             // Coding XYB consumes working sRGB. Its retained ICC profile describes suggested output only.
             this.profile = this.colorType == JxlColorType.Luminance
-                ? IccProfile.GetIccProfileForEncoding(sourceProfile, PixelColorType.Luminance) : sourceProfile;
+                ? IccProfile.GetCompatibleProfileForEncoding(sourceProfile, PixelColorType.Luminance) : sourceProfile;
         }
         else if (this.colorType == JxlColorType.Other)
         {
             // Other has no compact encoding. Its ICC profile defines the encoded device components.
             this.profile = sourceProfile;
-            profileConverter = new ColorProfileConverter(new ColorConversionOptions
-            {
-                SourceIccProfile = CompactSrgbV4Profile.Profile,
-                TargetIccProfile = this.profile,
-                MemoryAllocator = configuration.MemoryAllocator
-            });
+            profileConverter = IccProfile.CreateEncodingConverter(this.profile!, configuration.MemoryAllocator);
         }
         else
         {
             PixelColorType sampleColorType = this.hasBlack
                 ? PixelColorType.CMYK : this.colorType == JxlColorType.Luminance ? PixelColorType.Luminance : PixelColorType.RGB;
-            this.profile = IccProfile.GetIccProfileForEncoding(
+            this.profile = IccProfile.GetCompatibleProfileForEncoding(
                 sourceProfile, sampleColorType, configuration.MemoryAllocator, out profileConverter);
         }
 
@@ -568,6 +573,11 @@ internal sealed class JxlEncoderCore : IDisposable
         // Its suggested original encoding can have a different transfer curve; restoring that curve
         // would requantize the already packed source pixels instead of preserving their exact codes.
         CicpProfile? cicp = useWorkingRgb ? null : image.Metadata.CicpProfile;
+        if (cicp?.Validate() != true)
+        {
+            cicp = null;
+        }
+
         CicpTransferCharacteristics transfer = cicp?.TransferCharacteristics ?? CicpTransferCharacteristics.Iec61966_2_1;
         bool compatibleCicp = metadata.Gamma.HasValue || metadata.TransferCharacteristics.HasValue
             || (byte)transfer is 1 or 4 or 5 or 6 or 8 or 13 or 14 or 15 or 16 or 17 or 18;
@@ -971,8 +981,8 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <param name="metadata">The source image metadata, borrowed without changes.</param>
     private void WriteContainerMetadata(SixLabors.ImageSharp.Metadata.ImageMetadata metadata)
     {
-        byte[]? exif = this.encoder.SkipMetadata ? null : metadata.ExifProfile?.ToByteArray();
-        byte[]? xmp = this.encoder.SkipMetadata ? null : metadata.XmpProfile?.Data;
+        byte[]? exif = this.encoder.SkipMetadata ? null : metadata.ExifProfile?.GetDataForEncoding();
+        byte[]? xmp = this.encoder.SkipMetadata ? null : metadata.XmpProfile?.GetDataForEncoding();
 
         if (exif is null && xmp is null && !this.requiresLevelTen)
         {

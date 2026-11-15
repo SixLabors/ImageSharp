@@ -730,8 +730,9 @@ public partial class HeifEncoderTests
         image.Frames.RootFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 10);
         image.Frames[1].Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 20);
         image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "suppressed");
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "suppressed");
+        image.Metadata.ExifProfile = exifProfile;
         image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>suppressed</xmp>"));
         using MemoryStream storage = new();
         storage.Write([1, 2, 3, 4]);
@@ -2452,8 +2453,9 @@ public partial class HeifEncoderTests
     {
         using Image<Rgb24> image = new(8, 8);
         image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp HEIF");
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "ImageSharp HEIF");
+        image.Metadata.ExifProfile = exifProfile;
         image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>ImageSharp HEIF</xmp>"));
 
         using MemoryStream stream = new();

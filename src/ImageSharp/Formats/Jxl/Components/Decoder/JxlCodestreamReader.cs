@@ -438,6 +438,17 @@ internal sealed class JxlCodestreamReader
     /// <param name="metadata">The image metadata receiving the profile.</param>
     private static void ApplyProfile(Stream stream, long length, uint type, ImageMetadata metadata)
     {
+        if (type == JxlConstants.XmlBox)
+        {
+            if (!XmpReader.TryReadProfile(stream, length, out XmpProfile? profile))
+            {
+                throw new InvalidImageContentException("The JPEG XL XMP box payload is incomplete.");
+            }
+
+            metadata.XmpProfile = profile ?? metadata.XmpProfile;
+            return;
+        }
+
         if (type == JxlConstants.ExifBox)
         {
             if (length < sizeof(uint))
@@ -461,27 +472,14 @@ internal sealed class JxlCodestreamReader
             length -= offset;
         }
 
-        if (length > Array.MaxLength)
+        if (!ExifReader.TryReadProfile(stream, length, out ExifProfile? exifProfile))
         {
-            throw new InvalidImageContentException("The JPEG XL metadata exceeds the supported profile size.");
+            throw new InvalidImageContentException("The JPEG XL EXIF box payload is incomplete.");
         }
 
-        // ExifProfile and XmpProfile retain this final array. They cannot borrow either the input stream
-        // or the allocator-owned Brotli output, which is disposed when metadata application finishes.
-        byte[] data = new byte[(int)length];
-        IsoBoxReader.ReadExactly(stream, data, "The JPEG XL metadata payload is incomplete.");
-        if (type == JxlConstants.ExifBox)
-        {
-            // EXIF parsing is lazy. Validate its entries before publishing the profile so malformed
-            // optional data fails inside the core's ancillary policy, rather than during a later orientation update.
-            ExifProfile profile = new(data);
-            _ = profile.Values;
-            metadata.ExifProfile = profile;
-        }
-        else
-        {
-            metadata.XmpProfile = new XmpProfile(data);
-        }
+        // Validate lazy EXIF entries under the box's ancillary error policy.
+        _ = exifProfile.Values;
+        metadata.TrySetExifProfile(exifProfile);
     }
 
     /// <summary>

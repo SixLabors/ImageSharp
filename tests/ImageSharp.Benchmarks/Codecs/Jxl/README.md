@@ -36,9 +36,8 @@ It measures distances zero and one, with progressive output enabled and disabled
 Setup decodes each stored input and prepares one unassociated sRGB RGBA8 array. Both encoders read that array.
 File I/O, source decoding and pixel preparation run outside measurement. Tests verify encoded pixels separately.
 
-Each measured operation creates the encoder, writes complete output into a pooled stream, and releases both.
-Both output streams use the RGBA8 input size as a minimum chunk-size hint, capped by the allocator and the stream's 4 MiB limit.
-Chunk allocation remains inside measurement. The native pool can reserve more memory than a requested chunk's logical length.
+Each measured operation creates the encoder, writes complete output into one shared `MemoryStream`, and releases the encoder.
+Both encoders write into that stream. Each operation rewinds it, so the results measure the encoders instead of the growth of a new stream.
 Use the managed allocation column separately from total or native memory use.
 Both encoders preserve transparent colors and use one thread. Native effort is one except for progressive lossless output, which uses effort two.
 The effort-one fast lossless path always writes one pass and ignores the native `RESPONSIVE` option.

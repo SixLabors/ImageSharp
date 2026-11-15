@@ -138,8 +138,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             // A default orientation alone does not require creating an otherwise absent EXIF profile.
             if (header.Orientation != ExifOrientationMode.TopLeft || metadata.ExifProfile is not null)
             {
-                metadata.ExifProfile ??= new ExifProfile();
-                metadata.ExifProfile.SetValue(ExifTag.Orientation, header.Orientation);
+                ExifProfile exifProfile = metadata.ExifProfile ?? new ExifProfile();
+                exifProfile.SetValue(ExifTag.Orientation, header.Orientation);
+                metadata.ExifProfile = exifProfile;
             }
         }
     }

@@ -372,7 +372,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             if (metadata.IccProfile is null)
             {
-                ReadIccApplicationExtension(stream, metadata);
+                this.ReadIccApplicationExtension(stream, metadata);
             }
             else
             {
@@ -412,7 +412,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="stream">The stream positioned at the first data subblock.</param>
     /// <param name="metadata">The image metadata initialized by header parsing.</param>
-    private static void ReadIccApplicationExtension(BufferedReadStream stream, ImageMetadata metadata)
+    private void ReadIccApplicationExtension(BufferedReadStream stream, ImageMetadata metadata)
     {
         // Keep GIF subblock framing here while the shared reader owns ICC size and validity checks.
         IccReader reader = new();
@@ -422,7 +422,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             try
             {
-                if (reader.Read(stream, length) != length)
+                if (!reader.TryReadSegment(stream, length))
                 {
                     GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
                 }
@@ -442,7 +442,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
         }
 
-        metadata.IccProfile = reader.ToProfile();
+        metadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
     }
 
     /// <summary>
@@ -483,10 +483,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="appLength">The application block length.</param>
     private void ReadXmpApplicationExtensionData(BufferedReadStream stream, long applicationPosition, int appLength)
     {
-        GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
-        if (extension.Data.Length > 0)
+        if (GifXmpApplicationExtension.TryReadProfile(stream, this.memoryAllocator, out XmpProfile? profile))
         {
-            this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+            this.metadata!.XmpProfile = profile;
             return;
         }
 
@@ -694,10 +693,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             MemoryAllocator = this.memoryAllocator
         };
 
-        this.colorProfileConverter = new ColorProfileConverter(options);
+        this.colorProfileConverter = ColorProfileConverter.CreateIccForDecoding(options);
 
         // The global table was read before the ICC extension; metadata and frames share this converted array.
-        if (this.globalColorTable is not null)
+        if (this.colorProfileConverter is not null && this.globalColorTable is not null)
         {
             this.colorProfileConverter.Convert<TPixel>(this.globalColorTable);
 

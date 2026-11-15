@@ -60,9 +60,10 @@ public class SwizzleTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        exifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+        image.Metadata.ExifProfile = exifProfile;
 
         image.Mutate(ctx => ctx.Swizzle(new SwapXAndYSwizzler(new Size(image.Width, image.Height))));
 

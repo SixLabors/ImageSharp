@@ -44,8 +44,9 @@ public class AutoOrientTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Orientation, orientation);
+        image.Metadata.ExifProfile = exifProfile;
 
         image.Mutate(x => x.AutoOrient());
         image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);

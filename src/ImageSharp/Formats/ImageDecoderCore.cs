@@ -229,7 +229,12 @@ internal abstract class ImageDecoderCore
             MemoryAllocator = image.Configuration.MemoryAllocator,
         };
 
-        ColorProfileConverter converter = new(options);
+        ColorProfileConverter? converter = ColorProfileConverter.CreateIccForDecoding(options);
+        if (converter is null)
+        {
+            return false;
+        }
+
         converter.Convert(image);
         return true;
     }
@@ -266,7 +271,11 @@ internal abstract class ImageDecoderCore
             MemoryAllocator = frame.Configuration.MemoryAllocator,
         };
 
-        ColorProfileConverter converter = new(options);
+        ColorProfileConverter? converter = ColorProfileConverter.CreateIccForDecoding(options);
+        if (converter is null)
+        {
+            return false;
+        }
 
         ImageMetadata metadata = new()
         {

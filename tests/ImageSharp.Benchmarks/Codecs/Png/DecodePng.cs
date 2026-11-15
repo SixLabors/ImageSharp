@@ -14,6 +14,9 @@ public class DecodePng
 {
     private byte[] pngBytes;
 
+    // Both libraries read from this stream. Each call rewinds it, so the results measure the decoders only.
+    private MemoryStream inputStream;
+
     private string TestImageFullPath
         => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
@@ -22,26 +25,39 @@ public class DecodePng
 
     [GlobalSetup]
     public void ReadImages()
-        => this.pngBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+    {
+        this.pngBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+        this.inputStream ??= new MemoryStream(this.pngBytes, false);
+    }
+
+    /// <summary>
+    /// Releases the shared input stream.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.inputStream.Dispose();
+        this.inputStream = null;
+    }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Png")]
     public SDSize PngSystemDrawing()
     {
-        using MemoryStream memoryStream = new(this.pngBytes);
-        using SDImage image = SDImage.FromStream(memoryStream);
+        this.inputStream.Position = 0;
+        using SDImage image = SDImage.FromStream(this.inputStream);
         return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Png")]
     public Size PngImageSharp()
     {
-        using MemoryStream memoryStream = new(this.pngBytes);
-        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        this.inputStream.Position = 0;
+        using Image<Rgba32> image = Image.Load<Rgba32>(this.inputStream);
         return image.Size;
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -50,10 +66,10 @@ public class DecodePng
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method                | TestImage       |       Mean |       Error |      StdDev |   Ratio |   Allocated |   Alloc Ratio |
-    | --------------------- | --------------- | ---------: | ----------: | ----------: | ------: | ----------: | ------------: |
-    | 'System.Drawing Png'  | Png/splash.png  |   1.259 ms |   0.1887 ms |   0.0103 ms |    1.00 |       393 B |          1.00 |
-    | 'ImageSharp Png'      | Png/splash.png  |   1.051 ms |   0.0469 ms |   0.0026 ms |    0.83 |      7776 B |         19.79 |
+    | Method               | TestImage      | Mean     | Error     | StdDev    | Ratio | RatioSD | Allocated | Alloc Ratio |
+    |--------------------- |--------------- |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+    | 'System.Drawing Png' | Png/splash.png | 1.378 ms | 1.0352 ms | 0.0567 ms |  1.00 |    0.05 |     329 B |        1.00 |
+    | 'ImageSharp Png'     | Png/splash.png | 1.112 ms | 0.1993 ms | 0.0109 ms |  0.81 |    0.03 |    7744 B |       23.54 |
 
     Allocated reports managed memory only.
     */

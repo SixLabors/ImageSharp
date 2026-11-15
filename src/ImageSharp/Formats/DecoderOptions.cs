@@ -91,7 +91,7 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Convert)
+        if (profile.IsUnusableForDecoding || this.ColorProfileHandling == ColorProfileHandling.Convert)
         {
             return true;
         }

@@ -58,8 +58,16 @@ public class HeifSequenceParserTests
 
     /// <summary>
     /// Gets the minimal little-endian TIFF payload stored in the synthetic track-level Exif item.
+    /// A valid EXIF profile needs at least one directory entry, so the directory holds Orientation = 1.
     /// </summary>
-    private static ReadOnlySpan<byte> TrackExifData => [0, 0, 0, 0, 0x49, 0x49, 0x2A, 0, 8, 0, 0, 0];
+    private static ReadOnlySpan<byte> TrackExifData =>
+    [
+        0, 0, 0, 0, // The HEIF Exif item's offset to the TIFF header.
+        0x49, 0x49, 0x2A, 0, 8, 0, 0, 0, // Little-endian TIFF header. The first directory is at offset 8.
+        1, 0, // One directory entry.
+        0x12, 0x01, 3, 0, 1, 0, 0, 0, 1, 0, 0, 0, // Orientation (0x0112), SHORT, count 1, value 1.
+        0, 0, 0, 0 // No next directory.
+    ];
 
     /// <summary>
     /// Gets the minimal XMP packet stored in the synthetic track-level MIME item.

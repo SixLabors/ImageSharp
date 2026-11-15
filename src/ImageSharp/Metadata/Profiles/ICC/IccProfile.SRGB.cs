@@ -31,12 +31,12 @@ public sealed partial class IccProfile
     /// </summary>
     /// <param name="profile">The profile to check.</param>
     /// <param name="value">The supplied profile when conversion is required; otherwise, <see langword="null"/>.</param>
-    /// <returns>Whether the profile is present and is not a canonical sRGB matrix-TRC profile.</returns>
+    /// <returns>Whether the profile is usable and requires conversion.</returns>
     internal static bool TryGetIccProfileForColorConversion(IccProfile? profile, [NotNullWhen(true)] out IccProfile? value)
     {
         value = null;
 
-        if (profile is null)
+        if (profile is null || profile.IsUnusableForDecoding)
         {
             return false;
         }
@@ -53,7 +53,7 @@ public sealed partial class IccProfile
     /// <summary>
     /// Detects canonical sRGB matrix+TRC profiles quickly and safely.
     /// Rules:
-    /// 1) Accept known sRGB v2, v4 and compact working profiles by profile ID.
+    /// 1) Accept complete profiles with a known sRGB v2, v4 or compact working profile ID.
     /// 2) Require RGB, PCS=XYZ, ICC v2 or v4, and no A2B*/B2A* LUTs.
     /// 3) Require rTRC, gTRC, bTRC to be identical and to encode the sRGB transfer function.
     /// 4) Accept if rXYZ/gXYZ/bXYZ already match the D50-adapted sRGB colorants within tolerance.
@@ -72,8 +72,8 @@ public sealed partial class IccProfile
     {
         IccProfileHeader h = this.Header;
 
-        // Fast path for known sRGB profile IDs
-        if (h.Id == StandardRgbV2 || h.Id == StandardRgbV4 || h.Id == CompactRgbV4)
+        // A recovered profile can have a known ID with missing color tags. Check its remaining tags.
+        if (!this.WasRecovered && (h.Id == StandardRgbV2 || h.Id == StandardRgbV4 || h.Id == CompactRgbV4))
         {
             return true;
         }

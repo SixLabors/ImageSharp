@@ -153,8 +153,8 @@ internal sealed class WebpEncoderCore
         }
 
         // WebP supplies RGB to ICC before lossless packing or lossy YCbCr conversion. One ICCP describes every frame.
-        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
-        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+        IccProfile? sourceIccProfile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile, PixelColorType.RGB, this.memoryAllocator, out ColorProfileConverter? converter);
 
         // Frame differencing uses working sRGB colors; encoder backgrounds override metadata.

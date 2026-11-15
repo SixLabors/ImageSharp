@@ -142,9 +142,5 @@ internal sealed partial class IccDataReader
     /// <param name="count">The number of bytes to read</param>
     /// <returns>The read bytes</returns>
     public byte[] ReadBytes(int count)
-    {
-        byte[] bytes = new byte[count];
-        Buffer.BlockCopy(this.data, this.AddIndex(count), bytes, 0, count);
-        return bytes;
-    }
+        => this.data.AsSpan(this.AddIndex(count), count).ToArray();
 }

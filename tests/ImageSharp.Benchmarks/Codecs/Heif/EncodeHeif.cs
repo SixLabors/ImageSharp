@@ -21,6 +21,10 @@ public class EncodeHeif
     private MagickImage avifMagick;
     private Image<Rgba32> avif;
 
+    // Both libraries write into this stream. Each call rewinds it, so after the first call it has the full capacity,
+    // and the results measure the encoders instead of the growth of a new stream.
+    private MemoryStream outputStream;
+
     /// <summary>
     /// Gets or sets the source test image.
     /// </summary>
@@ -44,6 +48,7 @@ public class EncodeHeif
             // is also the default of the ImageSharp encoder, so neither encoder sets a tune.
             this.avifMagick.Settings.SetDefine(MagickFormat.Heic, "speed", "6");
             this.avifMagick.Settings.SetDefine(MagickFormat.Heic, "chroma", "420");
+            this.outputStream = new MemoryStream();
         }
     }
 
@@ -59,13 +64,14 @@ public class EncodeHeif
     }
 
     /// <summary>
-    /// Releases the source images.
+    /// Releases the source images and the shared output stream.
     /// </summary>
     [GlobalCleanup]
     public void Cleanup()
     {
         this.avif.Dispose();
         this.avifMagick.Dispose();
+        this.outputStream.Dispose();
     }
 
     /// <summary>
@@ -74,9 +80,9 @@ public class EncodeHeif
     [Benchmark(Baseline = true, Description = "Magick Avif")]
     public void MagickAvif()
     {
-        using MemoryStream memoryStream = new();
+        this.outputStream.Position = 0;
         this.avifMagick.Quality = 75;
-        this.avifMagick.Write(memoryStream, MagickFormat.Avif);
+        this.avifMagick.Write(this.outputStream, MagickFormat.Avif);
     }
 
     /// <summary>
@@ -91,8 +97,8 @@ public class EncodeHeif
     [Benchmark(Description = "ImageSharp Avif")]
     public void ImageSharpAvif()
     {
-        using MemoryStream memoryStream = new();
-        this.avif.Save(memoryStream, new HeifEncoder
+        this.outputStream.Position = 0;
+        this.avif.Save(this.outputStream, new HeifEncoder
         {
             Quality = 75,
             Speed = HeifEncodingSpeed.Level6,
@@ -100,8 +106,8 @@ public class EncodeHeif
         });
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -110,15 +116,15 @@ public class EncodeHeif
     Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
     WarmupCount=5
 
-    | Method                    | TestImage       |       Mean |      Error |     StdDev |   Ratio |   RatioSD |        Gen0 |        Gen1 |        Gen2 |    Allocated |   Alloc Ratio |
-    | ------------------------- | --------------- | ---------: | ---------: | ---------: | ------: | --------: | ----------: | ----------: | ----------: | -----------: | ------------: |
-    | 'Magick Avif'             | Png/Bike.png    |   228.6 ms |    2.37 ms |    2.10 ms |    1.00 |      0.01 |           - |           - |           - |     65.55 KB |          1.00 |
-    | 'Magick Avif SingleCore'  | Png/Bike.png    |   426.1 ms |   19.79 ms |   17.54 ms |    1.86 |      0.08 |           - |           - |           - |     71.01 KB |          1.08 |
-    | 'ImageSharp Avif'         | Png/Bike.png    |   233.6 ms |   14.79 ms |   13.84 ms |    1.02 |      0.06 |   1000.0000 |   1000.0000 |   1000.0000 |   2118.65 KB |         32.32 |
-    |                           |                 |            |            |            |         |           |             |             |             |              |               |
-    | 'Magick Avif'             | Png/splash.png  |   188.9 ms |    4.13 ms |    3.45 ms |    1.00 |      0.02 |           - |           - |           - |     60.55 KB |          1.00 |
-    | 'Magick Avif SingleCore'  | Png/splash.png  |   233.8 ms |    3.52 ms |    2.94 ms |    1.24 |      0.03 |           - |           - |           - |     61.51 KB |          1.02 |
-    | 'ImageSharp Avif'         | Png/splash.png  |   176.3 ms |   19.17 ms |   17.93 ms |    0.93 |      0.09 |   3000.0000 |   3000.0000 |   3000.0000 |   2703.02 KB |         44.64 |
+    | Method                   | TestImage      | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated | Alloc Ratio |
+    |------------------------- |--------------- |---------:|---------:|---------:|------:|--------:|----------:|----------:|----------:|----------:|------------:|
+    | 'Magick Avif'            | Png/Bike.png   | 223.8 ms | 18.78 ms | 17.57 ms |  1.01 |    0.12 |         - |         - |         - |   9.47 KB |        1.00 |
+    | 'Magick Avif SingleCore' | Png/Bike.png   | 408.3 ms |  3.93 ms |  3.28 ms |  1.84 |    0.16 |         - |         - |         - |  15.12 KB |        1.60 |
+    | 'ImageSharp Avif'        | Png/Bike.png   | 222.9 ms |  1.89 ms |  1.68 ms |  1.00 |    0.09 | 3000.0000 | 3000.0000 | 3000.0000 | 2062.4 KB |      217.74 |
+    |                          |                |          |          |          |       |         |           |           |           |           |             |
+    | 'Magick Avif'            | Png/splash.png | 159.5 ms |  1.71 ms |  1.51 ms |  1.00 |    0.01 |         - |         - |         - |   7.41 KB |        1.00 |
+    | 'Magick Avif SingleCore' | Png/splash.png | 238.5 ms |  4.45 ms |  4.16 ms |  1.50 |    0.03 |         - |         - |         - |   5.86 KB |        0.79 |
+    | 'ImageSharp Avif'        | Png/splash.png | 146.0 ms |  2.07 ms |  1.73 ms |  0.92 |    0.01 | 3000.0000 | 3000.0000 | 3000.0000 | 2647.5 KB |      357.19 |
 
     Allocated reports managed memory only.
     Run with --warmupCount 5 --iterationCount 15. Three measurements gave unstable ImageSharp means.

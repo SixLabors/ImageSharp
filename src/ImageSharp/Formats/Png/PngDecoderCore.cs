@@ -2192,13 +2192,22 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             type: type,
             data: this.ReadChunkData(length));
 
-        this.ValidateChunk(chunk, buffer);
-
-        // Restore the stream position for IDAT and fdAT chunks, because it will be decoded later and
-        // was only read to verifying the CRC is correct.
-        if (type is PngChunkType.Data or PngChunkType.FrameData)
+        try
         {
-            this.currentStream.Position = position;
+            this.ValidateChunk(chunk, buffer);
+
+            // Restore the stream position for IDAT and fdAT chunks, because it will be decoded later and
+            // was only read to verifying the CRC is correct.
+            if (type is PngChunkType.Data or PngChunkType.FrameData)
+            {
+                this.currentStream.Position = position;
+            }
+        }
+        catch
+        {
+            chunk.Data?.Dispose();
+            chunk = default;
+            throw;
         }
 
         return true;
@@ -2250,9 +2259,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             if (this.crc32.GetCurrentHashAsUInt32() != inputCrc)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
-
-                // ensure when throwing we dispose the data back to the memory allocator
-                chunk.Data?.Dispose();
                 PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
             }
         }

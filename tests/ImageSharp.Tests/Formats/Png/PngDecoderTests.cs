@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -309,6 +310,71 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
+    }
+
+    /// <summary>
+    /// Decodes interlaced 1, 2, and 4-bit images with buffers that end at an inaccessible page.
+    /// Then compares the pixels with the reference decoder.
+    /// </summary>
+    /// <param name="provider">The test image provider.</param>
+    [Theory]
+    [WithFile(TestImages.Png.GrayAlpha1BitInterlaced, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Gray4BitInterlaced, PixelTypes.Rgba32)]
+    public void Decode_InterlacedSubByte_DoesNotReadPastBuffers(TestImageProvider<Rgba32> provider)
+    {
+        static int RunTest(string providerDump)
+        {
+            TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
+
+            // A read past the end of any decoder buffer stops the child process.
+            provider.Configuration.MemoryAllocator = new GuardPageMemoryAllocator();
+
+            using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+
+            // This RemoteExecutor version checks the child exit code only for methods that return an int.
+            // The return value tells the parent that the child process reached the end of the test.
+            return RemoteExecutor.SuccessExitCode;
+        }
+
+        RemoteExecutor.Invoke(RunTest, BasicSerializer.Serialize(provider)).Dispose();
+    }
+
+    /// <summary>
+    /// Decodes the reproducer from
+    /// <see href="https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-8r9g-56pg-xr88">GHSA-8r9g-56pg-xr88</see>.
+    /// The image is a 32x32, 2-bit grayscale, Adam7 interlaced PNG.
+    /// </summary>
+    /// <remarks>
+    /// The input has two stray bytes after the IHDR chunk. The decoder skips them, but reference decoders reject
+    /// the file, so the pixel comparison is in <see cref="Decode_InterlacedSubByte_DoesNotReadPastBuffers"/>.
+    /// </remarks>
+    [Fact]
+    public void Decode_InterlacedSubByte_Ghsa8r9g56pgXr88_DoesNotReadPastBuffers()
+    {
+        static int RunTest()
+        {
+            byte[] data = Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAgAAAAFrpg0fAAAAAACMSURBVBjTfU1BDgQhCGs4TXiF8WR4pdnTxFcQT4RXDqhz2U22h1qkLQAK" +
+                "GIREjbcAAtDAhgIdmB2fsYaKF9IzcYe/cGnAFSZcdQUdX1gfnol0wS2qvAWpqAVNi8JctdkOge4kwz/I6kzBegRNlb2atoWSbwFyJ7ct2LKa" +
+                "pvOqIBUe5xj3doS/511/jz+Q5C0X4+RUCwBCgg==");
+
+            // A read past the end of any decoder buffer stops the child process.
+            Configuration configuration = Configuration.CreateDefaultInstance();
+            configuration.MemoryAllocator = new GuardPageMemoryAllocator();
+            DecoderOptions options = new() { Configuration = configuration };
+
+            using MemoryStream stream = new(data);
+            using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(options, stream);
+            Assert.Equal(new Size(32, 32), image.Size);
+
+            // This RemoteExecutor version checks the child exit code only for methods that return an int.
+            // The return value tells the parent that the child process reached the end of the test.
+            return RemoteExecutor.SuccessExitCode;
+        }
+
+        RemoteExecutor.Invoke(RunTest).Dispose();
     }
 
     [Theory]

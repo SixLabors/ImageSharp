@@ -510,29 +510,22 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         => (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
 
     /// <summary>
-    /// Attempts to convert a byte array to a new array where each value in the original array is represented by the
-    /// specified number of bits.
+    /// Unpacks 1, 2, or 4-bit values so that each value uses one byte.
     /// </summary>
-    /// <param name="source">The bytes to convert from. Cannot be empty.</param>
-    /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
-    /// <param name="bits">The number of bits per value.</param>
-    /// <param name="buffer">The new array.</param>
-    /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
-    private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, [NotNullWhen(true)] out IMemoryOwner<byte>? buffer)
+    /// <param name="source">The packed scanline bytes without the filter type byte. Cannot be empty.</param>
+    /// <param name="bits">The number of bits per value. Less than 8.</param>
+    /// <param name="destination">The buffer for the unpacked values.</param>
+    /// <returns>The unpacked values.</returns>
+    private static ReadOnlySpan<byte> ScaleUpTo8Bit(ReadOnlySpan<byte> source, int bits, Span<byte> destination)
     {
-        if (bits >= 8)
-        {
-            buffer = null;
-            return false;
-        }
-
-        buffer = this.memoryAllocator.Allocate<byte>(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
+        // The slice is bounds-checked, so a destination that is too small throws before the unchecked writes below.
+        Span<byte> result = destination[..(source.Length * 8 / bits)];
         ref byte sourceRef = ref MemoryMarshal.GetReference(source);
-        ref byte resultRef = ref buffer.GetReference();
+        ref byte resultRef = ref MemoryMarshal.GetReference(result);
         int mask = 0xFF >> (8 - bits);
         int resultOffset = 0;
 
-        for (int i = 0; i < bytesPerScanline; i++)
+        for (int i = 0; i < source.Length; i++)
         {
             byte b = Unsafe.Add(ref sourceRef, (uint)i);
             for (int shift = 0; shift < 8; shift += bits)
@@ -543,7 +536,24 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             }
         }
 
-        return true;
+        return result;
+    }
+
+    /// <summary>
+    /// Allocates the buffer that <see cref="ScaleUpTo8Bit"/> writes to, when the bit depth is less than 8.
+    /// </summary>
+    /// <returns>The buffer, or <see langword="null"/> when the bit depth is 8 or more.</returns>
+    private IMemoryOwner<byte>? AllocateScaledScanlineBuffer()
+    {
+        int bits = this.header.BitDepth;
+        if (bits >= 8)
+        {
+            return null;
+        }
+
+        // A frame row or an Adam7 pass row is never wider than an image row, so one buffer that holds the
+        // unpacked values of a full image row (bytesPerScanline minus the filter type byte) serves every row.
+        return this.memoryAllocator.Allocate<byte>((this.bytesPerScanline - 1) * 8 / bits);
     }
 
     /// <summary>
@@ -788,6 +798,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             blendRowBuffer = blendMemory.Memory.Span;
         }
 
+        using IMemoryOwner<byte>? scaledScanlineMemory = this.AllocateScaledScanlineBuffer();
+        Span<byte> scaledScanlineBuffer = scaledScanlineMemory is null ? Span<byte>.Empty : scaledScanlineMemory.Memory.Span;
+
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -839,7 +852,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
             }
 
-            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer, scaledScanlineBuffer);
             this.SwapScanlineBuffers();
             currentRow++;
         }
@@ -881,6 +894,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
         }
+
+        using IMemoryOwner<byte>? scaledScanlineMemory = this.AllocateScaledScanlineBuffer();
+        Span<byte> scaledScanlineBuffer = scaledScanlineMemory is null ? Span<byte>.Empty : scaledScanlineMemory.Memory.Span;
 
         while (true)
         {
@@ -946,13 +962,16 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         break;
                 }
 
+                // Each Adam7 pass is a reduced image with its own scanline length, so pass only this scanline.
+                // See PNG Third Edition, section 8.1 "Interlace methods": https://www.w3.org/TR/png-3/#8InterlaceMethods
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
                 this.ProcessInterlacedDefilteredScanline(
                     frameControl,
-                    this.scanline.GetSpan(),
+                    scanSpan,
                     rowSpan,
                     pngMetadata,
                     blendRowBuffer,
+                    scaledScanlineBuffer,
                     pixelOffset: Adam7.FirstColumn[pass],
                     increment: Adam7.ColumnIncrement[pass]);
 
@@ -991,13 +1010,15 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="pixels">The image</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
+    /// <param name="scaledScanlineBuffer">The buffer for unpacked 1, 2, or 4-bit values. Empty when the bit depth is 8 or more.</param>
     private void ProcessDefilteredScanline<TPixel>(
         in FrameControl frameControl,
         int currentRow,
         ReadOnlySpan<byte> scanline,
         ImageFrame<TPixel> pixels,
         PngMetadata pngMetadata,
-        Span<TPixel> blendRowBuffer)
+        Span<TPixel> blendRowBuffer,
+        Span<byte> scaledScanlineBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
@@ -1011,86 +1032,73 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         ReadOnlySpan<byte> trimmed = scanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte>? buffer = null;
-        try
-        {
-            // TODO: The allocation here could be per frame, not per scanline.
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
-                trimmed,
-                this.bytesPerScanline - 1,
-                this.header.BitDepth,
-                out buffer)
-            ? buffer.GetSpan()
+        ReadOnlySpan<byte> scanlineSpan = this.header.BitDepth < 8
+            ? ScaleUpTo8Bit(trimmed, this.header.BitDepth, scaledScanlineBuffer)
             : trimmed;
 
-            switch (this.pngColorType)
-            {
-                case PngColorType.Grayscale:
-                    PngScanlineProcessor.ProcessGrayscaleScanline(
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        pngMetadata.TransparentColor);
-
-                    break;
-
-                case PngColorType.GrayscaleWithAlpha:
-                    PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)this.bytesPerPixel,
-                        (uint)this.bytesPerSample);
-
-                    break;
-
-                case PngColorType.Palette:
-                    PngScanlineProcessor.ProcessPaletteScanline(
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        pngMetadata.ColorTable);
-
-                    break;
-
-                case PngColorType.Rgb:
-                    PngScanlineProcessor.ProcessRgbScanline(
-                        this.configuration,
-                        this.header.BitDepth,
-                        frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample,
-                        pngMetadata.TransparentColor);
-
-                    break;
-
-                case PngColorType.RgbWithAlpha:
-                    PngScanlineProcessor.ProcessRgbaScanline(
-                        this.configuration,
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
-
-                    break;
-            }
-
-            if (blend)
-            {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
-            }
-        }
-        finally
+        switch (this.pngColorType)
         {
-            buffer?.Dispose();
+            case PngColorType.Grayscale:
+                PngScanlineProcessor.ProcessGrayscaleScanline(
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    pngMetadata.TransparentColor);
+
+                break;
+
+            case PngColorType.GrayscaleWithAlpha:
+                PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)this.bytesPerPixel,
+                    (uint)this.bytesPerSample);
+
+                break;
+
+            case PngColorType.Palette:
+                PngScanlineProcessor.ProcessPaletteScanline(
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    pngMetadata.ColorTable);
+
+                break;
+
+            case PngColorType.Rgb:
+                PngScanlineProcessor.ProcessRgbScanline(
+                    this.configuration,
+                    this.header.BitDepth,
+                    frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    this.bytesPerPixel,
+                    this.bytesPerSample,
+                    pngMetadata.TransparentColor);
+
+                break;
+
+            case PngColorType.RgbWithAlpha:
+                PngScanlineProcessor.ProcessRgbaScanline(
+                    this.configuration,
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    this.bytesPerPixel,
+                    this.bytesPerSample);
+
+                break;
+        }
+
+        if (blend)
+        {
+            PixelBlender<TPixel> blender =
+                PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
         }
     }
 
@@ -1103,6 +1111,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="destination">The current image row.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
+    /// <param name="scaledScanlineBuffer">The buffer for unpacked 1, 2, or 4-bit values. Empty when the bit depth is 8 or more.</param>
     /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
     /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
     private void ProcessInterlacedDefilteredScanline<TPixel>(
@@ -1111,6 +1120,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         Span<TPixel> destination,
         PngMetadata pngMetadata,
         Span<TPixel> blendRowBuffer,
+        Span<byte> scaledScanlineBuffer,
         int pixelOffset = 0,
         int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -1124,95 +1134,83 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         ReadOnlySpan<byte> trimmed = scanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte>? buffer = null;
-        try
-        {
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
-                trimmed,
-                this.bytesPerScanline,
-                this.header.BitDepth,
-                out buffer)
-            ? buffer.GetSpan()
+        ReadOnlySpan<byte> scanlineSpan = this.header.BitDepth < 8
+            ? ScaleUpTo8Bit(trimmed, this.header.BitDepth, scaledScanlineBuffer)
             : trimmed;
 
-            switch (this.pngColorType)
-            {
-                case PngColorType.Grayscale:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)pixelOffset,
-                        (uint)increment,
-                        pngMetadata.TransparentColor);
-
-                    break;
-
-                case PngColorType.GrayscaleWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)pixelOffset,
-                        (uint)increment,
-                        (uint)this.bytesPerPixel,
-                        (uint)this.bytesPerSample);
-
-                    break;
-
-                case PngColorType.Palette:
-                    PngScanlineProcessor.ProcessInterlacedPaletteScanline(
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)pixelOffset,
-                        (uint)increment,
-                        pngMetadata.ColorTable);
-
-                    break;
-
-                case PngColorType.Rgb:
-                    PngScanlineProcessor.ProcessInterlacedRgbScanline(
-                        this.configuration,
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)pixelOffset,
-                        (uint)increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample,
-                        pngMetadata.TransparentColor);
-
-                    break;
-
-                case PngColorType.RgbWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                        this.configuration,
-                        this.header.BitDepth,
-                        in frameControl,
-                        scanlineSpan,
-                        rowSpan,
-                        (uint)pixelOffset,
-                        (uint)increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
-
-                    break;
-            }
-
-            if (blend)
-            {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
-            }
-        }
-        finally
+        switch (this.pngColorType)
         {
-            buffer?.Dispose();
+            case PngColorType.Grayscale:
+                PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)pixelOffset,
+                    (uint)increment,
+                    pngMetadata.TransparentColor);
+
+                break;
+
+            case PngColorType.GrayscaleWithAlpha:
+                PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)pixelOffset,
+                    (uint)increment,
+                    (uint)this.bytesPerPixel,
+                    (uint)this.bytesPerSample);
+
+                break;
+
+            case PngColorType.Palette:
+                PngScanlineProcessor.ProcessInterlacedPaletteScanline(
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)pixelOffset,
+                    (uint)increment,
+                    pngMetadata.ColorTable);
+
+                break;
+
+            case PngColorType.Rgb:
+                PngScanlineProcessor.ProcessInterlacedRgbScanline(
+                    this.configuration,
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)pixelOffset,
+                    (uint)increment,
+                    this.bytesPerPixel,
+                    this.bytesPerSample,
+                    pngMetadata.TransparentColor);
+
+                break;
+
+            case PngColorType.RgbWithAlpha:
+                PngScanlineProcessor.ProcessInterlacedRgbaScanline(
+                    this.configuration,
+                    this.header.BitDepth,
+                    in frameControl,
+                    scanlineSpan,
+                    rowSpan,
+                    (uint)pixelOffset,
+                    (uint)increment,
+                    this.bytesPerPixel,
+                    this.bytesPerSample);
+
+                break;
+        }
+
+        if (blend)
+        {
+            PixelBlender<TPixel> blender =
+                PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
         }
     }
 

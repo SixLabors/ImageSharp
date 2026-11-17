@@ -1643,7 +1643,15 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         }
         else
         {
-            colorMapSizeBytes = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
+            // ClrUsed is an unsigned DWORD on disk. Widen before multiplying so a large count cannot wrap to a small size.
+            ulong colorMapByteCount = (uint)this.infoHeader.ClrUsed * (ulong)bytesPerColorMapEntry;
+
+            // The complete color table must be in the input. This bounds the palette allocations by the input size.
+            if (!stream.TryGetReadLength(colorMapByteCount, out colorMapSizeBytes))
+            {
+                BmpThrowHelper.ThrowInvalidImageContentException(
+                    $"The color table requires {colorMapByteCount} bytes, but the input does not contain that palette data.");
+            }
         }
 
         palette = [];

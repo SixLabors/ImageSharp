@@ -70,6 +70,27 @@ public class BmpDecoderTests
         }
     }
 
+    /// <summary>
+    /// Verifies that a BMP color table larger than the input is rejected before the palette is allocated.
+    /// The input is the reproducer from GHSA-728h-j83x-rx28.
+    /// </summary>
+    [Fact]
+    public void Decode_WithColorTableLargerThanInput_ThrowsBeforeAllocating()
+    {
+        // 62-byte BMP: 2x2, 1 bpp, ClrUsed = 0x1C000000, pixel data offset 0x7FFFFFF0.
+        byte[] payload = Convert.FromHexString(
+            "424D3E00000000000000F0FFFF7F28000000020000000200000001000100000000000000000000000000" +
+            "000000000000001C000000000000000000000000");
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        // The declared color table needs about 1.75 GB. Rejecting it before the allocation costs far less.
+        Assert.True(allocated < 1024 * 1024, $"Identify and Load allocated {allocated} bytes.");
+    }
+
     [Theory]
     [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
     public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)

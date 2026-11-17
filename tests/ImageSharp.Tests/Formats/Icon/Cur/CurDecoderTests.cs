@@ -27,6 +27,27 @@ public class CurDecoderTests
         Assert.False(detector.TryDetectFormat(file.Bytes, out _));
     }
 
+    /// <summary>
+    /// Verifies that the color table of an embedded BMP that is larger than the input is rejected before the palette is allocated.
+    /// The input is the reproducer from GHSA-728h-j83x-rx28.
+    /// </summary>
+    [Fact]
+    public void Decode_WithColorTableLargerThanInput_ThrowsBeforeAllocating()
+    {
+        // 70-byte CUR with one 2x2, 1 bpp BMP entry. The entry has no file header and declares ClrUsed = 0x5C0000FF.
+        byte[] payload = Convert.FromHexString(
+            "000002000100020200000100010030000000160000002800000002000000040000000100010000000000" +
+            "000000000000000000000000FF00005C000000000000000000000000");
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        // The declared color table needs about 6 GB. Rejecting it before the allocation costs far less.
+        Assert.True(allocated < 1024 * 1024, $"Identify and Load allocated {allocated} bytes.");
+    }
+
     [Theory]
     [WithFile(WindowsMouse, PixelTypes.Rgba32)]
     public void CurDecoder_Decode(TestImageProvider<Rgba32> provider)

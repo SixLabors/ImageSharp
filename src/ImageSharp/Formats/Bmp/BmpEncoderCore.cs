@@ -23,11 +23,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 internal sealed class BmpEncoderCore
 {
     /// <summary>
-    /// The amount to pad each row by.
-    /// </summary>
-    private int padding;
-
-    /// <summary>
     /// The mask for the alpha channel of the color for 32 bit rgba bitmaps.
     /// </summary>
     private const int Rgba32AlphaMask = 0xFF << 24;
@@ -71,6 +66,11 @@ internal sealed class BmpEncoderCore
     /// The compression from the encoder options, or <see langword="null"/> to use the image metadata.
     /// </summary>
     private readonly BmpCompression? configuredCompression;
+
+    /// <summary>
+    /// The amount to pad each row by.
+    /// </summary>
+    private int padding;
 
     /// <summary>
     /// The color type of the image being encoded.
@@ -603,7 +603,7 @@ internal sealed class BmpEncoderCore
         // The mask stores alpha only. Replacement keeps alpha, so the source frame gives the same mask.
         if (this.processedAlphaMask)
         {
-            this.ProcessedAlphaMask(stream, frame);
+            this.ProcessedAlphaMask(stream, frame, cancellationToken);
         }
     }
 
@@ -941,7 +941,8 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="stream">The destination stream.</param>
     /// <param name="encodingFrame">The source frame.</param>
-    private void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // The mask has one bit for each pixel, the first pixel in the most significant bit. A bit of 1 marks a pixel
@@ -962,6 +963,8 @@ internal sealed class BmpEncoderCore
 
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             PixelOperations<TPixel>.Instance.To(configuration, encodingFrame.PixelBuffer.DangerousGetRowSpan(y), alpha);
             for (int x = 0; x < flags.Length; x++)
             {

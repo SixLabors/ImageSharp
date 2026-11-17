@@ -45,6 +45,22 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         this.aniMetadata = this.imageMetadata.GetAniMetadata();
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the frames are raw bitmaps. Without AF_ICON, each icon chunk holds a raw DIB with
+    /// no ICO or CUR directory.
+    /// </summary>
+    /// <remarks>
+    /// The ACON specification defines each icon chunk as an embedded .CUR file and does not define raw frames. See the
+    /// Multimedia Data Standards Update, April 15, 1994, page 9:
+    /// https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
+    /// ReactOS reads a raw frame as the bitmap of an icon image: the color data, then the AND mask, with a height that
+    /// covers both (CURSORICON_GetCursorDataFromANI):
+    /// https://github.com/reactos/reactos/blob/master/win32ss/user/user32/windows/cursoricon.c
+    /// The decoder reads raw frames in the same way and reports each one as a CUR frame that holds a bitmap, which is
+    /// how the encoder writes it.
+    /// </remarks>
+    private bool HasRawFrames => !this.header.Flags.HasFlag(AniHeaderFlags.IsIcon);
+
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
@@ -65,7 +81,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                Image<TPixel> resource = DecodeFrame<TPixel>(format, frameOptions, frameStream, cancellationToken);
+                Image<TPixel> resource = this.DecodeFrame<TPixel>(format, frameOptions, frameStream, cancellationToken);
                 this.Dimensions = new Size(Math.Max(this.Dimensions.Width, resource.Width), Math.Max(this.Dimensions.Height, resource.Height));
 
                 return resource;
@@ -108,7 +124,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                     // Clone resource metadata for every playback step so repeated frames retain independent profiles and format metadata.
                     ImageFrameMetadata frameMetadata = source.Metadata.DeepClone();
 
-                    if (format is AniFrameFormat.Bmp)
+                    if (this.HasRawFrames)
                     {
                         // Raw BMP stores ICC on the image. ICO/CUR frames already carry their own profiles;
                         // using their image-level fallback would copy the first entry's profile onto unprofiled siblings.
@@ -124,8 +140,10 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                         source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
                     }
 
-                    ReadOnlyMemory<Color>? colorTable = format is AniFrameFormat.Bmp ? resourceImage.Metadata.GetBmpMetadata().ColorTable : null;
-                    AniFrameMetadata metadata = CreateFrameMetadata(source.Metadata, format, step + 1, frameDelay, source.Size, colorTable);
+                    BmpMetadata? bitmapMetadata = this.HasRawFrames ? resourceImage.Metadata.GetBmpMetadata() : null;
+
+                    // Steps that play the same stored frame get the same sequence number, so the encoder stores that frame once.
+                    AniFrameMetadata metadata = CreateFrameMetadata(source.Metadata, format, (int)resourceIndex + 1, frameDelay, source.Size, bitmapMetadata);
                     target.Metadata.SetFormatMetadata(AniFormat.Instance, metadata);
                     outputFrames.Add(target);
                 }
@@ -176,7 +194,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ImageInfo info = IdentifyFrame(format, frameOptions, frameStream, cancellationToken);
+            ImageInfo info = this.IdentifyFrame(format, frameOptions, frameStream, cancellationToken);
             this.Dimensions = new Size(Math.Max(this.Dimensions.Width, info.Width), Math.Max(this.Dimensions.Height, info.Height));
 
             return info;
@@ -217,8 +235,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             {
                 // Raw BMP Identify supplies image-level metadata without a frame collection. Retain its profile on the ANI frame.
                 ImageFrameMetadata target = new() { IccProfile = info.Metadata.IccProfile?.DeepClone() };
-                ReadOnlyMemory<Color>? colorTable = format is AniFrameFormat.Bmp ? info.Metadata.GetBmpMetadata().ColorTable : null;
-                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(null, format, step + 1, frameDelay, info.Size, colorTable));
+                BmpMetadata? bitmapMetadata = this.HasRawFrames ? info.Metadata.GetBmpMetadata() : null;
+                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(null, format, (int)resourceIndex + 1, frameDelay, info.Size, bitmapMetadata));
                 outputFrames.Add(target);
                 continue;
             }
@@ -228,7 +246,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 ImageFrameMetadata source = info.FrameMetadataCollection[i];
                 ImageFrameMetadata target = source.DeepClone();
 
-                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(source, format, step + 1, frameDelay, info.Size, null));
+                target.SetFormatMetadata(AniFormat.Instance, CreateFrameMetadata(source, format, (int)resourceIndex + 1, frameDelay, info.Size, null));
                 outputFrames.Add(target);
             }
         }
@@ -329,12 +347,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             throw new InvalidImageContentException("The ANI animation header declares an invalid size.");
         }
 
-        this.aniMetadata.Width = this.header.Width;
-        this.aniMetadata.Height = this.header.Height;
-        this.aniMetadata.BitCount = this.header.BitCount;
-        this.aniMetadata.Planes = this.header.Planes;
         this.aniMetadata.DisplayRate = this.header.DisplayRate;
-        this.aniMetadata.Flags = this.header.Flags;
     }
 
     /// <summary>
@@ -666,10 +679,10 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <returns>The embedded resource format.</returns>
     private AniFrameFormat GetFrameFormat(Stream stream)
     {
-        // Without AF_ICON, the icon chunk payload is a raw DIB and has no ICO/CUR directory prefix to inspect.
-        if (!this.header.Flags.HasFlag(AniHeaderFlags.IsIcon))
+        // A raw frame has no ICO/CUR directory prefix to inspect. See HasRawFrames.
+        if (this.HasRawFrames)
         {
-            return AniFrameFormat.Bmp;
+            return AniFrameFormat.Cur;
         }
 
         Span<byte> iconHeader = this.buffer[..AniConstants.IconDirHeaderSize];
@@ -696,18 +709,18 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="stream">The bounded resource stream.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The decoded resource.</returns>
-    private static Image<TPixel> DecodeFrame<TPixel>(AniFrameFormat format, DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    private Image<TPixel> DecodeFrame<TPixel>(AniFrameFormat format, DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
-        => format switch
+    {
+        if (this.HasRawFrames)
         {
-            AniFrameFormat.Ico => new IcoDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Cur => new CurDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions(options)
-            {
-                SkipFileHeader = true
-            }).Decode<TPixel>(options.Configuration, stream, cancellationToken),
-            _ => throw new InvalidImageContentException("The ANI file contains an unsupported frame format.")
-        };
+            return new BmpDecoderCore(IconDecoderCore.CreateBitmapDecoderOptions(options)).Decode<TPixel>(options.Configuration, stream, cancellationToken);
+        }
+
+        return format is AniFrameFormat.Ico
+            ? new IcoDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken)
+            : new CurDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken);
+    }
 
     /// <summary>
     /// Identifies one embedded ANI frame resource.
@@ -717,17 +730,17 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="stream">The bounded resource stream.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The identified resource.</returns>
-    private static ImageInfo IdentifyFrame(AniFrameFormat format, DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => format switch
+    private ImageInfo IdentifyFrame(AniFrameFormat format, DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    {
+        if (this.HasRawFrames)
         {
-            AniFrameFormat.Ico => new IcoDecoderCore(options).Identify(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Cur => new CurDecoderCore(options).Identify(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions(options)
-            {
-                SkipFileHeader = true
-            }).Identify(options.Configuration, stream, cancellationToken),
-            _ => throw new InvalidImageContentException("The ANI file contains an unsupported frame format.")
-        };
+            return new BmpDecoderCore(IconDecoderCore.CreateBitmapDecoderOptions(options)).Identify(options.Configuration, stream, cancellationToken);
+        }
+
+        return format is AniFrameFormat.Ico
+            ? new IcoDecoderCore(options).Identify(options.Configuration, stream, cancellationToken)
+            : new CurDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
+    }
 
     /// <summary>
     /// Creates ANI metadata for one flattened output frame.
@@ -737,7 +750,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="sequenceNumber">The animation sequence number.</param>
     /// <param name="frameDelay">The display rate in sixtieths of a second.</param>
     /// <param name="size">The embedded frame size.</param>
-    /// <param name="bitmapColorTable">The color table of a raw bitmap resource, or <see langword="null"/>.</param>
+    /// <param name="bitmapMetadata">The BMP metadata of a raw bitmap resource, or <see langword="null"/>.</param>
     /// <returns>The ANI frame metadata.</returns>
     private static AniFrameMetadata CreateFrameMetadata(
         ImageFrameMetadata? source,
@@ -745,19 +758,23 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         int sequenceNumber,
         uint frameDelay,
         Size size,
-        ReadOnlyMemory<Color>? bitmapColorTable)
+        BmpMetadata? bitmapMetadata)
     {
-        // A raw bitmap keeps its color table in the image-level BMP metadata, so the caller passes it.
         AniFrameMetadata metadata = new()
         {
             FrameDelay = frameDelay,
             SequenceNumber = sequenceNumber,
-            FrameFormat = format,
-            ColorTable = bitmapColorTable
+            FrameFormat = format
         };
 
-        if (source is null)
+        if (bitmapMetadata is not null)
         {
+            // A raw bitmap keeps its depth, color type and color table in the image-level BMP metadata. The frame is
+            // reported as a CUR frame that holds a bitmap of the same depth, so the encoder writes the same bitmap.
+            metadata.Compression = IconFrameCompression.Bmp;
+            metadata.BmpBitsPerPixel = bitmapMetadata.BitsPerPixel;
+            metadata.BmpColorType = bitmapMetadata.ColorType;
+            metadata.ColorTable = IconDecoderCore.GetBitmapColorTable(bitmapMetadata);
             metadata.EncodingWidth = NarrowDimension(size.Width);
             metadata.EncodingHeight = NarrowDimension(size.Height);
 
@@ -789,10 +806,6 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 metadata.HotspotY = curMetadata.HotspotY;
                 metadata.ColorTable = curMetadata.ColorTable;
 
-                break;
-            case AniFrameFormat.Bmp:
-                metadata.EncodingWidth = NarrowDimension(size.Width);
-                metadata.EncodingHeight = NarrowDimension(size.Height);
                 break;
         }
 

@@ -95,18 +95,18 @@ public partial class AniEncoderTests
     }
 
     /// <summary>
-    /// Verifies the encoder and decoder paths for embedded ICO and BMP resources.
+    /// Verifies the encoder and decoder paths for embedded ICO and CUR bitmap resources. The ACON specification defines
+    /// each frame as an embedded .CUR file, so the encoder sets AF_ICON.
     /// </summary>
+    /// <param name="frameFormat">The frame format of the metadata.</param>
     [Theory]
     [InlineData(AniFrameFormat.Ico)]
-    [InlineData(AniFrameFormat.Bmp)]
+    [InlineData(AniFrameFormat.Cur)]
     public void AniEncoder_RoundTripsOtherFrameFormats(AniFrameFormat frameFormat)
     {
         using Image<Rgba32> image = new(16, 16, Color.Red.ToPixel<Rgba32>());
         AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
         imageMetadata.DisplayRate = 6;
-        imageMetadata.BitCount = 32;
-        imageMetadata.Planes = 1;
 
         AniFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
         frameMetadata.FrameDelay = 6;
@@ -119,16 +119,10 @@ public partial class AniEncoderTests
 
         Assert.Equal(stream.Length - 8, BinaryPrimitives.ReadUInt32LittleEndian(stream.GetBuffer().AsSpan(4, sizeof(uint))));
 
-        if (frameFormat is AniFrameFormat.Bmp)
-        {
-            ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
-            int frameChunkOffset = encoded.IndexOf("icon"u8);
-            Assert.True(frameChunkOffset >= 0);
-
-            // AF_ICON-clear resources contain a headerless BMP DIB, not a standalone file beginning with BITMAPFILEHEADER.
-            ReadOnlySpan<byte> frameData = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
-            Assert.False(frameData.StartsWith("BM"u8));
-        }
+        // The flags are the last field of the 36-byte anih header. Each frame is an ICO or CUR file, so AF_ICON is set.
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int headerOffset = encoded.IndexOf("anih"u8) + AniConstants.ChunkHeaderSize;
+        Assert.Equal(AniHeaderFlags.IsIcon, (AniHeaderFlags)BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 32)..]));
 
         stream.Position = 0;
         using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
@@ -145,7 +139,6 @@ public partial class AniEncoderTests
     [Theory]
     [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Ico)]
     [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Cur)]
-    [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Bmp)]
     public void AniEncoder_SkipMetadataPropagatesToEmbeddedEncoder(TestImageProvider<Rgba32> provider, AniFrameFormat frameFormat)
     {
         using Image<Rgba32> image = provider.GetImage();
@@ -154,10 +147,6 @@ public partial class AniEncoderTests
         image.Metadata.ResolutionUnits = PixelResolutionUnit.PixelsPerInch;
         image.Metadata.HorizontalResolution = 96;
         image.Metadata.VerticalResolution = 96;
-
-        AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
-        imageMetadata.BitCount = 32;
-        imageMetadata.Planes = 1;
 
         AniFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
         frameMetadata.FrameFormat = frameFormat;
@@ -171,13 +160,9 @@ public partial class AniEncoderTests
         int frameChunkOffset = encoded.IndexOf("icon"u8);
         Assert.True(frameChunkOffset >= 0);
 
+        // Each frame is an ICO or CUR file. The directory entry ends with the offset of the image data.
         ReadOnlySpan<byte> resource = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
-        int dibOffset = 0;
-
-        if (frameFormat is not AniFrameFormat.Bmp)
-        {
-            dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
-        }
+        int dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
 
         // ICC requires a V5 header even when optional metadata is omitted. ProfileData is relative to this DIB header.
         ReadOnlySpan<byte> dib = resource[dibOffset..];
@@ -188,6 +173,88 @@ public partial class AniEncoderTests
         Assert.Equal(0, header.YPelsPerMeter);
         Assert.Equal(BmpColorSpace.PROFILE_EMBEDDED, header.CsType);
         Assert.Equal(profile.ToByteArray(), dib.Slice((int)header.ProfileData, (int)header.ProfileSize).ToArray());
+    }
+
+    /// <summary>
+    /// Verifies that a stored frame that plays in two steps is stored once. Help.ani stores 3 frames and plays them in the
+    /// sequence 0, 1, 2, 1.
+    /// </summary>
+    /// <param name="provider">The test image provider.</param>
+    [Theory]
+    [WithFile(Help, PixelTypes.Rgba32)]
+    public void AniEncoder_ReusedFrame_IsStoredOnce(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(AniDecoder.Instance);
+        Assert.Equal(4, image.Frames.Count);
+
+        using MemoryStream stream = new();
+        image.Save(stream, new AniEncoder());
+
+        // The anih header holds cFrames at byte 4 and cSteps at byte 8. The 'seq ' chunk holds one index for each step.
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int headerOffset = encoded.IndexOf("anih"u8) + AniConstants.ChunkHeaderSize;
+        Assert.Equal(3U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 4)..]));
+        Assert.Equal(4U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 8)..]));
+
+        int sequenceOffset = encoded.IndexOf("seq "u8) + AniConstants.ChunkHeaderSize;
+        uint[] sequence = new uint[4];
+        for (int i = 0; i < sequence.Length; i++)
+        {
+            sequence[i] = BinaryPrimitives.ReadUInt32LittleEndian(encoded[(sequenceOffset + (i * sizeof(uint)))..]);
+        }
+
+        Assert.Equal([0U, 1U, 2U, 1U], sequence);
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        ImageComparer.Exact.VerifySimilarity(image, decoded);
+    }
+
+    /// <summary>
+    /// Verifies that a stored frame that plays in two adjacent steps is stored once. All four frames have sequence number
+    /// 1. A stored frame cannot hold two images with the same size and depth, so the repeated 32-pixel image starts the
+    /// second step.
+    /// </summary>
+    [Fact]
+    public void AniEncoder_AdjacentReusedFrame_IsStoredOnce()
+    {
+        using Image<Rgba32> image = new(32, 32, Color.Red.ToPixel<Rgba32>());
+        for (int i = 1; i < 4; i++)
+        {
+            using ImageFrame<Rgba32> copy = image.Frames.RootFrame.Clone();
+            image.Frames.AddFrame(copy);
+        }
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            AniFrameMetadata metadata = image.Frames[i].Metadata.GetAniMetadata();
+            metadata.FrameFormat = AniFrameFormat.Cur;
+            metadata.SequenceNumber = 1;
+            metadata.EncodingWidth = (byte)((i & 1) == 0 ? 32 : 16);
+            metadata.EncodingHeight = metadata.EncodingWidth;
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new AniEncoder());
+
+        // The anih header holds cFrames at byte 4 and cSteps at byte 8. The 'seq ' chunk holds one index for each step.
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int headerOffset = encoded.IndexOf("anih"u8) + AniConstants.ChunkHeaderSize;
+        Assert.Equal(1U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 4)..]));
+        Assert.Equal(2U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 8)..]));
+
+        int sequenceOffset = encoded.IndexOf("seq "u8) + AniConstants.ChunkHeaderSize;
+        Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[sequenceOffset..]));
+        Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(sequenceOffset + sizeof(uint))..]));
+
+        // Both steps play the same stored frame, so the second step decodes to the same pixels as the first.
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Equal(4, decoded.Frames.Count);
+
+        using Image<Rgba32> firstStep = decoded.Frames.CloneFrame(0);
+        using Image<Rgba32> secondStep = decoded.Frames.CloneFrame(2);
+        ImageComparer.Exact.VerifySimilarity(firstStep, secondStep);
     }
 
     /// <summary>
@@ -209,33 +276,6 @@ public partial class AniEncoderTests
         Assert.Equal(2, decoded.Frames.Count);
         Assert.Equal(1, decoded.Frames[0].Metadata.GetAniMetadata().SequenceNumber);
         Assert.Equal(2, decoded.Frames[1].Metadata.GetAniMetadata().SequenceNumber);
-    }
-
-    /// <summary>
-    /// Verifies that an explicit source sequence is preserved as an identity table after playback-order expansion.
-    /// </summary>
-    [Fact]
-    public void AniEncoder_PreservesExplicitSequence()
-    {
-        using Image<Rgba32> image = new(16, 16, Color.Red.ToPixel<Rgba32>());
-        image.Frames.AddFrame(image.Frames.RootFrame);
-        image.Metadata.GetAniMetadata().Flags = AniHeaderFlags.IsIcon | AniHeaderFlags.ContainsSequence;
-
-        using MemoryStream stream = new();
-        image.Save(stream, new AniEncoder());
-
-        ReadOnlySpan<byte> data = stream.GetBuffer().AsSpan(0, (int)stream.Length);
-        int sequenceOffset = data.IndexOf("seq "u8);
-
-        Assert.True(sequenceOffset >= 0);
-        Assert.Equal((uint)(2 * sizeof(uint)), BinaryPrimitives.ReadUInt32LittleEndian(data[(sequenceOffset + sizeof(uint))..]));
-        Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(data[(sequenceOffset + AniConstants.ChunkHeaderSize)..]));
-        Assert.Equal(1U, BinaryPrimitives.ReadUInt32LittleEndian(data[(sequenceOffset + AniConstants.ChunkHeaderSize + sizeof(uint))..]));
-
-        stream.Position = 0;
-        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
-
-        Assert.True(decoded.Metadata.GetAniMetadata().Flags.HasFlag(AniHeaderFlags.ContainsSequence));
     }
 
     /// <summary>
@@ -272,17 +312,16 @@ public partial class AniEncoderTests
             image.Frames.AddFrame(copy);
         }
 
-        AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
-        imageMetadata.DisplayRate = 6;
-        imageMetadata.BitCount = 8;
-        imageMetadata.Planes = 1;
+        image.Metadata.GetAniMetadata().DisplayRate = 6;
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
             AniFrameMetadata frameMetadata = image.Frames[i].Metadata.GetAniMetadata();
             frameMetadata.FrameDelay = 6;
             frameMetadata.SequenceNumber = i + 1;
-            frameMetadata.FrameFormat = AniFrameFormat.Bmp;
+            frameMetadata.FrameFormat = AniFrameFormat.Cur;
+            frameMetadata.Compression = IconFrameCompression.Bmp;
+            frameMetadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
             frameMetadata.ColorTable = palettes[i];
         }
 
@@ -302,8 +341,8 @@ public partial class AniEncoderTests
     }
 
     /// <summary>
-    /// Verifies that a raw bitmap frame is not compressed when the BMP metadata of the image selects RLE. The bitmap of
-    /// a cursor image must set biCompression to 0 (BI_RGB).
+    /// Verifies that a bitmap frame is not compressed when the BMP metadata of the image selects RLE. The bitmap of a
+    /// cursor image must set biCompression to 0 (BI_RGB).
     /// </summary>
     [Fact]
     public void AniEncoder_BitmapFrames_IgnoreBmpMetadataCompression()
@@ -311,12 +350,10 @@ public partial class AniEncoderTests
         using Image<Rgba32> image = NearColorPalette.CreateImage();
         image.Metadata.GetBmpMetadata().Compression = BmpCompression.RunLength;
 
-        AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
-        imageMetadata.BitCount = 8;
-        imageMetadata.Planes = 1;
-
         AniFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
-        frameMetadata.FrameFormat = AniFrameFormat.Bmp;
+        frameMetadata.FrameFormat = AniFrameFormat.Cur;
+        frameMetadata.Compression = IconFrameCompression.Bmp;
+        frameMetadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
         frameMetadata.ColorTable = NearColorPalette.Palette;
 
         using MemoryStream stream = new();
@@ -326,8 +363,10 @@ public partial class AniEncoderTests
         int frameChunkOffset = encoded.IndexOf("icon"u8);
         Assert.True(frameChunkOffset >= 0);
 
-        // The compression field of the info header starts at byte 16 of the DIB.
-        ReadOnlySpan<byte> dib = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
-        Assert.Equal((uint)BmpInfoCompression.RGB, BinaryPrimitives.ReadUInt32LittleEndian(dib[16..]));
+        // The frame is a CUR file. The directory entry ends with the offset of the DIB, and the compression field of the
+        // info header starts at byte 16 of the DIB.
+        ReadOnlySpan<byte> resource = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
+        int dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
+        Assert.Equal((uint)BmpInfoCompression.RGB, BinaryPrimitives.ReadUInt32LittleEndian(resource[(dibOffset + 16)..]));
     }
 }

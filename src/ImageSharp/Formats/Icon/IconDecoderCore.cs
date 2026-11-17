@@ -121,7 +121,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                         BmpMetadata currentBmpMetadata = decoded.Metadata.GetBmpMetadata();
                         bitsPerPixel = currentBmpMetadata.BitsPerPixel;
                         colorType = currentBmpMetadata.ColorType;
-                        colorTable = currentBmpMetadata.ColorTable;
+                        colorTable = GetBitmapColorTable(currentBmpMetadata);
 
                         if (i == 0)
                         {
@@ -233,7 +233,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     BmpMetadata currentBmpMetadata = frameInfo.Metadata.GetBmpMetadata();
                     bitsPerPixel = currentBmpMetadata.BitsPerPixel;
                     colorType = currentBmpMetadata.ColorType;
-                    colorTable = currentBmpMetadata.ColorTable;
+                    colorTable = GetBitmapColorTable(currentBmpMetadata);
 
                     if (frameCount is 0)
                     {
@@ -335,13 +335,38 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             return new PngDecoderCore(new PngDecoderOptions(this.Options));
         }
 
-        return new BmpDecoderCore(new BmpDecoderOptions(this.Options)
+        return new BmpDecoderCore(CreateBitmapDecoderOptions(this.Options));
+    }
+
+    /// <summary>
+    /// Gets the color table of an icon bitmap for the frame metadata.
+    /// </summary>
+    /// <remarks>
+    /// Only icon bitmaps of 8 bits or fewer have a color table, and ICONDIRENTRY stores its color count in one byte:
+    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// A direct-color bitmap can store an optional table of any size, which the icon formats do not use.
+    /// </remarks>
+    /// <param name="metadata">The BMP metadata of the decoded bitmap.</param>
+    /// <returns>The color table, or <see langword="null"/> for a direct-color bitmap.</returns>
+    public static ReadOnlyMemory<Color>? GetBitmapColorTable(BmpMetadata metadata)
+        => metadata.BitsPerPixel <= BmpBitsPerPixel.Bit8 ? metadata.ColorTable : null;
+
+    /// <summary>
+    /// Creates the BMP decoder options for the bitmap of an icon image: a headerless DIB whose height covers the color
+    /// data and the AND mask that follows it.
+    /// </summary>
+    /// <remarks>
+    /// The ICO, CUR and ANI decoders use these options, so each icon bitmap decodes in the same way.
+    /// </remarks>
+    /// <param name="options">The general decoder options.</param>
+    /// <returns>The BMP decoder options.</returns>
+    public static BmpDecoderOptions CreateBitmapDecoderOptions(DecoderOptions options)
+        => new(options)
         {
             ProcessedAlphaMask = true,
             SkipFileHeader = true,
             UseDoubleHeight = true
-        });
-    }
+        };
 
     /// <summary>
     /// Creates a seekable view bounded to one directory entry's declared payload.

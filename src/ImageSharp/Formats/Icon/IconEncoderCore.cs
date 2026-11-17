@@ -193,13 +193,12 @@ internal abstract class IconEncoderCore
                             PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                             BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
 
-                            // The icon format permits only BI_RGB: a palette, or BGR without masks. A 32-bit icon keeps
-                            // alpha in the fourth byte of each pixel, which BI_RGB does not define.
-                            ColorType = encodingMetadata.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8 ? BmpColorType.Palette : BmpColorType.Bgr,
-
-                            // The bitmap of an icon image must set biCompression to 0 (BI_RGB), so RLE is not valid:
+                            // The bitmap of an icon image must set biCompression to 0 (BI_RGB):
                             // https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
-                            // Set the compression so the BMP metadata of the image cannot select RLE.
+                            // BI_RGB stores a palette, or BGR without masks. A 32-bit icon keeps alpha in the fourth byte
+                            // of each pixel, which BI_RGB does not define. Set the compression so the BMP metadata of the
+                            // image cannot select RLE.
+                            ColorType = encodingMetadata.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8 ? BmpColorType.Palette : BmpColorType.Bgr,
                             Compression = BmpCompression.None,
                             SkipMetadata = this.encoder.SkipMetadata
                         };

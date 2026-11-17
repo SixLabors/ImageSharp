@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// </summary>
 public class TgaMetadata : IFormatMetadata<TgaMetadata>
 {
+    private byte alphaChannelBits;
+    private ReadOnlyMemory<Color>? colorTable;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TgaMetadata"/> class.
     /// </summary>
@@ -44,7 +47,18 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// <summary>
     /// Gets or sets the number of alpha bits per pixel.
     /// </summary>
-    public byte AlphaChannelBits { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The value is greater than 15.</exception>
+    public byte AlphaChannelBits
+    {
+        get => this.alphaChannelBits;
+        set
+        {
+            // Bits 3-0 of the TGA image descriptor store the attribute bits, so the value fits in 4 bits.
+            Guard.MustBeLessThanOrEqualTo(value, (byte)15, nameof(value));
+
+            this.alphaChannelBits = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the first index represented by <see cref="ColorTable"/>.
@@ -59,7 +73,21 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// <summary>
     /// Gets or sets the color table, if any.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than 65535 entries.</exception>
+    public ReadOnlyMemory<Color>? ColorTable
+    {
+        get => this.colorTable;
+        set
+        {
+            if (value.HasValue)
+            {
+                // The TGA color map length is a 2-byte field (field 4.2).
+                Guard.MustBeLessThanOrEqualTo(value.Value.Length, ushort.MaxValue, nameof(value));
+            }
+
+            this.colorTable = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the compression of the pixel data.

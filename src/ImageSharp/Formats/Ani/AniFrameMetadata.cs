@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 /// </summary>
 public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
 {
+    private ReadOnlyMemory<Color>? colorTable;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AniFrameMetadata"/> class.
     /// </summary>
@@ -49,10 +51,15 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public uint FrameDelay { get; set; }
 
     /// <summary>
-    /// Gets or sets the animation sequence number.
-    /// Adjacent frames with the same positive value are grouped as resolution variants in one ANI frame resource.
-    /// A non-positive value encodes the frame as its own animation step.
+    /// Gets or sets the animation sequence number. Frames with the same positive value play one stored frame. Adjacent
+    /// frames with the same value are its resolution variants, and the encoder stores them once. A non-positive value
+    /// encodes the frame as its own animation step.
     /// </summary>
+    /// <remarks>
+    /// The decoder gives each frame the number of the stored frame that it plays, so a frame that plays in two steps
+    /// has the same number in both. The encoder writes the frames of the first step with a number. To change the
+    /// pixels of one step only, give its frames a new number.
+    /// </remarks>
     public int SequenceNumber { get; set; }
 
     /// <summary>
@@ -96,7 +103,22 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     /// Gets or sets the embedded bitmap color table.
     /// The underlying pixel format is represented by <see cref="Bgr24"/>.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than 256 entries.</exception>
+    public ReadOnlyMemory<Color>? ColorTable
+    {
+        get => this.colorTable;
+        set
+        {
+            if (value.HasValue)
+            {
+                // ICONDIRENTRY stores the color count in one byte, and only bitmaps of 8 bits or fewer have a
+                // color table: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+                Guard.MustBeLessThanOrEqualTo(value.Value.Length, 256, nameof(value));
+            }
+
+            this.colorTable = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the horizontal cursor hotspot in pixels from the left.

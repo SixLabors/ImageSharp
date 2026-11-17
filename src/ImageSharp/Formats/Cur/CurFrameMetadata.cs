@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Cur;
 /// </summary>
 public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 {
+    private ReadOnlyMemory<Color>? colorTable;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class.
     /// </summary>
@@ -87,7 +89,22 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     /// Gets or sets the color table, if any.
     /// The underlying pixel format is represented by <see cref="Bgr24"/>.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than 256 entries.</exception>
+    public ReadOnlyMemory<Color>? ColorTable
+    {
+        get => this.colorTable;
+        set
+        {
+            if (value.HasValue)
+            {
+                // ICONDIRENTRY stores the color count in one byte, and only bitmaps of 8 bits or fewer have a
+                // color table: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+                Guard.MustBeLessThanOrEqualTo(value.Value.Length, 256, nameof(value));
+            }
+
+            this.colorTable = value;
+        }
+    }
 
     /// <inheritdoc/>
     public static CurFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)

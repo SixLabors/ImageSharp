@@ -614,15 +614,8 @@ internal sealed class PngEncoderCore : IDisposable
         switch (this.colorType)
         {
             case PngColorType.Palette:
-                if (this.bitDepth < 8)
-                {
-                    PngEncoderHelpers.ScaleDownFrom8BitArray(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
-                }
-                else
-                {
-                    quantized?.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
-                }
-
+                // The palette has at most 2^bitDepth entries, so each index fits in bitDepth bits.
+                EncodingUtilities.PackIndices(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                 break;
             case PngColorType.Grayscale:
             case PngColorType.GrayscaleWithAlpha:
@@ -701,15 +694,7 @@ internal sealed class PngEncoderCore : IDisposable
         ref Span<byte> attempt)
     {
         // CollectPixelBytes
-        if (this.bitDepth < 8)
-        {
-            PngEncoderHelpers.ScaleDownFrom8BitArray(row, this.currentScanline.GetSpan(), this.bitDepth);
-        }
-        else
-        {
-            row.CopyTo(this.currentScanline.GetSpan());
-        }
-
+        EncodingUtilities.PackIndices(row, this.currentScanline.GetSpan(), this.bitDepth);
         this.FilterPixelBytes(ref filter, ref attempt);
     }
 

@@ -84,55 +84,21 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
     /// <inheritdoc />
     protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
     {
-        int width = this.quantizedFrame.Width;
+        // Each row starts in a new byte. A 4-bit row of odd width ends with one index in the high bits of its last byte.
+        // The quantizer limits the palette to 2^BitsPerPixel colors, so each index fits in BitsPerPixel bits.
+        int rowBytes = ((this.quantizedFrame.Width * this.BitsPerPixel) + 7) / 8;
+        int stripBytes = rowBytes * height;
 
-        if (this.BitsPerPixel == 4)
+        // The first strip has the most rows, so its buffer holds each later strip.
+        this.indexedPixelsBuffer ??= this.MemoryAllocator.Allocate<byte>(stripBytes);
+        Span<byte> strip = this.indexedPixelsBuffer.GetSpan()[..stripBytes];
+
+        for (int row = 0; row < height; row++)
         {
-            int halfWidth = width >> 1;
-            int excess = (width & 1) * height; // (width % 2) * height
-            int rows4BitBufferLength = (halfWidth * height) + excess;
-            this.indexedPixelsBuffer ??= this.MemoryAllocator.Allocate<byte>(rows4BitBufferLength);
-            Span<byte> rows4bit = this.indexedPixelsBuffer.GetSpan();
-            int idx4bitRows = 0;
-            int lastRow = y + height;
-            for (int row = y; row < lastRow; row++)
-            {
-                ReadOnlySpan<byte> indexedPixelRow = this.quantizedFrame.DangerousGetRowSpan(row);
-                int idxPixels = 0;
-
-                // Each byte stores two palette indices: the left pixel in its high nibble, then the right pixel in its low nibble.
-                for (int x = 0; x < halfWidth; x++)
-                {
-                    rows4bit[idx4bitRows] = (byte)((indexedPixelRow[idxPixels] << 4) | (indexedPixelRow[idxPixels + 1] & 0xF));
-                    idxPixels += 2;
-                    idx4bitRows++;
-                }
-
-                // An odd-width row ends with one high-nibble index and a zero low nibble. The next row starts in a new byte.
-                if (width % 2 != 0)
-                {
-                    rows4bit[idx4bitRows++] = (byte)(indexedPixelRow[idxPixels] << 4);
-                }
-            }
-
-            compressor.CompressStrip(rows4bit[..idx4bitRows], height);
+            EncodingUtilities.PackIndices(this.quantizedFrame.DangerousGetRowSpan(y + row), strip.Slice(row * rowBytes, rowBytes), this.BitsPerPixel);
         }
-        else
-        {
-            int stripPixels = width * height;
-            this.indexedPixelsBuffer ??= this.MemoryAllocator.Allocate<byte>(stripPixels);
-            Span<byte> indexedPixels = this.indexedPixelsBuffer.GetSpan();
-            int lastRow = y + height;
-            int indexedPixelsRowIdx = 0;
-            for (int row = y; row < lastRow; row++)
-            {
-                ReadOnlySpan<byte> indexedPixelRow = this.quantizedFrame.DangerousGetRowSpan(row);
-                indexedPixelRow.CopyTo(indexedPixels.Slice(indexedPixelsRowIdx * width, width));
-                indexedPixelsRowIdx++;
-            }
 
-            compressor.CompressStrip(indexedPixels[..stripPixels], height);
-        }
+        compressor.CompressStrip(strip, height);
     }
 
     /// <inheritdoc />

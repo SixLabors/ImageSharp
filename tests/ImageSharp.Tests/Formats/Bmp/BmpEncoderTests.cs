@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
@@ -304,6 +305,39 @@ public partial class BmpEncoderTests
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, BmpColorType.Palette);
+
+    [Theory]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit1)]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit2)]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit4)]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit8)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit16)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit24)]
+    public void Encode_RowPadding_IsZero(BmpColorType colorType, BmpBitsPerPixel bitsPerPixel)
+    {
+        // Each bitmap row is padded with zeros to a multiple of 4 bytes. The test allocator fills each new buffer with
+        // a nonzero value, so a padding byte that the encoder does not write is not zero. A width of 3 gives padding
+        // at each depth, and a 1, 2 or 4-bit row also ends inside a byte.
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.MemoryAllocator = new TestMemoryAllocator(0xA5);
+        using Image<Rgba32> image = new(configuration, 3, 2, Color.Red.ToPixel<Rgba32>());
+
+        using MemoryStream stream = new();
+        image.Save(stream, new BmpEncoder { ColorType = colorType, BitsPerPixel = bitsPerPixel });
+
+        byte[] data = stream.ToArray();
+        int bpp = (int)bitsPerPixel;
+        int pixelBytes = ((3 * bpp) + 7) / 8;
+        int bytesPerLine = ((3 * bpp) + 31) / 32 * 4;
+        int pixelDataOffset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+
+        Assert.Equal(pixelDataOffset + (2 * bytesPerLine), data.Length);
+        for (int y = 0; y < 2; y++)
+        {
+            ReadOnlySpan<byte> padding = data.AsSpan(pixelDataOffset + (y * bytesPerLine) + pixelBytes, bytesPerLine - pixelBytes);
+            Assert.True(padding.IndexOfAnyExcept((byte)0) < 0, $"Row {y} has nonzero padding.");
+        }
+    }
 
     [Theory]
     [WithFile(Bit32Rgb, PixelTypes.Rgba32)]

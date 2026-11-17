@@ -71,7 +71,7 @@ internal struct BmpInfoHeader
         int height,
         short planes,
         ushort bitsPerPixel,
-        BmpCompression compression = default,
+        BmpInfoCompression compression = default,
         int imageSize = 0,
         int xPelsPerMeter = 0,
         int yPelsPerMeter = 0,
@@ -163,7 +163,7 @@ internal struct BmpInfoHeader
     /// Gets or sets the compression method being used.
     /// See the next table for a list of possible values.
     /// </summary>
-    public BmpCompression Compression { get; set; }
+    public BmpInfoCompression Compression { get; set; }
 
     /// <summary>
     /// Gets or sets the image size. This is the size of the raw bitmap data (see below),
@@ -339,7 +339,7 @@ internal struct BmpInfoHeader
             height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
             planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
             bitsPerPixel: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(14, 2)),
-            compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+            compression: (BmpInfoCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
             imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
             xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
             yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
@@ -360,7 +360,7 @@ internal struct BmpInfoHeader
             height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
             planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
             bitsPerPixel: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(14, 2)),
-            compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+            compression: (BmpInfoCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
             imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
             xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
             yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
@@ -393,16 +393,16 @@ internal struct BmpInfoHeader
         switch (BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)))
         {
             case 0:
-                infoHeader.Compression = BmpCompression.RGB;
+                infoHeader.Compression = BmpInfoCompression.RGB;
                 break;
             case 1:
-                infoHeader.Compression = BmpCompression.RLE8;
+                infoHeader.Compression = BmpInfoCompression.RLE8;
                 break;
             case 2:
-                infoHeader.Compression = BmpCompression.RLE4;
+                infoHeader.Compression = BmpInfoCompression.RLE4;
                 break;
             case 4:
-                infoHeader.Compression = BmpCompression.RLE24;
+                infoHeader.Compression = BmpInfoCompression.RLE24;
                 break;
             default:
                 // Compression type 3 (1DHuffman) is not supported.
@@ -434,7 +434,7 @@ internal struct BmpInfoHeader
         height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
         planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
         bitsPerPixel: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(14, 2)),
-        compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+        compression: (BmpInfoCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
         imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
         xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
         yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),

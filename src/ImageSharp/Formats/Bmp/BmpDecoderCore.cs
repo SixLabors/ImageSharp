@@ -118,8 +118,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             // The pixel decode supports these compressions only. Check before the allocation, so an unsupported file
             // requests no pixel buffer.
-            if (this.infoHeader.Compression is not (BmpCompression.RGB or BmpCompression.RLE24 or BmpCompression.RLE8
-                or BmpCompression.RLE4 or BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS))
+            if (this.infoHeader.Compression is not (BmpInfoCompression.RGB or BmpInfoCompression.RLE24 or BmpInfoCompression.RLE8
+                or BmpInfoCompression.RLE4 or BmpInfoCompression.BitFields or BmpInfoCompression.BI_ALPHABITFIELDS))
             {
                 BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
             }
@@ -174,27 +174,27 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         switch (this.infoHeader.Compression)
         {
-            case BmpCompression.RGB when bitsPerPixel is 32 && infoHeaderType is BmpInfoHeaderType.WinVersion3:
+            case BmpInfoCompression.RGB when bitsPerPixel is 32 && infoHeaderType is BmpInfoHeaderType.WinVersion3:
                 this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpCompression.RGB when bitsPerPixel is 32:
+            case BmpInfoCompression.RGB when bitsPerPixel is 32:
                 this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpCompression.RGB when bitsPerPixel is 24:
+            case BmpInfoCompression.RGB when bitsPerPixel is 24:
                 this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpCompression.RGB when bitsPerPixel is 16:
+            case BmpInfoCompression.RGB when bitsPerPixel is 16:
                 this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, false);
 
                 break;
 
-            case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
+            case BmpInfoCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
                 this.ReadRgbPaletteWithAlphaMask(
                     stream,
                     pixels,
@@ -206,7 +206,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
                 break;
 
-            case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8:
+            case BmpInfoCompression.RGB when bitsPerPixel is > 0 and <= 8:
                 this.ReadRgbPalette(
                     stream,
                     pixels,
@@ -218,20 +218,20 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
                 break;
 
-            case BmpCompression.RLE24:
+            case BmpInfoCompression.RLE24:
                 this.ReadRle24(stream, pixels, this.infoHeader.Width, inverted);
 
                 break;
 
-            case BmpCompression.RLE8:
-            case BmpCompression.RLE4:
+            case BmpInfoCompression.RLE8:
+            case BmpInfoCompression.RLE4:
                 this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, inverted);
 
                 break;
 
             // Decode checks the compression before this method, so no other compression comes here.
-            case BmpCompression.BitFields:
-            case BmpCompression.BI_ALPHABITFIELDS:
+            case BmpInfoCompression.BitFields:
+            case BmpInfoCompression.BI_ALPHABITFIELDS:
                 this.ReadBitFields(stream, pixels, inverted);
 
                 break;
@@ -603,7 +603,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="inverted">Whether the bitmap is inverted.</param>
     private void ReadRle<TPixel>(
         BufferedReadStream stream,
-        BmpCompression compression,
+        BmpInfoCompression compression,
         Buffer2D<TPixel> pixels,
         Color[] colors,
         int width,
@@ -620,7 +620,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             : this.GetRleSkippedPixel<TPixel>();
 
         BmpRleWriter<TPixel> writer = new(pixels, inverted, skipped);
-        bool rle4 = compression is BmpCompression.RLE4;
+        bool rle4 = compression is BmpInfoCompression.RLE4;
 
         // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
         // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
@@ -717,7 +717,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// Decodes an RLE24 bitmap straight into the image rows.
     /// </summary>
     /// <remarks>
-    /// The commands are the RLE8 commands of <see cref="ReadRle{TPixel}(BufferedReadStream, BmpCompression, Buffer2D{TPixel}, Color[], int, bool)"/>,
+    /// The commands are the RLE8 commands of <see cref="ReadRle{TPixel}(BufferedReadStream, BmpInfoCompression, Buffer2D{TPixel}, Color[], int, bool)"/>,
     /// with a B, G, R color in place of an index. An encoded run is [a, B, G, R]. An absolute run of b pixels stores
     /// 3 * b bytes, padded to a two-byte boundary.
     /// </remarks>
@@ -1283,7 +1283,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             // If the info header is BMP version 3 and the compression type is BITFIELDS,
             // color masks for each color channel follow the info header.
-            if (this.infoHeader.Compression == BmpCompression.BitFields)
+            if (this.infoHeader.Compression == BmpInfoCompression.BitFields)
             {
                 Span<byte> bitfieldsBuffer = stackalloc byte[12];
                 stream.Read(bitfieldsBuffer);
@@ -1292,7 +1292,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                 this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
             }
-            else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
+            else if (this.infoHeader.Compression == BmpInfoCompression.BI_ALPHABITFIELDS)
             {
                 Span<byte> bitfieldsBuffer = stackalloc byte[16];
                 stream.Read(bitfieldsBuffer);
@@ -1374,7 +1374,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         // The compression and the masks give the color type. BI_RGB and RLE24 store BGR without alpha. Bit-field masks
         // other than the layouts of the encoder map to the nearest color type: 5-5-5-1 for 16 bits with an alpha mask,
         // 5-5-5 for 16 bits without one, and BGRA or BGR for 32 bits.
-        bool bitFields = this.infoHeader.Compression is BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS;
+        bool bitFields = this.infoHeader.Compression is BmpInfoCompression.BitFields or BmpInfoCompression.BI_ALPHABITFIELDS;
         bool alpha = bitFields && this.infoHeader.AlphaMask != 0;
         bool rgb565 = bitFields
             && this.infoHeader.RedMask is BmpConstants.Bgr565Masks.Red
@@ -1388,6 +1388,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             16 => alpha ? BmpColorType.Bgra5551 : BmpColorType.Bgr,
             _ => alpha ? BmpColorType.Bgra : BmpColorType.Bgr
         };
+
+        // The encoder writes RLE only for 4-bit and 8-bit palette bitmaps. It writes an RLE24 bitmap uncompressed.
+        this.bmpMetadata.Compression = this.infoHeader.Compression is BmpInfoCompression.RLE4 or BmpInfoCompression.RLE8 or BmpInfoCompression.RLE24
+            ? BmpCompression.RunLength
+            : BmpCompression.None;
 
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
     }
@@ -1473,8 +1478,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         // Direct-color BMPs may carry a table but convert their pixel data after decode instead.
         isIndexed = this.infoHeader.Compression switch
         {
-            BmpCompression.RLE4 or BmpCompression.RLE8 => true,
-            BmpCompression.RGB => this.infoHeader.BitsPerPixel is > 0 and <= 8,
+            BmpInfoCompression.RLE4 or BmpInfoCompression.RLE8 => true,
+            BmpInfoCompression.RGB => this.infoHeader.BitsPerPixel is > 0 and <= 8,
             _ => false
         };
 
@@ -1497,7 +1502,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         // Uncompressed pixel data is only defined for these depths. Rejecting any other depth here, rather than in
         // the pixel readers, also keeps identification from reporting a header that cannot be decoded.
-        if (this.infoHeader.Compression is BmpCompression.RGB && this.infoHeader.BitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
+        if (this.infoHeader.Compression is BmpInfoCompression.RGB && this.infoHeader.BitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
         {
             BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {this.infoHeader.BitsPerPixel}");
         }

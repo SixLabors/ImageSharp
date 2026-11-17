@@ -128,6 +128,22 @@ public class TgaEncoderTests
     }
 
     // Run length encoded pixels should not exceed row boundaries.
+    [Theory]
+    [InlineData(Bit24RleBottomLeft, null, (byte)TgaImageType.RleTrueColor)]
+    [InlineData(Bit24RleBottomLeft, TgaCompression.None, (byte)TgaImageType.TrueColor)]
+    [InlineData(Bit24BottomLeft, null, (byte)TgaImageType.TrueColor)]
+    [InlineData(Bit24BottomLeft, TgaCompression.RunLength, (byte)TgaImageType.RleTrueColor)]
+    public void TgaEncoder_Compression_EncoderOverridesMetadata(string imagePath, TgaCompression? encoderCompression, byte expectedImageType)
+    {
+        // The decoder sets the compression of the metadata. The encoder value replaces it.
+        using Image<Rgba32> input = TestFile.Create(imagePath).CreateRgba32Image();
+        using MemoryStream stream = new();
+        input.Save(stream, new TgaEncoder { Compression = encoderCompression });
+
+        // The image type is byte 2 of the file header.
+        Assert.Equal(expectedImageType, stream.GetBuffer()[2]);
+    }
+
     // https://github.com/SixLabors/ImageSharp/pull/2172
     [Fact]
     public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()

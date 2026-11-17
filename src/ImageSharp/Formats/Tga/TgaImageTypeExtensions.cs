@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Extension methods for TgaImageType enum.
 /// </summary>
-public static class TgaImageTypeExtensions
+internal static class TgaImageTypeExtensions
 {
     /// <summary>
     /// Checks if this tga image type is run length encoded.

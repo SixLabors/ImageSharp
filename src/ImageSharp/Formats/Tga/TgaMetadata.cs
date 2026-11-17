@@ -28,6 +28,7 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         this.AlphaChannelBits = other.AlphaChannelBits;
         this.ColorMapFirstEntryIndex = other.ColorMapFirstEntryIndex;
         this.ColorMapEntryBitDepth = other.ColorMapEntryBitDepth;
+        this.Compression = other.Compression;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -59,6 +60,11 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// Gets or sets the color table, if any.
     /// </summary>
     public ReadOnlyMemory<Color>? ColorTable { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compression of the pixel data.
+    /// </summary>
+    public TgaCompression Compression { get; set; } = TgaCompression.RunLength;
 
     /// <inheritdoc/>
     public static TgaMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)

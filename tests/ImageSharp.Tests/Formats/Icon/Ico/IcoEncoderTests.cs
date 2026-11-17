@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
@@ -208,5 +209,27 @@ public partial class IcoEncoderTests
 
         Assert.Equal(BmpBitsPerPixel.Bit16, metadata.BmpBitsPerPixel);
         Assert.Equal(BmpColorType.Bgr, metadata.BmpColorType);
+    }
+
+    [Fact]
+    public void Encode_BmpMetadataRunLength_WritesUncompressedEntry()
+    {
+        // The bitmap of an icon image must set biCompression to 0 (BI_RGB), so the BMP metadata cannot select RLE.
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        image.Metadata.GetBmpMetadata().Compression = BmpCompression.RunLength;
+
+        IcoFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        metadata.Compression = IconFrameCompression.Bmp;
+        metadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
+        metadata.ColorTable = NearColorPalette.Palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new IcoEncoder());
+
+        // The directory entry ends with the offset of the image data. The compression field starts at byte 16 of the
+        // info header.
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(encoded[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
+        Assert.Equal((uint)BmpInfoCompression.RGB, BinaryPrimitives.ReadUInt32LittleEndian(encoded[(dibOffset + 16)..]));
     }
 }

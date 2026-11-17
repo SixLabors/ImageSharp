@@ -23,4 +23,30 @@ public class TgaMetadataTests
         Assert.Equal(expectedColorType, info.ColorType);
         Assert.Equal(expectedComponentCount, info.ComponentInfo.Value.ComponentCount);
     }
+
+    [Fact]
+    public void CloneIsDeep()
+    {
+        TgaMetadata meta = new() { Compression = TgaCompression.None };
+        TgaMetadata clone = meta.DeepClone();
+
+        Assert.Equal(meta.Compression, clone.Compression);
+
+        clone.Compression = TgaCompression.RunLength;
+
+        Assert.False(meta.Compression.Equals(clone.Compression));
+    }
+
+    [Theory]
+    [InlineData(TestImages.Tga.Bit24BottomLeft, TgaCompression.None)]
+    [InlineData(TestImages.Tga.Bit24RleBottomLeft, TgaCompression.RunLength)]
+    [InlineData(TestImages.Tga.Gray8BitRleBottomLeft, TgaCompression.RunLength)]
+    public void Identify_DetectsCompression(string imagePath, TgaCompression expectedCompression)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.Equal(expectedCompression, imageInfo.Metadata.GetTgaMetadata().Compression);
+    }
 }

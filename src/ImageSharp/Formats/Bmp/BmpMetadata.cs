@@ -28,6 +28,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
         this.BitsPerPixel = other.BitsPerPixel;
         this.ColorType = other.ColorType;
         this.InfoHeaderType = other.InfoHeaderType;
+        this.Compression = other.Compression;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -49,6 +50,11 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     /// Gets or sets the color type.
     /// </summary>
     public BmpColorType ColorType { get; set; } = BmpColorType.Bgr;
+
+    /// <summary>
+    /// Gets or sets the compression of the pixel data.
+    /// </summary>
+    public BmpCompression Compression { get; set; } = BmpCompression.None;
 
     /// <summary>
     /// Gets or sets the color table, if any.

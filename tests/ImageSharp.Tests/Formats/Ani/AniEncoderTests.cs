@@ -300,4 +300,34 @@ public partial class AniEncoderTests
 
         ImageComparer.Exact.VerifySimilarity(image, decoded);
     }
+
+    /// <summary>
+    /// Verifies that a raw bitmap frame is not compressed when the BMP metadata of the image selects RLE. The bitmap of
+    /// a cursor image must set biCompression to 0 (BI_RGB).
+    /// </summary>
+    [Fact]
+    public void AniEncoder_BitmapFrames_IgnoreBmpMetadataCompression()
+    {
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        image.Metadata.GetBmpMetadata().Compression = BmpCompression.RunLength;
+
+        AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
+        imageMetadata.BitCount = 8;
+        imageMetadata.Planes = 1;
+
+        AniFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
+        frameMetadata.FrameFormat = AniFrameFormat.Bmp;
+        frameMetadata.ColorTable = NearColorPalette.Palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new AniEncoder());
+
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int frameChunkOffset = encoded.IndexOf("icon"u8);
+        Assert.True(frameChunkOffset >= 0);
+
+        // The compression field of the info header starts at byte 16 of the DIB.
+        ReadOnlySpan<byte> dib = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
+        Assert.Equal((uint)BmpInfoCompression.RGB, BinaryPrimitives.ReadUInt32LittleEndian(dib[16..]));
+    }
 }

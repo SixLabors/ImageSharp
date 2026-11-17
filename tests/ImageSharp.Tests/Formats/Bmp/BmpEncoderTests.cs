@@ -191,7 +191,7 @@ public partial class BmpEncoderTests
         Assert.Equal(actual.Length, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(2)));
         Assert.Equal(masksOffset + 12, actualPixelOffset);
         Assert.Equal(BmpInfoHeader.SizeV3, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(BmpFileHeader.Size)));
-        Assert.Equal((int)BmpCompression.BitFields, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(BmpFileHeader.Size + 16)));
+        Assert.Equal((int)BmpInfoCompression.BitFields, BinaryPrimitives.ReadInt32LittleEndian(actual.AsSpan(BmpFileHeader.Size + 16)));
         Assert.Equal(expected.AsSpan(masksOffset, 12).ToArray(), actual.AsSpan(masksOffset, 12).ToArray());
         Assert.Equal(expected.AsSpan(expectedPixelOffset).ToArray(), actual.AsSpan(actualPixelOffset).ToArray());
     }
@@ -337,6 +337,86 @@ public partial class BmpEncoderTests
             ReadOnlySpan<byte> padding = data.AsSpan(pixelDataOffset + (y * bytesPerLine) + pixelBytes, bytesPerLine - pixelBytes);
             Assert.True(padding.IndexOfAnyExcept((byte)0) < 0, $"Row {y} has nonzero padding.");
         }
+    }
+
+    [Theory]
+    [InlineData(BmpBitsPerPixel.Bit8, (uint)BmpInfoCompression.RLE8)]
+    [InlineData(BmpBitsPerPixel.Bit4, (uint)BmpInfoCompression.RLE4)]
+    public void Encode_RunLength_RoundTripsAndWritesSizes(BmpBitsPerPixel bitsPerPixel, uint expectedCompression)
+    {
+        // Each row tests one kind of RLE command. The palette has 16 colors, so each index fits RLE4 and RLE8.
+        // Row 0: one run longer than 255 pixels, so the encoder splits it.
+        // Row 1: two alternating indices: an RLE4 pair run, and RLE8 absolute runs longer than 255 pixels.
+        // Row 2: three repeating indices: RLE4 absolute runs.
+        // Row 3: no runs: absolute runs in both formats.
+        // Row 4: runs of 3 between short segments of 2 indices.
+        // Row 5: one index, then a long run.
+        // Row 6: short runs inside absolute runs. The encoder keeps short runs in the absolute run and splits the
+        // absolute run at long runs: an RLE8 run of 4 and 6, and RLE4 pair runs of 4, 6 and 12.
+        // The width is odd, so RLE4 absolute runs end inside a byte.
+        Color[] palette = new Color[16];
+        for (int i = 0; i < palette.Length; i++)
+        {
+            palette[i] = Color.FromPixel(new Rgba32((byte)(i * 16), (byte)(255 - (i * 16)), (byte)(i * 8), 255));
+        }
+
+        ReadOnlySpan<int> pattern = [5, 5, 5, 6, 7];
+        ReadOnlySpan<int> mixed =
+        [
+            7, 11, 13, 1, 2, 1, 2, 1, 2, 14, 9, 8, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4,
+            6, 12, 15, 2, 2, 2, 2, 10, 0, 5, 9, 9, 9, 9, 9, 9
+        ];
+
+        using Image<Rgba32> image = new(517, 7);
+        for (int x = 0; x < image.Width; x++)
+        {
+            image[x, 0] = palette[0].ToPixel<Rgba32>();
+            image[x, 1] = palette[x % 2].ToPixel<Rgba32>();
+            image[x, 2] = palette[x % 3].ToPixel<Rgba32>();
+            image[x, 3] = palette[((x * 7) + 3) % 16].ToPixel<Rgba32>();
+            image[x, 4] = palette[pattern[x % pattern.Length]].ToPixel<Rgba32>();
+            image[x, 5] = palette[x == 0 ? 9 : 10].ToPixel<Rgba32>();
+            image[x, 6] = palette[mixed[x % mixed.Length]].ToPixel<Rgba32>();
+        }
+
+        BmpMetadata metadata = image.Metadata.GetBmpMetadata();
+        metadata.ColorType = BmpColorType.Palette;
+        metadata.BitsPerPixel = bitsPerPixel;
+        metadata.ColorTable = palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new BmpEncoder { Compression = BmpCompression.RunLength });
+
+        // The compression field is at byte 16 and biSizeImage at byte 20 of the info header, which follows the 14-byte
+        // file header. bfSize is at byte 2 and bfOffBits at byte 10 of the file header.
+        byte[] data = stream.ToArray();
+        int pixelDataOffset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        Assert.Equal(expectedCompression, BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(BmpFileHeader.Size + 16)));
+        Assert.Equal(data.Length - pixelDataOffset, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(BmpFileHeader.Size + 20)));
+        Assert.Equal(data.Length, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(2)));
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(data);
+        Assert.Equal(BmpCompression.RunLength, output.Metadata.GetBmpMetadata().Compression);
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
+
+    [Theory]
+    [InlineData(RLE8, null, (uint)BmpInfoCompression.RLE8)]
+    [InlineData(RLE8, BmpCompression.None, (uint)BmpInfoCompression.RGB)]
+    [InlineData(RLE4, null, (uint)BmpInfoCompression.RLE4)]
+    [InlineData(Bit8, null, (uint)BmpInfoCompression.RGB)]
+    [InlineData(Bit8, BmpCompression.RunLength, (uint)BmpInfoCompression.RLE8)]
+    [InlineData(Car, BmpCompression.RunLength, (uint)BmpInfoCompression.RGB)]
+    public void Encode_Compression_EncoderOverridesMetadata(string imagePath, BmpCompression? encoderCompression, uint expectedCompression)
+    {
+        // The decoder sets the compression of the metadata. The encoder value replaces it. A 24-bit bitmap has no RLE
+        // format, so it is written uncompressed.
+        using Image<Rgba32> input = TestFile.Create(imagePath).CreateRgba32Image();
+        using MemoryStream stream = new();
+        input.Save(stream, new BmpEncoder { Compression = encoderCompression });
+
+        // The compression field is at byte 16 of the info header, which follows the 14-byte file header.
+        Assert.Equal(expectedCompression, BinaryPrimitives.ReadUInt32LittleEndian(stream.GetBuffer().AsSpan(BmpFileHeader.Size + 16)));
     }
 
     [Theory]

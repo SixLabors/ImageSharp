@@ -18,18 +18,42 @@ public class BmpMetadataTests
     public void CloneIsDeep()
     {
         BmpMetadata meta = new()
-        { BitsPerPixel = BmpBitsPerPixel.Bit24, ColorType = BmpColorType.Bgr565, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        {
+            BitsPerPixel = BmpBitsPerPixel.Bit24,
+            ColorType = BmpColorType.Bgr565,
+            InfoHeaderType = BmpInfoHeaderType.Os2Version2,
+            Compression = BmpCompression.RunLength
+        };
+
         BmpMetadata clone = meta.DeepClone();
 
         Assert.Equal(meta.ColorType, clone.ColorType);
+        Assert.Equal(meta.Compression, clone.Compression);
 
         clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
         clone.ColorType = BmpColorType.Bgr;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
+        clone.Compression = BmpCompression.None;
 
         Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
         Assert.False(meta.ColorType.Equals(clone.ColorType));
         Assert.False(meta.InfoHeaderType.Equals(clone.InfoHeaderType));
+        Assert.False(meta.Compression.Equals(clone.Compression));
+    }
+
+    [Theory]
+    [InlineData(Bit8, BmpCompression.None)]
+    [InlineData(Car, BmpCompression.None)]
+    [InlineData(RLE8, BmpCompression.RunLength)]
+    [InlineData(RLE4, BmpCompression.RunLength)]
+    [InlineData(RLE24, BmpCompression.RunLength)]
+    public void Identify_DetectsCompression(string imagePath, BmpCompression expectedCompression)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.Equal(expectedCompression, imageInfo.Metadata.GetBmpMetadata().Compression);
     }
 
     [Fact]

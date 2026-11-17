@@ -385,6 +385,15 @@ internal sealed class AniEncoderCore
                         <= BmpBitsPerPixel.Bit8 => BmpColorType.Palette,
                         _ => BmpColorType.Bgr
                     },
+
+                    // The ACON specification defines each 'icon' chunk as an embedded .CUR file, and it does not define
+                    // raw bitmap frames. See the Multimedia Data Standards Update, April 15, 1994, page 9:
+                    // https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
+                    // The bitmap of a .CUR or .ICO image must set biCompression to 0 (BI_RGB):
+                    // https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+                    // RLE is therefore not valid in a frame. Set the compression so the BMP metadata of the image
+                    // cannot select RLE.
+                    Compression = BmpCompression.None,
                     PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                     Quantizer = this.GetBitmapQuantizer(frame.Metadata.GetAniMetadata().ColorTable, bitCount),
                     SkipFileHeader = true,

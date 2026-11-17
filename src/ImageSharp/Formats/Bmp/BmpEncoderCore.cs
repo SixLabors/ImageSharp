@@ -68,9 +68,19 @@ internal sealed class BmpEncoderCore
     private readonly BmpBitsPerPixel? configuredBitsPerPixel;
 
     /// <summary>
+    /// The compression from the encoder options, or <see langword="null"/> to use the image metadata.
+    /// </summary>
+    private readonly BmpCompression? configuredCompression;
+
+    /// <summary>
     /// The color type of the image being encoded.
     /// </summary>
     private BmpColorType colorType;
+
+    /// <summary>
+    /// Whether the indexed rows are written as RLE8 or RLE4 data. Only 8-bit and 4-bit palette bitmaps can use RLE.
+    /// </summary>
+    private bool runLength;
 
     /// <summary>
     /// The color depth of the image being encoded, in number of bits per pixel. It always fits <see cref="colorType"/>.
@@ -136,6 +146,7 @@ internal sealed class BmpEncoderCore
         this.memoryAllocator = memoryAllocator;
         this.configuredColorType = encoder.ColorType;
         this.configuredBitsPerPixel = encoder.BitsPerPixel;
+        this.configuredCompression = encoder.Compression;
 
         this.configuredQuantizer = encoder.Quantizer;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
@@ -213,6 +224,12 @@ internal sealed class BmpEncoderCore
             ? BmpInfoHeaderType.WinVersion4
             : BmpInfoHeaderType.WinVersion3;
 
+        // BI_RLE8 compresses 8-bit bitmaps and BI_RLE4 compresses 4-bit bitmaps. No other depth has an RLE format:
+        // https://learn.microsoft.com/en-us/windows/win32/gdi/bitmap-compression
+        // Bitmaps of other depths are written uncompressed.
+        BmpCompression compression = this.configuredCompression ?? bmpMetadata.Compression;
+        this.runLength = compression is BmpCompression.RunLength && this.bitsPerPixel is BmpBitsPerPixel.Bit8 or BmpBitsPerPixel.Bit4;
+
         ushort bpp = (ushort)this.bitsPerPixel;
 
         // A row has its pixel bytes, then zero padding to a multiple of 4 bytes. A row of 1, 2 or 4-bit indices can end
@@ -281,9 +298,17 @@ internal sealed class BmpEncoderCore
         // A V3 header has no mask fields. With BI_BITFIELDS, the red, green and blue masks follow the header in the
         // place of the color table. V4 and V5 headers hold the masks.
         int bitFieldsSize =
-            this.infoHeaderType is BmpInfoHeaderType.WinVersion3 && infoHeader.Compression is BmpCompression.BitFields
+            this.infoHeaderType is BmpInfoHeaderType.WinVersion3 && infoHeader.Compression is BmpInfoCompression.BitFields
             ? 3 * sizeof(int)
             : 0;
+
+        // The size fields of the headers are 32-bit signed integers in this encoder and in its decoder. RLE data has its
+        // size only after the encode, so Encode checks it then.
+        long dataSize = this.runLength ? 0 : (long)height * bytesPerLine;
+        if (BmpFileHeader.Size + infoHeaderSize + bitFieldsSize + colorPaletteSize + iccProfileSize + dataSize > int.MaxValue)
+        {
+            throw new ImageFormatException("Image is too large to encode in BMP format.");
+        }
 
         // The largest header is the 124-byte V5 header. The V3 mask block adds 12 bytes to the 40-byte V3 header.
         Span<byte> buffer = stackalloc byte[infoHeaderSize + bitFieldsSize];
@@ -296,6 +321,37 @@ internal sealed class BmpEncoderCore
 
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize, bitFieldsSize);
         this.WriteImage(configuration, stream, frame, converter, cancellationToken);
+
+        if (this.runLength)
+        {
+            // The size of RLE data is known only after the encode. The output stream is seekable, so write the size into
+            // the headers now. The pixel data starts after the info header and the color table.
+            long end = stream.Position;
+            long rleSize = end - (infoHeaderPosition + infoHeaderSize + colorPaletteSize);
+            if (BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + rleSize > int.MaxValue)
+            {
+                throw new ImageFormatException("Image is too large to encode in BMP format.");
+            }
+
+            int imageSize = (int)rleSize;
+
+            // biSizeImage is at byte 20 of the info header.
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, imageSize);
+            stream.Position = infoHeaderPosition + 20;
+            stream.Write(buffer[..4]);
+
+            if (!this.skipFileHeader)
+            {
+                // bfSize is at byte 2 of the file header. The ICC profile follows the pixel data.
+                int fileSize = BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + imageSize + iccProfileSize;
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, fileSize);
+                stream.Position = infoHeaderPosition - BmpFileHeader.Size + 2;
+                stream.Write(buffer[..4]);
+            }
+
+            stream.Position = end;
+        }
+
         WriteColorProfile(stream, iccProfileData, buffer, infoHeaderPosition);
 
         stream.Flush();
@@ -363,6 +419,13 @@ internal sealed class BmpEncoderCore
             clrUsed: 0,
             clrImportant: 0);
 
+        // RLE data has its size only after the encode. Encode writes the size into the headers then.
+        if (this.runLength)
+        {
+            infoHeader.Compression = bpp == 8 ? BmpInfoCompression.RLE8 : BmpInfoCompression.RLE4;
+            infoHeader.ImageSize = 0;
+        }
+
         // The color types with masks use BI_BITFIELDS. Palette and RGB use BI_RGB, which has fixed layouts.
         switch (this.colorType)
         {
@@ -371,20 +434,20 @@ internal sealed class BmpEncoderCore
                 infoHeader.RedMask = Rgba32RedMask;
                 infoHeader.GreenMask = Rgba32GreenMask;
                 infoHeader.BlueMask = Rgba32BlueMask;
-                infoHeader.Compression = BmpCompression.BitFields;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
                 break;
             case BmpColorType.Bgr565:
                 infoHeader.RedMask = BmpConstants.Bgr565Masks.Red;
                 infoHeader.GreenMask = BmpConstants.Bgr565Masks.Green;
                 infoHeader.BlueMask = BmpConstants.Bgr565Masks.Blue;
-                infoHeader.Compression = BmpCompression.BitFields;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
                 break;
             case BmpColorType.Bgra5551:
                 infoHeader.AlphaMask = BmpConstants.Bgr555Masks.Alpha;
                 infoHeader.RedMask = BmpConstants.Bgr555Masks.Red;
                 infoHeader.GreenMask = BmpConstants.Bgr555Masks.Green;
                 infoHeader.BlueMask = BmpConstants.Bgr555Masks.Blue;
-                infoHeader.Compression = BmpCompression.BitFields;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
                 break;
         }
 
@@ -540,7 +603,7 @@ internal sealed class BmpEncoderCore
         // The mask stores alpha only. Replacement keeps alpha, so the source frame gives the same mask.
         if (this.processedAlphaMask)
         {
-            ProcessedAlphaMask(stream, frame);
+            this.ProcessedAlphaMask(stream, frame);
         }
     }
 
@@ -704,6 +767,19 @@ internal sealed class BmpEncoderCore
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(4 << bitsPerIndex, AllocationOptions.Clean);
         this.WriteColorPalette(configuration, stream, quantized.Palette.Span, colorPaletteBuffer.GetSpan(), converter);
 
+        if (this.runLength)
+        {
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            using IMemoryOwner<byte> rleRow = this.memoryAllocator.Allocate<byte>(BmpRleEncoder.GetMaxRowLength(encodingFrame.Width));
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                BmpRleEncoder.WriteRow(stream, quantized.DangerousGetRowSpan(y), rleRow.GetSpan(), bitsPerIndex, y == 0);
+            }
+
+            return;
+        }
+
         if (bitsPerIndex == 8)
         {
             for (int y = encodingFrame.Height - 1; y >= 0; y--)
@@ -792,13 +868,25 @@ internal sealed class BmpEncoderCore
             this.WriteColorPalette(configuration, stream, grayPalette, colorPalette, converter);
         }
 
+        // The caller selected single-component eight-bit luminance pixels. Their bytes index the gray ramp built above.
+        // ICC changes the palette colors after index selection; it does not change which entry each pixel uses.
         Buffer2D<TPixel> imageBuffer = encodingFrame.PixelBuffer;
+        if (this.runLength)
+        {
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            using IMemoryOwner<byte> rleRow = this.memoryAllocator.Allocate<byte>(BmpRleEncoder.GetMaxRowLength(encodingFrame.Width));
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                BmpRleEncoder.WriteRow(stream, MemoryMarshal.AsBytes(imageBuffer.DangerousGetRowSpan(y)), rleRow.GetSpan(), 8, y == 0);
+            }
+
+            return;
+        }
+
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            // The caller selected single-component eight-bit luminance pixels. Their bytes index the gray ramp built above.
-            // ICC changes the palette colors after index selection; it does not change which entry each pixel uses.
             this.Write8BitIndexRow(stream, MemoryMarshal.AsBytes(imageBuffer.DangerousGetRowSpan(y)));
         }
     }
@@ -853,59 +941,35 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="stream">The destination stream.</param>
     /// <param name="encodingFrame">The source frame.</param>
-    private static void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
-          where TPixel : unmanaged, IPixel<TPixel>
+    private void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Each byte represents eight pixels and every scanline is padded to a 4-byte DIB boundary.
-        int arrayWidth = (encodingFrame.Width + 7) / 8;
-        int padding = arrayWidth % 4;
-        if (padding is not 0)
-        {
-            padding = 4 - padding;
-        }
+        // The mask has one bit for each pixel, the first pixel in the most significant bit. A bit of 1 marks a pixel
+        // with alpha 0. Each row is padded to a multiple of 4 bytes.
+        Configuration configuration = encodingFrame.Configuration;
+        int width = encodingFrame.Width;
+        int maskRowLength = (((width + 7) / 8) + 3) & ~3;
 
-        Span<byte> mask = stackalloc byte[arrayWidth];
-        Span<byte> paddingBytes = stackalloc byte[3];
-        paddingBytes.Clear();
+        using IMemoryOwner<A8> alphaBuffer = this.memoryAllocator.Allocate<A8>(width);
+        Span<A8> alpha = alphaBuffer.GetSpan();
+
+        // A8 is one byte of alpha, so the loop below changes each alpha value to its mask bit in place.
+        Span<byte> flags = MemoryMarshal.AsBytes(alpha);
+
+        // The packer writes only the mask bytes, so the padding stays zero from the allocation.
+        using IMemoryOwner<byte> maskBuffer = this.memoryAllocator.Allocate<byte>(maskRowLength, AllocationOptions.Clean);
+        Span<byte> mask = maskBuffer.GetSpan();
 
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
-            mask.Clear();
-            Span<TPixel> row = encodingFrame.PixelBuffer.DangerousGetRowSpan(y);
-
-            for (int i = 0; i < arrayWidth; i++)
+            PixelOperations<TPixel>.Instance.To(configuration, encodingFrame.PixelBuffer.DangerousGetRowSpan(y), alpha);
+            for (int x = 0; x < flags.Length; x++)
             {
-                int x = i * 8;
-
-                // The final byte can represent fewer than eight pixels when the image width is not byte-aligned.
-                int pixelCount = Math.Min(8, encodingFrame.Width - x);
-                for (int j = 0; j < pixelCount; j++)
-                {
-                    WriteAlphaMask(row[x + j], ref mask[i], j);
-                }
+                flags[x] = flags[x] == 0 ? (byte)1 : (byte)0;
             }
 
+            EncodingUtilities.PackIndices(flags, mask, 1);
             stream.Write(mask);
-
-            // Alpha-mask rows are DWORD-aligned, and the final row padding must extend the stream.
-            stream.Write(paddingBytes[..padding]);
-        }
-    }
-
-    /// <summary>
-    /// Sets one most-significant-bit-first transparency flag in an ICO/CUR AND-mask byte.
-    /// </summary>
-    /// <typeparam name="TPixel">The source pixel type.</typeparam>
-    /// <param name="pixel">The source pixel.</param>
-    /// <param name="mask">The destination mask byte.</param>
-    /// <param name="index">The pixel index within the byte.</param>
-    private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
-          where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Rgba32 rgba = pixel.ToRgba32();
-        if (rgba.A is 0)
-        {
-            mask |= unchecked((byte)(0b10000000 >> index));
         }
     }
 }

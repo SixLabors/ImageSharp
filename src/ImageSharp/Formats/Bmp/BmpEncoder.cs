@@ -19,6 +19,12 @@ public sealed class BmpEncoder : QuantizingImageEncoder
     /// </summary>
     public BmpColorType? ColorType { get; init; }
 
+    /// <summary>
+    /// Gets the compression of the pixel data. If the value is <see langword="null"/>, the encoder uses
+    /// <see cref="BmpMetadata.Compression"/>.
+    /// </summary>
+    public BmpCompression? Compression { get; init; }
+
     /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
     internal bool ProcessedAlphaMask { get; init; }
 

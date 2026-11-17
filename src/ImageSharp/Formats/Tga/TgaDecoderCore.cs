@@ -939,6 +939,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         this.metadata = new ImageMetadata();
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
+        this.tgaMetadata.Compression = this.fileHeader.ImageType.IsRunLengthEncoded() ? TgaCompression.RunLength : TgaCompression.None;
 
         // TrueColor images with 32 bits per pixel are assumed to always have 8 bit alpha channel,
         // because some encoders do not set correctly the alpha bits in the image descriptor.

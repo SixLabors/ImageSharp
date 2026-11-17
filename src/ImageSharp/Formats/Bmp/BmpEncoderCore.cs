@@ -349,7 +349,10 @@ internal sealed class BmpEncoderCore
     }
 
     private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)
-        => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+
+        // Pooled memory can hold old data. The row writers write only the pixel bytes, so a clean buffer keeps each
+        // padding byte zero for all rows.
+        => this.memoryAllocator.Allocate<byte>((width * bytesPerPixel) + this.padding, AllocationOptions.Clean);
 
     /// <summary>
     /// Writes 32-bit data with a color palette to the stream.

@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
@@ -64,6 +66,35 @@ public class BmpEncoderTests
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+    }
+
+    [Theory]
+    [InlineData(BmpBitsPerPixel.Pixel16)]
+    [InlineData(BmpBitsPerPixel.Pixel24)]
+    public void Encode_RowPadding_IsZero(BmpBitsPerPixel bitsPerPixel)
+    {
+        // Each bitmap row is padded with zeros to a multiple of 4 bytes. The test allocator fills each new buffer with
+        // a nonzero value, so a padding byte that the encoder does not write is not zero. A width of 3 gives padding at
+        // both depths.
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.MemoryAllocator = new TestMemoryAllocator(0xA5);
+        using Image<Rgba32> image = new(configuration, 3, 2, Color.Red.ToPixel<Rgba32>());
+
+        using MemoryStream stream = new();
+        image.Save(stream, new BmpEncoder { BitsPerPixel = bitsPerPixel });
+
+        byte[] data = stream.ToArray();
+        int bpp = (int)bitsPerPixel;
+        int pixelBytes = 3 * bpp / 8;
+        int bytesPerLine = ((3 * bpp) + 31) / 32 * 4;
+        int pixelDataOffset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+
+        Assert.Equal(pixelDataOffset + (2 * bytesPerLine), data.Length);
+        for (int y = 0; y < 2; y++)
+        {
+            byte[] padding = data.AsSpan(pixelDataOffset + (y * bytesPerLine) + pixelBytes, bytesPerLine - pixelBytes).ToArray();
+            Assert.Equal(new byte[padding.Length], padding);
+        }
     }
 
     [Theory]

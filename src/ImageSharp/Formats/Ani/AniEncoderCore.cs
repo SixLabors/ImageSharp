@@ -23,7 +23,6 @@ internal sealed class AniEncoderCore
     // Each nested encoder is configured once and reused for every resource of that type in this ANI operation.
     private IcoEncoderCore? icoEncoder;
     private CurEncoderCore? curEncoder;
-    private BmpEncoderCore? bmpEncoder;
 
     /// <summary>
     /// Reusable storage for the fixed ANI header and smaller RIFF values.
@@ -52,23 +51,12 @@ internal sealed class AniEncoderCore
 
         AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
         AniFrameMetadata firstMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
-        AniFrameFormat firstFormat = firstMetadata.FrameFormat;
-        bool bitmapResources = firstFormat is AniFrameFormat.Bmp;
+        bool hasBitmapFrames = false;
         bool writeSequence = imageMetadata.Flags.HasFlag(AniHeaderFlags.ContainsSequence);
         uint displayRate = firstMetadata.FrameDelay is 0 ? imageMetadata.DisplayRate : firstMetadata.FrameDelay;
         bool hasVariableRates = false;
         int groupCount = 0;
         int maxGroupSize = 1;
-
-        if (bitmapResources && imageMetadata.BitCount is not (0 or 1 or 2 or 4 or 8 or 16 or 24 or 32))
-        {
-            throw new ImageFormatException("ANI bitmap resources require a supported bit depth.");
-        }
-
-        if (bitmapResources && imageMetadata.Planes is not (0 or 1))
-        {
-            throw new ImageFormatException("ANI bitmap resources require exactly one color plane.");
-        }
 
         // This validation pass derives the fixed ANI header and largest icon directory without allocating a grouping graph.
         // Encoding repeats the linear grouping scan below, trading a cheap pass for zero per-group collections.
@@ -92,23 +80,13 @@ internal sealed class AniEncoderCore
                 }
             }
 
-            if (bitmapResources != (metadata.FrameFormat is AniFrameFormat.Bmp))
-            {
-                // AF_ICON applies to the complete file, so raw DIB resources cannot coexist with ICO/CUR resources.
-                throw new ImageFormatException("ANI cannot mix bitmap resources with ICO or CUR resources.");
-            }
-
-            if (bitmapResources && groupSize > 1)
-            {
-                // Only ICO/CUR directories can contain multiple resolution variants in one physical resource.
-                throw new ImageFormatException("ANI bitmap resources cannot contain resolution variants.");
-            }
+            hasBitmapFrames |= metadata.FrameFormat is AniFrameFormat.Bmp;
 
             // All variants share one animation step, which requires one child format and one rate value.
             for (int i = 1; i < groupSize; i++)
             {
                 AniFrameMetadata current = image.Frames[frameIndex + i].Metadata.GetAniMetadata();
-                if (current.FrameFormat != metadata.FrameFormat)
+                if (GetEncodedFrameFormat(current.FrameFormat) != GetEncodedFrameFormat(metadata.FrameFormat))
                 {
                     throw new ImageFormatException("ANI resolution variants must use the same embedded format.");
                 }
@@ -126,23 +104,30 @@ internal sealed class AniEncoderCore
             frameIndex += groupSize;
         }
 
-        // Icon-based ANI files leave global geometry and pixel layout at zero because each ICO/CUR entry owns those values.
+        // Bitmap frames are written as CUR frames that hold a bitmap of the declared bit depth.
+        if (hasBitmapFrames && imageMetadata.BitCount is not (0 or 1 or 2 or 4 or 8 or 16 or 24 or 32))
+        {
+            throw new ImageFormatException("ANI bitmap resources require a supported bit depth.");
+        }
+
+        BmpBitsPerPixel bitmapBitsPerPixel = GetBmpBitsPerPixel(imageMetadata.BitCount);
+
+        // The ACON specification defines each frame as an embedded .CUR file, so the encoder always sets AF_ICON. It marks
+        // cx, cy, cBitCount and cPlanes as reserved, must be 0, because each ICO or CUR frame holds those values. See the
+        // Multimedia Data Standards Update, April 15, 1994, page 9:
+        // https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
         AniHeader header = new()
         {
             BytesInHeader = AniHeader.Size,
             FrameCount = (uint)groupCount,
             StepCount = (uint)groupCount,
-            Width = bitmapResources ? imageMetadata.Width is 0 ? (uint)image.Width : imageMetadata.Width : 0,
-            Height = bitmapResources ? imageMetadata.Height is 0 ? (uint)image.Height : imageMetadata.Height : 0,
-            BitCount = bitmapResources ? imageMetadata.BitCount is 0 ? 32U : imageMetadata.BitCount : 0,
-            Planes = bitmapResources ? 1U : 0,
             DisplayRate = displayRate,
-            Flags = (bitmapResources ? 0 : AniHeaderFlags.IsIcon) | (writeSequence ? AniHeaderFlags.ContainsSequence : 0)
+            Flags = AniHeaderFlags.IsIcon | (writeSequence ? AniHeaderFlags.ContainsSequence : 0)
         };
 
         // One allocator-owned directory buffer is sliced and reused for every icon resource; its capacity is the largest group.
-        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata>? iconEntriesOwner = bitmapResources ? null : image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
-        Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner is null ? [] : iconEntriesOwner.GetSpan();
+        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata> iconEntriesOwner = image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
+        Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner.GetSpan();
 
         // ImageEncoder guarantees a seekable destination, allowing direct nested encoding and RIFF size backpatching.
         long riffSizePosition = this.BeginContainer(stream, AniConstants.RiffFourCc, AniConstants.AniFormTypeFourCc);
@@ -181,7 +166,7 @@ internal sealed class AniEncoderCore
             }
 
             long frameSizePosition = this.BeginChunk(stream, "icon"u8);
-            this.WriteFrameResource(image, stream, frameIndex, groupSize, metadata.FrameFormat, header.BitCount, iconEntries, cancellationToken);
+            this.WriteFrameResource(image, stream, frameIndex, groupSize, GetEncodedFrameFormat(metadata.FrameFormat), bitmapBitsPerPixel, iconEntries, cancellationToken);
             this.EndChunk(stream, frameSizePosition);
             frameIndex += groupSize;
         }
@@ -306,90 +291,80 @@ internal sealed class AniEncoderCore
     }
 
     /// <summary>
-    /// Encodes one ANI frame resource using the existing ICO, CUR, or BMP encoder.
+    /// Encodes one ANI frame resource using the existing ICO or CUR encoder.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="frameIndex">The first source-frame index.</param>
     /// <param name="frameCount">The number of source frames in this resource.</param>
-    /// <param name="format">The embedded resource format.</param>
-    /// <param name="bitCount">The bitmap bit depth declared by the ANI header.</param>
+    /// <param name="format">The embedded resource format: <see cref="AniFrameFormat.Ico"/> or <see cref="AniFrameFormat.Cur"/>.</param>
+    /// <param name="bitmapBitsPerPixel">The bit depth of the bitmap frames, from the ANI header bit count.</param>
     /// <param name="iconEntries">The reusable icon directory metadata buffer.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void WriteFrameResource<TPixel>(Image<TPixel> image, Stream stream, int frameIndex, int frameCount, AniFrameFormat format, uint bitCount, Span<IconEncoderCore.EncodingFrameMetadata> iconEntries, CancellationToken cancellationToken)
+    private void WriteFrameResource<TPixel>(Image<TPixel> image, Stream stream, int frameIndex, int frameCount, AniFrameFormat format, BmpBitsPerPixel bitmapBitsPerPixel, Span<IconEncoderCore.EncodingFrameMetadata> iconEntries, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        switch (format)
+        // Only the active prefix is exposed to the child encoder; the same backing allocation serves later resources.
+        Span<IconEncoderCore.EncodingFrameMetadata> entries = iconEntries[..frameCount];
+        AniIconFrameMetadataProvider provider = new(format, bitmapBitsPerPixel);
+
+        if (format is AniFrameFormat.Ico)
         {
-            case AniFrameFormat.Ico:
-            case AniFrameFormat.Cur:
-                // Only the active prefix is exposed to the child encoder; the same backing allocation serves later resources.
-                Span<IconEncoderCore.EncodingFrameMetadata> entries = iconEntries[..frameCount];
-                AniIconFrameMetadataProvider provider = new(format);
+            this.icoEncoder ??= new IcoEncoderCore(new IcoEncoder
+            {
+                PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                Quantizer = this.encoder.Quantizer,
+                SkipMetadata = this.encoder.SkipMetadata,
+                TransparentColorMode = this.encoder.TransparentColorMode
+            });
 
-                if (format is AniFrameFormat.Ico)
-                {
-                    this.icoEncoder ??= new IcoEncoderCore(new IcoEncoder
-                    {
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    });
+            this.icoEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
+        }
+        else
+        {
+            this.curEncoder ??= new CurEncoderCore(new CurEncoder
+            {
+                PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                Quantizer = this.encoder.Quantizer,
+                SkipMetadata = this.encoder.SkipMetadata,
+                TransparentColorMode = this.encoder.TransparentColorMode
+            });
 
-                    this.icoEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
-                }
-                else
-                {
-                    this.curEncoder ??= new CurEncoderCore(new CurEncoder
-                    {
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    });
-
-                    this.curEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
-                }
-
-                break;
-            case AniFrameFormat.Bmp:
-                if (this.bmpEncoder is null)
-                {
-                    BmpEncoder bmpEncoder = new()
-                    {
-                        BitsPerPixel = GetBmpBitsPerPixel(bitCount),
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipFileHeader = true,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        SupportTransparency = bitCount is 32,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    };
-
-                    this.bmpEncoder = new BmpEncoderCore(bmpEncoder, image.Configuration.MemoryAllocator);
-                }
-
-                // The frame overload writes the raw DIB directly and avoids constructing a temporary single-frame Image.
-                this.bmpEncoder.Encode(image.Frames[frameIndex], image.Metadata, stream, cancellationToken);
-                break;
+            this.curEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
         }
     }
+
+    /// <summary>
+    /// Gets the format that the encoder writes for a frame.
+    /// </summary>
+    /// <remarks>
+    /// The ACON specification defines each 'icon' chunk as an embedded .CUR file and does not define raw bitmap frames.
+    /// See the Multimedia Data Standards Update, April 15, 1994, page 9:
+    /// https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
+    /// Wine, SDL_image, gdk-pixbuf and KDE do not read raw bitmap frames, so the encoder writes a bitmap frame as a CUR
+    /// frame that holds the bitmap.
+    /// </remarks>
+    /// <param name="format">The frame format of the metadata.</param>
+    /// <returns><see cref="AniFrameFormat.Ico"/> or <see cref="AniFrameFormat.Cur"/>.</returns>
+    private static AniFrameFormat GetEncodedFrameFormat(AniFrameFormat format)
+        => format is AniFrameFormat.Bmp ? AniFrameFormat.Cur : format;
 
     /// <summary>
     /// Creates an icon directory entry from ANI-owned frame metadata.
     /// </summary>
     /// <param name="metadata">The ANI frame metadata.</param>
+    /// <param name="compression">The compression of the icon frame.</param>
+    /// <param name="bitsPerPixel">The bit depth of a bitmap icon frame.</param>
     /// <param name="format">The embedded icon format.</param>
     /// <param name="size">The source frame size.</param>
     /// <returns>The icon directory entry.</returns>
-    private static IconDirEntry CreateIconDirEntry(AniFrameMetadata metadata, AniFrameFormat format, Size size)
+    private static IconDirEntry CreateIconDirEntry(AniFrameMetadata metadata, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel, AniFrameFormat format, Size size)
     {
         // PNG and direct-color bitmap entries do not declare a palette; indexed bitmap entries advertise their color count.
-        byte colorCount = metadata.Compression is IconFrameCompression.Png || metadata.BmpBitsPerPixel > BmpBitsPerPixel.Bit8
+        byte colorCount = compression is IconFrameCompression.Png || bitsPerPixel > BmpBitsPerPixel.Bit8
             ? (byte)0
-            : (byte)ColorNumerics.GetColorCountForBitDepth((int)metadata.BmpBitsPerPixel);
+            : (byte)ColorNumerics.GetColorCountForBitDepth((int)bitsPerPixel);
 
         // ICO stores planes/BPP in these fields, while CUR reuses the same two words for the hotspot coordinates.
         return new IconDirEntry
@@ -399,7 +374,7 @@ internal sealed class AniEncoderCore
             ColorCount = colorCount,
             Planes = format is AniFrameFormat.Ico ? (ushort)1 : metadata.HotspotX,
             BitCount = format is AniFrameFormat.Ico
-                ? metadata.Compression is IconFrameCompression.Bmp ? (ushort)metadata.BmpBitsPerPixel : (ushort)32
+                ? compression is IconFrameCompression.Bmp ? (ushort)bitsPerPixel : (ushort)32
                 : metadata.HotspotY
         };
     }
@@ -496,19 +471,30 @@ internal sealed class AniEncoderCore
     {
         private readonly AniFrameFormat format;
 
+        private readonly BmpBitsPerPixel bitmapBitsPerPixel;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AniIconFrameMetadataProvider"/> struct.
         /// </summary>
         /// <param name="format">The embedded icon format.</param>
-        public AniIconFrameMetadataProvider(AniFrameFormat format)
-            => this.format = format;
+        /// <param name="bitmapBitsPerPixel">The bit depth of the bitmap frames, from the ANI header bit count.</param>
+        public AniIconFrameMetadataProvider(AniFrameFormat format, BmpBitsPerPixel bitmapBitsPerPixel)
+        {
+            this.format = format;
+            this.bitmapBitsPerPixel = bitmapBitsPerPixel;
+        }
 
         /// <inheritdoc/>
         public IconEncoderCore.EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame, out ReadOnlyMemory<Color>? colorTable)
         {
             AniFrameMetadata metadata = frame.Metadata.GetAniMetadata();
             colorTable = metadata.ColorTable;
-            return new IconEncoderCore.EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, CreateIconDirEntry(metadata, this.format, frame.Size));
+
+            // A bitmap frame is written as a CUR frame that holds a bitmap with the bit depth of the ANI header.
+            bool bitmap = metadata.FrameFormat is AniFrameFormat.Bmp;
+            IconFrameCompression compression = bitmap ? IconFrameCompression.Bmp : metadata.Compression;
+            BmpBitsPerPixel bitsPerPixel = bitmap ? this.bitmapBitsPerPixel : metadata.BmpBitsPerPixel;
+            return new IconEncoderCore.EncodingFrameMetadata(compression, bitsPerPixel, CreateIconDirEntry(metadata, compression, bitsPerPixel, this.format, frame.Size));
         }
     }
 }

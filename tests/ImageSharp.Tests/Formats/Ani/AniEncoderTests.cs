@@ -94,12 +94,15 @@ public class AniEncoderTests
     }
 
     /// <summary>
-    /// Verifies the encoder and decoder paths for embedded ICO and BMP resources.
+    /// Verifies the encoder and decoder paths for embedded ICO resources, and that a bitmap frame is written as a CUR
+    /// frame. The ACON specification defines each frame as an embedded .CUR file and has no raw bitmap frames.
     /// </summary>
+    /// <param name="frameFormat">The frame format of the metadata.</param>
+    /// <param name="expectedFormat">The frame format that the encoder writes.</param>
     [Theory]
-    [InlineData(AniFrameFormat.Ico)]
-    [InlineData(AniFrameFormat.Bmp)]
-    public void AniEncoder_RoundTripsOtherFrameFormats(AniFrameFormat frameFormat)
+    [InlineData(AniFrameFormat.Ico, AniFrameFormat.Ico)]
+    [InlineData(AniFrameFormat.Bmp, AniFrameFormat.Cur)]
+    public void AniEncoder_RoundTripsOtherFrameFormats(AniFrameFormat frameFormat, AniFrameFormat expectedFormat)
     {
         using Image<Rgba32> image = new(16, 16, Color.Red.ToPixel<Rgba32>());
         AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
@@ -118,22 +121,16 @@ public class AniEncoderTests
 
         Assert.Equal(stream.Length - 8, BinaryPrimitives.ReadUInt32LittleEndian(stream.GetBuffer().AsSpan(4, sizeof(uint))));
 
-        if (frameFormat is AniFrameFormat.Bmp)
-        {
-            ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
-            int frameChunkOffset = encoded.IndexOf("icon"u8);
-            Assert.True(frameChunkOffset >= 0);
-
-            // AF_ICON-clear resources contain a headerless BMP DIB, not a standalone file beginning with BITMAPFILEHEADER.
-            ReadOnlySpan<byte> frameData = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
-            Assert.False(frameData.StartsWith("BM"u8));
-        }
+        // The flags are the last field of the 36-byte anih header. Each frame is an ICO or CUR file, so AF_ICON is set.
+        ReadOnlySpan<byte> encoded = stream.GetBuffer().AsSpan(0, (int)stream.Length);
+        int headerOffset = encoded.IndexOf("anih"u8) + AniConstants.ChunkHeaderSize;
+        Assert.Equal(AniHeaderFlags.IsIcon, (AniHeaderFlags)BinaryPrimitives.ReadUInt32LittleEndian(encoded[(headerOffset + 32)..]));
 
         stream.Position = 0;
         using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
 
         ImageComparer.Exact.VerifySimilarity(image, decoded);
-        Assert.Equal(frameFormat, decoded.Frames.RootFrame.Metadata.GetAniMetadata().FrameFormat);
+        Assert.Equal(expectedFormat, decoded.Frames.RootFrame.Metadata.GetAniMetadata().FrameFormat);
     }
 
     /// <summary>
@@ -164,17 +161,11 @@ public class AniEncoderTests
         int frameChunkOffset = encoded.IndexOf("icon"u8);
         Assert.True(frameChunkOffset >= 0);
 
+        // Each frame is an ICO or CUR file, and a bitmap frame is written as a CUR frame. The directory entry ends with the
+        // offset of the image data. Metadata-free ICO/CUR bitmaps use BITMAPINFOHEADER.
         ReadOnlySpan<byte> resource = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
-        int dibOffset = 0;
-
-        if (frameFormat is not AniFrameFormat.Bmp)
-        {
-            dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
-        }
-
-        // Metadata-free ICO/CUR bitmaps use BITMAPINFOHEADER, while raw transparent ANI bitmaps require BITMAPV4HEADER.
-        int expectedHeaderSize = frameFormat is AniFrameFormat.Bmp ? BmpInfoHeader.SizeV4 : BmpInfoHeader.SizeV3;
-        Assert.Equal(expectedHeaderSize, BinaryPrimitives.ReadInt32LittleEndian(resource[dibOffset..]));
+        int dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
+        Assert.Equal(BmpInfoHeader.SizeV3, BinaryPrimitives.ReadInt32LittleEndian(resource[dibOffset..]));
     }
 
     /// <summary>

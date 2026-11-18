@@ -67,4 +67,122 @@ public partial class PngDecoderTests
 
         Assert.True(cts.IsCancellationRequested);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Decode_DisposesChunkDataBuffer_WhenCancelledDuringChunkCrcRead(bool identifyOnly)
+    {
+        byte[] pngBytes = CreateMultiPixelPngBytes();
+        int idatCrcOffset = FindFirstChunkCrcOffset(pngBytes, "IDAT");
+
+        using CancellationTokenSource cts = new();
+        using PausedMemoryStream stream = new(pngBytes);
+
+        // Cancel as chunk data finishes so ReadChunkCrc observes cancellation.
+        stream.OnWaiting(s =>
+        {
+            if (s.Position >= idatCrcOffset - 1 && !cts.IsCancellationRequested)
+            {
+                cts.Cancel();
+                stream.Release();
+            }
+            else
+            {
+                stream.Next();
+            }
+        });
+
+        await AssertCancelledDecodeDisposesAllAllocationsAsync(stream, cts.Token, identifyOnly);
+        Assert.True(cts.IsCancellationRequested);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Decode_DisposesChunkDataBuffer_WhenCancelledDuringIdatPositionRestore(bool identifyOnly)
+    {
+        byte[] pngBytes = CreateMultiPixelPngBytes();
+        int idatCrcOffset = FindFirstChunkCrcOffset(pngBytes, "IDAT");
+
+        using CancellationTokenSource cts = new();
+        using PausedMemoryStream stream = new(pngBytes);
+
+        // Cancel during the CRC read so restoring currentStream.Position observes cancellation.
+        stream.OnWaiting(s =>
+        {
+            if (s.Position == idatCrcOffset)
+            {
+                cts.Cancel();
+                stream.Release();
+            }
+            else
+            {
+                stream.Next();
+            }
+        });
+
+        await AssertCancelledDecodeDisposesAllAllocationsAsync(stream, cts.Token, identifyOnly);
+        Assert.True(cts.IsCancellationRequested);
+    }
+
+    private static async Task AssertCancelledDecodeDisposesAllAllocationsAsync(
+        Stream stream,
+        CancellationToken cancellationToken,
+        bool identifyOnly)
+    {
+        SixLabors.ImageSharp.Tests.Memory.TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.MemoryAllocator = allocator;
+        configuration.StreamProcessingBufferSize = 4;
+        DecoderOptions options = new(configuration);
+
+        if (identifyOnly)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await PngDecoder.Instance.IdentifyAsync(options, stream, cancellationToken));
+        }
+        else
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                using Image<Rgba32> image =
+                    await PngDecoder.Instance.DecodeAsync<Rgba32>(options, stream, cancellationToken);
+            });
+        }
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+    }
+
+    private static byte[] CreateMultiPixelPngBytes()
+    {
+        using Image<Rgba32> source = new(16, 16);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded);
+        return encoded.ToArray();
+    }
+
+    private static int FindFirstChunkCrcOffset(byte[] pngBytes, string chunkType)
+    {
+        int offset = 8;
+        while (offset + 12 <= pngBytes.Length)
+        {
+            int length = (pngBytes[offset] << 24)
+                | (pngBytes[offset + 1] << 16)
+                | (pngBytes[offset + 2] << 8)
+                | pngBytes[offset + 3];
+            string type = System.Text.Encoding.ASCII.GetString(pngBytes, offset + 4, 4);
+            int crcOffset = offset + 8 + length;
+            if (type == chunkType)
+            {
+                return crcOffset;
+            }
+
+            offset = crcOffset + 4;
+        }
+
+        throw new InvalidOperationException($"Chunk '{chunkType}' not found.");
+    }
 }

@@ -2205,8 +2205,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
         catch
         {
+            // The caller owns the chunk data only after this method returns. The CRC read and the position restore
+            // can throw first, for example when the stream observes a cancellation request, so dispose the data here.
             chunk.Data?.Dispose();
-            chunk = default;
             throw;
         }
 

@@ -18,4 +18,11 @@ public enum BmpCompression
     /// Other bitmaps are not compressed.
     /// </summary>
     RunLength = 1,
+
+    /// <summary>
+    /// The pixel data uses the one-dimensional coding scheme of ITU-T T.4 (Modified Huffman). The encoder writes it for
+    /// 1-bit palette bitmaps, as OS/2 2.x bitmaps. The OS/2 2.x header cannot hold an ICC profile, so a bitmap with a
+    /// profile is not compressed. Other bitmaps are not compressed.
+    /// </summary>
+    Huffman1D = 2,
 }

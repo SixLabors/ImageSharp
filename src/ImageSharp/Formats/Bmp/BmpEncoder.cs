@@ -9,13 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 public sealed class BmpEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Gets the number of bits per pixel.
-    /// Not all values are allowed for all <see cref="ColorType" /> values.
+    /// Gets the number of bits per pixel. If the value is <see langword="null"/>, the encoder uses
+    /// <see cref="BmpMetadata.BitsPerPixel"/>. If the value does not fit <see cref="ColorType"/>, the encoder uses the
+    /// default depth of the color type.
     /// </summary>
     public BmpBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
-    /// Gets the color type.
+    /// Gets the color type. If the value is <see langword="null"/>, the encoder uses <see cref="BmpMetadata.ColorType"/>.
     /// </summary>
     public BmpColorType? ColorType { get; init; }
 

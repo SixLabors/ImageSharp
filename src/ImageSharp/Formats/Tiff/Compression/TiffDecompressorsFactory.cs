@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -75,15 +76,15 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.T4:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T4TiffCompression(allocator, fillOrder, segmentWidth, bitsPerPixel, faxOptions, photometricInterpretation);
+                return new T4TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, faxOptions);
 
             case TiffDecoderCompressionType.T6:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T6TiffCompression(allocator, fillOrder, segmentWidth, bitsPerPixel, photometricInterpretation);
+                return new T6TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel);
 
             case TiffDecoderCompressionType.HuffmanRle:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new ModifiedHuffmanTiffCompression(allocator, fillOrder, segmentWidth, bitsPerPixel, photometricInterpretation);
+                return new ModifiedHuffmanTiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel);
 
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
@@ -103,4 +104,16 @@ internal static class TiffDecompressorsFactory
                 throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));
         }
     }
+
+    /// <summary>
+    /// Gets the CCITT bit order for a TIFF fill order. A fill order of 2 stores the first pixel in the low-order bit.
+    /// Any other value uses the default fill order 1, which stores the first pixel in the high-order bit. See TIFF 6.0
+    /// specification, section 8, FillOrder, page 32: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+    /// </summary>
+    /// <param name="fillOrder">The TIFF fill order.</param>
+    /// <returns>The CCITT bit order.</returns>
+    private static CcittBitOrder GetCcittBitOrder(TiffFillOrder fillOrder)
+        => fillOrder == TiffFillOrder.LeastSignificantBitFirst
+            ? CcittBitOrder.LeastSignificantBitFirst
+            : CcittBitOrder.MostSignificantBitFirst;
 }

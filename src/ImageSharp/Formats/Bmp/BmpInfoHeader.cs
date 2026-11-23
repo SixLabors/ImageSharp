@@ -160,8 +160,7 @@ internal struct BmpInfoHeader
     public ushort BitsPerPixel { get; set; }
 
     /// <summary>
-    /// Gets or sets the compression method being used.
-    /// See the next table for a list of possible values.
+    /// Gets or sets the compression of the pixel data. See <see cref="BmpInfoCompression"/>.
     /// </summary>
     public BmpInfoCompression Compression { get; set; }
 
@@ -393,21 +392,25 @@ internal struct BmpInfoHeader
         switch (BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)))
         {
             case 0:
-                infoHeader.Compression = BmpInfoCompression.RGB;
+                infoHeader.Compression = BmpInfoCompression.Rgb;
                 break;
             case 1:
-                infoHeader.Compression = BmpInfoCompression.RLE8;
+                infoHeader.Compression = BmpInfoCompression.Rle8;
                 break;
             case 2:
-                infoHeader.Compression = BmpInfoCompression.RLE4;
+                infoHeader.Compression = BmpInfoCompression.Rle4;
+                break;
+            case 3:
+                // BCA_HUFFMAN1D is "valid for a bi-level (one bit per pel) bit map". See BITMAPINFOHEADER2:
+                // http://www.edm2.com/index.php/BITMAPINFOHEADER2
+                infoHeader.Compression = BmpInfoCompression.Huffman1D;
                 break;
             case 4:
-                infoHeader.Compression = BmpInfoCompression.RLE24;
+                infoHeader.Compression = BmpInfoCompression.Rle24;
                 break;
             default:
-                // Compression type 3 (1DHuffman) is not supported.
                 BmpThrowHelper.ThrowInvalidImageContentException(
-                    "Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8 and RLE24.");
+                    "Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8, RLE24 and Huffman 1D.");
 
                 break;
         }
@@ -488,6 +491,41 @@ internal struct BmpInfoHeader
         BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)this.Compression);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
+    }
+
+    /// <summary>
+    /// Writes an OS/2 2.x header (BITMAPINFOHEADER2) to a buffer (64 bytes).
+    /// </summary>
+    /// <remarks>
+    /// The first 40 bytes have the layout of the V3 header, but the compression has the OS/2 values. The last 24 bytes
+    /// are 0: units of pixels per meter, bottom-up rows, no halftone and RGB color entries. See the Encyclopedia of
+    /// Graphics File Formats, OS/2 Bitmap: https://www.fileformat.info/format/os2bmp/egff.htm
+    /// </remarks>
+    /// <param name="buffer">The buffer to write to.</param>
+    public void WriteOs2Version2Header(Span<byte> buffer)
+    {
+        // The OS/2 compression values are the reverse of the mapping in ParseOs2Version2.
+        int compression = this.Compression switch
+        {
+            BmpInfoCompression.Rle8 => 1,
+            BmpInfoCompression.Rle4 => 2,
+            BmpInfoCompression.Huffman1D => 3,
+            BmpInfoCompression.Rle24 => 4,
+            _ => 0
+        };
+
+        buffer[..Os2v2Size].Clear();
+        BinaryPrimitives.WriteInt32LittleEndian(buffer[..4], Os2v2Size);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
+        BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
+        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), compression);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);

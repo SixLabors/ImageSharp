@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -15,46 +16,27 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
 {
     private readonly FaxCompressionOptions faxCompressionOptions;
 
-    private readonly byte whiteValue;
-
-    private readonly byte blackValue;
-
-    private readonly int width;
+    private readonly CcittBitOrder bitOrder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="fillOrder">The logical order of bits within a byte.</param>
+    /// <param name="bitOrder">The order of the code bits in each byte.</param>
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
     /// <param name="faxOptions">Fax compression options.</param>
-    /// <param name="photometricInterpretation">The photometric interpretation.</param>
     public T4TiffCompression(
         MemoryAllocator allocator,
-        TiffFillOrder fillOrder,
+        CcittBitOrder bitOrder,
         int width,
         int bitsPerPixel,
-        FaxCompressionOptions faxOptions,
-        TiffPhotometricInterpretation photometricInterpretation)
+        FaxCompressionOptions faxOptions)
         : base(allocator, width, bitsPerPixel)
     {
         this.faxCompressionOptions = faxOptions;
-        this.FillOrder = fillOrder;
-        this.width = width;
-        bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-        this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
-        this.blackValue = (byte)(isWhiteZero ? 1 : 0);
+        this.bitOrder = bitOrder;
     }
-
-    /// <summary>
-    /// Gets the logical order of bits within a byte.
-    /// </summary>
-    private TiffFillOrder FillOrder { get; }
-
-    /// <inheritdoc/>
-    /// <remarks>The fax decoder clears the sample buffer before each block and checks the range of every write.</remarks>
-    protected override bool CanDiscardFailedBlock => true;
 
     /// <inheritdoc/>
     protected override void Decompress<TPixel>(
@@ -65,68 +47,20 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
             TiffThrowHelper.ThrowNotSupported("TIFF CCITT 2D compression is not yet supported");
         }
 
-        bool eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
-        T4BitReader bitReader = new(stream, this.FillOrder, byteCount, eolPadding);
-
+        // The sample rows hold 1 for a black pixel of the code. The TIFF color decoder applies the photometric
+        // interpretation, which reverses white and black for BlackIsZero. See TIFF 6.0 specification, section 10, page 44.
         buffer.Clear();
-        nint bitsWritten = 0;
-        nuint pixelsWritten = 0;
-        nint rowsWritten = 0;
-        while (bitReader.HasMoreData)
-        {
-            bitReader.ReadNextRun();
 
-            if (bitReader.RunLength > 0)
+        // Each sample row holds 1 bit for each pixel and starts on a byte boundary.
+        // The decoder skips the fill bits before each EOL code, so the EolPadding option needs no other handling.
+        int rowBytes = (this.Width + 7) / 8;
+        T4RowDecoder decoder = new(stream, this.bitOrder, byteCount, this.Width);
+        for (int y = 0; y < stripHeight; y++)
+        {
+            if (!decoder.DecodeRow(buffer.Slice(y * rowBytes, rowBytes)))
             {
-                this.WritePixelRun(buffer, bitReader, bitsWritten, pixelsWritten);
-
-                bitsWritten += (int)bitReader.RunLength;
-                pixelsWritten += bitReader.RunLength;
+                return;
             }
-
-            if (bitReader.IsEndOfScanLine)
-            {
-                // Write padding bytes, if necessary.
-                nint pad = 8 - Numerics.Modulo8(bitsWritten);
-                if (pad != 8)
-                {
-                    BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
-                    bitsWritten += pad;
-                }
-
-                pixelsWritten = 0;
-                rowsWritten++;
-
-                if (rowsWritten >= stripHeight)
-                {
-                    break;
-                }
-            }
-        }
-
-        // Edge case for when we are at the last byte, but there are still some unwritten pixels left.
-        if (pixelsWritten > 0 && pixelsWritten < (ulong)this.width)
-        {
-            bitReader.ReadNextRun();
-            this.WritePixelRun(buffer, bitReader, bitsWritten, pixelsWritten);
-        }
-    }
-
-    private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, nint bitsWritten, nuint pixelsWritten)
-    {
-        // A decoded run is untrusted and must fit the current row before the unchecked bit writer is used.
-        if (bitReader.RunLength > (nuint)this.width - pixelsWritten)
-        {
-            TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
-        }
-
-        if (bitReader.IsWhiteRun)
-        {
-            BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
-        }
-        else
-        {
-            BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.blackValue);
         }
     }
 

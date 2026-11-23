@@ -9,6 +9,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga;
 [Trait("Format", "Tga")]
 public class TgaMetadataTests
 {
+    /// <summary>
+    /// Each true-color depth reports the BGR storage order and one component for each channel.
+    /// </summary>
+    /// <param name="bitsPerPixel">The bit depth.</param>
+    /// <param name="expectedColorType">The expected color type.</param>
+    /// <param name="expectedComponentCount">The expected component count.</param>
     [Theory]
     [InlineData(TgaBitsPerPixel.Bit8, PixelColorType.Luminance, 1)]
     [InlineData(TgaBitsPerPixel.Bit16, PixelColorType.BGR | PixelColorType.Alpha, 4)]
@@ -24,6 +30,9 @@ public class TgaMetadataTests
         Assert.Equal(expectedComponentCount, info.ComponentInfo.Value.ComponentCount);
     }
 
+    /// <summary>
+    /// A clone of the metadata does not share its values with the source.
+    /// </summary>
     [Fact]
     public void CloneIsDeep()
     {
@@ -37,6 +46,11 @@ public class TgaMetadataTests
         Assert.False(meta.Compression.Equals(clone.Compression));
     }
 
+    /// <summary>
+    /// Identify reports the compression of the file in the metadata.
+    /// </summary>
+    /// <param name="imagePath">The image path.</param>
+    /// <param name="expectedCompression">The expected compression.</param>
     [Theory]
     [InlineData(TestImages.Tga.Bit24BottomLeft, TgaCompression.None)]
     [InlineData(TestImages.Tga.Bit24RleBottomLeft, TgaCompression.RunLength)]

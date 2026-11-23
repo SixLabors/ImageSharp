@@ -791,6 +791,9 @@ public partial class PngEncoderTests
         ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
     }
 
+    /// <summary>
+    /// A palette from the metadata keeps the exact color of each pixel, also for two colors in one coarse cache bucket.
+    /// </summary>
     [Fact]
     public void Encode_PaletteFromMetadata_KeepsExactColors()
     {

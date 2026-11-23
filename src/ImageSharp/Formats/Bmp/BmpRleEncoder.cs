@@ -258,12 +258,14 @@ internal static class BmpRleEncoder
         int limit = Math.Min(MaxRunLength, indices.Length - start);
 
         // Any one or two indices make a pair run.
-        int run = Math.Min(2, limit);
-        while (run < limit && indices[start + run] == indices[start + run - 2])
+        if (limit <= 2)
         {
-            run++;
+            return limit;
         }
 
-        return run;
+        // Each index after the first two must equal the index two places before it. The common prefix of the row from
+        // start + 2 and the row from start counts those indices, with the vectorized compare of the span.
+        ReadOnlySpan<byte> run = indices.Slice(start, limit);
+        return 2 + run[2..].CommonPrefixLength(run[..(limit - 2)]);
     }
 }

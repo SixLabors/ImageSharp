@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -201,20 +202,23 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// A 32-bit RGB bitmap with a version 3 header has alpha when any fourth byte is not 0. The fourth bytes of all
-    /// pixels are then alpha, also in rows before the first alpha that is not 0.
+    /// BI_RGB does not use the fourth byte of a 32-bit pixel, so a bitmap with a version 3 header is opaque, also when
+    /// that byte is not 0. Identify and Decode both give the color type without alpha.
     /// </summary>
     [Fact]
-    public void Decode_Rgb32V3WithAlphaAfterFirstRow_DecodesAllRowsWithAlpha()
+    public void Decode_Rgb32V3_IgnoresFourthByte()
     {
-        // A 1 x 2 image of B, G, R, A pixels. The first stored row (the bottom image row) is red with alpha 0. The
-        // second stored row (the top image row) is blue with alpha 128.
+        // A 1 x 2 image of B, G, R and fourth-byte pixels. The first stored row (the bottom image row) is red with 0. The
+        // second stored row (the top image row) is blue with 128.
         byte[] payload = CreateBitmap(1, 2, 32, RgbCompression, [], [], [0, 0, 255, 0, 255, 0, 0, 128]);
 
+        ImageInfo info = Image.Identify(payload);
         using Image<Rgba32> image = Image.Load<Rgba32>(payload);
 
-        Assert.Equal(new Rgba32(255, 0, 0, 0), image[0, 1]);
-        Assert.Equal(new Rgba32(0, 0, 255, 128), image[0, 0]);
+        Assert.Equal(new Rgba32(255, 0, 0, 255), image[0, 1]);
+        Assert.Equal(new Rgba32(0, 0, 255, 255), image[0, 0]);
+        Assert.Equal(BmpColorType.Bgr, info.Metadata.GetBmpMetadata().ColorType);
+        Assert.Equal(BmpColorType.Bgr, image.Metadata.GetBmpMetadata().ColorType);
     }
 
     /// <summary>
@@ -817,6 +821,75 @@ public class BmpDecoderTests
         // System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
         // Compare to reference output instead.
         image.CompareToReferenceOutput(provider, extension: "png");
+    }
+
+    /// <summary>
+    /// The bmpsuite file pal1huffmsb.bmp holds the image of pal1wb.bmp as OS/2 Huffman 1D data, which libtiff wrote. The
+    /// two files decode to the same pixels.
+    /// </summary>
+    [Fact]
+    public void BmpDecoder_CanDecode_Os2v2Huffman1D()
+    {
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(Os2v2Huffman1D).Bytes);
+
+        BmpMetadata metadata = image.Metadata.GetBmpMetadata();
+        Assert.Equal(BmpInfoHeaderType.Os2Version2, metadata.InfoHeaderType);
+        Assert.Equal(BmpCompression.Huffman1D, metadata.Compression);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
+    /// <summary>
+    /// Fill bits can come before each EOL code: ITU-T T.4 (07/2003), section 4.1.3, page 4, https://www.itu.int/rec/T-REC-T.4. The test puts 52 fill bits
+    /// before the first EOL code of the bmpsuite file, so the fill bits and the EOL code are 64 bits, and they decode to
+    /// the same pixels.
+    /// </summary>
+    [Fact]
+    public void Decode_Huffman1DLongFill_DecodesSameRows()
+    {
+        // The data starts with the EOL code on a byte boundary. A shift of the data by 52 bits puts 52 zero bits before
+        // it. bfOffBits is at byte 10 of the file header.
+        byte[] data = TestFile.Create(Os2v2Huffman1D).Bytes;
+        int offset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        System.Numerics.BigInteger bits = new(data.AsSpan(offset), true, true);
+        int length = data.Length - offset;
+        byte[] shifted = (bits << (((length + 7) * 8) - (length * 8) - 52)).ToByteArray(true, true);
+
+        // The shift adds 52 bits, so the data needs 7 more bytes, and the last 4 bits are zero padding.
+        byte[] filled = new byte[offset + length + 7];
+        data.AsSpan(0, offset).CopyTo(filled);
+        shifted.CopyTo(filled.AsSpan(filled.Length - shifted.Length));
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(filled);
+
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
+    /// <summary>
+    /// Huffman 1D data that ends early is not an error, as for RGB and RLE data that ends early. The decoder keeps the
+    /// rows decoded before the end, even with <see cref="SegmentIntegrityHandling.Strict"/>.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedHuffman1D_KeepsDecodedRows()
+    {
+        // Keep the headers, the color table and half of the compressed data. bfOffBits is at byte 10 of the file header.
+        byte[] data = TestFile.Create(Os2v2Huffman1D).Bytes;
+        int offset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        byte[] truncated = data[..(offset + ((data.Length - offset) / 2))];
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, truncated);
+
+        // The rows are bottom-up. The data has the last image row first, so that row is decoded. The first image row is
+        // stored last, so it is not decoded and stays transparent black.
+        int last = image.Height - 1;
+        for (int x = 0; x < image.Width; x++)
+        {
+            Assert.Equal(expected[x, last], image[x, last]);
+            Assert.Equal(default, image[x, 0]);
+        }
     }
 
     [Theory]

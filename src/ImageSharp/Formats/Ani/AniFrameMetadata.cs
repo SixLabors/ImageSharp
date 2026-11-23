@@ -52,13 +52,14 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
 
     /// <summary>
     /// Gets or sets the animation sequence number. Frames with the same positive value play one stored frame. Adjacent
-    /// frames with the same value are its resolution variants, and the encoder stores them once. A non-positive value
+    /// frames with the same value are its resolution variants, and the encoder stores them once. An adjacent frame whose
+    /// size and depth are already in the step starts a new step, which plays the same stored frame. A non-positive value
     /// encodes the frame as its own animation step.
     /// </summary>
     /// <remarks>
     /// The decoder gives each frame the number of the stored frame that it plays, so a frame that plays in two steps
-    /// has the same number in both. The encoder writes the frames of the first step with a number. To change the
-    /// pixels of one step only, give its frames a new number.
+    /// has the same number in both. For each number, the encoder writes only the frames of the first step, and it
+    /// ignores the pixels of later steps. To change the pixels of one step only, give its frames a new number.
     /// </remarks>
     public int SequenceNumber { get; set; }
 
@@ -223,9 +224,8 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
                     break;
 
                 case BmpBitsPerPixel.Bit16:
-                    componentInfo = this.BmpColorType is BmpColorType.Bgr565
-                        ? PixelComponentInfo.Create(3, bitsPerPixel, 5, 6, 5)
-                        : PixelComponentInfo.Create(3, bitsPerPixel, 5, 5, 5);
+                    // The icon encoder writes BI_RGB bitmaps, and a 16-bit BI_RGB bitmap has the 5-5-5 layout.
+                    componentInfo = PixelComponentInfo.Create(3, bitsPerPixel, 5, 5, 5);
 
                     colorType = PixelColorType.RGB;
                     break;

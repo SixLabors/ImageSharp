@@ -119,8 +119,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     else
                     {
                         BmpMetadata currentBmpMetadata = decoded.Metadata.GetBmpMetadata();
-                        bitsPerPixel = currentBmpMetadata.BitsPerPixel;
-                        colorType = currentBmpMetadata.ColorType;
+                        (bitsPerPixel, colorType) = GetBitmapLayout(currentBmpMetadata);
                         colorTable = GetBitmapColorTable(currentBmpMetadata);
 
                         if (i == 0)
@@ -231,8 +230,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 else
                 {
                     BmpMetadata currentBmpMetadata = frameInfo.Metadata.GetBmpMetadata();
-                    bitsPerPixel = currentBmpMetadata.BitsPerPixel;
-                    colorType = currentBmpMetadata.ColorType;
+                    (bitsPerPixel, colorType) = GetBitmapLayout(currentBmpMetadata);
                     colorTable = GetBitmapColorTable(currentBmpMetadata);
 
                     if (frameCount is 0)
@@ -342,14 +340,30 @@ internal abstract class IconDecoderCore : ImageDecoderCore
     /// Gets the color table of an icon bitmap for the frame metadata.
     /// </summary>
     /// <remarks>
-    /// Only icon bitmaps of 8 bits or fewer have a color table, and ICONDIRENTRY stores its color count in one byte:
-    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// ICONIMAGE uses only six BITMAPINFOHEADER members, and "All other members must be 0", biClrUsed too. With
+    /// biClrUsed 0, a bitmap above 8 bits per pixel has no color table: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
     /// A direct-color bitmap can store an optional table of any size, which the icon formats do not use.
     /// </remarks>
     /// <param name="metadata">The BMP metadata of the decoded bitmap.</param>
     /// <returns>The color table, or <see langword="null"/> for a direct-color bitmap.</returns>
     public static ReadOnlyMemory<Color>? GetBitmapColorTable(BmpMetadata metadata)
         => metadata.BitsPerPixel <= BmpBitsPerPixel.Bit8 ? metadata.ColorTable : null;
+
+    /// <summary>
+    /// Gets the bit depth and the color type of an icon bitmap for the frame metadata.
+    /// </summary>
+    /// <remarks>
+    /// The bitmap of an icon image must set biCompression to 0 (BI_RGB), so the icon encoder writes BI_RGB only:
+    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// A 16-bit BI_RGB bitmap has the 5-5-5 layout. A decoded 5-6-5 bitmap gets the 24-bit layout, so a re-encode keeps
+    /// each bit.
+    /// </remarks>
+    /// <param name="metadata">The BMP metadata of the decoded bitmap.</param>
+    /// <returns>The bit depth and the color type.</returns>
+    public static (BmpBitsPerPixel BitsPerPixel, BmpColorType ColorType) GetBitmapLayout(BmpMetadata metadata)
+        => metadata.ColorType is BmpColorType.Bgr565
+            ? (BmpBitsPerPixel.Bit24, BmpColorType.Bgr)
+            : (metadata.BitsPerPixel, metadata.ColorType);
 
     /// <summary>
     /// Creates the BMP decoder options for the bitmap of an icon image: a headerless DIB whose height covers the color

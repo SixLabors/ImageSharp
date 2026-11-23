@@ -1051,7 +1051,8 @@ internal static class PixelConverter
     }
 
     /// <summary>
-    /// Converts between pixels of a 16-bit layout and the 4-byte and 3-byte layouts, with SIMD.
+    /// Converts pixels of a 16-bit layout to and from the 4-byte layouts, the 3-byte layouts and the other 16-bit layout,
+    /// with SIMD.
     /// </summary>
     /// <typeparam name="TLayout">The 16-bit layout.</typeparam>
     private static class Packed16Kernels<TLayout>
@@ -1293,7 +1294,7 @@ internal static class PixelConverter
         /// <summary>
         /// Unpacks <typeparamref name="TLayout"/> pixels to pixels with three 8-bit channels, as
         /// <see cref="IPacked16Layout.Unpack(ushort)"/>.
-        /// Alpha is not kept.
+        /// The conversion drops alpha.
         /// </summary>
         /// <remarks>
         /// The 4-byte lane arithmetic unpacks the pixels to four registers of 32-bit lanes. <c>SimdUtils.Join4To3</c>

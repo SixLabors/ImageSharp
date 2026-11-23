@@ -7,6 +7,11 @@ namespace SixLabors.ImageSharp.Formats;
 /// Specifies how to handle validation of recoverable errors in ancillary and image data segments.
 /// Structural errors that prevent safe decoding remain fatal regardless of the selected mode.
 /// </summary>
+/// <remarks>
+/// Some decoders continue past damaged data inside compressed image data in each mode, and keep the pixels that they
+/// decode. For example, a JPEG decoder continues at the next restart marker, and a CCITT fax decoder continues at the
+/// next EOL code. Such damage is not a segment error.
+/// </remarks>
 public enum SegmentIntegrityHandling
 {
     /// <summary>

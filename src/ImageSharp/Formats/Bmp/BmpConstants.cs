@@ -24,8 +24,8 @@ internal static class BmpConstants
     public static readonly IEnumerable<string> FileExtensions = ["bm", "bmp", "dip"];
 
     /// <summary>
-    /// The bit depths of each color type. The first depth of each color type is the depth that the encoder uses when the
-    /// requested depth does not fit the color type, as the PNG encoder does with its color types.
+    /// The bit depths of each color type. The first depth of each color type is the default depth. The encoder uses it
+    /// when the requested depth does not fit the color type.
     /// </summary>
     public static readonly Dictionary<BmpColorType, BmpBitsPerPixel[]> ColorTypes = new()
     {

@@ -22,7 +22,7 @@ internal sealed class AniEncoderCore
 {
     private readonly AniEncoder encoder;
 
-    // Each nested icon encoder is configured once and reused for every resource of that type in this ANI operation.
+    // The ANI encoder configures each nested icon encoder once and uses it for every resource of that type.
     private IcoEncoderCore? icoEncoder;
     private CurEncoderCore? curEncoder;
 
@@ -123,10 +123,10 @@ internal sealed class AniEncoderCore
 
         steps = steps[..stepCount];
 
-        // The ACON specification defines each frame as an embedded .CUR file, so the encoder always sets AF_ICON. It marks
-        // cx, cy, cBitCount and cPlanes as reserved, must be 0, because each ICO or CUR frame holds those values. The
-        // 'seq ' chunk gives the stored frame of each step, so it is necessary only when a step plays a stored frame
-        // again. See the Multimedia Data Standards Update, April 15, 1994, page 9:
+        // The ACON specification defines each frame as an embedded .CUR file (page 9), so the encoder always sets
+        // AF_ICON. It marks cx, cy, cBitCount and cPlanes as "reserved, must be 0" (page 10). Each ICO or CUR frame holds
+        // those values instead. The 'seq ' chunk gives the stored frame of each step, so it is necessary only when a
+        // step plays a stored frame again. See the Multimedia Data Standards Update, April 15, 1994, pages 9-10:
         // https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
         AniHeader header = new()
         {
@@ -164,7 +164,7 @@ internal sealed class AniEncoderCore
 
         long frameListSizePosition = this.BeginContainer(stream, "LIST"u8, "fram"u8);
 
-        // Each stored frame is written once, from its first step. Stored frames get their indices in this order.
+        // The encoder writes each stored frame once, from its first step. Stored frames get their indices in this order.
         int written = 0;
         foreach (AniStep step in steps)
         {
@@ -376,7 +376,7 @@ internal sealed class AniEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Only the active prefix is exposed to the child encoder; the same backing allocation serves later resources.
+        // The child encoder gets only the active prefix. Later resources use the same allocation.
         Span<IconEncoderCore.EncodingFrameMetadata> entries = iconEntries[..frameCount];
         AniIconFrameMetadataProvider provider = new(format);
 

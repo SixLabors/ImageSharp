@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,6 +66,38 @@ public class TiffDecoderStripLayoutTests
             using Image<Rgb48> actual = Image.Load<Rgb48>(options, data);
 
             ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Planar offsets are grouped by plane, StripsPerImage entries for each plane: TIFF 6.0 specification, section 8,
+    /// StripOffsets, page 40, https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf. With
+    /// one byte count missing, the last plane has no second strip. The decoder keeps the plane stride from the image
+    /// height, decodes the first strip of each plane, and leaves the rows of the second strip cleared.
+    /// </summary>
+    [Fact]
+    public void Decode_PlanarStripByteCountMissing_DecodesStripsOfAllPlanes()
+    {
+        // The file is 1024 x 700 with 600 rows per strip: 2 strips for each of 3 planes. It is little-endian. The IFD
+        // offset is at byte 4, and each 12-byte entry has its tag at byte 0 and its count at byte 4. StripByteCounts is
+        // tag 279.
+        byte[] data = TestFile.Create(PlanarRgb16MultipleStrips).Bytes;
+        using Image<Rgb48> expected = Image.Load<Rgb48>(data);
+
+        int ifd = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(4));
+        int count = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(ifd));
+        int entry = Enumerable.Range(0, count).Select(i => ifd + 2 + (i * 12)).Single(e => BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(e)) == 279);
+        Assert.Equal(6, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(entry + 4)));
+        BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(entry + 4), 5);
+
+        using Image<Rgb48> actual = Image.Load<Rgb48>(data);
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            for (int x = 0; x < actual.Width; x++)
+            {
+                Assert.Equal(y < 600 ? expected[x, y] : default, actual[x, y]);
+            }
         }
     }
 

@@ -14,6 +14,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 [Trait("Format", "Bmp")]
 public class BmpMetadataTests
 {
+    /// <summary>
+    /// A clone of the metadata does not share its values with the source.
+    /// </summary>
     [Fact]
     public void CloneIsDeep()
     {
@@ -41,12 +44,18 @@ public class BmpMetadataTests
         Assert.False(meta.Compression.Equals(clone.Compression));
     }
 
+    /// <summary>
+    /// Identify reports the compression of the file in the metadata.
+    /// </summary>
+    /// <param name="imagePath">The image path.</param>
+    /// <param name="expectedCompression">The expected compression.</param>
     [Theory]
     [InlineData(Bit8, BmpCompression.None)]
     [InlineData(Car, BmpCompression.None)]
     [InlineData(RLE8, BmpCompression.RunLength)]
     [InlineData(RLE4, BmpCompression.RunLength)]
     [InlineData(RLE24, BmpCompression.RunLength)]
+    [InlineData(Os2v2Huffman1D, BmpCompression.Huffman1D)]
     public void Identify_DetectsCompression(string imagePath, BmpCompression expectedCompression)
     {
         TestFile testFile = TestFile.Create(imagePath);
@@ -94,6 +103,12 @@ public class BmpMetadataTests
         Assert.Equal(expectedColorType, bitmapMetadata.ColorType);
     }
 
+    /// <summary>
+    /// Each direct color type reports the BGR storage order.
+    /// </summary>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitsPerPixel">The bit depth.</param>
+    /// <param name="expected">The expected color type.</param>
     [Theory]
     [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit8, PixelColorType.Indexed)]
     [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit16, PixelColorType.BGR)]

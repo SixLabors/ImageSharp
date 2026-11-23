@@ -4,10 +4,12 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -78,9 +80,16 @@ internal sealed class BmpEncoderCore
     private BmpColorType colorType;
 
     /// <summary>
-    /// Whether the indexed rows are written as RLE8 or RLE4 data. Only 8-bit and 4-bit palette bitmaps can use RLE.
+    /// Whether the encoder writes the indexed rows as RLE8 or RLE4 data. Only 8-bit and 4-bit palette bitmaps can use
+    /// RLE.
     /// </summary>
     private bool runLength;
+
+    /// <summary>
+    /// Whether the encoder writes the indexed rows as Huffman 1D data in an OS/2 2.x bitmap. Only 1-bit palette bitmaps
+    /// can use Huffman 1D.
+    /// </summary>
+    private bool huffman1D;
 
     /// <summary>
     /// The color depth of the image being encoded, in number of bits per pixel. It always fits <see cref="colorType"/>.
@@ -89,7 +98,8 @@ internal sealed class BmpEncoderCore
 
     /// <summary>
     /// The info header version. The alpha color types write a V4 header, which holds an alpha mask. An ICC profile
-    /// needs a V5 header. Other images write a V3 header, which almost all decoders read.
+    /// needs a V5 header. Huffman 1D needs an OS/2 2.x header. Other images write a V3 header, which almost all decoders
+    /// read.
     /// </summary>
     private BmpInfoHeaderType infoHeaderType;
 
@@ -224,9 +234,9 @@ internal sealed class BmpEncoderCore
             ? BmpInfoHeaderType.WinVersion4
             : BmpInfoHeaderType.WinVersion3;
 
-        // BI_RLE8 compresses 8-bit bitmaps and BI_RLE4 compresses 4-bit bitmaps. No other depth has an RLE format:
+        // BI_RLE8 compresses 8-bit bitmaps and BI_RLE4 compresses 4-bit bitmaps. Windows defines RLE for no other depth:
         // https://learn.microsoft.com/en-us/windows/win32/gdi/bitmap-compression
-        // Bitmaps of other depths are written uncompressed.
+        // The encoder does not write OS/2 RLE24, so it writes the bitmaps of other depths uncompressed.
         BmpCompression compression = this.configuredCompression ?? bmpMetadata.Compression;
         this.runLength = compression is BmpCompression.RunLength && this.bitsPerPixel is BmpBitsPerPixel.Bit8 or BmpBitsPerPixel.Bit4;
 
@@ -278,11 +288,21 @@ internal sealed class BmpEncoderCore
             this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
         }
 
+        // Huffman 1D compresses 1-bit bitmaps, and only the OS/2 2.x header defines it. That header has no field for an
+        // ICC profile, so the encoder writes a bitmap with a profile uncompressed, with the V5 header. See
+        // BITMAPINFOHEADER2: http://www.edm2.com/index.php/BITMAPINFOHEADER2
+        this.huffman1D = compression is BmpCompression.Huffman1D && this.bitsPerPixel is BmpBitsPerPixel.Bit1 && iccProfileData.IsEmpty;
+        if (this.huffman1D)
+        {
+            this.infoHeaderType = BmpInfoHeaderType.Os2Version2;
+        }
+
         int infoHeaderSize = this.infoHeaderType switch
         {
             BmpInfoHeaderType.WinVersion3 => BmpInfoHeader.SizeV3,
             BmpInfoHeaderType.WinVersion4 => BmpInfoHeader.SizeV4,
             BmpInfoHeaderType.WinVersion5 => BmpInfoHeader.SizeV5,
+            BmpInfoHeaderType.Os2Version2 => BmpInfoHeader.Os2v2Size,
             _ => BmpInfoHeader.SizeV3
         };
 
@@ -302,15 +322,17 @@ internal sealed class BmpEncoderCore
             ? 3 * sizeof(int)
             : 0;
 
-        // The size fields of the headers are 32-bit signed integers in this encoder and in its decoder. RLE data has its
-        // size only after the encode, so Encode checks it then.
-        long dataSize = this.runLength ? 0 : (long)height * bytesPerLine;
+        // The size fields of the headers are 32-bit signed integers in this encoder and in its decoder. Compressed data has
+        // its size only after the encode, so Encode checks it then.
+        bool compressed = this.runLength || this.huffman1D;
+        long dataSize = compressed ? 0 : (long)height * bytesPerLine;
         if (BmpFileHeader.Size + infoHeaderSize + bitFieldsSize + colorPaletteSize + iccProfileSize + dataSize > int.MaxValue)
         {
             throw new ImageFormatException("Image is too large to encode in BMP format.");
         }
 
-        // The largest header is the 124-byte V5 header. The V3 mask block adds 12 bytes to the 40-byte V3 header.
+        // The largest header is the 124-byte V5 header. The V3 mask block adds 12 bytes to the 40-byte V3 header. The OS/2
+        // 2.x header has 64 bytes.
         Span<byte> buffer = stackalloc byte[infoHeaderSize + bitFieldsSize];
 
         // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
@@ -322,20 +344,20 @@ internal sealed class BmpEncoderCore
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize, bitFieldsSize);
         this.WriteImage(configuration, stream, frame, converter, cancellationToken);
 
-        if (this.runLength)
+        if (compressed)
         {
-            // The size of RLE data is known only after the encode. The output stream is seekable, so write the size into
-            // the headers now. The pixel data starts after the info header and the color table.
+            // The size of compressed data is known only after the encode. The output stream is seekable, so write the size
+            // into the headers now. The pixel data starts after the info header and the color table.
             long end = stream.Position;
-            long rleSize = end - (infoHeaderPosition + infoHeaderSize + colorPaletteSize);
-            if (BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + rleSize > int.MaxValue)
+            long compressedSize = end - (infoHeaderPosition + infoHeaderSize + colorPaletteSize);
+            if (BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + compressedSize > int.MaxValue)
             {
                 throw new ImageFormatException("Image is too large to encode in BMP format.");
             }
 
-            int imageSize = (int)rleSize;
+            int imageSize = (int)compressedSize;
 
-            // biSizeImage is at byte 20 of the info header.
+            // biSizeImage (cbImage in the OS/2 2.x header) is at byte 20 of the info header.
             BinaryPrimitives.WriteInt32LittleEndian(buffer, imageSize);
             stream.Position = infoHeaderPosition + 20;
             stream.Write(buffer[..4]);
@@ -419,10 +441,15 @@ internal sealed class BmpEncoderCore
             clrUsed: 0,
             clrImportant: 0);
 
-        // RLE data has its size only after the encode. Encode writes the size into the headers then.
+        // Compressed data has its size only after the encode. Encode writes the size into the headers then.
         if (this.runLength)
         {
-            infoHeader.Compression = bpp == 8 ? BmpInfoCompression.RLE8 : BmpInfoCompression.RLE4;
+            infoHeader.Compression = bpp == 8 ? BmpInfoCompression.Rle8 : BmpInfoCompression.Rle4;
+            infoHeader.ImageSize = 0;
+        }
+        else if (this.huffman1D)
+        {
+            infoHeader.Compression = BmpInfoCompression.Huffman1D;
             infoHeader.ImageSize = 0;
         }
 
@@ -533,6 +560,9 @@ internal sealed class BmpEncoderCore
             case BmpInfoHeaderType.WinVersion5:
                 infoHeader.WriteV5Header(buffer);
                 break;
+            case BmpInfoHeaderType.Os2Version2:
+                infoHeader.WriteOs2Version2Header(buffer);
+                break;
         }
 
         // With BI_BITFIELDS, the color table of a V3 bitmap holds three masks, in the order red, green, blue.
@@ -574,19 +604,39 @@ internal sealed class BmpEncoderCore
         switch (this.bitsPerPixel)
         {
             case BmpBitsPerPixel.Bit32:
-                this.WriteDirectColorPixels<TPixel, Bgra32>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                // BI_RGB does not use the fourth byte of a 32-bit pixel, so a BGR pixel stores 0 there. See BITMAPINFOHEADER,
+                // biBitCount: https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+                // An icon bitmap is BI_RGB too, but it keeps alpha in the fourth byte, as icon readers expect.
+                this.WriteDirectColorPixels<TPixel, Bgra32>(
+                    configuration,
+                    stream,
+                    pixels,
+                    converter,
+                    replaceTransparent,
+                    this.colorType is BmpColorType.Bgr && !this.isDoubleHeight,
+                    cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit24:
-                this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, false, cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit16 when this.colorType is BmpColorType.Bgr565:
-                this.WriteDirectColorPixels<TPixel, Bgr565>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                this.WriteDirectColorPixels<TPixel, Bgr565>(configuration, stream, pixels, converter, replaceTransparent, false, cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit16:
-                this.WriteDirectColorPixels<TPixel, Bgra5551>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                // A BI_RGB 16-bit pixel is 5-5-5, and BI_RGB does not use its high bit, so a BGR pixel stores 0 there. The
+                // 5-5-5-1 color type keeps alpha in the high bit with its alpha mask. See BITMAPINFOHEADER, biBitCount:
+                // https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+                this.WriteDirectColorPixels<TPixel, Bgra5551>(
+                    configuration,
+                    stream,
+                    pixels,
+                    converter,
+                    replaceTransparent,
+                    this.colorType is BmpColorType.Bgr,
+                    cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit8:
@@ -629,6 +679,10 @@ internal sealed class BmpEncoderCore
     /// <param name="pixels">The source pixels, which remain unchanged.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged samples.</param>
     /// <param name="replaceTransparent">Whether pixels with alpha 0 are written as transparent black.</param>
+    /// <param name="clearUnusedAlpha">
+    /// Whether the alpha part of each pixel is written as 0: the fourth byte of a 32-bit pixel, or the high bit of a 16-bit
+    /// pixel.
+    /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void WriteDirectColorPixels<TPixelFrom, TPixelTo>(
         Configuration configuration,
@@ -636,6 +690,7 @@ internal sealed class BmpEncoderCore
         Buffer2D<TPixelFrom> pixels,
         ColorProfileConverter? converter,
         bool replaceTransparent,
+        bool clearUnusedAlpha,
         CancellationToken cancellationToken)
         where TPixelFrom : unmanaged, IPixel<TPixelFrom>
         where TPixelTo : unmanaged, IPixel<TPixelTo>
@@ -645,6 +700,10 @@ internal sealed class BmpEncoderCore
         using IMemoryOwner<byte> row = this.AllocateRow(width * bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
         Span<TPixelTo> packedRow = MemoryMarshal.Cast<byte, TPixelTo>(rowSpan[..(width * bytesPerPixel)]);
+
+        // A 32-bit pixel is one little-endian uint with the fourth byte in bits 24..31, so an AND with 0x00FFFFFF clears
+        // that byte. A 16-bit pixel is one little-endian ushort with alpha in bit 15, so an AND with 0x7FFF clears it.
+        Span<byte> packedBytes = rowSpan[..(width * bytesPerPixel)];
         PixelOperations<TPixelTo> pixelOperations = PixelOperations<TPixelTo>.Instance;
         PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
@@ -657,6 +716,11 @@ internal sealed class BmpEncoderCore
                 cancellationToken.ThrowIfCancellationRequested();
 
                 pixelOperations.From(configuration, pixels.DangerousGetRowSpan(y), packedRow);
+                if (clearUnusedAlpha)
+                {
+                    ClearUnusedAlpha(packedBytes, bytesPerPixel);
+                }
+
                 stream.Write(rowSpan);
             }
 
@@ -688,7 +752,32 @@ internal sealed class BmpEncoderCore
                 converter.Convert(configuration, vectors, packedRow, PixelAlphaRepresentation.Unassociated);
             }
 
+            if (clearUnusedAlpha)
+            {
+                ClearUnusedAlpha(packedBytes, bytesPerPixel);
+            }
+
             stream.Write(rowSpan);
+        }
+    }
+
+    /// <summary>
+    /// Writes 0 in the alpha part of each packed pixel of a row.
+    /// </summary>
+    /// <param name="pixels">The packed pixels of the row.</param>
+    /// <param name="bytesPerPixel">The pixel size: 4 for B, G, R and the fourth byte, or 2 for 5-5-5 and the high bit.</param>
+    private static void ClearUnusedAlpha(Span<byte> pixels, int bytesPerPixel)
+    {
+        // The tensor operations use the widest vectors of the hardware.
+        if (bytesPerPixel == 4)
+        {
+            Span<uint> words = MemoryMarshal.Cast<byte, uint>(pixels);
+            TensorPrimitives.BitwiseAnd(words, 0x00FFFFFFu, words);
+        }
+        else
+        {
+            Span<ushort> words = MemoryMarshal.Cast<byte, ushort>(pixels);
+            TensorPrimitives.BitwiseAnd(words, (ushort)0x7FFF, words);
         }
     }
 
@@ -777,6 +866,33 @@ internal sealed class BmpEncoderCore
                 BmpRleEncoder.WriteRow(stream, quantized.DangerousGetRowSpan(y), rleRow.GetSpan(), bitsPerIndex, y == 0);
             }
 
+            return;
+        }
+
+        if (this.huffman1D)
+        {
+            // The data uses the one-dimensional coding scheme of ITU-T T.4. An EOL code comes before the first row and
+            // after each row. Six EOL codes (RTC) end the data, so the EOL code after the last row is the first of them.
+            // A white run is palette index 0, and the first code bit is the most significant bit of each byte, as the
+            // decoder reads it. See ITU-T Recommendation T.4 (07/2003), section 4.1, pages 3-4:
+            // https://www.itu.int/rec/T-REC-T.4
+            using CcittBitWriter writer = new(stream, this.memoryAllocator);
+            writer.WriteEol();
+
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                T4RowEncoder.EncodeRow(writer, quantized.DangerousGetRowSpan(y), 0);
+                writer.WriteEol();
+            }
+
+            for (int i = 1; i < 6; i++)
+            {
+                writer.WriteEol();
+            }
+
+            writer.Flush();
             return;
         }
 

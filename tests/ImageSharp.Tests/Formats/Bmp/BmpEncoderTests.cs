@@ -104,6 +104,10 @@ public partial class BmpEncoderTests
         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
     }
 
+    /// <summary>
+    /// A palette from the metadata keeps the exact color of each pixel, also for two colors in one coarse cache bucket.
+    /// </summary>
+    /// <param name="bitsPerPixel">The bit depth.</param>
     [Theory]
     [InlineData(BmpBitsPerPixel.Bit1)]
     [InlineData(BmpBitsPerPixel.Bit8)]
@@ -340,8 +344,8 @@ public partial class BmpEncoderTests
     }
 
     [Theory]
-    [InlineData(BmpBitsPerPixel.Bit8, (uint)BmpInfoCompression.RLE8)]
-    [InlineData(BmpBitsPerPixel.Bit4, (uint)BmpInfoCompression.RLE4)]
+    [InlineData(BmpBitsPerPixel.Bit8, (uint)BmpInfoCompression.Rle8)]
+    [InlineData(BmpBitsPerPixel.Bit4, (uint)BmpInfoCompression.Rle4)]
     public void Encode_RunLength_RoundTripsAndWritesSizes(BmpBitsPerPixel bitsPerPixel, uint expectedCompression)
     {
         // Each row tests one kind of RLE command. The palette has 16 colors, so each index fits RLE4 and RLE8.
@@ -398,19 +402,194 @@ public partial class BmpEncoderTests
         using Image<Rgba32> output = Image.Load<Rgba32>(data);
         Assert.Equal(BmpCompression.RunLength, output.Metadata.GetBmpMetadata().Compression);
         ImageComparer.Exact.VerifySimilarity(image, output);
+
+        // An independent decoder reads the same pixels, so a fault that the encoder and the decoder share cannot pass.
+        using MemoryStream referenceStream = new(data);
+        using Image<Rgba32> reference = MagickReferenceDecoder.Bmp.Decode<Rgba32>(DecoderOptions.Default, referenceStream);
+        ImageComparer.Exact.VerifySimilarity(image, reference);
+    }
+
+    /// <summary>
+    /// A 16-bit layout with masks other than 5-5-5, 5-5-5-1 and 5-6-5 decodes to values that those layouts cannot hold.
+    /// The decoder gives it the 24-bit or 32-bit layout, so a re-encode with the decoded metadata decodes to the same
+    /// pixels.
+    /// </summary>
+    /// <param name="imagePath">The bitmap path.</param>
+    [Theory]
+    [InlineData(Rgb16231)]
+    [InlineData(Rgb163103)]
+    [InlineData(Rgba164444)]
+    [InlineData(Rgba161924)]
+    public void Encode_DecodedBitFields_KeepsEachValue(string imagePath)
+    {
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(TestFile.Create(imagePath).Bytes);
+
+        using MemoryStream stream = new();
+        decoded.Save(stream, new BmpEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        ImageComparer.Exact.VerifySimilarity(decoded, output);
+    }
+
+    /// <summary>
+    /// BI_RGB does not use the fourth byte of a 32-bit pixel or the high bit of a 16-bit pixel, so the BGR color type
+    /// writes 0 there. See BITMAPINFOHEADER, biBitCount:
+    /// https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+    /// </summary>
+    /// <param name="bitsPerPixel">The bit depth.</param>
+    [Theory]
+    [InlineData(BmpBitsPerPixel.Bit32)]
+    [InlineData(BmpBitsPerPixel.Bit16)]
+    public void Encode_Bgr_WritesZeroUnusedAlpha(BmpBitsPerPixel bitsPerPixel)
+    {
+        // A width of 2 gives rows without padding at both depths. Opaque pixels have alpha, which BI_RGB does not store.
+        using Image<Rgba32> image = new(2, 2, new Rgba32(10, 20, 30, 255));
+
+        using MemoryStream stream = new();
+        image.Save(stream, new BmpEncoder { BitsPerPixel = bitsPerPixel, ColorType = BmpColorType.Bgr });
+
+        // bfOffBits is at byte 10 of the file header. The unused part is the last byte of each little-endian pixel: the
+        // fourth byte of a 32-bit pixel, or the byte with bit 15 of a 16-bit pixel.
+        byte[] data = stream.ToArray();
+        int offset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        int bytesPerPixel = (int)bitsPerPixel / 8;
+        byte mask = (byte)(bytesPerPixel == 4 ? 0xFF : 0x80);
+        for (int i = offset + bytesPerPixel - 1; i < data.Length; i += bytesPerPixel)
+        {
+            Assert.Equal(0, data[i] & mask);
+        }
+    }
+
+    /// <summary>
+    /// An ICC profile needs a V5 header. The 32-bit BGR bitmap then has a V5 header with BI_RGB and no alpha mask, so the
+    /// decoder reads it as opaque, as the encoder wrote it.
+    /// </summary>
+    [Fact]
+    public void Encode_Bgr32WithIccProfile_DecodesOpaque()
+    {
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(TestFile.Create(IccProfile).Bytes);
+        Assert.NotNull(decoded.Metadata.IccProfile);
+
+        using MemoryStream stream = new();
+        decoded.Save(stream, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Bit32, ColorType = BmpColorType.Bgr });
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        for (int y = 0; y < output.Height; y++)
+        {
+            for (int x = 0; x < output.Width; x++)
+            {
+                Assert.Equal(255, output[x, y].A);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The encoder writes each T.4 run code, and the EOL codes and RTC of ITU-T T.4 (07/2003), section 4.1, pages 3-4:
+    /// https://www.itu.int/rec/T-REC-T.4
+    /// The decoder reads the codes back to the same pixels.
+    /// </summary>
+    [Fact]
+    public void Encode_Huffman1D_RoundTripsAndWritesSizes()
+    {
+        // Row 0: one white run that needs more than one 2560 make-up code.
+        // Row 1: a black first pixel, so the row starts with a white run of length 0. Then a black run of 70: a make-up
+        // code and a terminating code.
+        // Row 2: white and black runs of 1 to 63: each terminating code of both colors.
+        // Row 3: white and black runs of 64 to 2560 in steps of 64: each make-up code of both colors, each followed by a
+        // terminating code of length 0. The row is 2 * 64 * (1 + 2 + ... + 40) pixels, so the runs fill it.
+        const int width = 2 * 64 * 820;
+        Color[] palette = [Color.White, Color.Black];
+        Rgba32 white = palette[0].ToPixel<Rgba32>();
+        Rgba32 black = palette[1].ToPixel<Rgba32>();
+
+        using Image<Rgba32> image = new(width, 4, white);
+        for (int x = 0; x < 70; x++)
+        {
+            image[x, 1] = black;
+        }
+
+        int position = 0;
+        for (int length = 1; length < 64; length++)
+        {
+            position += length;
+            for (int x = position; x < position + length; x++)
+            {
+                image[x, 2] = black;
+            }
+
+            position += length;
+        }
+
+        position = 0;
+        for (int length = 64; length <= 2560; length += 64)
+        {
+            position += length;
+            for (int x = position; x < position + length; x++)
+            {
+                image[x, 3] = black;
+            }
+
+            position += length;
+        }
+
+        BmpMetadata metadata = image.Metadata.GetBmpMetadata();
+        metadata.ColorType = BmpColorType.Palette;
+        metadata.BitsPerPixel = BmpBitsPerPixel.Bit1;
+        metadata.ColorTable = palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new BmpEncoder { Compression = BmpCompression.Huffman1D });
+
+        // The OS/2 2.x header has 64 bytes and follows the 14-byte file header. Its compression is at byte 16 (3 is
+        // Huffman 1D) and cbImage at byte 20. bfSize is at byte 2 and bfOffBits at byte 10 of the file header.
+        byte[] data = stream.ToArray();
+        int pixelDataOffset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        Assert.Equal(BmpInfoHeader.Os2v2Size, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(BmpFileHeader.Size)));
+        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(BmpFileHeader.Size + 16)));
+        Assert.Equal(data.Length - pixelDataOffset, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(BmpFileHeader.Size + 20)));
+        Assert.Equal(data.Length, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(2)));
+
+        // The data starts with an EOL code, 000000000001. It ends with RTC, six EOL codes, and then 0 to 7 zero bits that
+        // pad the last byte.
+        System.Numerics.BigInteger bits = new(data.AsSpan(pixelDataOffset), true, true);
+        int bitCount = (data.Length - pixelDataOffset) * 8;
+        Assert.Equal(1, (int)(bits >> (bitCount - 12)));
+        int padding = (int)System.Numerics.BigInteger.TrailingZeroCount(bits);
+        Assert.InRange(padding, 0, 7);
+        System.Numerics.BigInteger rtc = (bits >> padding) & ((System.Numerics.BigInteger.One << 72) - 1);
+        System.Numerics.BigInteger expectedRtc = 0;
+        for (int i = 0; i < 6; i++)
+        {
+            expectedRtc = (expectedRtc << 12) | 1;
+        }
+
+        Assert.Equal(expectedRtc, rtc);
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(data);
+        BmpMetadata outputMetadata = output.Metadata.GetBmpMetadata();
+        Assert.Equal(BmpCompression.Huffman1D, outputMetadata.Compression);
+        Assert.Equal(BmpInfoHeaderType.Os2Version2, outputMetadata.InfoHeaderType);
+        ImageComparer.Exact.VerifySimilarity(image, output);
     }
 
     [Theory]
-    [InlineData(RLE8, null, (uint)BmpInfoCompression.RLE8)]
-    [InlineData(RLE8, BmpCompression.None, (uint)BmpInfoCompression.RGB)]
-    [InlineData(RLE4, null, (uint)BmpInfoCompression.RLE4)]
-    [InlineData(Bit8, null, (uint)BmpInfoCompression.RGB)]
-    [InlineData(Bit8, BmpCompression.RunLength, (uint)BmpInfoCompression.RLE8)]
-    [InlineData(Car, BmpCompression.RunLength, (uint)BmpInfoCompression.RGB)]
+    [InlineData(RLE8, null, (uint)BmpInfoCompression.Rle8)]
+    [InlineData(RLE8, BmpCompression.None, (uint)BmpInfoCompression.Rgb)]
+    [InlineData(RLE4, null, (uint)BmpInfoCompression.Rle4)]
+    [InlineData(Bit8, null, (uint)BmpInfoCompression.Rgb)]
+    [InlineData(Bit8, BmpCompression.RunLength, (uint)BmpInfoCompression.Rle8)]
+    [InlineData(Car, BmpCompression.RunLength, (uint)BmpInfoCompression.Rgb)]
+    [InlineData(Os2v2Huffman1D, null, 3u)]
+    [InlineData(Os2v2Huffman1D, BmpCompression.None, (uint)BmpInfoCompression.Rgb)]
+    [InlineData(Bit8, BmpCompression.Huffman1D, (uint)BmpInfoCompression.Rgb)]
     public void Encode_Compression_EncoderOverridesMetadata(string imagePath, BmpCompression? encoderCompression, uint expectedCompression)
     {
-        // The decoder sets the compression of the metadata. The encoder value replaces it. A 24-bit bitmap has no RLE
-        // format, so it is written uncompressed.
+        // The decoder sets the compression of the metadata. The encoder value replaces it. The encoder writes no RLE for
+        // a 24-bit bitmap, and only a 1-bit bitmap has a Huffman 1D format, so the encoder writes the other bitmaps
+        // uncompressed. The
+        // OS/2 2.x header stores Huffman 1D as compression 3.
         using Image<Rgba32> input = TestFile.Create(imagePath).CreateRgba32Image();
         using MemoryStream stream = new();
         input.Save(stream, new BmpEncoder { Compression = encoderCompression });

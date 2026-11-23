@@ -4,71 +4,66 @@
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
-/// Defines the compression value of the info header, which gives the storage of the image data in the bitmap file.
+/// Defines the compression of the pixel data in the info header.
 /// </summary>
+/// <remarks>
+/// The values 0 to 6 are the values of the Windows headers. The OS/2 2.x header uses the values 3 and 4 for other
+/// compressions: 3 is Huffman 1D and 4 is RLE24. The enum gives these two compressions the values 101 and 100, so that
+/// each enum value has one meaning. These values are not in any file. <see cref="BmpInfoHeader.ParseOs2Version2"/>
+/// and <see cref="BmpInfoHeader.WriteOs2Version2Header"/> change the OS/2 values to the enum values, and back.
+/// </remarks>
 internal enum BmpInfoCompression : int
 {
     /// <summary>
-    /// Each image row has a multiple of four elements. If the
-    /// row has less elements, zeros will be added at the right side.
-    /// The format depends on the number of bits, stored in the info header.
-    /// If the number of bits are one, four or eight each pixel data is
-    /// a index to the palette. If the number of bits are sixteen,
-    /// twenty-four or thirty-two each pixel contains a color.
+    /// BI_RGB: the pixel data is not compressed. Each row is padded to a multiple of 4 bytes. A pixel of 1, 2, 4 or
+    /// 8 bits is an index into the color table. A pixel of 16, 24 or 32 bits is a color.
     /// </summary>
-    RGB = 0,
+    Rgb = 0,
 
     /// <summary>
-    /// Two bytes are one data record. If the first byte is not zero, the
-    /// next byte will be repeated as much as the value of the first byte.
-    /// If the first byte is zero, the record has different meanings, depending
-    /// on the second byte. If the second byte is zero, it is the end of the row,
-    /// if it is one, it is the end of the image.
+    /// BI_RLE8: run length encoding of 8-bit indices. Each command starts with two bytes. A first byte that is not 0
+    /// is a run: the second byte is the index, and the first byte is the pixel count. A first byte of 0 starts an end
+    /// of line, an end of bitmap, a delta, or an absolute run.
     /// </summary>
-    RLE8 = 1,
+    Rle8 = 1,
 
     /// <summary>
-    /// Two bytes are one data record. If the first byte is not zero, the
-    /// next two half bytes will be repeated as much as the value of the first byte.
-    /// If the first byte is zero, the record has different meanings, depending
-    /// on the second byte. If the second byte is zero, it is the end of the row,
-    /// if it is one, it is the end of the image.
+    /// BI_RLE4: run length encoding of 4-bit indices. The commands are the BI_RLE8 commands, but a run alternates
+    /// between the two indices in the high and low 4 bits of its second byte.
     /// </summary>
-    RLE4 = 2,
+    Rle4 = 2,
 
     /// <summary>
-    /// Each image row has a multiple of four elements. If the
-    /// row has less elements, zeros will be added at the right side.
+    /// BI_BITFIELDS: the pixel data is not compressed. Red, green and blue masks give the position of each color
+    /// channel in a 16-bit or 32-bit pixel.
     /// </summary>
     BitFields = 3,
 
     /// <summary>
-    /// The bitmap contains a JPG image.
-    /// Not supported at the moment.
+    /// BI_JPEG: the pixel data is a JPEG image. The decoder does not support it.
     /// </summary>
-    JPEG = 4,
+    Jpeg = 4,
 
     /// <summary>
-    /// The bitmap contains a PNG image.
-    /// Not supported at the moment.
+    /// BI_PNG: the pixel data is a PNG image. The decoder does not support it.
     /// </summary>
-    PNG = 5,
+    Png = 5,
 
     /// <summary>
-    /// Introduced with Windows CE.
-    /// Specifies that the bitmap is not compressed and that the color table consists of four DWORD color
-    /// masks that specify the red, green, blue, and alpha components of each pixel.
+    /// BI_ALPHABITFIELDS, from Windows CE: as <see cref="BitFields"/>, with an alpha mask after the red, green and
+    /// blue masks.
     /// </summary>
-    BI_ALPHABITFIELDS = 6,
+    AlphaBitFields = 6,
 
     /// <summary>
-    /// OS/2 specific compression type.
-    /// Similar to run length encoding of 4 and 8 bit.
-    /// The only difference is that run values encoded are three bytes in size (one byte per RGB color component),
-    /// rather than four or eight bits in size.
-    ///
-    /// Note: Because compression value of 4 is ambiguous for BI_RGB for windows and RLE24 for OS/2, the enum value is remapped
-    /// to a different value, to be clearly separate from valid windows values.
+    /// OS/2 2.x RLE24 (value 4 in the file): run length encoding of 24-bit colors. The commands are the BI_RLE8
+    /// commands, but each run value and each absolute pixel has three bytes: blue, green and red.
     /// </summary>
-    RLE24 = 100,
+    Rle24 = 100,
+
+    /// <summary>
+    /// OS/2 2.x Huffman 1D (value 3 in the file): a 1-bit bitmap in the one-dimensional coding scheme of ITU-T T.4
+    /// (Modified Huffman). A white run is 0 bits, so it selects palette index 0.
+    /// </summary>
+    Huffman1D = 101,
 }

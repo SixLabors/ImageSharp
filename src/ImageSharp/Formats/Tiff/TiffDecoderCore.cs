@@ -367,6 +367,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
         using IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
+        PairOffsets(ref stripOffsets, ref stripByteCounts);
 
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
@@ -448,6 +449,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
         using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
+        PairOffsets(ref tileOffsets, ref tileByteCounts);
 
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
@@ -480,8 +482,15 @@ internal class TiffDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Planar offsets are grouped by plane, StripsPerImage entries for each plane, and StripsPerImage comes from the
+        // image height. See TIFF 6.0 specification, section 8, RowsPerStrip and StripOffsets, pages 39-40:
+        // https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+        // A file can hold fewer
+        // offsets. As for chunky strips, the decode stops after the last strip that all planes have. The product uses 64-bit
+        // math, because the planes before the last one can hold more strips than an int counts.
         int channels = this.BitsPerSample.Channels;
-        int stripsPerPlane = stripOffsets.Length / channels;
+        int stripsPerPlane = (int)(((long)height + rowsPerStrip - 1) / rowsPerStrip);
+        int stripCount = (int)Math.Clamp(stripOffsets.Length - ((long)(channels - 1) * stripsPerPlane), 0, stripsPerPlane);
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
         IMemoryOwner<byte>[] stripBuffers = new IMemoryOwner<byte>[channels];
 
@@ -521,7 +530,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 stripBuffers[channel] = this.memoryAllocator.Allocate<byte>((int)bufferSize);
             }
 
-            for (int strip = 0; strip < stripsPerPlane; strip++)
+            for (int strip = 0; strip < stripCount; strip++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int stripHeight = strip < stripsPerPlane - 1 || height % rowsPerStrip == 0 ? rowsPerStrip : height % rowsPerStrip;
@@ -727,8 +736,16 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
 
+        // Planar offsets are grouped by plane, TilesPerImage entries for each plane, and TilesPerImage is
+        // TilesAcross * TilesDown. See TIFF 6.0 specification, section 15, TileWidth and TileOffsets, pages 67-68:
+        // https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+        // A file
+        // can hold fewer offsets. As for strips, the decode stops after the last tile that all planes have.
+        // The products use 64-bit math, because a large image of small tiles can hold more tiles than an int counts. The
+        // offsets are fewer than int.MaxValue, so tileCount and each plane index of a decoded tile fit an int.
         int channels = this.BitsPerSample.Channels;
-        int tilesPerChannel = tileOffsets.Length / channels;
+        long tilesPerChannel = (long)tilesAcross * tilesDown;
+        int tileCount = (int)Math.Clamp(tileOffsets.Length - ((channels - 1) * tilesPerChannel), 0, tilesPerChannel);
         IMemoryOwner<byte>[] tilesBuffers = new IMemoryOwner<byte>[channels];
 
         try
@@ -759,6 +776,12 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                 for (int tileX = 0; tileX < tilesAcross; tileX++)
                 {
+                    // The pixels of the missing tiles keep their cleared value.
+                    if (tileIndex >= tileCount)
+                    {
+                        return;
+                    }
+
                     int left = tileX * tileWidth;
                     int visibleWidth = Math.Min(tileWidth, width - left);
                     int planeTileIndex = tileIndex;
@@ -783,7 +806,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                             default,
                             cancellationToken);
 
-                        planeTileIndex += tilesPerChannel;
+                        planeTileIndex += (int)tilesPerChannel;
                     }
 
                     if (visibleWidth < tileWidth)
@@ -866,7 +889,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             Span<byte> samples = tileBuffer is null ? default : tileBuffer.GetSpan();
             int tileIndex = 0;
 
-            for (int tileY = 0; tileY < tilesDown; tileY++)
+            for (int tileY = 0; tileY < tilesDown && tileIndex < tileOffsets.Length; tileY++)
             {
                 int top = tileY * tileLength;
                 int visibleHeight = Math.Min(tileLength, height - top);
@@ -874,6 +897,14 @@ internal class TiffDecoderCore : ImageDecoderCore
                 for (int tileX = 0; tileX < tilesAcross; tileX++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+
+                    // A file can hold fewer tiles than the image needs. As for strips, the decode stops after the last
+                    // tile, and the pixels of the missing tiles keep their cleared value.
+                    if (tileIndex >= tileOffsets.Length)
+                    {
+                        break;
+                    }
+
                     int left = tileX * tileWidth;
                     int visibleWidth = Math.Min(tileWidth, width - left);
 
@@ -976,6 +1007,19 @@ internal class TiffDecoderCore : ImageDecoderCore
         this.ConfigureColorConversion(decoder, metadata);
 
         return decoder;
+    }
+
+    /// <summary>
+    /// Limits the strip or tile offsets and byte counts to the blocks that have both values. A block needs its offset and
+    /// its byte count, so a block that has only one of them is not in the file.
+    /// </summary>
+    /// <param name="offsets">The block offsets.</param>
+    /// <param name="byteCounts">The block byte counts.</param>
+    private static void PairOffsets(ref Span<ulong> offsets, ref Span<ulong> byteCounts)
+    {
+        int count = Math.Min(offsets.Length, byteCounts.Length);
+        offsets = offsets[..count];
+        byteCounts = byteCounts[..count];
     }
 
     /// <summary>

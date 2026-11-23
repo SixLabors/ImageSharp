@@ -18,7 +18,8 @@ public abstract partial class PixelConverterTests
     public class Packed16 : PixelConverterTests
     {
         /// <summary>
-        /// The pixel count of the random sources. It fills each loop of each vector width and leaves a scalar remainder.
+        /// The pixel count of the random sources. At each vector width, 1027 pixels fill the vector loop more than once
+        /// and leave a scalar remainder.
         /// </summary>
         private const int RandomPixelCount = 1027;
 
@@ -58,6 +59,9 @@ public abstract partial class PixelConverterTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTest, AllWidths);
         }
 
+        /// <summary>
+        /// Each SIMD unpack from a 16-bit layout to a byte layout gives the values of the scalar conversion of the pixel type.
+        /// </summary>
         [Fact]
         public void UnpackToByteLayouts()
         {
@@ -83,6 +87,9 @@ public abstract partial class PixelConverterTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTest, AllWidths);
         }
 
+        /// <summary>
+        /// Each SIMD conversion between the two 16-bit layouts gives the values of the scalar conversion of the pixel type.
+        /// </summary>
         [Fact]
         public void ConvertBetween16BitLayouts()
         {

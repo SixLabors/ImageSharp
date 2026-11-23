@@ -12,6 +12,7 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -118,8 +119,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             // The pixel decode supports these compressions only. Check before the allocation, so an unsupported file
             // requests no pixel buffer.
-            if (this.infoHeader.Compression is not (BmpInfoCompression.RGB or BmpInfoCompression.RLE24 or BmpInfoCompression.RLE8
-                or BmpInfoCompression.RLE4 or BmpInfoCompression.BitFields or BmpInfoCompression.BI_ALPHABITFIELDS))
+            if (this.infoHeader.Compression is not (BmpInfoCompression.Rgb or BmpInfoCompression.Rle24 or BmpInfoCompression.Rle8
+                or BmpInfoCompression.Rle4 or BmpInfoCompression.Huffman1D or BmpInfoCompression.BitFields
+                or BmpInfoCompression.AlphaBitFields))
             {
                 BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
             }
@@ -135,8 +137,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             // The pixel decode does not throw for bad pixel data. When the data ends before the image is complete, the
             // decode stops, and the image keeps the pixels decoded before the end. This is the same for each
-            // compression, and the same as for PNG and JPEG data. The image buffer is cleared at allocation, so the
-            // pixels after the end are transparent black. The allocator limits protect against large dimensions.
+            // compression. The image buffer is cleared at allocation, so the pixels after the end are transparent black. The allocator limits protect against large dimensions.
             this.ReadPixelData(stream, pixels, palette, this.bmpMetadata.InfoHeaderType, inverted);
 
             if (!isIndexed)
@@ -174,27 +175,43 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         switch (this.infoHeader.Compression)
         {
-            case BmpInfoCompression.RGB when bitsPerPixel is 32 && infoHeaderType is BmpInfoHeaderType.WinVersion3:
+            // BI_RGB does not use the high byte of a 32-bit pixel: "The high byte in each DWORD is not used." See
+            // BITMAPINFOHEADER, biBitCount: https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+            // Many bitmaps hold other values than 0 in that byte, and browsers ignore them, so the bitmap is opaque. Two
+            // cases keep alpha in that byte: an icon bitmap, as icon readers expect, and a V4 or V5 header whose alpha
+            // mask selects that byte.
+            case BmpInfoCompression.Rgb when bitsPerPixel is 32 && this.processedAlphaMask:
                 this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpInfoCompression.RGB when bitsPerPixel is 32:
+            case BmpInfoCompression.Rgb when bitsPerPixel is 32 && (uint)this.infoHeader.AlphaMask is 0xFF000000:
                 this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpInfoCompression.RGB when bitsPerPixel is 24:
+            case BmpInfoCompression.Rgb when bitsPerPixel is 32:
+                _ = this.ReadBitFields<TPixel, BmpBitFields.Sample32Operator>(
+                    stream,
+                    pixels,
+                    this.infoHeader.Width,
+                    this.infoHeader.Height,
+                    inverted,
+                    CreateBitFields<TPixel>(0x00FF0000, 0x0000FF00, 0x000000FF, 0));
+
+                break;
+
+            case BmpInfoCompression.Rgb when bitsPerPixel is 24:
                 this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
-            case BmpInfoCompression.RGB when bitsPerPixel is 16:
+            case BmpInfoCompression.Rgb when bitsPerPixel is 16:
                 this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, false);
 
                 break;
 
-            case BmpInfoCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
+            case BmpInfoCompression.Rgb when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
                 this.ReadRgbPaletteWithAlphaMask(
                     stream,
                     pixels,
@@ -206,7 +223,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
                 break;
 
-            case BmpInfoCompression.RGB when bitsPerPixel is > 0 and <= 8:
+            case BmpInfoCompression.Rgb when bitsPerPixel is > 0 and <= 8:
                 this.ReadRgbPalette(
                     stream,
                     pixels,
@@ -218,20 +235,25 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
                 break;
 
-            case BmpInfoCompression.RLE24:
+            case BmpInfoCompression.Rle24:
                 this.ReadRle24(stream, pixels, this.infoHeader.Width, inverted);
 
                 break;
 
-            case BmpInfoCompression.RLE8:
-            case BmpInfoCompression.RLE4:
+            case BmpInfoCompression.Rle8:
+            case BmpInfoCompression.Rle4:
                 this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, inverted);
+
+                break;
+
+            case BmpInfoCompression.Huffman1D:
+                this.ReadHuffman1D(stream, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                 break;
 
             // Decode checks the compression before this method, so no other compression comes here.
             case BmpInfoCompression.BitFields:
-            case BmpInfoCompression.BI_ALPHABITFIELDS:
+            case BmpInfoCompression.AlphaBitFields:
                 this.ReadBitFields(stream, pixels, inverted);
 
                 break;
@@ -620,7 +642,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             : this.GetRleSkippedPixel<TPixel>();
 
         BmpRleWriter<TPixel> writer = new(pixels, inverted, skipped);
-        bool rle4 = compression is BmpInfoCompression.RLE4;
+        bool rle4 = compression is BmpInfoCompression.Rle4;
 
         // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
         // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
@@ -710,6 +732,62 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         finally
         {
             reader.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Decodes an OS/2 Huffman 1D bitmap.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The data uses the one-dimensional coding scheme of ITU-T T.4. An EOL code comes before the first row and after
+    /// each row, and six EOL codes end the data. The rows are not padded. See ITU-T Recommendation T.4 (07/2003),
+    /// section 4.1, pages 3-4: https://www.itu.int/rec/T-REC-T.4
+    /// </para>
+    /// <para>
+    /// A white run is 0 bits, so it selects palette index 0. The OS/2 references do not give the order of the code bits
+    /// in a byte. The bmpsuite reference file pal1huffmsb.bmp stores the first code bit in the most significant bit, as
+    /// libtiff writes CCITT data: https://github.com/jsummers/bmpsuite
+    /// </para>
+    /// <para>
+    /// As for RLE data, bad data does not throw. A code that is not valid, or a run that is longer than the row, ends its
+    /// row, and the decode continues after the next EOL code.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="colors">The decoded pixel palette.</param>
+    /// <param name="width">The width of the bitmap.</param>
+    /// <param name="height">The height of the bitmap.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    private void ReadHuffman1D<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        Color[] colors,
+        int width,
+        int height,
+        bool inverted)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // The compressed data runs to the end of the stream. With no data, the first row decode returns false.
+        long remaining = stream.Length - stream.Position;
+        using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>((width + 7) / 8);
+        using IMemoryOwner<TPixel> palette = this.CreatePaletteTable<TPixel>(colors, 1);
+        Span<byte> rowSpan = row.GetSpan();
+        Span<TPixel> paletteSpan = palette.GetSpan();
+        T4RowDecoder decoder = new(stream, CcittBitOrder.MostSignificantBitFirst, (int)Math.Min(remaining, int.MaxValue), width);
+
+        for (int y = 0; y < height; y++)
+        {
+            // The row decoder writes only the 1 bits, so each row starts with all bits 0.
+            rowSpan.Clear();
+            if (!decoder.DecodeRow(rowSpan))
+            {
+                return;
+            }
+
+            BmpPaletteExpander.Expand<TPixel>(rowSpan, 1, paletteSpan, pixels.DangerousGetRowSpan(Invert(y, height, inverted)));
         }
     }
 
@@ -1107,13 +1185,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads a 32-bit RGB bitmap with a version 3 header. The fourth byte of each pixel is alpha or is not used.
+    /// Reads a 32-bit BI_RGB icon bitmap. The fourth byte of each pixel is alpha or is not used.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A version 3 header has no alpha mask, so the header does not tell if the fourth byte is alpha. Many writers
-    /// store 0 in the unused byte. Thus a bitmap whose fourth bytes are all 0 is opaque, and a bitmap with any other
-    /// fourth byte has alpha.
+    /// The icon format does not tell if the fourth byte of an icon pixel is alpha.
+    /// Many writers store 0 in the unused byte. Thus an icon bitmap whose fourth bytes are all 0 is opaque, and an icon
+    /// bitmap with any other fourth byte has alpha.
     /// </para>
     /// <para>
     /// The decode starts as opaque, with the bit-field operator: B, G, R masks and no alpha mask, so each pixel gets
@@ -1292,7 +1370,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                 this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
             }
-            else if (this.infoHeader.Compression == BmpInfoCompression.BI_ALPHABITFIELDS)
+            else if (this.infoHeader.Compression == BmpInfoCompression.AlphaBitFields)
             {
                 Span<byte> bitfieldsBuffer = stackalloc byte[16];
                 stream.Read(bitfieldsBuffer);
@@ -1369,30 +1447,48 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
         this.bmpMetadata = this.metadata.GetBmpMetadata();
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
-        this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
-        // The compression and the masks give the color type. BI_RGB and RLE24 store BGR without alpha. Bit-field masks
-        // other than the layouts of the encoder map to the nearest color type: 5-5-5-1 for 16 bits with an alpha mask,
-        // 5-5-5 for 16 bits without one, and BGRA or BGR for 32 bits.
-        bool bitFields = this.infoHeader.Compression is BmpInfoCompression.BitFields or BmpInfoCompression.BI_ALPHABITFIELDS;
-        bool alpha = bitFields && this.infoHeader.AlphaMask != 0;
+        // The compression and the masks give the color type, with the rules of the pixel decode (see ReadPixelData).
+        // BI_RGB and RLE24 store BGR without alpha. A 32-bit BI_RGB icon bitmap keeps alpha in the fourth byte. A V4 or
+        // V5 alpha mask that selects that byte also keeps alpha.
+        bool bitFields = this.infoHeader.Compression is BmpInfoCompression.BitFields or BmpInfoCompression.AlphaBitFields;
+        bool rgb32 = this.infoHeader.Compression is BmpInfoCompression.Rgb && bitsPerPixel == 32;
+        bool alpha = (bitFields && this.infoHeader.AlphaMask != 0)
+            || (rgb32 && (this.processedAlphaMask || (uint)this.infoHeader.AlphaMask is 0xFF000000));
         bool rgb565 = bitFields
             && this.infoHeader.RedMask is BmpConstants.Bgr565Masks.Red
             && this.infoHeader.GreenMask is BmpConstants.Bgr565Masks.Green
             && this.infoHeader.BlueMask is BmpConstants.Bgr565Masks.Blue;
 
-        this.bmpMetadata.ColorType = bitsPerPixel switch
+        // The 16-bit layouts of the encoder keep each decoded value only for their own masks. A channel of other width
+        // widens to 8 bits with values that a 5-bit or 6-bit channel cannot hold: 2 bits give 0, 85, 170 and 255. 85 is
+        // 10 in 5 bits, and 10 widens to 82. So other 16-bit masks map to the 24-bit or 32-bit layout, which keeps each
+        // decoded value.
+        // A BI_RGB 16-bit bitmap has the 5-5-5 layout.
+        bool rgb555 = !bitFields
+            || (this.infoHeader.RedMask is BmpConstants.Bgr555Masks.Red
+                && this.infoHeader.GreenMask is BmpConstants.Bgr555Masks.Green
+                && this.infoHeader.BlueMask is BmpConstants.Bgr555Masks.Blue);
+        bool rgba5551 = bitFields && rgb555 && this.infoHeader.AlphaMask is BmpConstants.Bgr555Masks.Alpha;
+
+        (this.bmpMetadata.ColorType, BmpBitsPerPixel colorDepth) = bitsPerPixel switch
         {
-            <= 8 => BmpColorType.Palette,
-            16 when rgb565 => BmpColorType.Bgr565,
-            16 => alpha ? BmpColorType.Bgra5551 : BmpColorType.Bgr,
-            _ => alpha ? BmpColorType.Bgra : BmpColorType.Bgr
+            <= 8 => (BmpColorType.Palette, (BmpBitsPerPixel)bitsPerPixel),
+            16 when rgb565 && !alpha => (BmpColorType.Bgr565, BmpBitsPerPixel.Bit16),
+            16 when alpha => rgba5551 ? (BmpColorType.Bgra5551, BmpBitsPerPixel.Bit16) : (BmpColorType.Bgra, BmpBitsPerPixel.Bit32),
+            16 => rgb555 ? (BmpColorType.Bgr, BmpBitsPerPixel.Bit16) : (BmpColorType.Bgr, BmpBitsPerPixel.Bit24),
+            _ => (alpha ? BmpColorType.Bgra : BmpColorType.Bgr, (BmpBitsPerPixel)bitsPerPixel)
         };
 
+        this.bmpMetadata.BitsPerPixel = colorDepth;
+
         // The encoder writes RLE only for 4-bit and 8-bit palette bitmaps. It writes an RLE24 bitmap uncompressed.
-        this.bmpMetadata.Compression = this.infoHeader.Compression is BmpInfoCompression.RLE4 or BmpInfoCompression.RLE8 or BmpInfoCompression.RLE24
-            ? BmpCompression.RunLength
-            : BmpCompression.None;
+        this.bmpMetadata.Compression = this.infoHeader.Compression switch
+        {
+            BmpInfoCompression.Rle4 or BmpInfoCompression.Rle8 or BmpInfoCompression.Rle24 => BmpCompression.RunLength,
+            BmpInfoCompression.Huffman1D => BmpCompression.Huffman1D,
+            _ => BmpCompression.None
+        };
 
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
     }
@@ -1478,8 +1574,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         // Direct-color BMPs may carry a table but convert their pixel data after decode instead.
         isIndexed = this.infoHeader.Compression switch
         {
-            BmpInfoCompression.RLE4 or BmpInfoCompression.RLE8 => true,
-            BmpInfoCompression.RGB => this.infoHeader.BitsPerPixel is > 0 and <= 8,
+            BmpInfoCompression.Rle4 or BmpInfoCompression.Rle8 or BmpInfoCompression.Huffman1D => true,
+            BmpInfoCompression.Rgb => this.infoHeader.BitsPerPixel is > 0 and <= 8,
             _ => false
         };
 
@@ -1502,9 +1598,16 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         // Uncompressed pixel data is only defined for these depths. Rejecting any other depth here, rather than in
         // the pixel readers, also keeps identification from reporting a header that cannot be decoded.
-        if (this.infoHeader.Compression is BmpInfoCompression.RGB && this.infoHeader.BitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
+        if (this.infoHeader.Compression is BmpInfoCompression.Rgb && this.infoHeader.BitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
         {
             BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {this.infoHeader.BitsPerPixel}");
+        }
+
+        // Huffman 1D is "valid for a bi-level (one bit per pel) bit map" only. See the OS/2 Presentation Manager
+        // Programming Reference, BITMAPINFOHEADER2: http://www.edm2.com/index.php/BITMAPINFOHEADER2
+        if (this.infoHeader.Compression is BmpInfoCompression.Huffman1D && this.infoHeader.BitsPerPixel != 1)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException($"Huffman 1D needs 1 bit per pixel, not {this.infoHeader.BitsPerPixel}.");
         }
 
         // Reject pixel offsets beyond the input before allocating or processing the color table.

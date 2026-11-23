@@ -49,9 +49,9 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
     /// Gets or sets the color type of the embedded bitmap.
     /// </summary>
     /// <remarks>
-    /// The decoder sets the color type of the decoded bitmap. The icon format permits only BI_RGB, so the encoder writes
-    /// a palette for 8 bits per pixel or fewer, and BGR without masks for more bits per pixel. At 16 bits per pixel, the
-    /// layout is 5-5-5.
+    /// The decoder sets the color type of the decoded bitmap. The encoder does not read this value. The icon format
+    /// permits only BI_RGB, so the encoder writes a palette at 8 bits per pixel or fewer, 5-5-5 BGR at 16, BGR at 24, and
+    /// BGRA at 32.
     /// </remarks>
     public BmpColorType BmpColorType { get; set; } = BmpColorType.Bgra;
 
@@ -141,9 +141,8 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
                     break;
 
                 case BmpBitsPerPixel.Bit16:
-                    info = this.BmpColorType is BmpColorType.Bgr565
-                        ? PixelComponentInfo.Create(3, bpp, 5, 6, 5)
-                        : PixelComponentInfo.Create(3, bpp, 5, 5, 5);
+                    // The icon encoder writes BI_RGB bitmaps, and a 16-bit BI_RGB bitmap has the 5-5-5 layout.
+                    info = PixelComponentInfo.Create(3, bpp, 5, 5, 5);
 
                     color = PixelColorType.RGB;
                     break;

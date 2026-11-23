@@ -53,7 +53,9 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         get => this.alphaChannelBits;
         set
         {
-            // Bits 3-0 of the TGA image descriptor store the attribute bits, so the value fits in 4 bits.
+            // Bits 3-0 of the image descriptor store the attribute bits, so the value fits in 4 bits. See the Truevision
+            // TGA File Format Specification, Version 2.0, field 5.6 (src/ImageSharp/Formats/Tga/TGA_Specification.pdf,
+            // page 11).
             Guard.MustBeLessThanOrEqualTo(value, (byte)15, nameof(value));
 
             this.alphaChannelBits = value;
@@ -81,7 +83,8 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         {
             if (value.HasValue)
             {
-                // The TGA color map length is a 2-byte field (field 4.2).
+                // The color map length is a 2-byte field. See the Truevision TGA File Format Specification, Version 2.0,
+                // field 4.2 (src/ImageSharp/Formats/Tga/TGA_Specification.pdf, page 10).
                 Guard.MustBeLessThanOrEqualTo(value.Value.Length, ushort.MaxValue, nameof(value));
             }
 
@@ -123,8 +126,8 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
             };
         }
 
-        // A TGA image stores blue first: in the first byte, or in the least significant bits of a 16-bit pixel. The
-        // color type is BGR, and the component precisions follow the same order.
+        // A true-color TGA image stores blue first: in the first byte, or in the least significant bits of a 16-bit pixel.
+        // So the color type is BGR, and the component precisions follow the same order.
         PixelComponentInfo info;
         PixelColorType color;
         PixelAlphaRepresentation alpha;

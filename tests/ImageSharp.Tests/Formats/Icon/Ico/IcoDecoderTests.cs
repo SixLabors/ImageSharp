@@ -498,8 +498,12 @@ public class IcoDecoderTests
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 
+    /// <summary>
+    /// An icon bitmap must be BI_RGB, which has no 5-6-5 layout. The decoder gives a 5-6-5 entry the 24-bit layout in the
+    /// metadata, so a re-encode keeps each bit of the decoded pixels.
+    /// </summary>
     [Fact]
-    public void DecodeAndIdentify_Bgr565BitmapEntry_RecordsColorType()
+    public void DecodeAndIdentify_Bgr565BitmapEntry_RecordsLosslessLayout()
     {
         using Image<Rgba32> source = CreateGradient();
         byte[] data = CreateIconWithRgb565Bitmap(1, source);
@@ -512,11 +516,11 @@ public class IcoDecoderTests
         IcoFrameMetadata identified = info.FrameMetadataCollection[0].GetIcoMetadata();
         IcoFrameMetadata decoded = image.Frames.RootFrame.Metadata.GetIcoMetadata();
 
-        Assert.Equal(BmpBitsPerPixel.Bit16, decoded.BmpBitsPerPixel);
-        Assert.Equal(BmpColorType.Bgr565, identified.BmpColorType);
-        Assert.Equal(BmpColorType.Bgr565, decoded.BmpColorType);
-        Assert.Equal(BmpColorType.Bgr565, image.Metadata.GetIcoMetadata().BmpColorType);
-        Assert.Equal(6, decoded.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
+        Assert.Equal(BmpBitsPerPixel.Bit24, identified.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit24, decoded.BmpBitsPerPixel);
+        Assert.Equal(BmpColorType.Bgr, identified.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr, decoded.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr, image.Metadata.GetIcoMetadata().BmpColorType);
         ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 

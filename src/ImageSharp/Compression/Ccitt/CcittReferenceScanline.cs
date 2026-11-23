@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
+namespace SixLabors.ImageSharp.Compression.Ccitt;
 
 /// <summary>
 /// Represents a reference scan line for CCITT 2D decoding.
@@ -60,7 +60,7 @@ internal readonly ref struct CcittReferenceScanline
     /// Finds b2: The next changing element to the right of b1 on the reference line.
     /// </summary>
     /// <param name="b1">The first changing element on the reference line to the right of a0 and opposite of color to a0.</param>
-    /// <returns>Position of b1.</returns>
+    /// <returns>Position of b2.</returns>
     public int FindB2(int b1)
     {
         if (this.IsEmpty)

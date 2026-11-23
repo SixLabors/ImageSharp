@@ -128,6 +128,12 @@ public class TgaEncoderTests
     }
 
     // Run length encoded pixels should not exceed row boundaries.
+    /// <summary>
+    /// The compression of the encoder options replaces the compression of the metadata.
+    /// </summary>
+    /// <param name="imagePath">The image path.</param>
+    /// <param name="encoderCompression">The compression of the encoder options.</param>
+    /// <param name="expectedImageType">The expected image type in the file header.</param>
     [Theory]
     [InlineData(Bit24RleBottomLeft, null, (byte)TgaImageType.RleTrueColor)]
     [InlineData(Bit24RleBottomLeft, TgaCompression.None, (byte)TgaImageType.TrueColor)]

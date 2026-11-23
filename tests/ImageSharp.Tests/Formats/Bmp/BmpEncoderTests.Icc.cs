@@ -51,7 +51,7 @@ public partial class BmpEncoderTests
 
         foreach (bool skipMetadata in new[] { false, true })
         {
-            // The 32-bit cases keep alpha, so they use RGBA. The other depths store RGB.
+            // The 32-bit cases keep alpha, so they use Bgra. The other depths use Bgr.
             BmpColorType colorType = bitsPerPixel is BmpBitsPerPixel.Bit32 ? BmpColorType.Bgra : BmpColorType.Bgr;
             BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, ColorType = colorType, SkipMetadata = skipMetadata };
 

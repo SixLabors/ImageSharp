@@ -293,6 +293,9 @@ public partial class AniEncoderTests
         Assert.Equal(0, stream.Length);
     }
 
+    /// <summary>
+    /// Each bitmap frame keeps its own palette, in its own order, when the encoder writes it.
+    /// </summary>
     [Fact]
     public void AniEncoder_BitmapFrames_KeepEachFramePalette()
     {
@@ -341,8 +344,8 @@ public partial class AniEncoderTests
     }
 
     /// <summary>
-    /// Verifies that a bitmap frame is not compressed when the BMP metadata of the image selects RLE. The bitmap of a
-    /// cursor image must set biCompression to 0 (BI_RGB).
+    /// Verifies that a bitmap frame is not compressed when the BMP metadata of the image selects RLE. ICONIMAGE uses only
+    /// six BITMAPINFOHEADER members, and "All other members must be 0", so biCompression is 0 (BI_RGB): https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
     /// </summary>
     [Fact]
     public void AniEncoder_BitmapFrames_IgnoreBmpMetadataCompression()
@@ -367,6 +370,6 @@ public partial class AniEncoderTests
         // info header starts at byte 16 of the DIB.
         ReadOnlySpan<byte> resource = encoded[(frameChunkOffset + AniConstants.ChunkHeaderSize)..];
         int dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
-        Assert.Equal((uint)BmpInfoCompression.RGB, BinaryPrimitives.ReadUInt32LittleEndian(resource[(dibOffset + 16)..]));
+        Assert.Equal((uint)BmpInfoCompression.Rgb, BinaryPrimitives.ReadUInt32LittleEndian(resource[(dibOffset + 16)..]));
     }
 }

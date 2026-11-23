@@ -502,6 +502,10 @@ public partial class GifEncoderTests
         image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
     }
 
+    /// <summary>
+    /// A palette from the metadata keeps the exact color of each pixel, also for two colors in one coarse cache bucket.
+    /// </summary>
+    /// <param name="colorTableMode">The color table mode.</param>
     [Theory]
     [InlineData(FrameColorTableMode.Global)]
     [InlineData(FrameColorTableMode.Local)]

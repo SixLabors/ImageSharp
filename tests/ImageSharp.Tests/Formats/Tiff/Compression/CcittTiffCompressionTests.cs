@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.IO.Compression;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -21,27 +22,31 @@ public class CcittTiffCompressionTests
     private const string TiledT4ReporterPocGzipBase64 =
         "H4sIAAAAAAACCu3UKw7CUBCG0RkuIeC6AxQGj8TwEHWshyWxOhI2QC8Z0QWAIDnNmeQXran4xnEf64jYROQyMvo8RtYepltk++x+rXabblW7P6fZ++fZvtS+T3et/djVR8M2n/Btr1v6C/zCQbQQLUQLRAvRQrRAtBAtRAtEC9FCtEC0EC3+Mlpv/6RrkiQmAAA=";
 
+    /// <summary>
+    /// A run longer than the row is not valid data. The decoder does not throw, and it does not write the run. The row
+    /// keeps its cleared bits, which are white pixels for WhiteIsZero.
+    /// </summary>
+    /// <param name="gzipBase64">The gzip-compressed TIFF, in base 64.</param>
     [Theory]
     [InlineData(T4PocGzipBase64)]
     [InlineData(ModifiedHuffmanPocGzipBase64)]
-    public void Decode_CcittStripWithOversizedRun_ThrowsImageFormatException(string gzipBase64)
+    public void Decode_CcittStripWithOversizedRun_KeepsRowWhite(string gzipBase64)
     {
         using MemoryStream tiffStream = CreateTiffStream(gzipBase64);
+        using Image<Rgba32> image = Image.Load<Rgba32>(tiffStream);
 
-        ImageFormatException exception = Assert.Throws<ImageFormatException>(() => Image.Load(tiffStream));
-
-        Assert.Equal("CCITT compression parsing error: decoded more pixels than the image width.", exception.Message);
+        AssertWhite(image, image.Width, image.Height);
     }
 
     [Fact]
-    public void Decode_TiledCcittReporterSample_ThrowsImageFormatException()
+    public void Decode_TiledCcittReporterSample_KeepsTileWhite()
     {
-        // This is the reporter's exact tiled T4 TIFF sample, gzip-compressed only to keep the test source small.
+        // This is the reporter's exact tiled T4 TIFF sample, gzip-compressed only to keep the test source small. Its
+        // first tile has a run longer than the tile row. The decoder does not write the run, so the tile stays white.
         using MemoryStream tiffStream = CreateTiffStream(TiledT4ReporterPocGzipBase64);
+        using Image<Rgba32> image = Image.Load<Rgba32>(tiffStream);
 
-        ImageFormatException exception = Assert.Throws<ImageFormatException>(() => Image.Load(tiffStream));
-
-        Assert.Equal("CCITT compression parsing error: decoded more pixels than the image width.", exception.Message);
+        AssertWhite(image, 16, 16);
     }
 
     [Fact]
@@ -68,37 +73,80 @@ public class CcittTiffCompressionTests
         Assert.Equal("TIFF tile dimensions must be positive.", exception.Message);
     }
 
+    /// <summary>
+    /// T6 data has no code that starts a row, so a run longer than the row ends the data of its block. The decoder does
+    /// not throw, even with <see cref="SegmentIntegrityHandling.Strict"/>. The rows of the damaged block are white, as
+    /// after EOFB. The second block decodes normally, and its pixels are white too.
+    /// </summary>
+    /// <remarks>
+    /// With damagedLow 0xA8, the damaged block has the bits 010 (VL1) and 1 (V0) after the bad run. In a row after the
+    /// bad run, they would make a black pixel, so the test shows that the decoder does not read the bits after the bad
+    /// run.
+    /// </remarks>
+    /// <param name="tiled">True for tiles; false for strips.</param>
+    /// <param name="damagedLow">The second byte of the damaged block.</param>
     [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void Decode_DamagedFaxBlock_Throws(SegmentIntegrityHandling integrity)
+    [InlineData(false, (byte)0x80)]
+    [InlineData(true, (byte)0x80)]
+    [InlineData(true, (byte)0xA8)]
+    public void Decode_DamagedFaxBlock_EndsBlockData(bool tiled, byte damagedLow)
     {
-        byte[] tiff = CreateTwoBlockFaxTiff(false);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
-
-        ImageFormatException exception = Assert.Throws<ImageFormatException>(() => Image.Load<Rgba32>(options, tiff));
-
-        Assert.Equal("CCITT compression parsing error: decoded more pixels than the image width.", exception.Message);
-    }
-
-    [Theory]
-    [InlineData(false)] // Strips
-    [InlineData(true)] // Tiles
-    public void Decode_DamagedFaxBlock_IgnoreImageData_DiscardsOnlyThatBlock(bool tiled)
-    {
-        byte[] tiff = CreateTwoBlockFaxTiff(tiled);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        byte[] tiff = CreateTwoBlockFaxTiff(tiled, damagedLow);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, tiff);
 
-        // The first block is damaged, so its pixels keep their cleared initial value.
-        // The second block decodes normally. Its pixels are white.
-        for (int y = 0; y < image.Height; y++)
+        AssertWhite(image, image.Width, image.Height);
+    }
+
+    /// <summary>
+    /// For BlackIsZero data, a TIFF reader reverses the meaning of white and black. See TIFF 6.0 specification, section
+    /// 10, page 44. Each CCITT compression decodes a BlackIsZero copy of a WhiteIsZero file to the inverse colors.
+    /// </summary>
+    /// <param name="path">The WhiteIsZero CCITT file.</param>
+    [Theory]
+    [InlineData(TestImages.Tiff.Calliphora_Fax3Compressed)]
+    [InlineData(TestImages.Tiff.Calliphora_HuffmanCompressed)]
+    [InlineData(TestImages.Tiff.Calliphora_Fax4Compressed)]
+    public void Decode_BlackIsZero_ReversesWhiteAndBlack(string path)
+    {
+        byte[] whiteIsZero = TestFile.Create(path).Bytes;
+        byte[] blackIsZero = (byte[])whiteIsZero.Clone();
+
+        // The files are little-endian. The IFD offset is at byte 4, the entry count is the first 2 bytes of the IFD, and
+        // each 12-byte entry has its tag at byte 0 and a SHORT value at byte 8. PhotometricInterpretation is tag 262.
+        int ifd = BinaryPrimitives.ReadInt32LittleEndian(blackIsZero.AsSpan(4));
+        int count = BinaryPrimitives.ReadUInt16LittleEndian(blackIsZero.AsSpan(ifd));
+        int entry = Enumerable.Range(0, count).Select(i => ifd + 2 + (i * 12)).Single(e => BinaryPrimitives.ReadUInt16LittleEndian(blackIsZero.AsSpan(e)) == 262);
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(blackIsZero.AsSpan(entry + 8)));
+        BinaryPrimitives.WriteUInt16LittleEndian(blackIsZero.AsSpan(entry + 8), 1);
+
+        using Image<L8> white = Image.Load<L8>(whiteIsZero);
+        using Image<L8> black = Image.Load<L8>(blackIsZero);
+
+        for (int y = 0; y < white.Height; y++)
         {
-            for (int x = 0; x < image.Width; x++)
+            for (int x = 0; x < white.Width; x++)
             {
-                bool inFirstBlock = tiled ? x < 16 : y == 0;
-                Assert.Equal(inFirstBlock ? default : new Rgba32(255, 255, 255, 255), image[x, y]);
+                Assert.Equal(255 - white[x, y].PackedValue, black[x, y].PackedValue);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Asserts that the pixels of a region at the image origin are white.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <param name="width">The region width.</param>
+    /// <param name="height">The region height.</param>
+    private static void AssertWhite(Image<Rgba32> image, int width, int height)
+    {
+        Rgba32 white = new(255, 255, 255, 255);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                Assert.Equal(white, image[x, y]);
             }
         }
     }
@@ -107,8 +155,9 @@ public class CcittTiffCompressionTests
     /// Creates a bilevel CCITT Group 4 TIFF with two blocks. The first block is damaged and the second holds white pixels.
     /// </summary>
     /// <param name="tiled">True for two 16x16 tiles in a 32x16 image. False for two one-row strips in a 16x2 image.</param>
+    /// <param name="damagedLow">The second byte of the damaged block. Its high bit ends the white run code.</param>
     /// <returns>The encoded TIFF.</returns>
-    private static byte[] CreateTwoBlockFaxTiff(bool tiled)
+    private static byte[] CreateTwoBlockFaxTiff(bool tiled, byte damagedLow)
     {
         const ushort shortType = 3;
         const ushort longType = 4;
@@ -116,7 +165,7 @@ public class CcittTiffCompressionTests
         // The damaged block is a horizontal mode code (001) and the white run code for 17 pixels (101011).
         // Both rows are 16 pixels wide, so the run is longer than the row.
         // A white row below a white reference row is one V0 code, the single bit 1. A 16-row tile needs 16 of these bits.
-        byte[] damaged = [0x35, 0x80];
+        byte[] damaged = [0x35, damagedLow];
         byte[][] blocks = tiled ? [damaged, [0xFF, 0xFF]] : [damaged, [0x80]];
 
         // TIFF requires the entries in ascending tag order. The two offsets and two byte counts do not fit in

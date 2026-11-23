@@ -769,11 +769,11 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
 
         if (bitmapMetadata is not null)
         {
-            // A raw bitmap keeps its depth, color type and color table in the image-level BMP metadata. The frame is
-            // reported as a CUR frame that holds a bitmap of the same depth, so the encoder writes the same bitmap.
+            // A raw bitmap keeps its depth, color type and color table in the image-level BMP metadata. The decoder
+            // reports the frame as a CUR frame with a bitmap of the same depth, so the encoder writes the same pixels at
+            // the same depth. A 5-6-5 bitmap becomes 24-bit, because an icon bitmap must be BI_RGB.
             metadata.Compression = IconFrameCompression.Bmp;
-            metadata.BmpBitsPerPixel = bitmapMetadata.BitsPerPixel;
-            metadata.BmpColorType = bitmapMetadata.ColorType;
+            (metadata.BmpBitsPerPixel, metadata.BmpColorType) = IconDecoderCore.GetBitmapLayout(bitmapMetadata);
             metadata.ColorTable = IconDecoderCore.GetBitmapColorTable(bitmapMetadata);
             metadata.EncodingWidth = NarrowDimension(size.Width);
             metadata.EncodingHeight = NarrowDimension(size.Height);

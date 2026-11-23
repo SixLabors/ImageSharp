@@ -103,7 +103,7 @@ internal static class EncodingUtilities
     /// </summary>
     /// <remarks>
     /// Dithering is off and color matching is exact, so each pixel that has a palette color keeps that color. The default
-    /// coarse matching keeps 5 bits of each channel, so it can map two near palette colors to one entry.
+    /// coarse matching keeps 5 bits of each color channel, so it can map two near palette colors to one entry.
     /// </remarks>
     /// <param name="palette">The decoded palette.</param>
     /// <param name="transparentColorMode">The transparent color mode of the encoder.</param>

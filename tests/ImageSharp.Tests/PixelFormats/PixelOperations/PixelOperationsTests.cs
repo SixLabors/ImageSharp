@@ -1006,6 +1006,10 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             (s, d) => this.Operations.ToBgra5551Bytes(this.Configuration, s, d.GetSpan(), count));
     }
 
+    /// <summary>
+    /// The bulk conversion from Bgr565 bytes gives the pixels of the scalar conversion.
+    /// </summary>
+    /// <param name="count">The pixel count.</param>
     [Theory]
     [MemberData(nameof(ArraySizesData))]
     public void FromBgr565Bytes(int count)
@@ -1028,6 +1032,10 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             (s, d) => this.Operations.FromBgr565Bytes(this.Configuration, s, d.GetSpan(), count));
     }
 
+    /// <summary>
+    /// The bulk conversion to Bgr565 bytes gives the bytes of the scalar conversion.
+    /// </summary>
+    /// <param name="count">The pixel count.</param>
     [Theory]
     [MemberData(nameof(ArraySizesData))]
     public void ToBgr565Bytes(int count)

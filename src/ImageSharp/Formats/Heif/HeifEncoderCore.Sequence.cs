@@ -130,7 +130,7 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
-    /// <param name="sourceIccProfile">The validated ICC profile of this image item or color track, or null.</param>
+    /// <param name="sourceIccProfile">The validated ICC profile of this image item or color track, or <see langword="null"/>.</param>
     /// <param name="allIntra">Whether the encoding is a still image without layers, which codes every frame as a key frame.</param>
     /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
     /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>

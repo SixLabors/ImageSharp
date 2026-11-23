@@ -55,7 +55,8 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     /// </summary>
     /// <remarks>
     /// Bitmap-based ANI files use this value to describe their raw frame data. Icon-based files commonly store zero
-    /// because each embedded ICO or CUR entry declares its own pixel layout.
+    /// because each embedded ICO or CUR entry declares its own pixel layout. The encoder writes each
+    /// <see cref="AniFrameFormat.Bmp"/> frame as a CUR frame that holds a bitmap of this bit depth, or 32 bits for zero.
     /// </remarks>
     public uint BitCount { get; set; }
 

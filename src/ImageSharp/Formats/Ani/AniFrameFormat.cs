@@ -19,7 +19,7 @@ public enum AniFrameFormat : byte
     Ico,
 
     /// <summary>
-    /// The frame resource is encoded as a Windows bitmap.
+    /// The frame resource is encoded as a Windows bitmap. The encoder writes it as a Windows cursor.
     /// </summary>
     Bmp
 }

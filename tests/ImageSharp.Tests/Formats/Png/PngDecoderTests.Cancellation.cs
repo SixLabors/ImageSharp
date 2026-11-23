@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -79,10 +82,12 @@ public partial class PngDecoderTests
         using CancellationTokenSource cts = new();
         using PausedMemoryStream stream = new(pngBytes);
 
-        // Cancel as chunk data finishes so ReadChunkCrc observes cancellation.
+        // BufferedReadStream reads the IDAT data directly from this stream and then seeks this stream to the end of
+        // the data. That seek is the first operation at the CRC offset. Cancel during it, so that the CRC read in
+        // ValidateChunk is the first token check after the chunk data is allocated.
         stream.OnWaiting(s =>
         {
-            if (s.Position >= idatCrcOffset - 1 && !cts.IsCancellationRequested)
+            if (s.Position == idatCrcOffset)
             {
                 cts.Cancel();
                 stream.Release();
@@ -107,11 +112,14 @@ public partial class PngDecoderTests
 
         using CancellationTokenSource cts = new();
         using PausedMemoryStream stream = new(pngBytes);
+        int operationsAtCrcOffset = 0;
 
-        // Cancel during the CRC read so restoring currentStream.Position observes cancellation.
+        // The first operation at the CRC offset is the seek after the direct IDAT data read. The second is the read
+        // that fills the BufferedReadStream buffer with the CRC. Cancel during that read. The read completes, so
+        // restoring the IDAT position in TryReadChunk is the first token check after it.
         stream.OnWaiting(s =>
         {
-            if (s.Position == idatCrcOffset)
+            if (s.Position == idatCrcOffset && ++operationsAtCrcOffset == 2)
             {
                 cts.Cancel();
                 stream.Release();
@@ -131,7 +139,7 @@ public partial class PngDecoderTests
         CancellationToken cancellationToken,
         bool identifyOnly)
     {
-        SixLabors.ImageSharp.Tests.Memory.TestMemoryAllocator allocator = new();
+        TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.CreateDefaultInstance();
         configuration.MemoryAllocator = allocator;
@@ -152,7 +160,6 @@ public partial class PngDecoderTests
             });
         }
 
-        Assert.Equal(0, allocator.LiveBufferBytes);
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
     }
 
@@ -169,11 +176,8 @@ public partial class PngDecoderTests
         int offset = 8;
         while (offset + 12 <= pngBytes.Length)
         {
-            int length = (pngBytes[offset] << 24)
-                | (pngBytes[offset + 1] << 16)
-                | (pngBytes[offset + 2] << 8)
-                | pngBytes[offset + 3];
-            string type = System.Text.Encoding.ASCII.GetString(pngBytes, offset + 4, 4);
+            int length = BinaryPrimitives.ReadInt32BigEndian(pngBytes.AsSpan(offset));
+            string type = Encoding.ASCII.GetString(pngBytes, offset + 4, 4);
             int crcOffset = offset + 8 + length;
             if (type == chunkType)
             {

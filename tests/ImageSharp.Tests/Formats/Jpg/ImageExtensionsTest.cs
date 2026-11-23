@@ -133,4 +133,18 @@ public class ImageExtensionsTest
         IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is JpegFormat);
     }
+
+    [Fact]
+    public void JpegImageFormatDetector_DetectsSoiWithoutJfifOrExif()
+    {
+        var detector = new JpegImageFormatDetector();
+        byte[] soiOnly = [0xFF, 0xD8];
+        byte[] nonJpegWithJfifMarker = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4A, 0x46, 0x49, 0x46, 0x00];
+        byte[] nonJpegWithExifMarker = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45, 0x78, 0x69, 0x66, 0x00];
+
+        Assert.True(detector.TryDetectFormat(soiOnly, out IImageFormat? soiFormat));
+        Assert.Same(JpegFormat.Instance, soiFormat);
+        Assert.False(detector.TryDetectFormat(nonJpegWithJfifMarker, out _));
+        Assert.False(detector.TryDetectFormat(nonJpegWithExifMarker, out _));
+    }
 }

@@ -39,8 +39,9 @@ internal static class IsoBoxReader
     /// Reads an ISO BMFF box header into a caller-owned buffer. The payload can end after the containing box or file.
     /// </summary>
     /// <remarks>
-    /// The header itself must be complete. A caller that accepts a truncated payload, for example the last box of a
-    /// truncated file, gets the payload bytes that the parent holds and a value that tells if bytes are missing.
+    /// The header itself must be complete. A caller can accept a truncated payload, for example the last box of a
+    /// truncated file. That caller gets the payload bytes that the parent holds, and a value that tells if bytes are
+    /// missing.
     /// </remarks>
     /// <param name="stream">The stream positioned at the box size field.</param>
     /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>

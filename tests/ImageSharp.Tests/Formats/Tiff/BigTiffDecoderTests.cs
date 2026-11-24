@@ -34,8 +34,8 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
 
     /// <summary>
     /// Both files store Modified Huffman data with PhotometricInterpretation BlackIsZero. For BlackIsZero CCITT data, a
-    /// TIFF reader reverses the meaning of white and black (TIFF 6.0 specification, section 10, page 44), so the decode
-    /// matches the reference decoder.
+    /// TIFF reader reverses the meaning of white and black (TIFF 6.0 specification, section 10, page 44). Thus the
+    /// decode matches the reference decoder.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="provider">The test image provider.</param>

@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Compression.Ccitt;
 /// https://www.itu.int/rec/T-REC-T.4
 /// </summary>
 /// <remarks>
-/// Each code entry is (code &lt;&lt; 4) | length. The code is the value of the code bits, first bit in the most
-/// significant place, and the length is its bit count (2 to 13).
+/// Each code entry is (code &lt;&lt; 4) | length. The code is the value of the code bits, with the first bit in the
+/// most significant place. The length is the bit count of the code (2 to 13).
 /// </remarks>
 internal static class CcittCodes
 {

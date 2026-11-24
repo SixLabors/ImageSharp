@@ -87,9 +87,9 @@ public class QoiDecoderTests
     }
 
     /// <summary>
-    /// Counts the pixels of the complete chunks in QOI data. Each chunk type has a fixed length, given by its tag:
-    /// QOI_OP_RGB is 4 bytes, QOI_OP_RGBA is 5 bytes, QOI_OP_LUMA is 2 bytes, and QOI_OP_INDEX, QOI_OP_DIFF and
-    /// QOI_OP_RUN are 1 byte. Only QOI_OP_RUN writes more than one pixel, with the run length in its low 6 bits, minus 1.
+    /// Counts the pixels of the complete chunks in QOI data. The tag of a chunk gives its fixed length. QOI_OP_RGB is
+    /// 4 bytes, QOI_OP_RGBA is 5 bytes and QOI_OP_LUMA is 2 bytes. QOI_OP_INDEX, QOI_OP_DIFF and QOI_OP_RUN are
+    /// 1 byte. Only QOI_OP_RUN writes more than one pixel, with the run length in its low 6 bits, minus 1.
     /// See the QOI specification, version 1.0, chunk descriptions, https://qoiformat.org/qoi-specification.pdf.
     /// </summary>
     /// <param name="data">The QOI file. It can end inside a chunk.</param>

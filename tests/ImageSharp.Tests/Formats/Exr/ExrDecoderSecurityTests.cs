@@ -116,8 +116,8 @@ public class ExrDecoderSecurityTests
     }
 
     /// <summary>
-    /// Asserts that a 2x2 image whose chunk offsets are all damaged throws in the Strict and IgnoreAncillary modes,
-    /// and that with the default options it decodes with every pixel at the fill value.
+    /// Asserts that a 2x2 image whose chunk offsets are all damaged throws in the Strict and IgnoreAncillary modes.
+    /// With the default options, the image decodes with every pixel at the fill value.
     /// </summary>
     /// <param name="data">The encoded image.</param>
     private static void AssertDamagedChunksRespectIntegrityHandling(byte[] data)

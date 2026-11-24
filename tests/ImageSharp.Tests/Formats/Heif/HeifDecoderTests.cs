@@ -515,7 +515,7 @@ public class HeifDecoderTests
     /// <summary>
     /// Verifies that a file that ends inside the AV1 payload of its only image item throws in strict mode. With the
     /// default options the decoder keeps the superblocks that the payload holds. The AV1 range decoder reads the missing
-    /// tile bytes as 0, so the decode matches the decode of the same file with the missing bytes set to 0.
+    /// tile bytes as 0. Thus the decode matches the decode of the same file with the missing bytes set to 0.
     /// </summary>
     [Fact]
     public void DecodeKeepsDecodedSuperblocksWhenItemPayloadIsTruncated()
@@ -1109,8 +1109,8 @@ public class HeifDecoderTests
         Assert.Equal(1U, BinaryPrimitives.ReadUInt32BigEndian(data[(chunkOffsets + 12)..]));
         long sampleEnd = BinaryPrimitives.ReadUInt32BigEndian(data[(chunkOffsets + 16)..]);
 
-        // The SampleSizeBox has the box header, the version and flags, the sample size, the sample count, then the
-        // size of each sample when the sample size is 0.
+        // The SampleSizeBox has the box header, the version and flags, the sample size and the sample count. When the
+        // sample size is 0, the size of each sample follows.
         int sampleSizes = FindBoxOffset(data, Heif4CharCode.Stsz, box + 8, sampleTableLength - 8);
         Assert.True(sampleSizes >= 0);
         Assert.Equal(0U, BinaryPrimitives.ReadUInt32BigEndian(data[(sampleSizes + 12)..]));
@@ -1153,8 +1153,8 @@ public class HeifDecoderTests
         int associationOffset = FindBoxOffset(data, Heif4CharCode.Ipma, propertiesOffset + 8, propertiesSize - 8);
         Assert.True(containerOffset >= 0 && associationOffset >= 0);
 
-        // The association box has the box header, the version and flags, the entry count, then for each entry the
-        // item identifier, the association count and one byte for each association. Bit 7 of that byte is the
+        // The association box has the box header, the version and flags and the entry count. Each entry has the item
+        // identifier, the association count and one byte for each association. Bit 7 of that byte is the
         // essential flag, and bits 0 to 6 are the property index.
         Assert.Equal(0U, BinaryPrimitives.ReadUInt32BigEndian(data[(associationOffset + 8)..]));
         int entryCount = (int)BinaryPrimitives.ReadUInt32BigEndian(data[(associationOffset + 12)..]);

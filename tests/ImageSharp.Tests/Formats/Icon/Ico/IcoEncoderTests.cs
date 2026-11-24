@@ -279,7 +279,7 @@ public partial class IcoEncoderTests
     [Fact]
     public void Encode_BmpMetadataRunLength_WritesUncompressedEntry()
     {
-        // ICONIMAGE uses only six BITMAPINFOHEADER members, and "All other members must be 0", so biCompression is 0
+        // ICONIMAGE uses only six BITMAPINFOHEADER members, and "All other members must be 0". Thus biCompression is 0
         // (BI_RGB), and the BMP metadata cannot select RLE: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
         using Image<Rgba32> image = NearColorPalette.CreateImage();
         image.Metadata.GetBmpMetadata().Compression = BmpCompression.RunLength;

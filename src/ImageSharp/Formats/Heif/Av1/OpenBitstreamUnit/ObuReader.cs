@@ -90,8 +90,8 @@ internal sealed class ObuReader
     /// </summary>
     /// <remarks>
     /// In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, the reader keeps the bytes that the payload
-    /// holds. The tile reader decodes a tile that has part of its data from those bytes, and a tile that has no data from
-    /// an empty entropy stream. The frame then completes. The other modes throw.
+    /// holds. The tile reader decodes a tile that has part of its data from those bytes. It decodes a tile that has no
+    /// data from an empty entropy stream. The frame then completes. The other modes throw.
     /// </remarks>
     public SegmentIntegrityHandling IntegrityHandling { get; init; }
 

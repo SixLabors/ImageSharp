@@ -1186,7 +1186,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// </remarks>
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="scanline">The destination for the filter type byte and the filtered scanline bytes.</param>
-    /// <returns><see langword="true"/> if the scanline is complete; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if the scanline is complete. Otherwise, <see langword="false"/>.</returns>
     private bool TryReadScanline(DeflateStream compressedStream, Span<byte> scanline)
     {
         int bytesRead = 0;
@@ -2335,7 +2335,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="b">The byte to check.</param>
     /// <returns>
-    /// <see langword="true"/> if the byte is an ASCII letter; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if the byte is an ASCII letter. Otherwise, <see langword="false"/>.
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static bool IsAsciiLetter(byte b)
@@ -2436,7 +2436,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="buffer">Temporary buffer.</param>
     /// <param name="type">The chunk type. If the return value is <see langword="false"/>, this parameter is the default value.</param>
     /// <returns>
-    /// <see langword="true"/> if the method reads the chunk type; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if the method reads the chunk type. Otherwise, <see langword="false"/>.
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     private bool TryReadChunkType(Span<byte> buffer, out PngChunkType type)

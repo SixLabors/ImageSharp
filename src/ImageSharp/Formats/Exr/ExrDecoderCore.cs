@@ -413,7 +413,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="rowStartIndex">The first row of the chunk, relative to the data window.</param>
     /// <param name="compressedBytes">The declared byte count of the chunk pixel data.</param>
     /// <returns>
-    /// <see langword="true"/> if the stream is at the chunk pixel data; <see langword="false"/> if the chunk header is
+    /// <see langword="true"/> if the stream is at the chunk pixel data. <see langword="false"/> if the chunk header is
     /// damaged and the decoder ignores image data errors.
     /// </returns>
     private bool TryReadChunkHeader(BufferedReadStream stream, ulong chunkOffset, out uint rowStartIndex, out uint compressedBytes)
@@ -452,7 +452,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="uncompressedBytes">The expected byte count for the rows in this block.</param>
     /// <param name="buffer">The reusable decompressed pixel buffer.</param>
     /// <returns>
-    /// <see langword="true"/> if the buffer holds the block samples; <see langword="false"/> if the block is damaged and
+    /// <see langword="true"/> if the buffer holds the block samples. <see langword="false"/> if the block is damaged and
     /// the decoder ignores image data errors. The caller must then not convert the buffer.
     /// </returns>
     /// <remarks>

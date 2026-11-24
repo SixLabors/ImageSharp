@@ -741,8 +741,8 @@ public class WebpDecoderTests
     }
 
     /// <summary>
-    /// Cuts a chunk payload. The file can end inside the chunk, or the chunk and the RIFF sizes can be set to
-    /// the new length so that only the bitstream ends early.
+    /// Cuts a chunk payload. The file can end inside the chunk. Or, the chunk and the RIFF sizes can be set to the new
+    /// length, so that only the bitstream ends early.
     /// </summary>
     /// <param name="data">The WebP file.</param>
     /// <param name="chunk">The offset of the chunk header.</param>

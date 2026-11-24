@@ -417,9 +417,9 @@ internal static class EncodingUtilities
         public static byte Pack(ref byte source)
         {
             // Index k (0 to 7) is bit 8k of the little-endian value. The multiplier has bits 63 - 9k, so the product
-            // moves index k to bit 63 - k: index 0 to bit 63, index 7 to bit 56. The other partial products go to bit
-            // 64 or higher, which the multiply drops, or to separate bits below bit 56. No sum carries, so the top
-            // byte is exactly [i0 i1 i2 i3 i4 i5 i6 i7].
+            // moves index k to bit 63 - k. Index 0 goes to bit 63, and index 7 goes to bit 56. The other partial
+            // products go to bit 64 or higher, which the multiply drops, or to separate bits below bit 56. No sum
+            // carries, so the top byte is exactly [i0 i1 i2 i3 i4 i5 i6 i7].
             ulong value = Unsafe.ReadUnaligned<ulong>(ref source);
             return (byte)((value * 0x8040201008040201UL) >> 56);
         }
@@ -477,7 +477,8 @@ internal static class EncodingUtilities
         public static byte Pack(ref byte source)
         {
             // Index k (0 to 3) is bits 8k and 8k + 1 of the little-endian value. The multiplier has bits 30 - 10k, so
-            // the product moves index k to bits 30 - 2k and 31 - 2k: index 0 to bits 30-31, index 3 to bits 24-25.
+            // the product moves index k to bits 30 - 2k and 31 - 2k. Index 0 goes to bits 30-31, and index 3 goes to
+            // bits 24-25.
             // The other partial products go to bit 32 or higher, which the multiply drops, or to separate 2-bit fields
             // below bit 24. No sum carries, so the top byte is exactly [i0 i0 i1 i1 i2 i2 i3 i3].
             uint value = Unsafe.ReadUnaligned<uint>(ref source);

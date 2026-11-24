@@ -420,7 +420,7 @@ public partial class JpegDecoderTests
     public void Decode_TruncatedProgressiveScan_RespectsIntegrity()
     {
         // The fifth scan starts with its SOS marker at byte 475. It codes the luma AC coefficients of one 8 x 8 block
-        // in each restart interval, and its RST markers are at bytes 486 to 516. The input ends at byte 500, so the
+        // in each restart interval. Its RST markers are at bytes 486 to 516. The input ends at byte 500, so the
         // scan has data for the first six blocks and part of the seventh. The 32 x 24 image has 4 x 3 luma blocks.
         byte[] complete = TestFile.Create(MarkerDirectory + "progressive.jpg").Bytes;
         byte[] data = complete.AsSpan(0, 500).ToArray();

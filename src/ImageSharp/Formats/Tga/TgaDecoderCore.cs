@@ -749,7 +749,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="pixels">The destination pixel buffer.</param>
     /// <param name="row">The row buffer for the encoded bytes.</param>
     /// <param name="y">The destination row.</param>
-    /// <returns><see langword="true"/> if the row is complete; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadL8Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -775,7 +775,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="x">The destination column.</param>
     /// <param name="pixelSpan">The destination row.</param>
-    /// <returns><see langword="true"/> if the method reads the pixel; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadL8Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -799,7 +799,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="x">The destination column.</param>
     /// <param name="pixelSpan">The destination row.</param>
     /// <param name="scratchBuffer">The buffer for the encoded bytes.</param>
-    /// <returns><see langword="true"/> if the method reads the pixel; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadBgr24Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -824,7 +824,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="pixels">The destination pixel buffer.</param>
     /// <param name="row">The row buffer for the encoded bytes.</param>
     /// <param name="y">The destination row.</param>
-    /// <returns><see langword="true"/> if the row is complete; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadBgr24Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -852,7 +852,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="x">The destination column.</param>
     /// <param name="pixelRow">The destination row.</param>
     /// <param name="scratchBuffer">The buffer for the encoded bytes.</param>
-    /// <returns><see langword="true"/> if the method reads the pixel; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -880,7 +880,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="pixels">The destination pixel buffer.</param>
     /// <param name="row">The row buffer for the encoded bytes.</param>
     /// <param name="y">The destination row.</param>
-    /// <returns><see langword="true"/> if the row is complete; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadBgra32Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -907,7 +907,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="relativeIndex">
     /// The index relative to the first stored color map entry, or -1 if the index is outside the color map.
     /// </param>
-    /// <returns><see langword="true"/> if the method reads the index; <see langword="false"/> if the image data ended.</returns>
+    /// <returns><see langword="true"/> if the method reads the index. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryReadPaletteIndex(BufferedReadStream stream, out int relativeIndex)
     {

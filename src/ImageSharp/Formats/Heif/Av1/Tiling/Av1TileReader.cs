@@ -633,11 +633,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         // The tile data is damaged. The superblocks before this one keep their decoded state. This
                         // superblock parses again from an empty stream. The mode-information reset removes the records
                         // of the failed parse from the frame map. The second parse starts from the other state that the
-                        // failed parse left: the adapted CDFs, the quantizer and loop filter deltas, the restoration
-                        // references and the neighbor contexts of this superblock. The failed parse wrote each of these
-                        // values from decoded syntax before the error, so the second parse gives a deterministic result.
-                        // Reconstruction clears a coefficient region only after its inverse transform. Thus the failed
-                        // parse can leave coefficients, and the code clears them here.
+                        // failed parse left. This state is the adapted CDFs, the quantizer and loop filter deltas, the
+                        // restoration references and the neighbor contexts of this superblock. The failed parse wrote
+                        // each of these values from decoded syntax before the error, so the second parse gives a
+                        // deterministic result. Reconstruction clears a coefficient region only after its inverse
+                        // transform. Thus the failed parse can leave coefficients, and the code clears them here.
                         readsEmptyStream = true;
                         reader = new Av1SymbolDecoder(
                             this.configuration,

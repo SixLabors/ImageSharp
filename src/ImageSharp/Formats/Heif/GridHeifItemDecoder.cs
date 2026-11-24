@@ -233,10 +233,10 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
             catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
             {
                 // In this mode the tile decoder keeps the pixels that it can decode from damaged tile data. It throws
-                // when the tile data holds no frame that it can decode, or when the tile data does not agree with the
-                // properties of the tile item. The decoder converts the pixels of a tile after it decodes the tile
-                // payload, so this tile writes no pixels. Its region keeps the fill value, and the other tiles still
-                // decode. The other modes let the original exception pass.
+                // when the tile data holds no frame that it can decode. It also throws when the tile data does not
+                // agree with the properties of the tile item. The decoder converts the pixels of a tile after it
+                // decodes the tile payload, so this tile writes no pixels. Its region keeps the fill value, and the
+                // other tiles still decode. The other modes let the original exception pass.
             }
         }
     }

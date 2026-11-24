@@ -82,8 +82,8 @@ internal class PlainDecoder
     /// <param name="stream">The input stream. It is at the first byte of the sample token.</param>
     /// <param name="handling">The segment integrity mode.</param>
     /// <param name="value">The sample value. The value of a damaged token is not defined.</param>
-    /// <param name="isValid"><see langword="true"/> if the token is a decimal number; otherwise, <see langword="false"/>.</param>
-    /// <returns><see langword="true"/> if more raster data follows the sample; <see langword="false"/> if the stream ends.</returns>
+    /// <param name="isValid"><see langword="true"/> if the token is a decimal number. Otherwise, <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> if more raster data follows the sample. <see langword="false"/> if the stream ends.</returns>
     private static bool ReadSample(BufferedReadStream stream, SegmentIntegrityHandling handling, out int value, out bool isValid)
     {
         // ReadDecimal retains a final number even when EOF immediately follows its last digit.
@@ -120,9 +120,9 @@ internal class PlainDecoder
     /// </summary>
     /// <param name="stream">The input stream. It is at the byte of the pixel.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <param name="isBlack"><see langword="true"/> if the byte is '1'; otherwise, <see langword="false"/>.</param>
-    /// <param name="isValid"><see langword="true"/> if the byte is '0' or '1'; otherwise, <see langword="false"/>.</param>
-    /// <returns><see langword="true"/> if more raster data follows the pixel; <see langword="false"/> if the stream ends.</returns>
+    /// <param name="isBlack"><see langword="true"/> if the byte is '1'. Otherwise, <see langword="false"/>.</param>
+    /// <param name="isValid"><see langword="true"/> if the byte is '0' or '1'. Otherwise, <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> if more raster data follows the pixel. <see langword="false"/> if the stream ends.</returns>
     private static bool ReadBit(BufferedReadStream stream, SegmentIntegrityHandling handling, out bool isBlack, out bool isValid)
     {
         // Each pixel is one ASCII '0' or '1' byte, and whitespace in the raster is ignored. Thus "0101" holds four
@@ -165,7 +165,7 @@ internal class PlainDecoder
     /// <param name="colorType">The encoded color type.</param>
     /// <param name="maxPixelValue">The declared maximum sample value.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessScaled<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
@@ -253,7 +253,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessGrayscale<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
@@ -314,7 +314,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessWideGrayscale<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
@@ -375,7 +375,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessRgb<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
@@ -458,7 +458,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessWideRgb<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
@@ -541,7 +541,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image; <see langword="false"/> if it ends early.</returns>
+    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
     private static bool ProcessBlackAndWhite<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,

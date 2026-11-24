@@ -23,9 +23,10 @@ internal static class PixelConverter
     // A vector integer division does more work. On x86, the JIT checks the divisor for zero, converts the lanes to
     // double, divides and converts back.
     // (x * ceil(2^23 / d)) >> 23 equals x / d for each x below 364745 (d = 31), 270647 (d = 63) and 66299 (d = 255).
-    // x is value * destinationMax + d / 2. Its largest value is 31 * 255 + 15 = 7920 for d = 31, 63 * 255 + 31 = 16096
-    // for d = 63, and 255 * 63 + 127 = 16192 for d = 255. Thus each division is exact. The largest products are
-    // 7920 * 270601, 16096 * 133153 and 16192 * 32897. Each is less than 2^32, so the multiply does not overflow.
+    // x is value * destinationMax + d / 2. Its largest value is 31 * 255 + 15 = 7920 for d = 31. It is
+    // 63 * 255 + 31 = 16096 for d = 63, and 255 * 63 + 127 = 16192 for d = 255. Thus each division is exact. The
+    // largest products are 7920 * 270601, 16096 * 133153 and 16192 * 32897. Each is less than 2^32, so the multiply
+    // does not overflow.
 
     /// <summary>
     /// The shift of the vector division in <see cref="ScaleUnorm(Vector512{uint}, uint, uint)"/>.
@@ -95,7 +96,7 @@ internal static class PixelConverter
     /// </summary>
     /// <remarks>
     /// Each position is a constant, so the JIT encodes each shift of a kernel loop as an immediate operand. A 3-byte pixel
-    /// uses the order of its first three bytes, and the kernels spread it to a 4-byte lane with alpha in the fourth byte.
+    /// uses the order of its first three bytes. The kernels spread it to a 4-byte lane with alpha in the fourth byte.
     /// The name of each order gives the channel at each byte, from byte 0 to byte 3. X, Y, Z and W are red, green, blue
     /// and alpha.
     /// </remarks>

@@ -52,9 +52,9 @@ internal static class BmpRleEncoder
     /// <param name="width">The pixel count of the row.</param>
     /// <returns>The byte count.</returns>
     /// <remarks>
-    /// An encoded run of one pixel is the most expensive command: 2 bytes for each pixel. An absolute run of n pixels,
-    /// n of 3 or more, has 2 bytes of command, at most n bytes of data and 1 byte of padding. Thus it is also at most
-    /// 2 bytes for each pixel. The end command adds 2 bytes.
+    /// An encoded run of one pixel is the most expensive command: 2 bytes for each pixel. An absolute run has 3 or more
+    /// pixels. A run of n pixels has 2 bytes of command, at most n bytes of data and 1 byte of padding. Thus it is also
+    /// at most 2 bytes for each pixel. The end command adds 2 bytes.
     /// </remarks>
     public static int GetMaxRowLength(int width) => (2 * width) + 2;
 

@@ -15,8 +15,8 @@ public static class PartialDecodeExpectation
     /// <summary>
     /// Creates the expected frame. The units before the first unit that differs from the complete decode keep the complete
     /// decode. That unit and all units after it get the fill value. Compare the result with the actual frame through
-    /// <see cref="ImageComparer"/>. The compare then fails when a unit is only partly decoded, when a unit after the end
-    /// is not the fill value, or when a decoded unit comes after a filled unit.
+    /// <see cref="ImageComparer"/>. The compare then fails when a unit is only partly decoded. It also fails when a unit
+    /// after the end is not the fill value, or when a decoded unit comes after a filled unit.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="complete">The decode of the complete data.</param>
@@ -46,8 +46,8 @@ public static class PartialDecodeExpectation
     /// <param name="bottomUp">Whether the decoder writes the rows from the bottom row up.</param>
     /// <param name="fill">Gets the fill value of a pixel from the pixel of the complete decode.</param>
     /// <param name="partialUnitFill">
-    /// Gets the value of a pixel after the end of the data in the unit in which the data ends, or <see langword="null"/>
-    /// when the decoder fills that whole unit with <paramref name="fill"/>.
+    /// Gets the value of a pixel after the end of the data in the unit in which the data ends. Use
+    /// <see langword="null"/> when the decoder fills that whole unit with <paramref name="fill"/>.
     /// </param>
     /// <returns>The expected frame as a single-frame image.</returns>
     public static Image<TPixel> Create<TPixel>(

@@ -1181,8 +1181,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
 
-        // A color row and a mask row each round up to a multiple of 4 bytes: (n + 3) & ~3 clears the low two bits after
-        // the add. The mask rows start after all color rows.
+        // A color row and a mask row each round up to a multiple of 4 bytes. (n + 3) & ~3 adds 3, then clears the low
+        // two bits. The mask rows start after all color rows.
         int colorStride = ((((width * bitsPerPixel) + 7) / 8) + 3) & ~3;
         int maskBytes = (width + 7) / 8;
         int maskStride = (maskBytes + 3) & ~3;
@@ -1641,9 +1641,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             && this.infoHeader.BlueMask is BmpConstants.Bgr565Masks.Blue;
 
         // The 16-bit layouts of the encoder keep each decoded value only for their own masks. A channel of other width
-        // widens to 8 bits with values that a 5-bit or 6-bit channel cannot hold: 2 bits give 0, 85, 170 and 255. 85 is
-        // 10 in 5 bits, and 10 widens to 82. So other 16-bit masks map to the 24-bit or 32-bit layout, which keeps each
-        // decoded value.
+        // widens to 8 bits with values that a 5-bit or 6-bit channel cannot hold. For example, 2 bits give 0, 85, 170
+        // and 255. 85 is 10 in 5 bits, and 10 widens to 82. So other 16-bit masks map to the 24-bit or 32-bit layout,
+        // which keeps each decoded value.
         // A BI_RGB 16-bit bitmap has the 5-5-5 layout.
         bool rgb555 = !bitFields
             || (this.infoHeader.RedMask is BmpConstants.Bgr555Masks.Red

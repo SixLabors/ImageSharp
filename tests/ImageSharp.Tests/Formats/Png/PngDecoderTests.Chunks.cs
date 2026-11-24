@@ -490,7 +490,7 @@ public partial class PngDecoderTests
     /// Checks that a damaged zlib header or deflate stream gives a cleared image with the default options.
     /// Strict throws for the same input.
     /// </summary>
-    /// <param name="damagedHeader">True to damage the zlib header; false to damage the first deflate block.</param>
+    /// <param name="damagedHeader">True to damage the zlib header. False to damage the first deflate block.</param>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -669,7 +669,7 @@ public partial class PngDecoderTests
 
     /// <summary>
     /// Checks that a valid file decodes in full in each mode when its last IDAT chunks hold no deflate data. The IDAT
-    /// chunks hold one zlib stream, and the stream can be split at any byte (PNG Third Edition, section 10.2
+    /// chunks hold one zlib stream. The stream can be split at any byte (PNG Third Edition, section 10.2
     /// "Compression of the sequence of filtered scanlines"). Here the second to last IDAT chunk holds only the Adler-32
     /// checksum, and the last IDAT chunk is empty. The decoder can finish all rows before it reads these chunks.
     /// </summary>

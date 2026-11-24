@@ -686,8 +686,8 @@ public class GifDecoderTests
     }
 
     /// <summary>
-    /// Keeps the decoded rows of a frame and decodes the next frame by default when the data sub-blocks of the frame
-    /// end before its last index. Throws when the integrity mode does not ignore image data errors.
+    /// The data sub-blocks of a frame end before its last index. By default, the decoder keeps the decoded rows of the
+    /// frame and decodes the next frame. Throws when the integrity mode does not ignore image data errors.
     /// </summary>
     [Fact]
     public void Decode_FrameDataEndsBeforeLastIndex_DecodesNextFrame()
@@ -721,7 +721,7 @@ public class GifDecoderTests
         }
 
         // The default options ignore image data errors. The two decoded rows of frame 1 are red. The indices after the
-        // end of the data are 0, and the frames have no transparent index, so the last two rows get color 0, black.
+        // end of the data are 0. The frames have no transparent index, so the last two rows get color 0, black.
         // Frame 2 loses no bytes to frame 1, so it is completely green.
         Rgba32 black = new(0, 0, 0);
         Rgba32 red = new(255, 0, 0);

@@ -82,8 +82,8 @@ public class TiffDecoderStripLayoutTests
     {
         // The file is 1024 x 700 with 600 rows per strip: 2 strips for each of 3 planes. It is little-endian. The IFD
         // offset is at byte 4, and each 12-byte entry has its tag at byte 0 and its count at byte 4. StripByteCounts is
-        // tag 279.
-        byte[] data = TestFile.Create(PlanarRgb16MultipleStrips).Bytes;
+        // tag 279. The test changes the bytes, so it uses a copy of the cached file bytes.
+        byte[] data = [.. TestFile.Create(PlanarRgb16MultipleStrips).Bytes];
         using Image<Rgb48> expected = Image.Load<Rgb48>(data);
 
         int ifd = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(4));

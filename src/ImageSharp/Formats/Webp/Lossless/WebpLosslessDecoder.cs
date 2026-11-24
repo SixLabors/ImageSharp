@@ -96,13 +96,85 @@ internal sealed class WebpLosslessDecoder
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
-    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, ColorProfileConverter colorProfileConverter)
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated image data.</param>
+    public void Decode<TPixel>(
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        ColorProfileConverter colorProfileConverter,
+        SegmentIntegrityHandling segmentIntegrityHandling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Vp8LDecoder decoder = new(width, height, this.memoryAllocator);
-        this.DecodeImageStream(decoder, width, height, true);
-        this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
-        this.DecodePixelValues(decoder, pixels, width, height, colorProfileConverter);
+        if (!this.TryDecodeImageStream(decoder, width, height, segmentIntegrityHandling))
+        {
+            // The header is damaged, so the decoder cannot decode a pixel. The pixel buffer keeps its fill value.
+            return;
+        }
+
+        // DecodePixelValues writes only the complete rows. The other rows keep their fill value.
+        int rows = this.DecodeImageRows(decoder, segmentIntegrityHandling, "The WebP lossless image data is damaged or ends before the last pixel.");
+        this.DecodePixelValues(decoder, pixels, width, rows, colorProfileConverter);
+    }
+
+    /// <summary>
+    /// Reads the transforms, the color cache and the entropy codes of the main image stream.
+    /// </summary>
+    /// <remarks>
+    /// These headers come before all pixels. If they are damaged, the decoder cannot decode a pixel.
+    /// </remarks>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged headers.</param>
+    /// <returns>
+    /// <see langword="true"/> if the headers are valid. <see langword="false"/> if they are damaged and the mode
+    /// ignores image data errors.
+    /// </returns>
+    /// <exception cref="ImageFormatException">
+    /// The headers are damaged, and the mode does not ignore image data errors.
+    /// </exception>
+    public bool TryDecodeImageStream(Vp8LDecoder decoder, int width, int height, SegmentIntegrityHandling segmentIntegrityHandling)
+    {
+        try
+        {
+            this.DecodeImageStream(decoder, width, height, true);
+            return true;
+        }
+        catch (Exception ex) when (segmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
+        {
+            // The Strict and IgnoreAncillary modes do not catch the exception, so the original exception and its stack
+            // trace stay.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Decodes the entropy-coded pixels of the main image stream into the pixel buffer of the decoder.
+    /// </summary>
+    /// <remarks>
+    /// libwebp reports an error when the data ends before the last pixel, or when a read goes past the end.
+    /// The method keeps the pixels that it decodes before the damage.
+    /// </remarks>
+    /// <param name="decoder">The decoder. <see cref="TryDecodeImageStream"/> read its headers.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated data.</param>
+    /// <param name="message">The exception message for damaged or truncated data.</param>
+    /// <returns>
+    /// The number of complete rows. The color indexing transform packs the pixels of a row. Thus, the width of the
+    /// decoder can be less than the image width, but each packed row is one image row.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The data is damaged or truncated, and the mode does not ignore image data errors.
+    /// </exception>
+    public int DecodeImageRows(Vp8LDecoder decoder, SegmentIntegrityHandling segmentIntegrityHandling, string message)
+    {
+        int decodedPixels = this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
+        if (decodedPixels < decoder.Width * decoder.Height || this.bitReader.IsEndOfStream())
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError(message);
+        }
+
+        return decodedPixels / decoder.Width;
     }
 
     public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
@@ -178,11 +250,28 @@ internal sealed class WebpLosslessDecoder
 
         // Use the Huffman trees to decode the LZ77 encoded data.
         IMemoryOwner<uint> pixelData = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
-        this.DecodeImageData(decoder, pixelData.GetSpan());
+        try
+        {
+            this.DecodeImageDataOrThrow(decoder, pixelData.GetSpan());
+        }
+        catch
+        {
+            pixelData.Dispose();
+            throw;
+        }
 
         return pixelData;
     }
 
+    /// <summary>
+    /// Applies the inverse transforms and writes the decoded rows to the pixel buffer.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="decoder">The decoder that holds the decoded pixels.</param>
+    /// <param name="pixels">The pixel buffer to write to.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The number of rows to write. Rows after them keep their fill value.</param>
+    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
     private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels, int width, int height, ColorProfileConverter colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -214,7 +303,17 @@ internal sealed class WebpLosslessDecoder
         }
     }
 
-    public void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
+    /// <summary>
+    /// Decodes the entropy coded pixels of an image or of a sub-image.
+    /// </summary>
+    /// <remarks>
+    /// The decode stops when the data ends, or at a code or a backward reference that is not valid.
+    /// The caller decides how to report the damage. The method keeps the pixels that it decodes before the damage.
+    /// </remarks>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="pixelData">The pixel data to decode to.</param>
+    /// <returns>The number of decoded pixels.</returns>
+    public int DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
     {
         const int lastPixel = 0;
         int width = decoder.Width;
@@ -308,6 +407,12 @@ internal sealed class WebpLosslessDecoder
                     break;
                 }
 
+                // libwebp rejects a reference that starts before the first pixel or that ends after the last pixel.
+                if (dist > decodedPixels || length > totalPixels - decodedPixels)
+                {
+                    break;
+                }
+
                 CopyBlock(pixelData, decodedPixels, dist, length);
                 decodedPixels += length;
                 col += length;
@@ -346,8 +451,28 @@ internal sealed class WebpLosslessDecoder
             }
             else
             {
-                WebpThrowHelper.ThrowImageFormatException("Webp parsing error");
+                // The code is not valid.
+                break;
             }
+        }
+
+        return decodedPixels;
+    }
+
+    /// <summary>
+    /// Decodes the entropy coded pixels of a sub-image, and throws for a code that is not valid.
+    /// </summary>
+    /// <remarks>
+    /// The end of the data does not throw here. The end of the data is sticky in the bit reader, so the caller
+    /// that decodes the main pixels or alpha values reports it.
+    /// </remarks>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="pixelData">The pixel data to decode to.</param>
+    public void DecodeImageDataOrThrow(Vp8LDecoder decoder, Span<uint> pixelData)
+    {
+        if (this.DecodeImageData(decoder, pixelData) < decoder.Width * decoder.Height && !this.bitReader.IsEndOfStream())
+        {
+            WebpThrowHelper.ThrowImageFormatException("Webp parsing error");
         }
     }
 
@@ -737,7 +862,8 @@ internal sealed class WebpLosslessDecoder
     /// This method will undo the compression.
     /// </summary>
     /// <param name="dec">The alpha decoder.</param>
-    public void DecodeAlphaData(AlphaDecoder dec)
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated alpha data.</param>
+    public void DecodeAlphaData(AlphaDecoder dec, SegmentIntegrityHandling segmentIntegrityHandling)
     {
         Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
         Span<byte> data = MemoryMarshal.Cast<uint, byte>(pixelData);
@@ -754,6 +880,11 @@ internal sealed class WebpLosslessDecoder
         const int lenCodeLimit = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes;
         int mask = hdr.HuffmanMask;
         Span<HTreeGroup> htreeGroup = pos < last ? GetHTreeGroupForPos(hdr, col, row) : null;
+
+        // A code that is not valid sets isValid and leaves the loop with break. The loop uses if statements, not a
+        // switch statement, because break in a switch section cannot leave the loop. Thus, the loop condition does
+        // not test isValid for each symbol.
+        bool isValid = true;
         while (!this.bitReader.Eos && pos < last)
         {
             // Only update when changing tile.
@@ -764,76 +895,77 @@ internal sealed class WebpLosslessDecoder
 
             this.bitReader.FillBitWindow();
             int code = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Green]);
-            switch (code)
+            if (code < WebpConstants.NumLiteralCodes)
             {
-                case < WebpConstants.NumLiteralCodes:
+                // Literal
+                data[pos] = (byte)code;
+                ++pos;
+                ++col;
+
+                if (col >= width)
                 {
-                    // Literal
-                    data[pos] = (byte)code;
-                    ++pos;
-                    ++col;
-
-                    if (col >= width)
+                    col = 0;
+                    ++row;
+                    if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
                     {
-                        col = 0;
-                        ++row;
-                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
-                        {
-                            dec.ExtractPalettedAlphaRows(row);
-                        }
+                        dec.ExtractPalettedAlphaRows(row);
                     }
-
+                }
+            }
+            else if (code < lenCodeLimit)
+            {
+                // Backward reference
+                int lengthSym = code - WebpConstants.NumLiteralCodes;
+                int length = this.GetCopyLength(lengthSym);
+                int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
+                this.bitReader.FillBitWindow();
+                int distCode = this.GetCopyDistance(distSymbol);
+                int dist = PlaneCodeToDistance(width, distCode);
+                if (pos < dist || end - pos < length)
+                {
+                    // The reference starts before the first value or ends after the last value.
+                    isValid = false;
                     break;
                 }
 
-                case < lenCodeLimit:
+                CopyBlock8B(data, pos, dist, length);
+
+                pos += length;
+                col += length;
+                while (col >= width)
                 {
-                    // Backward reference
-                    int lengthSym = code - WebpConstants.NumLiteralCodes;
-                    int length = this.GetCopyLength(lengthSym);
-                    int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
-                    this.bitReader.FillBitWindow();
-                    int distCode = this.GetCopyDistance(distSymbol);
-                    int dist = PlaneCodeToDistance(width, distCode);
-                    if (pos >= dist && end - pos >= length)
+                    col -= width;
+                    ++row;
+                    if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
                     {
-                        CopyBlock8B(data, pos, dist, length);
+                        dec.ExtractPalettedAlphaRows(row);
                     }
-                    else
-                    {
-                        WebpThrowHelper.ThrowImageFormatException("error while decoding alpha data");
-                    }
-
-                    pos += length;
-                    col += length;
-                    while (col >= width)
-                    {
-                        col -= width;
-                        ++row;
-                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
-                        {
-                            dec.ExtractPalettedAlphaRows(row);
-                        }
-                    }
-
-                    if (pos < last && (col & mask) > 0)
-                    {
-                        htreeGroup = GetHTreeGroupForPos(hdr, col, row);
-                    }
-
-                    break;
                 }
 
-                default:
-                    WebpThrowHelper.ThrowImageFormatException("bitstream error while parsing alpha data");
-                    break;
+                if (pos < last && (col & mask) > 0)
+                {
+                    htreeGroup = GetHTreeGroupForPos(hdr, col, row);
+                }
+            }
+            else
+            {
+                // The code is not valid.
+                isValid = false;
+                break;
             }
 
             this.bitReader.Eos = this.bitReader.IsEndOfStream();
         }
 
         // Process the remaining rows corresponding to last row-block.
+        // The method keeps the complete rows that it decodes before any damage. The caller clears the other rows.
         dec.ExtractPalettedAlphaRows(row > lastRow ? lastRow : row);
+
+        // As in libwebp, a code that is not valid, or data that ends before the last value, is damage.
+        if (!isValid || (this.bitReader.Eos && pos < end))
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The WebP alpha data is damaged or ends before the last value.");
+        }
     }
 
     private static void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
@@ -965,12 +1097,8 @@ internal sealed class WebpLosslessDecoder
     /// <param name="length">The number of pixels to copy.</param>
     private static void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
     {
+        // DecodeImageData checks that the reference starts at or after the first pixel and ends at or before the last pixel.
         int start = decodedPixels - dist;
-        if (start < 0)
-        {
-            WebpThrowHelper.ThrowImageFormatException("webp image data seems to be invalid");
-        }
-
         if (dist >= length)
         {
             // no overlap.

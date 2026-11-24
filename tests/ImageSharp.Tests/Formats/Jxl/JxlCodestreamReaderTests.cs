@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
@@ -23,13 +24,13 @@ public class JxlCodestreamReaderTests
         byte[] expected = TestFile.Create(TestImages.Jxl.Splines).Bytes;
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader reader = new(buffered);
+        JxlCodestreamReader reader = new(buffered, SegmentIntegrityHandling.Strict);
         InlineArray16<byte> storage = default;
         Span<byte> actual = storage;
         ReadOnlySpan<int> positions = [0, expected.Length / 2, 5, expected.Length - actual.Length, 0, 17];
 
-        // This order crosses both discovered and undiscovered ranges, then returns to cached ranges.
-        // The version-one fixture stores fragments out of logical order; bytes still match the unchanged raw file.
+        // This order moves forward and backward across fragment boundaries. The version-one fixture stores
+        // fragments out of logical order, and the bytes still match the unchanged raw file.
         foreach (int position in positions)
         {
             Assert.True(reader.TrySeek(position));
@@ -66,7 +67,7 @@ public class JxlCodestreamReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader reader = new(buffered);
+        JxlCodestreamReader reader = new(buffered, SegmentIntegrityHandling.Strict);
         InlineArray4<byte> storage = default;
         Span<byte> prefix = storage;
 
@@ -94,7 +95,7 @@ public class JxlCodestreamReaderTests
         byte[] actual = new byte[expected.Length];
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader reader = new(buffered);
+        JxlCodestreamReader reader = new(buffered, SegmentIntegrityHandling.Strict);
         int offset = 0;
 
         // Small reads cross the signature, fragment and reservoir boundaries. The expected bytes come from the
@@ -118,7 +119,8 @@ public class JxlCodestreamReaderTests
     }
 
     /// <summary>
-    /// Verifies fragment numbering, termination and physical file boundaries from stored malformed inputs.
+    /// Verifies fragment numbering, termination and physical file boundaries from stored malformed inputs in the
+    /// Strict mode.
     /// </summary>
     /// <param name="file">The malformed container file.</param>
     [Theory]
@@ -132,7 +134,7 @@ public class JxlCodestreamReaderTests
 
         Assert.Throws<InvalidImageContentException>(() =>
         {
-            JxlCodestreamReader reader = new(buffered);
+            JxlCodestreamReader reader = new(buffered, SegmentIntegrityHandling.Strict);
             InlineArray16<byte> storage = default;
             Span<byte> buffer = storage;
 
@@ -158,7 +160,7 @@ public class JxlCodestreamReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader reader = new(buffered);
+        JxlCodestreamReader reader = new(buffered, SegmentIntegrityHandling.Strict);
         InlineArray16<byte> storage = default;
         Span<byte> prefix = storage;
 

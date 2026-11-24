@@ -73,9 +73,11 @@ public sealed class DecoderOptions
     public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
 
     /// <summary>
-    /// Gets the segment error handling strategy to use during decoding.
+    /// Gets how the decoder handles recoverable errors in ancillary segments and in image data.
+    /// Defaults to <see cref="SegmentIntegrityHandling.IgnoreImageData"/>, so the decoder returns each pixel that it can
+    /// decode.
     /// </summary>
-    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreAncillary;
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreImageData;
 
     /// <summary>
     /// Gets a value that controls ICC color conversion and profile retention during decoding and identification.

@@ -79,7 +79,7 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
 
         byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
 
-        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex);
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling);
         using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
             itemData,
             colorProfile,
@@ -145,7 +145,7 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
 
         byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
 
-        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex);
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling);
         return decoder.DecodeFrameBuffer(
             itemData,
             item.CicpProfile,
@@ -158,8 +158,14 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
     /// Gets the cumulative item bytes required by an explicit AV1 spatial-layer selection.
     /// </summary>
     /// <param name="item">The AV1 image item containing optional layered-image properties.</param>
-    /// <param name="data">The complete logical image-item payload.</param>
-    /// <returns>The complete payload for final-layer decoding, or the cumulative prefix through the selected layer.</returns>
+    /// <param name="data">
+    /// The logical image-item payload. It is shorter than the declared extents when the file is truncated and the
+    /// item data reader ignores image data errors.
+    /// </param>
+    /// <returns>
+    /// The payload for final-layer decoding, or the cumulative prefix through the selected layer. Each is limited to
+    /// the bytes that <paramref name="data"/> holds.
+    /// </returns>
     private static Span<byte> GetItemData(HeifItem item, Span<byte> data)
     {
         Av1LayeredImageIndex? layeredImageIndex = item.Av1LayeredImageIndex;
@@ -168,8 +174,17 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
             return data;
         }
 
-        int payloadLength = layeredImageIndex.Value.GetPayloadLength(data.Length, item.Av1LayerSelector);
-        return data[..payloadLength];
+        // The layer sizes describe the declared item data, so the declared length validates them. The item data
+        // reader limits the declared length to int.MaxValue. When the file is truncated, the reader already reported
+        // the error, and the selected layers end at the bytes that the item holds.
+        long declaredLength = 0;
+        foreach (HeifLocation location in item.DataLocations)
+        {
+            declaredLength += location.Length;
+        }
+
+        int payloadLength = layeredImageIndex.Value.GetPayloadLength((int)declaredLength, item.Av1LayerSelector);
+        return data[..Math.Min(payloadLength, data.Length)];
     }
 
     /// <summary>

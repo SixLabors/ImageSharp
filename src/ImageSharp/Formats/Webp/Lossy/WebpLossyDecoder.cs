@@ -60,8 +60,15 @@ internal sealed class WebpLossyDecoder
     /// <param name="info">Information about the image.</param>
     /// <param name="alphaData">The ALPH chunk data.</param>
     /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated image data.</param>
     public void Decode<TPixel>(
-        Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte> alphaData, ColorProfileConverter colorProfileConverter)
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        WebpImageInfo info,
+        IMemoryOwner<byte> alphaData,
+        ColorProfileConverter colorProfileConverter,
+        SegmentIntegrityHandling segmentIntegrityHandling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Paragraph 9.2: color space and clamp type follow.
@@ -94,7 +101,11 @@ internal sealed class WebpLossyDecoder
         decoder.PrecomputeFilterStrengths();
 
         // Paragraph 9.5: Parse partitions.
-        this.ParsePartitions(decoder);
+        // The decoder cannot decode a macroblock without the partition sizes, so the pixel buffer keeps its fill value.
+        if (!this.ParsePartitions(decoder, segmentIntegrityHandling))
+        {
+            return;
+        }
 
         // Paragraph 9.6: Dequantization Indices.
         this.ParseDequantizationIndices(decoder);
@@ -105,9 +116,17 @@ internal sealed class WebpLossyDecoder
         // Paragraph 13.4: Parse probabilities.
         this.ParseProbabilities(decoder);
 
+        // libwebp rejects frame headers that end before their last field. The decoder then cannot decode a macroblock,
+        // so the pixel buffer keeps its fill value. The end of the data is sticky, so one check covers all headers.
+        if (this.bitReader.Eof)
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 frame header ends before its last field.");
+            return;
+        }
+
         // Select the native YCbCr converter once from the embedded source profile.
         WebpColorConverterBase colorConverter = WebpColorConverterBase.GetYCbCrConverter(colorProfileConverter);
-        this.ParseFrame(decoder, io, colorConverter);
+        int decodedRows = this.ParseFrame(decoder, io, colorConverter, segmentIntegrityHandling);
 
         if (info.Features?.Alpha == true)
         {
@@ -117,16 +136,35 @@ internal sealed class WebpLossyDecoder
                 alphaData,
                 info.Features.AlphaChunkHeader,
                 this.memoryAllocator,
-                this.configuration);
+                this.configuration,
+                segmentIntegrityHandling);
             alphaDecoder.Decode();
-            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha.Memory.Span, colorConverter, colorProfileConverter);
+            this.DecodePixelValues(
+                width,
+                decodedRows,
+                decoder.Pixels.Memory.Span,
+                pixels,
+                alphaDecoder.Alpha.Memory.Span,
+                colorConverter,
+                colorProfileConverter);
         }
         else
         {
-            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, ReadOnlySpan<byte>.Empty, colorConverter, colorProfileConverter);
+            this.DecodePixelValues(width, decodedRows, decoder.Pixels.Memory.Span, pixels, ReadOnlySpan<byte>.Empty, colorConverter, colorProfileConverter);
         }
     }
 
+    /// <summary>
+    /// Converts the decoded rows to the pixel buffer.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The number of rows to convert. The rows after them keep their fill value.</param>
+    /// <param name="pixelData">The decoded rows.</param>
+    /// <param name="decodedPixels">The pixel buffer to write to.</param>
+    /// <param name="alpha">The decoded alpha rows, or empty when the image has no alpha.</param>
+    /// <param name="colorConverter">The YCbCr converter.</param>
+    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
     private void DecodePixelValues<TPixel>(
         int width,
         int height,
@@ -152,8 +190,20 @@ internal sealed class WebpLossyDecoder
         }
     }
 
-    private void ParseFrame(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
+    /// <summary>
+    /// Decodes the macroblock rows of the frame.
+    /// </summary>
+    /// <remarks>
+    /// As in libwebp, the decode stops at the first macroblock row whose data ends early. The method keeps the rows before it.
+    /// </remarks>
+    /// <param name="dec">The decoder.</param>
+    /// <param name="io">The output description.</param>
+    /// <param name="colorConverter">The YCbCr converter.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls data that ends early.</param>
+    /// <returns>The number of complete pixel rows.</returns>
+    private int ParseFrame(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter, SegmentIntegrityHandling segmentIntegrityHandling)
     {
+        int decodedRows = 0;
         for (dec.MbY = 0; dec.MbY < dec.BottomRightMbY; ++dec.MbY)
         {
             // Parse bitstream for this row.
@@ -166,9 +216,24 @@ internal sealed class WebpLossyDecoder
                 this.ParseIntraMode(dec, mbX);
             }
 
+            // libwebp stops when the first partition ends before the intra modes of the row are complete.
+            if (this.bitReader.Eof)
+            {
+                segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 first partition ends before the last macroblock row.");
+                return decodedRows;
+            }
+
             while (dec.MbX < dec.MbWidth)
             {
                 this.DecodeMacroBlock(dec, bitreader);
+
+                // libwebp stops when a token partition ends before the macroblock is complete.
+                if (bitreader.Eof)
+                {
+                    segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 token partition ends before the last macroblock.");
+                    return decodedRows;
+                }
+
                 ++dec.MbX;
             }
 
@@ -176,8 +241,11 @@ internal sealed class WebpLossyDecoder
             InitScanline(dec);
 
             // Reconstruct, filter and emit the row.
-            this.ProcessRow(dec, io, colorConverter);
+            // A row that emits no output returns a smaller count, so keep the larger value.
+            decodedRows = Math.Max(decodedRows, this.ProcessRow(dec, io, colorConverter));
         }
+
+        return decodedRows;
     }
 
     private void ParseIntraMode(Vp8Decoder dec, int mbX)
@@ -297,10 +365,17 @@ internal sealed class WebpLossyDecoder
         dec.MbX = 0;
     }
 
-    private void ProcessRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
+    /// <summary>
+    /// Reconstructs, filters and emits the current macroblock row.
+    /// </summary>
+    /// <param name="dec">The decoder.</param>
+    /// <param name="io">The output description.</param>
+    /// <param name="colorConverter">The YCbCr converter.</param>
+    /// <returns>The number of complete pixel rows after this macroblock row.</returns>
+    private int ProcessRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         this.ReconstructRow(dec);
-        FinishRow(dec, io, colorConverter);
+        return FinishRow(dec, io, colorConverter);
     }
 
     private void ReconstructRow(Vp8Decoder dec)
@@ -649,7 +724,14 @@ internal sealed class WebpLossyDecoder
         }
     }
 
-    private static void FinishRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
+    /// <summary>
+    /// Filters the current macroblock row and emits the rows that are complete.
+    /// </summary>
+    /// <param name="dec">The decoder.</param>
+    /// <param name="io">The output description.</param>
+    /// <param name="colorConverter">The YCbCr converter.</param>
+    /// <returns>The number of complete pixel rows after this macroblock row.</returns>
+    private static int FinishRow(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
     {
         int extraYRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
         int ySize = extraYRows * dec.CacheYStride;
@@ -708,6 +790,10 @@ internal sealed class WebpLossyDecoder
             uDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheU.Memory.Span);
             vDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheV.Memory.Span);
         }
+
+        // EmitRgb leaves the last row unfinished until the next call, because the upsampler needs the chroma
+        // of the next row. Only the call for the last macroblock row finishes all rows.
+        return yEnd < io.Height ? yEnd - 1 : yEnd;
     }
 
     private static int EmitRgb(Vp8Decoder dec, Vp8Io io, WebpColorConverterBase colorConverter)
@@ -1150,7 +1236,13 @@ internal sealed class WebpLossyDecoder
         dec.CacheUvOffset = extraUv;
     }
 
-    private void ParsePartitions(Vp8Decoder dec)
+    /// <summary>
+    /// Reads the token partition sizes and creates a bit reader for each token partition.
+    /// </summary>
+    /// <param name="dec">The decoder.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls partitions that end early.</param>
+    /// <returns><see langword="true"/> when the partition sizes are in the data. Otherwise, <see langword="false"/>.</returns>
+    private bool ParsePartitions(Vp8Decoder dec, SegmentIntegrityHandling segmentIntegrityHandling)
     {
         uint size = this.bitReader.Remaining - this.bitReader.PartitionLength;
         int startIdx = (int)this.bitReader.PartitionLength;
@@ -1159,7 +1251,14 @@ internal sealed class WebpLossyDecoder
         dec.NumPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
         int lastPart = dec.NumPartsMinusOne;
 
+        // Each partition except the last one has a 3-byte size. libwebp rejects data that cannot hold them.
         int lastPartMul3 = lastPart * 3;
+        if (sizeLeft < lastPartMul3)
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 data ends before the token partition sizes.");
+            return false;
+        }
+
         int partStart = startIdx + lastPartMul3;
         sizeLeft -= lastPartMul3;
         for (int p = 0; p < lastPart; ++p)
@@ -1177,6 +1276,15 @@ internal sealed class WebpLossyDecoder
         }
 
         dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
+
+        // libwebp rejects data in which the last partition is empty. The macroblock loop keeps the rows that
+        // the other partitions can decode.
+        if (sizeLeft == 0)
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 data ends before the last token partition.");
+        }
+
+        return true;
     }
 
     private void ParseDequantizationIndices(Vp8Decoder decoder)

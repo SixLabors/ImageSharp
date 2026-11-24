@@ -19,7 +19,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
 
     private InlineArray16<ushort> tileSamples;
 
-    private readonly bool preservePartialData;
+    private readonly SegmentIntegrityHandling integrityHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="B44ExrCompression" /> class.
@@ -42,7 +42,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
         : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
         this.channelCount = channelCount;
-        this.preservePartialData = integrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+        this.integrityHandling = integrityHandling;
     }
 
     /// <inheritdoc/>
@@ -62,12 +62,22 @@ internal class B44ExrCompression : ExrBaseDecompressor
                 {
                     if (!this.TryReadTile(stream, ref compressedBytes, samples))
                     {
-                        if (!this.preservePartialData)
+                        // In the IgnoreImageData mode, the block keeps the complete tiles. The method clears the other samples.
+                        this.integrityHandling.ThrowOrIgnoreImageDataError("The B44 EXR block ends before all pixel data is available.");
+                        this.ClearRemainingSamples(output, samplesPerRow, rows, channel, y, x);
+
+                        // The tiles of each channel come after the tiles of the channel before it. A pixel is complete
+                        // only when its tile of the last channel is complete. Thus only a failure in the last channel
+                        // leaves complete pixels: the rows above this tile row, and the pixels left of this tile.
+                        if (channel == this.channelCount - 1)
                         {
-                            ExrThrowHelper.ThrowInvalidImageContentException("The B44 EXR block ends before all pixel data is available.");
+                            this.SetIncompleteBlock(y, tileHeight, x);
+                        }
+                        else
+                        {
+                            this.SetIncompleteBlock(0, 0, 0);
                         }
 
-                        this.ClearRemainingSamples(output, samplesPerRow, rows, channel, y, x);
                         return;
                     }
 

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -125,7 +126,7 @@ public class Av1CoefficientsEntropyTests
         decoder.ReadPaletteUvColors([25, 45], 3, bitDepth: 8, decodedU, decodedV);
         Assert.Equal([25, 55, 80], decodedU.ToArray());
         Assert.Equal([10, 12, 9], decodedV.ToArray());
-        decoder.ValidateTrailingBits();
+        decoder.ValidateTrailingBits(SegmentIntegrityHandling.Strict);
     }
 
     [Fact]
@@ -346,7 +347,7 @@ public class Av1CoefficientsEntropyTests
             actuals,
             CreateInverseQuantizer());
 
-        decoder.ValidateTrailingBits();
+        decoder.ValidateTrailingBits(SegmentIntegrityHandling.Strict);
 
         // Assert
         Assert.Equal(endOfBlock, transformInfo.EndOfBlock);

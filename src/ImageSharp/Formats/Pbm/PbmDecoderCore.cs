@@ -60,12 +60,18 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         this.ProcessHeader(stream);
 
         Image<TPixel> image = new(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
-
-        Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-
-        this.ProcessPixels(stream, pixels);
-
-        return image;
+        try
+        {
+            // In the Strict and IgnoreAncillary modes, damaged pixel data throws. The method then does not return the
+            // image, so the catch block disposes it.
+            this.ProcessPixels(stream, image.GetRootFramePixelBuffer());
+            return image;
+        }
+        catch
+        {
+            image.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc/>
@@ -198,11 +204,25 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     {
         if (this.encoding == PbmEncoding.Binary)
         {
-            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
+            BinaryDecoder.Process(
+                this.configuration,
+                pixels,
+                stream,
+                this.colorType,
+                this.componentType,
+                this.maxPixelValue,
+                this.Options.SegmentIntegrityHandling);
         }
         else
         {
-            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
+            PlainDecoder.Process(
+                this.configuration,
+                pixels,
+                stream,
+                this.colorType,
+                this.componentType,
+                this.maxPixelValue,
+                this.Options.SegmentIntegrityHandling);
         }
     }
 }

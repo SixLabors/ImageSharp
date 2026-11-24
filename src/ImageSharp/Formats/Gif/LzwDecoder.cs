@@ -52,6 +52,11 @@ internal sealed class LzwDecoder : IDisposable
     /// The pixel stack buffer.
     /// </summary>
     private readonly IMemoryOwner<int> pixelStackOwner;
+
+    /// <summary>
+    /// The segment integrity mode. It controls if damaged or truncated LZW data throws.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
     private readonly int minCodeSize;
     private readonly int clearCode;
     private readonly int endCode;
@@ -68,16 +73,24 @@ internal sealed class LzwDecoder : IDisposable
     private int first;
 
     /// <summary>
+    /// Whether a call reached the end of the LZW data before the last index. Later calls do not decode more codes,
+    /// because no valid index follows the end of the data.
+    /// </summary>
+    private bool isEndOfData;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="LzwDecoder"/> class
     /// and sets the stream, where the compressed data should be read from.
     /// </summary>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="minCodeSize">The minimum code size.</param>
+    /// <param name="integrityHandling">The segment integrity mode. It controls if damaged or truncated LZW data throws.</param>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
-    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize)
+    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize, SegmentIntegrityHandling integrityHandling)
     {
         this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+        this.integrityHandling = integrityHandling;
         Guard.IsTrue(IsValidMinCodeSize(minCodeSize), nameof(minCodeSize), "Invalid minimum code size.");
 
         this.prefixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
@@ -130,11 +143,30 @@ internal sealed class LzwDecoder : IDisposable
     /// <summary>
     /// Decodes and decompresses all pixel indices for a single row from the stream, assigning the pixel values to the buffer.
     /// </summary>
+    /// <remarks>
+    /// The method throws for damaged or truncated LZW data unless the integrity mode ignores image data errors.
+    /// When the mode ignores them, an early end of the data stops the row, and the missing indices are zero.
+    /// Each later call then gives only zero indices and reads no data.
+    /// </remarks>
     /// <param name="indices">The pixel indices array to decode to.</param>
-    /// <exception cref="InvalidImageContentException">The first code addresses an entry outside the LZW code tables.</exception>
-    public void DecodePixelRow(Span<byte> indices)
+    /// <returns>
+    /// <see langword="false"/> if a code is not valid. A code is not valid if it is larger than the next code to add
+    /// to the table. The first code of the data or the first code after a clear code is not valid if it is outside the
+    /// LZW code tables. The caller must then stop decoding the frame and must not use <paramref name="indices"/>.
+    /// Otherwise <see langword="true"/>.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The LZW data is damaged or truncated, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    public bool DecodePixelRow(Span<byte> indices)
     {
         indices.Clear();
+
+        if (this.isEndOfData)
+        {
+            // An earlier call reached the end of the data. This row keeps zero indices.
+            return true;
+        }
 
         // Get span values from the owners.
         Span<int> prefix = this.prefixOwner.GetSpan();
@@ -174,6 +206,9 @@ internal sealed class LzwDecoder : IDisposable
                         count = ReadBlock(stream, buffer);
                         if (count == 0)
                         {
+                            // A block terminator, a short block or the end of the stream came before the last index.
+                            this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
+                            this.isEndOfData = true;
                             break;
                         }
 
@@ -193,8 +228,19 @@ internal sealed class LzwDecoder : IDisposable
                 bits -= codeSize;
 
                 // Interpret the code
-                if (code > availableCode || code == endCode)
+                if (code > availableCode)
                 {
+                    // The code is not in the table and is not the next code to add. The data is damaged at this code,
+                    // so the decoder cannot decode a later code safely. The frame stops.
+                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data contains a code that is not valid.");
+                    return false;
+                }
+
+                if (code == endCode)
+                {
+                    // The end code came before the last index.
+                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
+                    this.isEndOfData = true;
                     break;
                 }
 
@@ -211,11 +257,12 @@ internal sealed class LzwDecoder : IDisposable
                 if (oldCode == NullCode)
                 {
                     // This first code has no previous string to extend. With a tolerated minimum size of 12,
-                    // the next available code is 4098, beyond the 4096-entry tables. Report the corrupt data
-                    // before indexing either table; the GIF decoder applies the image data integrity policy.
+                    // the next available code is 4098, beyond the 4096-entry tables. The decoder reports the damaged
+                    // data before it reads a table entry. It cannot decode a later code safely, so the frame stops.
                     if (code >= MaxStackSize)
                     {
-                        GifThrowHelper.ThrowInvalidImageContentException("The GIF LZW code exceeds the code table bounds.");
+                        this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW code exceeds the code table bounds.");
+                        return false;
                     }
 
                     pixelStack[top++] = suffix[code];
@@ -277,15 +324,33 @@ internal sealed class LzwDecoder : IDisposable
         this.count = count;
         this.bufferIndex = bufferIndex;
         this.code = code;
+        return true;
     }
 
     /// <summary>
     /// Decodes and decompresses all pixel indices from the stream allowing skipping of the data.
     /// </summary>
+    /// <remarks>
+    /// The method throws for damaged or truncated LZW data unless the integrity mode ignores image data errors.
+    /// When the mode ignores them, an early end of the data stops the skip. Each later call then reads no data.
+    /// </remarks>
     /// <param name="length">The resulting index table length.</param>
-    /// <exception cref="InvalidImageContentException">The first code addresses an entry outside the LZW code tables.</exception>
-    public void SkipIndices(int length)
+    /// <returns>
+    /// <see langword="false"/> if a code is not valid. A code is not valid if it is larger than the next code to add
+    /// to the table. The first code of the data or the first code after a clear code is not valid if it is outside the
+    /// LZW code tables. The caller must then stop decoding the frame. Otherwise <see langword="true"/>.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The LZW data is damaged or truncated, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    public bool SkipIndices(int length)
     {
+        if (this.isEndOfData)
+        {
+            // An earlier call reached the end of the data.
+            return true;
+        }
+
         // Get span values from the owners.
         Span<int> prefix = this.prefixOwner.GetSpan();
         Span<int> suffix = this.suffixOwner.GetSpan();
@@ -324,6 +389,9 @@ internal sealed class LzwDecoder : IDisposable
                         count = ReadBlock(stream, buffer);
                         if (count == 0)
                         {
+                            // A block terminator, a short block or the end of the stream came before the last index.
+                            this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
+                            this.isEndOfData = true;
                             break;
                         }
 
@@ -343,8 +411,19 @@ internal sealed class LzwDecoder : IDisposable
                 bits -= codeSize;
 
                 // Interpret the code
-                if (code > availableCode || code == endCode)
+                if (code > availableCode)
                 {
+                    // The code is not in the table and is not the next code to add. The data is damaged at this code,
+                    // so the decoder cannot decode a later code safely. The frame stops.
+                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data contains a code that is not valid.");
+                    return false;
+                }
+
+                if (code == endCode)
+                {
+                    // The end code came before the last index.
+                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
+                    this.isEndOfData = true;
                     break;
                 }
 
@@ -361,11 +440,12 @@ internal sealed class LzwDecoder : IDisposable
                 if (oldCode == NullCode)
                 {
                     // This first code has no previous string to extend. With a tolerated minimum size of 12,
-                    // the next available code is 4098, beyond the 4096-entry tables. Report the corrupt data
-                    // before indexing either table; the GIF decoder applies the image data integrity policy.
+                    // the next available code is 4098, beyond the 4096-entry tables. The decoder reports the damaged
+                    // data before it reads a table entry. It cannot decode a later code safely, so the frame stops.
                     if (code >= MaxStackSize)
                     {
-                        GifThrowHelper.ThrowInvalidImageContentException("The GIF LZW code exceeds the code table bounds.");
+                        this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW code exceeds the code table bounds.");
+                        return false;
                     }
 
                     pixelStack[top++] = suffix[code];
@@ -427,16 +507,21 @@ internal sealed class LzwDecoder : IDisposable
         this.count = count;
         this.bufferIndex = bufferIndex;
         this.code = code;
+        return true;
     }
 
     /// <summary>
     /// Reads the next data block from the stream. A data block begins with a byte,
     /// which defines the size of the block, followed by the block itself.
     /// </summary>
+    /// <remarks>
+    /// A block terminator before the last index stays in the stream. The frame reader reads it when it skips the
+    /// remaining sub-blocks. Thus, the frame reader does not read the next block as a sub-block.
+    /// </remarks>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the block in.</param>
     /// <returns>
-    /// The <see cref="int"/>.
+    /// The size of the block. The value is 0 for a block terminator, a short block or the end of the stream.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ReadBlock(BufferedReadStream stream, Span<byte> buffer)
@@ -445,6 +530,12 @@ internal sealed class LzwDecoder : IDisposable
 
         if (bufferSize < 1)
         {
+            if (bufferSize == 0)
+            {
+                // The stream position goes back to the block terminator.
+                stream.Position--;
+            }
+
             return 0;
         }
 

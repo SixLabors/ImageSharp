@@ -26,6 +26,38 @@ internal static class IsoBoxReader
     /// <returns>The number of payload bytes following the complete variable-length header.</returns>
     public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> headerBuffer, out uint boxType, bool topLevel)
     {
+        long length = ReadHeader(stream, parentEndPosition, headerBuffer, out boxType, topLevel, out bool truncated);
+        if (truncated)
+        {
+            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
+        }
+
+        return length;
+    }
+
+    /// <summary>
+    /// Reads an ISO BMFF box header into a caller-owned buffer. The payload can end after the containing box or file.
+    /// </summary>
+    /// <remarks>
+    /// The header itself must be complete. A caller that accepts a truncated payload, for example the last box of a
+    /// truncated file, gets the payload bytes that the parent holds and a value that tells if bytes are missing.
+    /// </remarks>
+    /// <param name="stream">The stream positioned at the box size field.</param>
+    /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>
+    /// <param name="headerBuffer">A caller-owned buffer of at least eight bytes that receives the header.</param>
+    /// <param name="boxType">Receives the box four-character code.</param>
+    /// <param name="topLevel">Indicates whether a size-zero box can extend to the end of the file.</param>
+    /// <param name="truncated">Receives a value that tells if the declared payload ends after the parent end.</param>
+    /// <returns>The number of payload bytes that follow the complete variable-length header inside the parent.</returns>
+    public static long ReadHeader(
+        Stream stream,
+        long parentEndPosition,
+        Span<byte> headerBuffer,
+        out uint boxType,
+        bool topLevel,
+        out bool truncated)
+    {
+        truncated = false;
         if (parentEndPosition - stream.Position < 8)
         {
             throw new InvalidImageContentException("Not enough data to read the box header.");
@@ -79,9 +111,11 @@ internal static class IsoBoxReader
         }
 
         ulong contentLength = boxSize - (ulong)headerSize;
-        if (contentLength > (ulong)(parentEndPosition - stream.Position))
+        ulong availableLength = (ulong)(parentEndPosition - stream.Position);
+        if (contentLength > availableLength)
         {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
+            truncated = true;
+            return (long)availableLength;
         }
 
         return (long)contentLength;

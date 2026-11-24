@@ -16,20 +16,28 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
     private readonly CcittBitOrder bitOrder;
 
     /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="T6TiffCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bitOrder">The order of the code bits in each byte.</param>
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public T6TiffCompression(
         MemoryAllocator allocator,
         CcittBitOrder bitOrder,
         int width,
-        int bitsPerPixel)
+        int bitsPerPixel,
+        SegmentIntegrityHandling integrityHandling)
         : base(allocator, width, bitsPerPixel)
     {
         this.bitOrder = bitOrder;
+        this.integrityHandling = integrityHandling;
     }
 
     /// <inheritdoc/>
@@ -46,6 +54,14 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
         for (int y = 0; y < stripHeight; y++)
         {
             decoder.DecodeRow(buffer.Slice(y * rowBytes, rowBytes));
+        }
+
+        // In the IgnoreImageData mode, the strip or tile keeps the decoded rows, and the other rows stay 0. In the other
+        // modes, damaged data throws.
+        if (decoder.IsDamaged)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF CCITT T.6 data is damaged or ends before the strip or tile is complete.");
         }
     }
 

@@ -226,8 +226,8 @@ internal sealed class BmpEncoderCore
         Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
 
-        // As the PNG encoder does, the encoder options take precedence over the metadata, and a bit depth that does not
-        // fit the color type falls back to the default depth of that color type.
+        // As in the PNG encoder, the encoder options take precedence over the metadata. A bit depth that does not fit the
+        // color type falls back to the default depth of that color type.
         this.colorType = this.configuredColorType ?? bmpMetadata.ColorType;
         this.bitsPerPixel = BmpConstants.GetBitsPerPixel(this.colorType, this.configuredBitsPerPixel ?? bmpMetadata.BitsPerPixel);
         this.infoHeaderType = this.colorType is BmpColorType.Bgra or BmpColorType.Bgra5551
@@ -251,8 +251,8 @@ internal sealed class BmpEncoderCore
         int colorPaletteSize = bpp <= 8 ? 4 << bpp : 0;
 
         // Without a configured quantizer, an indexed image keeps the color table of its decoded bitmap when the table fits
-        // the output depth, as the PNG, GIF and icon encoders do. Dithering stays off and color matching is exact, so
-        // each pixel that has a palette color keeps that color. Other images use the default quantizer.
+        // the output depth. The PNG, GIF and icon encoders do the same. Dithering stays off and color matching is exact,
+        // so each pixel that has a palette color keeps that color. Other images use the default quantizer.
         ReadOnlyMemory<Color>? colorTable = bmpMetadata.ColorTable;
         if (this.configuredQuantizer is not null)
         {
@@ -660,7 +660,7 @@ internal sealed class BmpEncoderCore
     /// <summary>
     /// Allocates one BMP row: its pixel bytes, then its alignment padding.
     /// </summary>
-    /// <param name="pixelBytes">The byte count of the pixels in the row, including a last byte that holds fewer pixels.</param>
+    /// <param name="pixelBytes">The byte count of the pixels in the row. It includes a last byte that holds fewer pixels.</param>
     /// <returns>The owned row buffer.</returns>
     private IMemoryOwner<byte> AllocateRow(int pixelBytes)
     {
@@ -680,8 +680,8 @@ internal sealed class BmpEncoderCore
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged samples.</param>
     /// <param name="replaceTransparent">Whether pixels with alpha 0 are written as transparent black.</param>
     /// <param name="clearUnusedAlpha">
-    /// Whether the alpha part of each pixel is written as 0: the fourth byte of a 32-bit pixel, or the high bit of a 16-bit
-    /// pixel.
+    /// Whether the alpha part of each pixel is written as 0. The alpha part is the fourth byte of a 32-bit pixel, or the
+    /// high bit of a 16-bit pixel.
     /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void WriteDirectColorPixels<TPixelFrom, TPixelTo>(
@@ -985,7 +985,7 @@ internal sealed class BmpEncoderCore
         }
 
         // The caller selected single-component eight-bit luminance pixels. Their bytes index the gray ramp built above.
-        // ICC changes the palette colors after index selection; it does not change which entry each pixel uses.
+        // ICC changes the palette colors after index selection. It does not change which entry each pixel uses.
         Buffer2D<TPixel> imageBuffer = encodingFrame.PixelBuffer;
         if (this.runLength)
         {
@@ -1070,8 +1070,11 @@ internal sealed class BmpEncoderCore
         using IMemoryOwner<A8> alphaBuffer = this.memoryAllocator.Allocate<A8>(width);
         Span<A8> alpha = alphaBuffer.GetSpan();
 
-        // A8 is one byte of alpha, so the loop below changes each alpha value to its mask bit in place.
-        Span<byte> flags = MemoryMarshal.AsBytes(alpha);
+        // IsZero writes one bool for each pixel: 1 for alpha 0, else 0. These bytes are the 1-bit mask indices. IsZero
+        // can process the last elements of a row two times, so it writes to a second buffer, not in place.
+        using IMemoryOwner<byte> flagBuffer = this.memoryAllocator.Allocate<byte>(width);
+        Span<byte> flags = flagBuffer.GetSpan();
+        Span<bool> isTransparent = MemoryMarshal.Cast<byte, bool>(flags);
 
         // The packer writes only the mask bytes, so the padding stays zero from the allocation.
         using IMemoryOwner<byte> maskBuffer = this.memoryAllocator.Allocate<byte>(maskRowLength, AllocationOptions.Clean);
@@ -1082,11 +1085,7 @@ internal sealed class BmpEncoderCore
             cancellationToken.ThrowIfCancellationRequested();
 
             PixelOperations<TPixel>.Instance.To(configuration, encodingFrame.PixelBuffer.DangerousGetRowSpan(y), alpha);
-            for (int x = 0; x < flags.Length; x++)
-            {
-                flags[x] = flags[x] == 0 ? (byte)1 : (byte)0;
-            }
-
+            TensorPrimitives.IsZero(MemoryMarshal.AsBytes(alpha), isTransparent);
             EncodingUtilities.PackIndices(flags, mask, 1);
             stream.Write(mask);
         }

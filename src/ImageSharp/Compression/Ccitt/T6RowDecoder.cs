@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -17,6 +18,10 @@ namespace SixLabors.ImageSharp.Compression.Ccitt;
 /// A row bit is 1 for a black pixel of the code and 0 for a white pixel. The photometric interpretation of the format
 /// gives the displayed colors. For example, TIFF reverses the meaning of white and black for BlackIsZero data. See
 /// TIFF 6.0 specification, section 10, page 44: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+/// </para>
+/// <para>
+/// The decoder does not throw for data that is not valid. It sets <see cref="IsDamaged"/>, so the caller can apply the
+/// segment integrity mode of the decode.
 /// </para>
 /// </remarks>
 internal sealed class T6RowDecoder : IDisposable
@@ -38,6 +43,13 @@ internal sealed class T6RowDecoder : IDisposable
     private bool isFirstRow = true;
 
     /// <summary>
+    /// Whether the data had an EOL code. In T.6 data, an EOL code is the start of EOFB, the end of the data. TIFF 6.0
+    /// lets a reader treat the rows after an early EOFB as white, so the rows after it are not damaged. See TIFF 6.0
+    /// specification, section 11, page 53: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+    /// </summary>
+    private bool endOfBlock;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="T6RowDecoder"/> class.
     /// </summary>
     /// <param name="stream">The compressed input stream.</param>
@@ -53,8 +65,15 @@ internal sealed class T6RowDecoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the mode codes of ITU-T Recommendation T.6 (11/88), Table 1/T.6, page 4. The index is the next 7 code bits, and each index starts with one mode
-    /// code. Each entry is (<see cref="CcittTwoDimensionalCodeType"/> &lt;&lt; 3) | length.
+    /// Gets a value indicating whether the data is damaged. Damaged data has a code that is not valid, a row with fewer
+    /// pixels than the width, or an end before a row.
+    /// </summary>
+    public bool IsDamaged { get; private set; }
+
+    /// <summary>
+    /// Gets the mode codes of ITU-T Recommendation T.6 (11/88), Table 1/T.6, page 4. The index is the next 7 code bits,
+    /// and each index starts with one mode code. Each entry is (<see cref="CcittTwoDimensionalCodeType"/> &lt;&lt; 3) |
+    /// length.
     /// </summary>
     private static ReadOnlySpan<byte> ModeTable =>
     [
@@ -79,15 +98,18 @@ internal sealed class T6RowDecoder : IDisposable
 
         // The row above is the reference row. The first row has the imaginary white row as its reference.
         CcittReferenceScanline referenceScanLine = this.isFirstRow
-            ? new CcittReferenceScanline(true, this.width)
-            : new CcittReferenceScanline(true, scanLines.Slice((this.current ^ 1) * this.width, this.width));
+            ? new CcittReferenceScanline(this.width)
+            : new CcittReferenceScanline(scanLines.Slice((this.current ^ 1) * this.width, this.width));
 
-        // The decoded row holds one byte for each pixel: 0 for white and 255 for black. It starts white.
+        // The decoded row holds one byte for each pixel: 0 for white and 1 for black. It starts white.
         scanLine.Clear();
-        Decode2DScanline(ref this.reader, referenceScanLine, scanLine);
+        if (!Decode2DScanline(ref this.reader, referenceScanLine, scanLine, ref this.endOfBlock) && !this.endOfBlock)
+        {
+            this.IsDamaged = true;
+        }
 
-        // A black pixel is a 1 bit.
-        BitWriterUtils.PackBytes(scanLine, 0, row);
+        // Each pixel byte is its bit, so the decoded row is a row of 1-bit indices. A black pixel is a 1 bit.
+        EncodingUtilities.PackIndices(scanLine, row, 1);
 
         // The decoded row is the reference row of the next row, so the two rows change places without a copy.
         this.current ^= 1;
@@ -108,11 +130,16 @@ internal sealed class T6RowDecoder : IDisposable
     /// <param name="reader">The bit reader.</param>
     /// <param name="referenceScanline">The reference row.</param>
     /// <param name="scanline">The destination row. It is white: all bytes are 0.</param>
-    private static void Decode2DScanline(ref CcittBitReader reader, CcittReferenceScanline referenceScanline, Span<byte> scanline)
+    /// <param name="endOfBlock">Set to <see langword="true"/> when the row ends at an EOL code.</param>
+    /// <returns>
+    /// <see langword="true"/> if the row has all of its pixels, or if the row ends at an EOL code. Else
+    /// <see langword="false"/>: the data ends before the row is complete, or has a code that the decoder cannot use.
+    /// </returns>
+    private static bool Decode2DScanline(ref CcittBitReader reader, CcittReferenceScanline referenceScanline, Span<byte> scanline, ref bool endOfBlock)
     {
         int width = scanline.Length;
 
-        // 2D decoding variables. A white pixel is 0 and a black pixel is 255.
+        // 2D decoding variables. A white pixel is 0 and a black pixel is 1.
         int a0 = -1;
         const byte white = 0;
         byte fillByte = white;
@@ -121,10 +148,10 @@ internal sealed class T6RowDecoder : IDisposable
         int unpacked = 0;
         while (unpacked < width)
         {
-            // After the end of the data, the rest of the row stays white.
+            // After the end of the data, the rest of the row stays white, and the row is not complete.
             if (!reader.HasData)
             {
-                return;
+                return false;
             }
 
             // The mode codes have 7 bits or less, so the next 7 bits select one code.
@@ -141,12 +168,14 @@ internal sealed class T6RowDecoder : IDisposable
                 if (reader.LeadingZeros() < 11 || !reader.SkipToEol())
                 {
                     reader.End();
+                    return false;
                 }
 
                 // TIFF 6.0 lets a reader treat the rows after an early EOFB as white. See TIFF 6.0 specification,
                 // section 11, page 53: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
                 // The pixels of this row before the code stay, and the rest of the row stays white.
-                return;
+                endOfBlock = true;
+                return true;
             }
 
             // A code that ends after the last data bit is not complete, so the data ends here.
@@ -154,7 +183,7 @@ internal sealed class T6RowDecoder : IDisposable
             if (!reader.HasBits(length))
             {
                 reader.End();
-                return;
+                return false;
             }
 
             reader.Consume(length);
@@ -183,12 +212,12 @@ internal sealed class T6RowDecoder : IDisposable
                         if (run < 0)
                         {
                             reader.End();
-                            return;
+                            return false;
                         }
 
                         scanline.Slice(unpacked, run).Fill(fillByte);
                         unpacked += run;
-                        fillByte = (byte)~fillByte;
+                        fillByte ^= 1;
                     }
 
                     a0 = unpacked;
@@ -222,13 +251,15 @@ internal sealed class T6RowDecoder : IDisposable
             if (a1 < unpacked || a1 > width)
             {
                 reader.End();
-                return;
+                return false;
             }
 
             scanline[unpacked..a1].Fill(fillByte);
             unpacked = a1;
             a0 = a1;
-            fillByte = (byte)~fillByte;
+            fillByte ^= 1;
         }
+
+        return true;
     }
 }

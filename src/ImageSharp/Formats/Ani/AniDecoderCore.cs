@@ -53,11 +53,11 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// The ACON specification defines each icon chunk as an embedded .CUR file and does not define raw frames. See the
     /// Multimedia Data Standards Update, April 15, 1994, page 9:
     /// https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
-    /// ReactOS reads a raw frame as the bitmap of an icon image: the color data, then the AND mask, with a height that
-    /// covers both (CURSORICON_GetCursorDataFromANI):
+    /// ReactOS reads a raw frame as the bitmap of an icon image: the color data, then the AND mask. The height covers
+    /// both (CURSORICON_GetCursorDataFromANI):
     /// https://github.com/reactos/reactos/blob/master/win32ss/user/user32/windows/cursoricon.c
-    /// The decoder reads raw frames in the same way and reports each one as a CUR frame that holds a bitmap, which is
-    /// how the encoder writes it.
+    /// The decoder reads raw frames in the same way. It reports each one as a CUR frame that holds a bitmap, as the
+    /// encoder writes it.
     /// </remarks>
     private bool HasRawFrames => !this.header.Flags.HasFlag(AniHeaderFlags.IsIcon);
 
@@ -109,7 +109,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 if (resourceIndex >= resources.Count || resources[(int)resourceIndex] is not { } resource)
                 {
                     // A bad ordering entry is recoverable ancillary data: the remaining valid steps can still be decoded.
-                    this.ExecuteAncillarySegmentAction(() => throw new InvalidImageContentException("The ANI sequence references a missing frame resource."));
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The ANI sequence references a missing frame resource.");
 
                     continue;
                 }
@@ -223,7 +223,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             if (resourceIndex >= resources.Count || resources[(int)resourceIndex] is not { } resource)
             {
                 // Sequence errors are ancillary during identification for the same reason as decoding: other steps remain usable.
-                this.ExecuteAncillarySegmentAction(() => throw new InvalidImageContentException("The ANI sequence references a missing frame resource."));
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The ANI sequence references a missing frame resource.");
 
                 continue;
             }
@@ -297,6 +297,18 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         while (stream.Position + AniConstants.ChunkHeaderSize <= containerEnd)
         {
             AniRiffChunkHeader chunk = this.ReadChunkHeader(stream);
+            if ((AniChunkType)chunk.FourCc is AniChunkType.List
+                && stream.Position + chunk.Size > containerEnd
+                && containerEnd == stream.Length)
+            {
+                // The stream ends inside a list. The frame list holds the image data, so the file has truncated image
+                // data. When the error is ignored, the list ends at the end of the stream and its complete resources
+                // still decode. No chunk can follow the end of the stream.
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ANI file ends inside a RIFF list.");
+                this.ReadList(stream, containerEnd);
+                break;
+            }
+
             long dataEnd = GetChunkDataEnd(stream, chunk.Size, containerEnd);
 
             switch ((AniChunkType)chunk.FourCc)
@@ -307,10 +319,10 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                     break;
                 case AniChunkType.Sequence:
                     // Ordering and timing affect presentation, not pixel decoding, so malformed chunks follow ancillary handling.
-                    this.ExecuteAncillarySegmentAction(() => this.ReadUInt32Values(stream, chunk.Size, "sequence", ref this.sequence));
+                    this.ReadUInt32Values(stream, chunk.Size, "sequence", ref this.sequence);
                     break;
                 case AniChunkType.Rate:
-                    this.ExecuteAncillarySegmentAction(() => this.ReadUInt32Values(stream, chunk.Size, "rate", ref this.rates));
+                    this.ReadUInt32Values(stream, chunk.Size, "rate", ref this.rates);
                     break;
                 case AniChunkType.List:
                     this.ReadList(stream, dataEnd);
@@ -373,7 +385,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 this.frameLists.Add((stream.Position, listEnd));
                 break;
             case AniListType.Info when !this.Options.SkipMetadata:
-                this.ExecuteAncillarySegmentAction(() => this.ReadInfoList(stream, listEnd));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => this.ReadInfoList(stream, listEnd));
                 break;
         }
     }
@@ -434,7 +446,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         // seq and rate payloads are DWORD arrays; trailing bytes cannot form a valid entry.
         if (chunkSize % sizeof(uint) is not 0)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError($"The ANI {description} chunk has an invalid size.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError($"The ANI {description} chunk has an invalid size.");
             return;
         }
 
@@ -442,14 +454,14 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         // byte limit before allocation so an oversized control chunk follows ancillary integrity handling.
         if (chunkSize > AniConstants.MaxAncillaryChunkSize)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError($"The ANI {description} chunk is too large.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError($"The ANI {description} chunk is too large.");
             return;
         }
 
         int count = (int)Math.Min(chunkSize / sizeof(uint), this.Options.MaxFrames);
         if (count is 0)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError($"The ANI {description} chunk does not contain any values.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError($"The ANI {description} chunk does not contain any values.");
             return;
         }
 
@@ -478,7 +490,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             Span<byte> data = MemoryMarshal.AsBytes(values);
             if (stream.Read(data) != data.Length)
             {
-                this.ThrowOrIgnoreNonStrictSegmentError($"Not enough bytes to read the ANI {description} chunk.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError($"Not enough bytes to read the ANI {description} chunk.");
                 return;
             }
 
@@ -532,7 +544,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         // INFO text is optional metadata. Reject or skip oversized values before renting their backing buffer.
         if (chunkSize > AniConstants.MaxAncillaryChunkSize)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("The ANI information text chunk is too large.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The ANI information text chunk is too large.");
             return false;
         }
 
@@ -548,7 +560,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         Span<byte> data = owner.GetSpan()[..length];
         if (stream.Read(data) != data.Length)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Not enough bytes to read the ANI information text.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough bytes to read the ANI information text.");
             return false;
         }
 
@@ -614,7 +626,20 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 {
                     AniRiffChunkHeader chunk = this.ReadChunkHeader(stream);
                     long dataStart = stream.Position;
-                    long dataEnd = GetChunkDataEnd(stream, chunk.Size, end);
+                    uint dataSize = chunk.Size;
+                    bool truncated = false;
+                    if ((AniFrameChunkType)chunk.FourCc is AniFrameChunkType.Icon
+                        && dataStart + dataSize > end
+                        && end == stream.Length)
+                    {
+                        // The stream ends inside the frame resource. When the error is ignored, the child decoder gets
+                        // the bytes that are present and keeps the pixels that it can decode.
+                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ANI file contains a truncated frame resource.");
+                        dataSize = (uint)(end - dataStart);
+                        truncated = true;
+                    }
+
+                    long dataEnd = GetChunkDataEnd(stream, dataSize, end);
 
                     if ((AniFrameChunkType)chunk.FourCc is AniFrameChunkType.Icon)
                     {
@@ -637,11 +662,14 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
 
                         if (shouldDecode)
                         {
-                            this.ExecuteImageDataSegmentAction(() =>
+                            this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(() =>
                             {
                                 // Child decoders may seek according to embedded offsets; the bounded view prevents crossing the icon chunk.
-                                frameStream.Reset(dataStart, chunk.Size);
-                                AniFrameFormat format = this.GetFrameFormat(frameStream);
+                                frameStream.Reset(dataStart, dataSize);
+                                if (!this.TryGetFrameFormat(frameStream, out AniFrameFormat format))
+                                {
+                                    return;
+                                }
 
                                 // Format probing consumes the directory prefix, while the selected child decoder requires the complete resource.
                                 frameStream.Position = 0;
@@ -662,6 +690,12 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                         }
                     }
 
+                    if (truncated)
+                    {
+                        // The truncated resource ends at the end of the stream, so no chunk follows it.
+                        return;
+                    }
+
                     stream.Position = GetPaddedEnd(dataEnd, chunk.Size, end);
                 }
             }
@@ -676,28 +710,36 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// Determines the embedded resource format from the ANI header and ICO/CUR directory prefix.
     /// </summary>
     /// <param name="stream">The bounded frame-resource stream.</param>
-    /// <returns>The embedded resource format.</returns>
-    private AniFrameFormat GetFrameFormat(Stream stream)
+    /// <param name="format">Receives the embedded resource format.</param>
+    /// <returns>
+    /// <see langword="true"/> if the format is known. <see langword="false"/> if the resource is truncated or uses an
+    /// unknown format and the mode ignores image data errors.
+    /// </returns>
+    private bool TryGetFrameFormat(Stream stream, out AniFrameFormat format)
     {
         // A raw frame has no ICO/CUR directory prefix to inspect. See HasRawFrames.
+        format = AniFrameFormat.Cur;
         if (this.HasRawFrames)
         {
-            return AniFrameFormat.Cur;
+            return true;
         }
 
         Span<byte> iconHeader = this.buffer[..AniConstants.IconDirHeaderSize];
         if (stream.Read(iconHeader) != iconHeader.Length)
         {
-            throw new InvalidImageContentException("The ANI file contains a truncated ICO or CUR resource.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ANI file contains a truncated ICO or CUR resource.");
+            return false;
         }
 
         IconFileType type = (IconFileType)BinaryPrimitives.ReadUInt16LittleEndian(iconHeader[2..]);
-        return type switch
+        if (type is not (IconFileType.ICO or IconFileType.CUR))
         {
-            IconFileType.ICO => AniFrameFormat.Ico,
-            IconFileType.CUR => AniFrameFormat.Cur,
-            _ => throw new InvalidImageContentException("The ANI file contains an unsupported icon resource.")
-        };
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ANI file contains an unsupported icon resource.");
+            return false;
+        }
+
+        format = type == IconFileType.ICO ? AniFrameFormat.Ico : AniFrameFormat.Cur;
+        return true;
     }
 
     /// <summary>
@@ -770,7 +812,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         if (bitmapMetadata is not null)
         {
             // A raw bitmap keeps its depth, color type and color table in the image-level BMP metadata. The decoder
-            // reports the frame as a CUR frame with a bitmap of the same depth, so the encoder writes the same pixels at
+            // reports the frame as a CUR frame with a bitmap of the same depth. Thus the encoder writes the same pixels at
             // the same depth. A 5-6-5 bitmap becomes 24-bit, because an icon bitmap must be BI_RGB.
             metadata.Compression = IconFrameCompression.Bmp;
             (metadata.BmpBitsPerPixel, metadata.BmpColorType) = IconDecoderCore.GetBitmapLayout(bitmapMetadata);

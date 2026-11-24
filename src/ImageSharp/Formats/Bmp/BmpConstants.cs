@@ -37,8 +37,8 @@ internal static class BmpConstants
     };
 
     /// <summary>
-    /// Gets the bit depth that the encoder writes for a color type: the requested depth when it fits the color type,
-    /// otherwise the first depth of the color type in <see cref="ColorTypes"/>.
+    /// Gets the bit depth that the encoder writes for a color type. It is the requested depth when that depth fits the
+    /// color type. Otherwise it is the first depth of the color type in <see cref="ColorTypes"/>.
     /// </summary>
     /// <param name="colorType">The color type.</param>
     /// <param name="bitsPerPixel">The requested bit depth.</param>

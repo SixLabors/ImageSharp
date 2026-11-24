@@ -53,7 +53,7 @@ internal static class BmpRleEncoder
     /// <returns>The byte count.</returns>
     /// <remarks>
     /// An encoded run of one pixel is the most expensive command: 2 bytes for each pixel. An absolute run of n pixels,
-    /// n of 3 or more, has 2 bytes of command, at most n bytes of data and 1 byte of padding, so it is also at most
+    /// n of 3 or more, has 2 bytes of command, at most n bytes of data and 1 byte of padding. Thus it is also at most
     /// 2 bytes for each pixel. The end command adds 2 bytes.
     /// </remarks>
     public static int GetMaxRowLength(int width) => (2 * width) + 2;
@@ -101,10 +101,10 @@ internal static class BmpRleEncoder
             }
 
             // Collect indices into one segment. A run of equal indices ends the segment only when an encoded run makes
-            // the row smaller. Inside a segment of 3 or more indices, a run of r indices costs r bytes. To split the
-            // segment costs 2 bytes for the encoded run and 2 bytes for the header of the next absolute run, so a run
-            // must be at least Rle8SplitRun indices. A run at the end of the row has no next absolute run, and a
-            // segment of 1 or 2 indices has no absolute run to split, so there a run of 3 is enough.
+            // the row smaller. Inside a segment of 3 or more indices, a run of r indices costs r bytes. A split costs
+            // 2 bytes for the encoded run and 2 bytes for the header of the next absolute run. Thus a run must be at
+            // least Rle8SplitRun indices. A run at the end of the row has no next absolute run. A segment of 1 or 2
+            // indices has no absolute run to split. In these two cases, a run of 3 is enough.
             int end = i + 1;
             while (end < indices.Length && end - i < MaxRunLength)
             {
@@ -180,10 +180,10 @@ internal static class BmpRleEncoder
 
             // Collect indices into one segment. A pair run of 4 or more starts at index j when indices j + 2 and j + 3
             // repeat indices j and j + 1. The run ends the segment only when an encoded run makes the row smaller.
-            // Inside a segment of 3 or more indices, a run of r indices costs r / 2 bytes. To split the segment costs
-            // 2 bytes for the encoded run and 2 bytes for the header of the next absolute run, so a run must be at least
-            // Rle4SplitRun indices. A run at the end of the row has no next absolute run, and a segment of 1 or 2
-            // indices has no absolute run to split, so there a run of 4 is enough.
+            // Inside a segment of 3 or more indices, a run of r indices costs r / 2 bytes. A split costs 2 bytes for the
+            // encoded run and 2 bytes for the header of the next absolute run. Thus a run must be at least Rle4SplitRun
+            // indices. A run at the end of the row has no next absolute run. A segment of 1 or 2 indices has no
+            // absolute run to split. In these two cases, a run of 4 is enough.
             int end = i + 1;
             while (end < indices.Length && end - i < MaxRunLength)
             {
@@ -196,7 +196,7 @@ internal static class BmpRleEncoder
                     }
 
                     // Keep the run in the segment. The index after the run does not repeat the index two places
-                    // before it, so the scan continues at the last index of the run, which can start a new pair run.
+                    // before it. Thus the scan continues at the last index of the run, which can start a new pair run.
                     end = Math.Min(end + split - 1, i + MaxRunLength);
                     continue;
                 }

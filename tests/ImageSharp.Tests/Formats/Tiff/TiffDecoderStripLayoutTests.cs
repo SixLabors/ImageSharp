@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -70,10 +71,11 @@ public class TiffDecoderStripLayoutTests
     }
 
     /// <summary>
-    /// Planar offsets are grouped by plane, StripsPerImage entries for each plane: TIFF 6.0 specification, section 8,
-    /// StripOffsets, page 40, https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf. With
-    /// one byte count missing, the last plane has no second strip. The decoder keeps the plane stride from the image
-    /// height, decodes the first strip of each plane, and leaves the rows of the second strip cleared.
+    /// Planar offsets are grouped by plane, with StripsPerImage entries for each plane. See TIFF 6.0 specification,
+    /// section 8, StripOffsets, page 40: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+    /// With one byte count missing, the last plane has no second strip. The missing strip throws in the Strict mode. In
+    /// the default IgnoreImageData mode, the decoder keeps the plane stride from the image height. It decodes the first
+    /// strip of each plane and leaves the rows of the second strip cleared.
     /// </summary>
     [Fact]
     public void Decode_PlanarStripByteCountMissing_DecodesStripsOfAllPlanes()
@@ -90,15 +92,19 @@ public class TiffDecoderStripLayoutTests
         Assert.Equal(6, BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(entry + 4)));
         BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(entry + 4), 5);
 
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgb48> image = Image.Load<Rgb48>(strict, data);
+        });
+
         using Image<Rgb48> actual = Image.Load<Rgb48>(data);
 
-        for (int y = 0; y < actual.Height; y++)
-        {
-            for (int x = 0; x < actual.Width; x++)
-            {
-                Assert.Equal(y < 600 ? expected[x, y] : default, actual[x, y]);
-            }
-        }
+        // The first strip holds rows 0 to 599. The rows of the second strip keep the cleared image buffer.
+        using Image<Rgb48> firstStrip = expected.Clone(x => x.Crop(new Rectangle(0, 0, expected.Width, 600)));
+        using Image<Rgb48> partial = new(expected.Width, expected.Height);
+        partial.Mutate(x => x.DrawImage(firstStrip, Point.Empty, PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Src, 1F));
+        ImageComparer.Exact.VerifySimilarity(partial, actual);
     }
 
     /// <summary>

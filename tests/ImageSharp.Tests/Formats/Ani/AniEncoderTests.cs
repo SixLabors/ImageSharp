@@ -299,8 +299,8 @@ public partial class AniEncoderTests
     [Fact]
     public void AniEncoder_BitmapFrames_KeepEachFramePalette()
     {
-        // Each frame has its own palette in its own order, with one entry that no pixel uses. A new palette would drop
-        // that entry, and a shared palette would give both frames the same table.
+        // Each frame has its own palette in its own order, with one entry that no pixel uses. A new palette drops that
+        // entry, and a shared palette gives both frames the same table. The test finds both errors.
         Color first = NearColorPalette.Palette.Span[0];
         Color second = NearColorPalette.Palette.Span[1];
         Color[][] palettes =

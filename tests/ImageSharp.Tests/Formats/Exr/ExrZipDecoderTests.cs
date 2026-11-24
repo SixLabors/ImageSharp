@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -37,7 +38,8 @@ public class ExrZipDecoderTests
     }
 
     /// <summary>
-    /// Recovering an invalid image-data block must not expose partially decoded or pooled bytes.
+    /// Recovering an invalid image-data block must not expose partially decoded or pooled bytes. The rows of the
+    /// damaged block keep the fill value, transparent black, as the rows of a missing chunk do.
     /// </summary>
     /// <param name="pixelType">The stored sample type.</param>
     /// <param name="length">The inflated payload length.</param>
@@ -59,29 +61,37 @@ public class ExrZipDecoderTests
         DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
-        Assert.Equal(new Size(256, 1), image.Size);
-
-        for (int x = 0; x < image.Width; x++)
-        {
-            Assert.Equal(new Vector4(0, 0, 0, 1), image[x, 0].ToVector4());
-        }
+        using Image<RgbaVector> cleared = new(256, 1);
+        ImageComparer.Exact.VerifySimilarity(cleared, image);
     }
 
     /// <summary>
-    /// Missing or truncated zlib headers obey the image-data integrity policy.
+    /// Missing, truncated, or bad zlib headers obey the image-data integrity policy. In the IgnoreImageData mode, the
+    /// rows of the damaged block keep the fill value, transparent black.
     /// </summary>
+    /// <param name="cmf">
+    /// The first header byte. 0x78 is a valid header. 0x7F has the compression method 15, and 0x88 has the window size
+    /// value 8. RFC 1950, section 2.2 "Data format", defines the method 8 as deflate and does not allow window size
+    /// values above 7. EXR ZIP compression uses deflate.
+    /// </param>
     /// <param name="length">The number of available zlib header bytes.</param>
     /// <param name="integrity">The image-data integrity policy.</param>
     [Theory]
-    [InlineData(0, SegmentIntegrityHandling.Strict)]
-    [InlineData(1, SegmentIntegrityHandling.Strict)]
-    [InlineData(0, SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(1, SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(0, SegmentIntegrityHandling.IgnoreImageData)]
-    [InlineData(1, SegmentIntegrityHandling.IgnoreImageData)]
-    public void Decode_IncompleteZlibHeader_RespectsIntegrityHandling(int length, SegmentIntegrityHandling integrity)
+    [InlineData(0x78, 0, SegmentIntegrityHandling.Strict)]
+    [InlineData(0x78, 1, SegmentIntegrityHandling.Strict)]
+    [InlineData(0x7F, 2, SegmentIntegrityHandling.Strict)]
+    [InlineData(0x88, 2, SegmentIntegrityHandling.Strict)]
+    [InlineData(0x78, 0, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0x78, 1, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0x7F, 2, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0x88, 2, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0x78, 0, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(0x78, 1, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(0x7F, 2, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(0x88, 2, SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_DamagedZlibHeader_RespectsIntegrityHandling(byte cmf, int length, SegmentIntegrityHandling integrity)
     {
-        byte[] header = [0x78, 0x9C];
+        byte[] header = [cmf, 0x9C];
         byte[] data = BuildExr(header[..length], ExrPixelType.Float, 2, 0);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
@@ -90,12 +100,8 @@ public class ExrZipDecoderTests
         if (integrity == SegmentIntegrityHandling.IgnoreImageData)
         {
             using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
-            Assert.Equal(new Size(256, 1), image.Size);
-
-            for (int x = 0; x < image.Width; x++)
-            {
-                Assert.Equal(new Vector4(0, 0, 0, 1), image[x, 0].ToVector4());
-            }
+            using Image<RgbaVector> cleared = new(256, 1);
+            ImageComparer.Exact.VerifySimilarity(cleared, image);
         }
         else
         {

@@ -96,8 +96,8 @@ internal static class PixelConverter
     /// <remarks>
     /// Each position is a constant, so the JIT encodes each shift of a kernel loop as an immediate operand. A 3-byte pixel
     /// uses the order of its first three bytes, and the kernels spread it to a 4-byte lane with alpha in the fourth byte.
-    /// As in the shuffle names, the name of each order gives the channels in byte order: X, Y, Z and W are red, green,
-    /// blue and alpha.
+    /// The name of each order gives the channel at each byte, from byte 0 to byte 3. X, Y, Z and W are red, green, blue
+    /// and alpha.
     /// </remarks>
     private interface IChannelOrder
     {
@@ -1063,8 +1063,8 @@ internal static class PixelConverter
         /// <see cref="IPacked16Layout.Pack(Rgba32)"/>.
         /// </summary>
         /// <remarks>
-        /// Each packed value fits 16 bits. Thus a narrow of two 32-bit registers keeps the pixel order, and one store
-        /// writes the pixels of two loads.
+        /// Each packed value fits 16 bits. Thus the truncating narrow of two 32-bit registers loses no bits. The narrow
+        /// keeps the lane order, so one store writes the pixels of two loads.
         /// </remarks>
         /// <typeparam name="TOrder">The channel order of the 4-byte pixels.</typeparam>
         /// <param name="source">The source pixels, 4 bytes each.</param>
@@ -1465,8 +1465,8 @@ internal static class PixelConverter
         private static Vector512<uint> PackLanes<TOrder>(Vector512<uint> pixels)
             where TOrder : IChannelOrder
         {
-            // Shift each channel to bits 0..7 and mask it. The layout scales and places the channels. A layout that does
-            // not store a channel does not use its value, and the JIT removes that work.
+            // Each channel moves to bits 0..7, and the mask clears the other bits. The layout scales and places the
+            // channels. A layout that does not store a channel does not use its value, and the JIT removes that work.
             Vector512<uint> mask = Vector512.Create(0xFFU);
             return TLayout.Pack(
                 Vector512.ShiftRightLogical(pixels, TOrder.RedShift) & mask,

@@ -111,8 +111,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.maxFrames,
                         this.skipMetadata,
                         this.backgroundColorHandling,
-                        this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict,
-                        this.ExecuteAncillarySegmentAction);
+                        this.Options.SegmentIntegrityHandling);
 
                     image = animationDecoder.Decode<TPixel>(
                         stream, metadata, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, this.riffEnd, colorProfileConverter);
@@ -136,7 +135,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    losslessDecoder.Decode(pixels, image.Width, image.Height, colorProfileConverter);
+                    losslessDecoder.Decode(pixels, image.Width, image.Height, colorProfileConverter, this.Options.SegmentIntegrityHandling);
                 }
                 else
                 {
@@ -145,7 +144,14 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData, colorProfileConverter);
+                    lossyDecoder.Decode(
+                        pixels,
+                        image.Width,
+                        image.Height,
+                        this.webImageInfo,
+                        this.alphaData,
+                        colorProfileConverter,
+                        this.Options.SegmentIntegrityHandling);
                 }
 
                 // There can be optional chunks after the image data, like EXIF and XMP.
@@ -180,8 +186,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.maxFrames,
                     this.skipMetadata,
                     this.backgroundColorHandling,
-                    this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict,
-                    this.ExecuteAncillarySegmentAction);
+                    this.Options.SegmentIntegrityHandling);
 
                 ImageInfo info = animationDecoder.Identify(
                     stream,
@@ -263,7 +268,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
 
         WebpImageInfo? info = null;
         WebpFeatures features = new();
-        bool allowTruncatedPayload = this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+        SegmentIntegrityHandling segmentIntegrityHandling = this.Options.SegmentIntegrityHandling;
 
         // Retain local ownership until return. Metadata parsing can fail after a copied bitstream has been allocated.
         try
@@ -271,12 +276,12 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             switch (chunkType)
             {
                 case WebpChunkType.Vp8:
-                    info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, this.riffEnd, allowTruncatedPayload);
+                    info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, this.riffEnd, segmentIntegrityHandling);
                     webpMetadata.FileFormat = WebpFileFormatType.Lossy;
                     webpMetadata.ColorType = WebpColorType.Yuv;
                     return info;
                 case WebpChunkType.Vp8L:
-                    info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, this.riffEnd, allowTruncatedPayload);
+                    info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, this.riffEnd, segmentIntegrityHandling);
                     webpMetadata.FileFormat = WebpFileFormatType.Lossless;
                     webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
                     return info;
@@ -295,7 +300,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                                 buffer,
                                 features,
                                 this.riffEnd,
-                                allowTruncatedPayload);
+                                segmentIntegrityHandling);
 
                             info.Dispose();
                             info = imageInfo;
@@ -310,7 +315,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                                 buffer,
                                 features,
                                 this.riffEnd,
-                                allowTruncatedPayload);
+                                segmentIntegrityHandling);
 
                             info.Dispose();
                             info = imageInfo;
@@ -379,17 +384,18 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 WebpChunkParsingUtils.ReadIccProfile(
                     stream,
                     metadata,
-                    this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict,
-                    this.ExecuteAncillarySegmentAction,
+                    this.Options.SegmentIntegrityHandling,
                     this.riffEnd);
                 break;
 
             case WebpChunkType.Exif:
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd, this.Options.SegmentIntegrityHandling));
                 break;
 
             case WebpChunkType.Xmp:
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd, this.Options.SegmentIntegrityHandling));
                 break;
 
             case WebpChunkType.AnimationParameter:
@@ -432,11 +438,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             if (chunkType == WebpChunkType.Exif)
             {
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd, this.Options.SegmentIntegrityHandling));
             }
             else if (chunkType == WebpChunkType.Xmp)
             {
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd, this.Options.SegmentIntegrityHandling));
             }
             else
             {
@@ -457,7 +465,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     private static void ReadAnimationParameters(BufferedReadStream stream, WebpFeatures features, Span<byte> buffer, long containerEnd)
     {
         features.Animation = true;
-        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 6, false);
+        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 6, SegmentIntegrityHandling.Strict);
         long chunkEnd = stream.Position + animationChunkSize + (animationChunkSize & 1);
         byte blue = (byte)stream.ReadByte();
         byte green = (byte)stream.ReadByte();
@@ -483,8 +491,11 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="buffer">Temporary buffer.</param>
     private void ReadAlphaData(BufferedReadStream stream, WebpFeatures features, bool ignoreAlpha, Span<byte> buffer)
     {
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, this.riffEnd, 1, false);
-        long chunkEnd = stream.Position + alphaChunkSize + (alphaChunkSize & 1);
+        // Alpha data is image data, so an ALPH chunk that ends at EOF follows the image data integrity policy.
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, this.riffEnd, 1, this.Options.SegmentIntegrityHandling);
+
+        // IgnoreImageData permits a chunk that ends at EOF. Stop at EOF in that case.
+        long chunkEnd = Math.Min(stream.Position + alphaChunkSize + (alphaChunkSize & 1), stream.Length);
         if (ignoreAlpha)
         {
             stream.Position = chunkEnd;
@@ -492,15 +503,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         }
 
         features.AlphaChunkHeader = (byte)stream.ReadByte();
-        int alphaDataSize = (int)(alphaChunkSize - 1);
         this.alphaData?.Dispose();
-        this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-        Span<byte> alphaData = this.alphaData.GetSpan();
-        int bytesRead = stream.Read(alphaData, 0, alphaDataSize);
-        if (bytesRead != alphaDataSize)
-        {
-            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha data from the stream");
-        }
+        this.alphaData = null;
+        this.alphaData = WebpChunkParsingUtils.ReadAlphaData(
+            stream,
+            this.memoryAllocator,
+            (int)(alphaChunkSize - 1),
+            this.Options.SegmentIntegrityHandling);
 
         stream.Position = chunkEnd;
     }

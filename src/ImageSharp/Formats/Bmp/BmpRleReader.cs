@@ -59,8 +59,8 @@ internal ref struct BmpRleReader
     /// Reads the next <paramref name="count"/> bytes.
     /// </summary>
     /// <remarks>
-    /// Data that ends before the image is complete is not an error. The decoder keeps the pixels decoded before the
-    /// end, as the PNG and JPEG decoders do, so the caller stops when this method returns <see langword="false"/>.
+    /// When the data ends, the method returns <see langword="false"/>. The caller then stops and applies the segment
+    /// integrity mode of the decode.
     /// </remarks>
     /// <param name="count">The byte count. It is at most 765, the data of an RLE24 absolute run.</param>
     /// <param name="bytes">The bytes. The span is valid until the next read.</param>

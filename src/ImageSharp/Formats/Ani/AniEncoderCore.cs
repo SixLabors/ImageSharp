@@ -192,8 +192,8 @@ internal sealed class AniEncoderCore
     /// <remarks>
     /// A step holds the resolution variants of one stored frame: adjacent frames with the same positive sequence number.
     /// A stored frame can play in two adjacent steps, so equal numbers alone do not end a step. The images of one icon
-    /// each have "a different size and/or color depth", so an image whose size and depth are already in the step starts
-    /// the next step: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// each have "a different size and/or color depth". Thus an image whose size and depth are already in the step
+    /// starts the next step: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
     /// </remarks>
     /// <param name="image">The source image.</param>
     /// <param name="frameIndex">The first frame of the step.</param>
@@ -236,7 +236,7 @@ internal sealed class AniEncoderCore
     /// </summary>
     /// <param name="a">The first frame.</param>
     /// <param name="b">The second frame.</param>
-    /// <returns><see langword="true"/> if the frames give the same icon image; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if the frames give the same icon image. Otherwise, <see langword="false"/>.</returns>
     private static bool IsSameIconImage(ImageFrame a, ImageFrame b)
     {
         AniFrameMetadata first = a.Metadata.GetAniMetadata();

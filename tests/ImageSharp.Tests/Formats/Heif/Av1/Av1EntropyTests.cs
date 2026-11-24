@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -364,7 +365,7 @@ public class Av1EntropyTests
             }
         }
 
-        decoder.ValidateTrailingBits();
+        decoder.ValidateTrailingBits(SegmentIntegrityHandling.Strict);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
@@ -843,6 +844,136 @@ public class TgaDecoderTests
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
         InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(TgaDecoder.Instance));
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+    }
+
+    /// <summary>
+    /// Verifies that a file that ends in the middle of the pixel data decodes with the default options. The complete
+    /// rows match the decode of the full file, and the rows that are not read keep the fill value. In strict mode the
+    /// decoder throws.
+    /// </summary>
+    /// <param name="imagePath">The test image to truncate.</param>
+    [Theory]
+    [InlineData(Bit24BottomLeft)]
+    [InlineData(Bit32TopLeft)]
+    [InlineData(Gray8BitTopRight)]
+    [InlineData(Bit24RleTopLeft)]
+    [InlineData(Bit24PalTopLeft)]
+    [InlineData(Bit24PalRleTopLeft)]
+    public void TgaDecoder_TruncatedPixelData_KeepsDecodedRows(string imagePath)
+    {
+        byte[] full = TestFile.Create(imagePath).Bytes;
+
+        // Each file stores its header and color map in the first half, and its pixel data ends in the second half.
+        byte[] truncated = full[..(full.Length / 2)];
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, truncated));
+
+        // The decoder keeps each complete pixel in stream order. A partial pixel and the pixels after it keep the cleared value.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(full);
+        ClearPixelsAfterStreamEnd(expected, truncated);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Clears the pixels that TGA data that ends early does not hold.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The header is 18 bytes. The image ID and the color map follow it, then the pixel data. The image descriptor at
+    /// byte 17 gives the order of the stored pixels. If bit 4 is set, each row goes from right to left. If bit 5 is
+    /// clear, the rows go from the bottom up.
+    /// </para>
+    /// <para>
+    /// An RLE packet starts with a repetition count byte. Its low 7 bits store the pixel count minus 1. A run-length
+    /// packet has bit 7 set and one pixel value. A raw packet has one pixel value for each pixel.
+    /// </para>
+    /// <para>
+    /// See the Truevision TGA File Format Specification, Version 2.0, fields 1, 4 and 5, and section "Run-Length
+    /// Encoding of Images" (src/ImageSharp/Formats/Tga/TGA_Specification.pdf).
+    /// </para>
+    /// </remarks>
+    /// <param name="image">The complete decode. The pixels that the data does not hold are cleared.</param>
+    /// <param name="data">The TGA file. It can end inside the pixel data.</param>
+    private static void ClearPixelsAfterStreamEnd(Image<Rgba32> image, byte[] data)
+    {
+        int colorMapLength = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(5));
+        int colorMapEntryBytes = (data[7] + 7) / 8;
+        int pixelBytes = (data[16] + 7) / 8;
+        int offset = 18 + data[0] + (colorMapLength * colorMapEntryBytes);
+        int pixelCount = image.Width * image.Height;
+
+        // Image types 9, 10 and 11 are RLE.
+        int storedPixels = 0;
+        if (data[2] < 9)
+        {
+            storedPixels = Math.Min(pixelCount, (data.Length - offset) / pixelBytes);
+        }
+        else
+        {
+            while (storedPixels < pixelCount && offset < data.Length)
+            {
+                byte header = data[offset++];
+                int packetPixels = (header & 127) + 1;
+                if ((header & 128) != 0)
+                {
+                    if (offset + pixelBytes > data.Length)
+                    {
+                        break;
+                    }
+
+                    offset += pixelBytes;
+                    storedPixels += packetPixels;
+                }
+                else
+                {
+                    int available = Math.Min(packetPixels, (data.Length - offset) / pixelBytes);
+                    offset += available * pixelBytes;
+                    storedPixels += available;
+                    if (available < packetPixels)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            storedPixels = Math.Min(storedPixels, pixelCount);
+        }
+
+        bool rightToLeft = (data[17] & 0x10) != 0;
+        bool bottomUp = (data[17] & 0x20) == 0;
+        for (int i = storedPixels; i < pixelCount; i++)
+        {
+            int row = i / image.Width;
+            int column = i % image.Width;
+            int x = rightToLeft ? image.Width - 1 - column : column;
+            int y = bottomUp ? image.Height - 1 - row : row;
+            image[x, y] = default;
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a run length packet that writes past the last pixel is damaged image data. In strict mode the
+    /// decoder throws. With the default options the decoder keeps the pixels of the packet that fit in the image.
+    /// </summary>
+    [Fact]
+    public void TgaDecoder_RunLengthPacketPastImageEnd_KeepsPixelsThatFit()
+    {
+        // A 2x1 24-bit RLE image with one run packet that repeats a red BGR pixel 3 times.
+        byte[] data = [0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 24, 0x20, 0x82, 0, 0, 255];
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream strictStream = new(data, false);
+        Assert.Throws<InvalidImageContentException>(() => TgaDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+
+        // The packet fills both pixels of the image with red. The third pixel does not fit, so the decoder drops it.
+        Rgba32[] pixels = [new(255, 0, 0, 255), new(255, 0, 0, 255)];
+        using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(pixels, 2, 1);
+        using MemoryStream defaultStream = new(data, false);
+        using Image<Rgba32> image = TgaDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 
     [Theory]

@@ -36,6 +36,9 @@ public abstract partial class PixelConverterTests
         /// <param name="destination">The destination bytes.</param>
         private delegate void ConvertBytes(ReadOnlySpan<byte> source, Span<byte> destination);
 
+        /// <summary>
+        /// Each SIMD pack from a byte layout to a 16-bit layout gives the values of the scalar conversion of the pixel type.
+        /// </summary>
         [Fact]
         public void PackFromByteLayouts()
         {

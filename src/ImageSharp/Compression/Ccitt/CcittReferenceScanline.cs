@@ -8,34 +8,37 @@ namespace SixLabors.ImageSharp.Compression.Ccitt;
 /// <summary>
 /// Represents a reference scan line for CCITT 2D decoding.
 /// </summary>
+/// <remarks>
+/// Each byte of the scan line is one pixel: 0 for white and 1 for black. Thus an XOR with 1 gives the other color.
+/// </remarks>
 internal readonly ref struct CcittReferenceScanline
 {
+    /// <summary>
+    /// The byte of a white pixel.
+    /// </summary>
+    private const byte WhiteByte = 0;
+
     private readonly ReadOnlySpan<byte> scanLine;
     private readonly int width;
-    private readonly byte whiteByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcittReferenceScanline"/> struct.
     /// </summary>
-    /// <param name="whiteIsZero">Indicates, if white is zero, otherwise black is zero.</param>
     /// <param name="scanLine">The scan line.</param>
-    public CcittReferenceScanline(bool whiteIsZero, ReadOnlySpan<byte> scanLine)
+    public CcittReferenceScanline(ReadOnlySpan<byte> scanLine)
     {
         this.scanLine = scanLine;
         this.width = scanLine.Length;
-        this.whiteByte = whiteIsZero ? (byte)0 : (byte)255;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CcittReferenceScanline"/> struct.
+    /// Initializes a new instance of the <see cref="CcittReferenceScanline"/> struct for the imaginary white line.
     /// </summary>
-    /// <param name="whiteIsZero">Indicates, if white is zero, otherwise black is zero.</param>
     /// <param name="width">The width of the scanline.</param>
-    public CcittReferenceScanline(bool whiteIsZero, int width)
+    public CcittReferenceScanline(int width)
     {
         this.scanLine = default;
         this.width = width;
-        this.whiteByte = whiteIsZero ? (byte)0 : (byte)255;
     }
 
     public bool IsEmpty => this.scanLine.IsEmpty;
@@ -75,7 +78,7 @@ internal readonly ref struct CcittReferenceScanline
     {
         if (a0 < 0)
         {
-            if (a0Byte != this.whiteByte)
+            if (a0Byte != WhiteByte)
             {
                 return 0;
             }
@@ -100,7 +103,7 @@ internal readonly ref struct CcittReferenceScanline
         }
 
         ReadOnlySpan<byte> searchSpace = this.scanLine[offset..];
-        byte searchByte = (byte)~a0Byte;
+        byte searchByte = (byte)(a0Byte ^ 1);
         int index = searchSpace.IndexOf(searchByte);
         if (index < 0)
         {
@@ -112,7 +115,7 @@ internal readonly ref struct CcittReferenceScanline
             return offset + index;
         }
 
-        searchByte = (byte)~searchSpace[0];
+        searchByte = (byte)(searchSpace[0] ^ 1);
         index = searchSpace.IndexOf(searchByte);
         if (index < 0)
         {
@@ -121,7 +124,7 @@ internal readonly ref struct CcittReferenceScanline
 
         searchSpace = searchSpace[index..];
         offset += index;
-        index = searchSpace.IndexOf((byte)~searchByte);
+        index = searchSpace.IndexOf((byte)(searchByte ^ 1));
         if (index < 0)
         {
             return this.scanLine.Length;
@@ -140,7 +143,7 @@ internal readonly ref struct CcittReferenceScanline
             return this.scanLine.Length;
         }
 
-        byte searchByte = (byte)~this.scanLine[b1];
+        byte searchByte = (byte)(this.scanLine[b1] ^ 1);
         int offset = b1 + 1;
         ReadOnlySpan<byte> searchSpace = this.scanLine[offset..];
         int index = searchSpace.IndexOf(searchByte);

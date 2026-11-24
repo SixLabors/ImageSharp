@@ -127,7 +127,6 @@ public class TgaEncoderTests
         Assert.Equal(expectedBytes, imageBytes.Length);
     }
 
-    // Run length encoded pixels should not exceed row boundaries.
     /// <summary>
     /// The compression of the encoder options replaces the compression of the metadata.
     /// </summary>
@@ -150,6 +149,7 @@ public class TgaEncoderTests
         Assert.Equal(expectedImageType, stream.GetBuffer()[2]);
     }
 
+    // Run length encoded pixels should not exceed row boundaries.
     // https://github.com/SixLabors/ImageSharp/pull/2172
     [Fact]
     public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()

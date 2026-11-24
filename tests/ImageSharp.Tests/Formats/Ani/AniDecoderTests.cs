@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Ani;
 
@@ -97,8 +98,8 @@ public class AniDecoderTests
     }
 
     /// <summary>
-    /// Verifies that a file without AF_ICON decodes its raw frames as icon bitmaps: the color data, then the AND mask,
-    /// with a height that covers both. ReactOS reads raw frames in this layout (CURSORICON_GetCursorDataFromANI). The
+    /// Verifies that a file without AF_ICON decodes its raw frames as icon bitmaps: the color data, then the AND mask. The
+    /// height covers both. ReactOS reads raw frames in this layout (CURSORICON_GetCursorDataFromANI). The
     /// decoder reports each raw frame as a CUR frame that holds a bitmap of the same depth.
     /// </summary>
     [Fact]
@@ -192,6 +193,54 @@ public class AniDecoderTests
 
         Assert.Equal(16, image.Frames.Count);
         Assert.Equal(2, image.Frames.RootFrame.Metadata.GetAniMetadata().SequenceNumber);
+    }
+
+    /// <summary>
+    /// Verifies that a file that ends inside its last frame resource decodes with the default options. Every animation
+    /// step is kept. The steps with complete resources match the decode of the full file, and the last step keeps the
+    /// rows that the data holds. In strict mode the decoder throws.
+    /// </summary>
+    [Fact]
+    public void AniDecoder_TruncatedLastResource_KeepsEveryStep()
+    {
+        byte[] full = TestFile.Create(Work).Bytes;
+
+        // The frame list starts with its 'fram' list type. Walk its chunks to find the last frame resource.
+        int chunkOffset = full.AsSpan().IndexOf("fram"u8) + sizeof(uint);
+        Assert.True(chunkOffset > sizeof(uint));
+
+        int lastResourceOffset = chunkOffset;
+        int lastResourceSize = 0;
+        while (chunkOffset + AniConstants.ChunkHeaderSize <= full.Length)
+        {
+            int size = (int)BinaryPrimitives.ReadUInt32LittleEndian(full.AsSpan(chunkOffset + sizeof(uint)));
+            lastResourceOffset = chunkOffset;
+            lastResourceSize = size;
+            chunkOffset += AniConstants.ChunkHeaderSize + size + (size & 1);
+        }
+
+        // End the file in the middle of the payload of the last frame resource.
+        byte[] data = full[..(lastResourceOffset + AniConstants.ChunkHeaderSize + (lastResourceSize / 2))];
+
+        using MemoryStream strictStream = new(data, false);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+
+        // Each step of the file plays one stored frame in order, so only the last output frame uses the truncated
+        // resource. That resource is an icon file with one entry. Its directory entry stores BytesInRes at byte 8 and
+        // ImageOffset at byte 12. The last frame keeps the rows of the entry bitmap that the data holds.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(full);
+        int resourceStart = lastResourceOffset + AniConstants.ChunkHeaderSize;
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(full.AsSpan(resourceStart + 4)));
+        int bitmapLength = BinaryPrimitives.ReadInt32LittleEndian(full.AsSpan(resourceStart + IconDir.Size + 8));
+        int bitmapStart = resourceStart + BinaryPrimitives.ReadInt32LittleEndian(full.AsSpan(resourceStart + IconDir.Size + 12));
+        IcoDecoderTests.ClearPixelsAfterResourceEnd(
+            expected.Frames[expected.Frames.Count - 1],
+            full.AsSpan(bitmapStart, bitmapLength),
+            data.Length - bitmapStart);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 
     /// <summary>

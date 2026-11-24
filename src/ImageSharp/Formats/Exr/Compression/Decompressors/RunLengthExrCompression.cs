@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
-    private readonly bool preservePartialData;
+    private readonly SegmentIntegrityHandling integrityHandling;
     private readonly int bytesPerSample;
 
     /// <summary>
@@ -38,7 +38,7 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
         this.bytesPerSample = bytesPerSample;
-        this.preservePartialData = integrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+        this.integrityHandling = integrityHandling;
     }
 
     /// <inheritdoc/>
@@ -96,9 +96,10 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
             }
         }
 
-        if (!this.preservePartialData && (written != uncompressed.Length || compressedBytes != 0))
+        if (written != uncompressed.Length || compressedBytes != 0)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("The RLE EXR block has an invalid decompressed length.");
+            // In the IgnoreImageData mode, the code below keeps the complete samples of the block.
+            this.integrityHandling.ThrowOrIgnoreImageDataError("The RLE EXR block has an invalid decompressed length.");
         }
 
         if (written == uncompressed.Length)
@@ -126,6 +127,14 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
 
         // Clear the output from the first incomplete sample to the end of the current block.
         buffer[completeBytes..uncompressed.Length].Clear();
+
+        // A row holds the samples of each channel in turn, and each channel has the same sample size. Thus a pixel is
+        // complete when its sample of the last channel is complete. The complete pixels are the complete rows, then a
+        // prefix of the next row.
+        int bytesPerRow = (int)this.BytesPerRow;
+        int lastChannelStart = bytesPerRow - (this.Width * this.bytesPerSample);
+        int partialRowPixels = Math.Max(0, (completeBytes % bytesPerRow) - lastChannelStart) / this.bytesPerSample;
+        this.SetIncompleteBlock(completeBytes / bytesPerRow, 1, partialRowPixels);
     }
 
     /// <inheritdoc/>

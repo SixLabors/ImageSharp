@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -54,14 +55,16 @@ public class ExrDecoderSecurityTests
     /// A crafted offset of 0xFFFFFFFFFFFFFFFF casts to −1 as long, causing
     /// an ArgumentOutOfRangeException when setting stream.Position.
     ///
-    /// After a fix this should throw InvalidImageContentException instead.
+    /// A chunk offset outside the stream is damaged image data. In the Strict and IgnoreAncillary modes, the decoder
+    /// throws InvalidImageContentException. With the default options, the decoder skips the chunk without a seek.
+    /// The rows of the chunk keep the fill value.
     ///
     /// Affected file:
     ///   src/ImageSharp/Formats/Exr/ExrDecoderCore.cs lines 170–175 (scanline)
     ///                                                   lines 243–248 (tile)
     /// </summary>
     [Fact]
-    public void Decode_CraftedRowOffsets_OutOfBounds_Throws()
+    public void Decode_CraftedRowOffsets_OutOfBounds_RespectsIntegrityHandling()
     {
         // Valid 2×2 image (XMin=0,YMin=0,XMax=1,YMax=1 → Width=2,Height=2).
         // Row offset table immediately follows the header null byte:
@@ -74,13 +77,15 @@ public class ExrDecoderSecurityTests
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
             rowOffsetTableAppend: invalidOffsets);
 
-        using MemoryStream stream = new(data);
-        Assert.Throws<InvalidImageContentException>(
-            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+        AssertDamagedChunksRespectIntegrityHandling(data);
     }
 
+    /// <summary>
+    /// A chunk offset that points into the file header is damaged image data. The decoder must not read the
+    /// header as pixel data. In the Strict and IgnoreAncillary modes, it throws. With the default options, it skips the chunks.
+    /// </summary>
     [Fact]
-    public void Decode_CraftedRowOffsets_IntoHeader_Throws()
+    public void Decode_CraftedRowOffsets_IntoHeader_RespectsIntegrityHandling()
     {
         // Offset 0 points back into the EXR file header and must be rejected
         // before the decoder seeks to attacker-controlled non-pixel data.
@@ -90,13 +95,15 @@ public class ExrDecoderSecurityTests
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
             rowOffsetTableAppend: headerOffsets);
 
-        using MemoryStream stream = new(data);
-        Assert.Throws<InvalidImageContentException>(
-            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+        AssertDamagedChunksRespectIntegrityHandling(data);
     }
 
+    /// <summary>
+    /// A chunk offset that points into the offset table is damaged image data. The decoder must not read the
+    /// table as pixel data. In the Strict and IgnoreAncillary modes, it throws. With the default options, it skips the chunks.
+    /// </summary>
     [Fact]
-    public void Decode_CraftedRowOffsets_IntoOffsetTable_Throws()
+    public void Decode_CraftedRowOffsets_IntoOffsetTable_RespectsIntegrityHandling()
     {
         byte[] data = BuildMinimalExr(
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
@@ -105,9 +112,27 @@ public class ExrDecoderSecurityTests
         // Point the first row offset at the second row offset entry.
         BinaryPrimitives.WriteUInt64LittleEndian(data.AsSpan(data.Length - 16), (ulong)(data.Length - 8));
 
-        using MemoryStream stream = new(data);
-        Assert.Throws<InvalidImageContentException>(
-            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+        AssertDamagedChunksRespectIntegrityHandling(data);
+    }
+
+    /// <summary>
+    /// Asserts that a 2x2 image whose chunk offsets are all damaged throws in the Strict and IgnoreAncillary modes,
+    /// and that with the default options it decodes with every pixel at the fill value.
+    /// </summary>
+    /// <param name="data">The encoded image.</param>
+    private static void AssertDamagedChunksRespectIntegrityHandling(byte[] data)
+    {
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            using MemoryStream stream = new(data);
+            Assert.Throws<InvalidImageContentException>(() => ExrDecoder.Instance.Decode<Rgba32>(options, stream));
+        }
+
+        using MemoryStream defaultStream = new(data);
+        using Image<Rgba32> image = ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream);
+        using Image<Rgba32> cleared = new(2, 2);
+        ImageComparer.Exact.VerifySimilarity(cleared, image);
     }
 
     /// <summary>

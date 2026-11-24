@@ -176,6 +176,37 @@ public partial class IcoEncoderTests
     }
 
     /// <summary>
+    /// A 16-bit or 24-bit icon bitmap has no alpha. The AND mask after the color rows marks the transparent pixels, for
+    /// each color depth. See "Icons", section "The ICO File":
+    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// The decoder reads the mask, so the transparent pixels stay transparent.
+    /// </summary>
+    /// <param name="bitsPerPixel">The bit depth of the bitmap.</param>
+    [Theory]
+    [InlineData(BmpBitsPerPixel.Bit16)]
+    [InlineData(BmpBitsPerPixel.Bit24)]
+    public void Encode_DirectColorBitmap_KeepsMaskTransparency(BmpBitsPerPixel bitsPerPixel)
+    {
+        // Each channel is 0 or 255, so the 5-bit channels of the 16-bit layout keep each value. The encoder writes the
+        // color of a transparent pixel, and the decoder keeps it with alpha 0.
+        Rgba32 red = new(255, 0, 0, 255);
+        Rgba32 transparentBlue = new(0, 0, 255, 0);
+        Rgba32[] pixels = [red, transparentBlue, transparentBlue, red];
+        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(pixels, 2, 2);
+        IcoFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        metadata.Compression = IconFrameCompression.Bmp;
+        metadata.BmpBitsPerPixel = bitsPerPixel;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new IcoEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(bitsPerPixel, output.Frames.RootFrame.Metadata.GetIcoMetadata().BmpBitsPerPixel);
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
+
+    /// <summary>
     /// A palette from the metadata keeps the exact color of each pixel, also for two colors in one coarse cache bucket.
     /// </summary>
     [Fact]
@@ -236,10 +267,10 @@ public partial class IcoEncoderTests
         using Image<Rgba32> output = Image.Load<Rgba32>(stream);
         IcoFrameMetadata written = output.Frames.RootFrame.Metadata.GetIcoMetadata();
 
-        // The green channel is the second component: 5 bits in the 5-5-5 layout, 6 bits in the 5-6-5 layout.
-        Assert.Equal(
-            written.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1),
-            metadata.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
+        // The green channel is the second component: 5 bits in the 5-5-5 layout, 6 bits in the 5-6-5 layout. A 16-bit
+        // BI_RGB bitmap has the 5-5-5 layout, so the metadata before and after the encode reports 5 bits.
+        Assert.Equal(5, metadata.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
+        Assert.Equal(5, written.ToFormatConnectingFrameMetadata().PixelTypeInfo!.Value.ComponentInfo!.Value.GetComponentPrecision(1));
     }
 
     /// <summary>

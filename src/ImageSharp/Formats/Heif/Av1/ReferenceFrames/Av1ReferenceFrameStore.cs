@@ -257,6 +257,23 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     }
 
     /// <summary>
+    /// Clears the selected presentation output, and releases it when no reference-map slot retains it.
+    /// </summary>
+    /// <remarks>
+    /// Each bounded payload must present its own shown frame. The decoder clears the output of the earlier payload
+    /// before it parses the next payload. Thus a payload without a shown frame cannot present that earlier output.
+    /// </remarks>
+    public void ReleaseOutput()
+    {
+        Av1ReferenceFrame? releasedOutputFrame = this.outputFrame;
+        this.outputFrame = null;
+        if (releasedOutputFrame is not null && !this.IsRetained(releasedOutputFrame))
+        {
+            releasedOutputFrame.Dispose();
+        }
+    }
+
+    /// <summary>
     /// Clears all reference-map slots and releases every uniquely retained frame.
     /// </summary>
     public void Reset()

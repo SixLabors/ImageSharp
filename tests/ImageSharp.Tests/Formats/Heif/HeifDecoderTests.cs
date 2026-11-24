@@ -513,6 +513,88 @@ public class HeifDecoderTests
     }
 
     /// <summary>
+    /// Verifies that a file that ends inside the AV1 payload of its only image item throws in strict mode. With the
+    /// default options the decoder keeps the superblocks that the payload holds. The AV1 range decoder reads the missing
+    /// tile bytes as 0, so the decode matches the decode of the same file with the missing bytes set to 0.
+    /// </summary>
+    [Fact]
+    public void DecodeKeepsDecodedSuperblocksWhenItemPayloadIsTruncated()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Av1Deblocking8BitAvif).Bytes;
+        (byte[] truncated, byte[] zeroed) = TruncateMediaData(source);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, truncated);
+        });
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(zeroed);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that an image sequence that ends inside the AV1 payload of a sample throws in strict mode. With the
+    /// default options each sample that ends before the end of the file gives the frame of the complete file. In this
+    /// file the data ends inside the first of three frame OBUs of a sample, and that frame is hidden. So the truncated
+    /// sample has no shown frame and presents no frame. It must not present the frame of the sample before it again.
+    /// The samples after the end have no data, so they give no frames.
+    /// </summary>
+    [Fact]
+    public void DecodeKeepsDecodedFramesWhenSequenceSampleIsTruncated()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.AnimatedLeo).Bytes;
+        (byte[] truncated, _) = TruncateMediaData(source);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, truncated);
+        });
+
+        // Each sample of this file is a shown frame, so the expected frames are the frames of the complete samples.
+        int completeSampleCount = CountSamplesBefore(source, truncated.Length);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        while (expected.Frames.Count > completeSampleCount)
+        {
+            expected.Frames.RemoveFrame(expected.Frames.Count - 1);
+        }
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that a damaged grid tile payload throws in strict mode. With the default options the other tiles
+    /// decode as in the valid file, and the pixels of the damaged tile keep the fill value.
+    /// </summary>
+    [Fact]
+    public void DecodeKeepsValidGridTilesWhenTilePayloadIsDamaged()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.PerceptualIccGridAvif).Bytes;
+        byte[] data = [.. source];
+        ClearItemPayload(data, FindFirstItemReferenceDestinationId(data, Heif4CharCode.Dimg));
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, data);
+        });
+
+        // The dimg references give the tiles in row order, so the first tile covers the top-left corner. Its spatial
+        // extents give its size. The image is larger than one tile in each direction, so the output does not clip it.
+        Size tileSize = ReadItemSpatialExtents(source, FindFirstItemReferenceDestinationId(source, Heif4CharCode.Dimg));
+
+        // The damaged tile keeps the fill value. The other tiles match the decode of the valid file.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        Assert.True(expected.Width > tileSize.Width && expected.Height > tileSize.Height);
+        using Image<Rgba32> blank = new(tileSize.Width, tileSize.Height);
+        expected.Mutate(x => x.DrawImage(blank, Point.Empty, PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Src, 1F));
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Verifies that strict validation rejects a malformed descriptive metadata relationship.
     /// </summary>
     [Fact]
@@ -655,26 +737,37 @@ public class HeifDecoderTests
     }
 
     /// <summary>
-    /// Verifies that an item extent that ends beyond the file is rejected before the item buffer is allocated.
+    /// Verifies that an item extent that ends beyond the file is truncated item data. Strict mode throws. With the
+    /// default options the item buffer holds only the bytes that the file holds, so the declared length is never
+    /// allocated. The extent of this file holds the complete item, so the decode matches the valid file.
     /// </summary>
     [Fact]
-    public void DecodeRejectsItemExtentBeyondFileBeforeAllocatingItemData()
+    public void DecodeLimitsItemExtentBeyondFileToFileData()
     {
         const uint extentLength = 16 * OneMegabyte;
 
-        byte[] data = CreateAv1Container();
+        byte[] source = CreateAv1Container();
+        byte[] data = [.. source];
         int itemLocationOffset = GetItemLocationOffset(data);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(itemLocationOffset + FirstItemExtentLengthOffset), extentLength);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, data);
+        });
+
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         DecoderOptions options = new(configuration);
 
-        Assert.Throws<InvalidImageContentException>(() =>
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        using (Image<Rgba32> actual = Image.Load<Rgba32>(options, data))
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-        });
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
 
         Assert.DoesNotContain(allocator.AllocationLog, request => request.LengthInBytes >= extentLength);
     }
@@ -901,6 +994,41 @@ public class HeifDecoderTests
     /// <returns>The source item identifier.</returns>
     private static uint FindFirstItemReferenceSourceId(ReadOnlySpan<byte> data, Heif4CharCode referenceType)
     {
+        int relationshipOffset = FindFirstItemReferenceOffset(data, referenceType, out byte version);
+
+        return version == 0
+            ? BinaryPrimitives.ReadUInt16BigEndian(data[(relationshipOffset + 8)..])
+            : BinaryPrimitives.ReadUInt32BigEndian(data[(relationshipOffset + 8)..]);
+    }
+
+    /// <summary>
+    /// Reads the first destination item identifier from the first registered relationship of the requested type.
+    /// </summary>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="referenceType">The item-reference child type.</param>
+    /// <returns>The first destination item identifier.</returns>
+    private static uint FindFirstItemReferenceDestinationId(ReadOnlySpan<byte> data, Heif4CharCode referenceType)
+    {
+        int relationshipOffset = FindFirstItemReferenceOffset(data, referenceType, out byte version);
+
+        // ISO/IEC 14496-12 SingleItemTypeReferenceBox: the box header, the source identifier, and the 16-bit reference
+        // count precede the first destination.
+        int idSize = version == 0 ? 2 : 4;
+        int destinationOffset = relationshipOffset + 8 + idSize + 2;
+        return version == 0
+            ? BinaryPrimitives.ReadUInt16BigEndian(data[destinationOffset..])
+            : BinaryPrimitives.ReadUInt32BigEndian(data[destinationOffset..]);
+    }
+
+    /// <summary>
+    /// Finds the first registered relationship of the requested type in the item reference box.
+    /// </summary>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="referenceType">The item-reference child type.</param>
+    /// <param name="version">The item reference box version. Version 0 stores 16-bit item identifiers.</param>
+    /// <returns>The offset of the relationship box header.</returns>
+    private static int FindFirstItemReferenceOffset(ReadOnlySpan<byte> data, Heif4CharCode referenceType, out byte version)
+    {
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         Assert.True(metaOffset >= 0);
 
@@ -912,13 +1040,10 @@ public class HeifDecoderTests
         int relationshipOffset = FindBoxOffset(data, referenceType, itemReferenceOffset + 12, itemReferenceSize - 12);
         Assert.True(relationshipOffset >= 0);
 
-        byte version = data[itemReferenceOffset + 8];
+        version = data[itemReferenceOffset + 8];
 
         Assert.InRange(version, (byte)0, (byte)1);
-
-        return version == 0
-            ? BinaryPrimitives.ReadUInt16BigEndian(data[(relationshipOffset + 8)..])
-            : BinaryPrimitives.ReadUInt32BigEndian(data[(relationshipOffset + 8)..]);
+        return relationshipOffset;
     }
 
     /// <summary>
@@ -951,6 +1076,144 @@ public class HeifDecoderTests
         {
             BinaryPrimitives.WriteUInt32BigEndian(data[(relationshipOffset + 8)..], uint.MaxValue);
         }
+    }
+
+    /// <summary>
+    /// Counts the samples of the first track that end at or before a file position.
+    /// </summary>
+    /// <remarks>
+    /// ISO/IEC 14496-12 defines the sample tables. The SampleSizeBox ('stsz') gives the size of each sample. The
+    /// ChunkOffsetBox ('stco') gives the file offset of each chunk. The samples of a chunk follow each other from that
+    /// offset. The helper accepts only a track with one chunk.
+    /// </remarks>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="end">The file position.</param>
+    /// <returns>The number of samples that end at or before the file position.</returns>
+    private static int CountSamplesBefore(ReadOnlySpan<byte> data, int end)
+    {
+        // Each container box has an 8-byte header, and its child boxes follow it.
+        int box = FindBoxOffset(data, Heif4CharCode.Moov, 0, data.Length);
+        Assert.True(box >= 0);
+        foreach (Heif4CharCode type in new[] { Heif4CharCode.Trak, Heif4CharCode.Mdia, Heif4CharCode.Minf, Heif4CharCode.Stbl })
+        {
+            int parentLength = (int)BinaryPrimitives.ReadUInt32BigEndian(data[box..]);
+            box = FindBoxOffset(data, type, box + 8, parentLength - 8);
+            Assert.True(box >= 0);
+        }
+
+        int sampleTableLength = (int)BinaryPrimitives.ReadUInt32BigEndian(data[box..]);
+
+        // The ChunkOffsetBox has the box header, the version and flags, the entry count, then the 32-bit offsets.
+        int chunkOffsets = FindBoxOffset(data, Heif4CharCode.Stco, box + 8, sampleTableLength - 8);
+        Assert.True(chunkOffsets >= 0);
+        Assert.Equal(1U, BinaryPrimitives.ReadUInt32BigEndian(data[(chunkOffsets + 12)..]));
+        long sampleEnd = BinaryPrimitives.ReadUInt32BigEndian(data[(chunkOffsets + 16)..]);
+
+        // The SampleSizeBox has the box header, the version and flags, the sample size, the sample count, then the
+        // size of each sample when the sample size is 0.
+        int sampleSizes = FindBoxOffset(data, Heif4CharCode.Stsz, box + 8, sampleTableLength - 8);
+        Assert.True(sampleSizes >= 0);
+        Assert.Equal(0U, BinaryPrimitives.ReadUInt32BigEndian(data[(sampleSizes + 12)..]));
+        int sampleCount = (int)BinaryPrimitives.ReadUInt32BigEndian(data[(sampleSizes + 16)..]);
+        for (int i = 0; i < sampleCount; i++)
+        {
+            sampleEnd += BinaryPrimitives.ReadUInt32BigEndian(data[(sampleSizes + 20 + (i * 4))..]);
+            if (sampleEnd > end)
+            {
+                return i;
+            }
+        }
+
+        return sampleCount;
+    }
+
+    /// <summary>
+    /// Reads the spatial extents of an item from its 'ispe' property.
+    /// </summary>
+    /// <remarks>
+    /// ISO/IEC 23008-12 defines the ItemPropertyContainerBox ('ipco'), the ItemPropertyAssociationBox ('ipma') and
+    /// the ImageSpatialExtentsProperty ('ispe'). An association gives a 1-based index into the properties of the
+    /// container. The helper accepts only version 0 of 'ipma' with flags 0. That form has 16-bit item identifiers and
+    /// 7-bit property indexes.
+    /// </remarks>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="itemId">The item identifier.</param>
+    /// <returns>The image width and height of the item.</returns>
+    private static Size ReadItemSpatialExtents(ReadOnlySpan<byte> data, uint itemId)
+    {
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        Assert.True(metaOffset >= 0);
+
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[metaOffset..]);
+        int propertiesOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
+        Assert.True(propertiesOffset >= 0);
+
+        int propertiesSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[propertiesOffset..]);
+        int containerOffset = FindBoxOffset(data, Heif4CharCode.Ipco, propertiesOffset + 8, propertiesSize - 8);
+        int associationOffset = FindBoxOffset(data, Heif4CharCode.Ipma, propertiesOffset + 8, propertiesSize - 8);
+        Assert.True(containerOffset >= 0 && associationOffset >= 0);
+
+        // The association box has the box header, the version and flags, the entry count, then for each entry the
+        // item identifier, the association count and one byte for each association. Bit 7 of that byte is the
+        // essential flag, and bits 0 to 6 are the property index.
+        Assert.Equal(0U, BinaryPrimitives.ReadUInt32BigEndian(data[(associationOffset + 8)..]));
+        int entryCount = (int)BinaryPrimitives.ReadUInt32BigEndian(data[(associationOffset + 12)..]);
+        int offset = associationOffset + 16;
+        for (int entry = 0; entry < entryCount; entry++)
+        {
+            uint entryItemId = BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
+            int associationCount = data[offset + 2];
+            offset += 3;
+            if (entryItemId != itemId)
+            {
+                offset += associationCount;
+                continue;
+            }
+
+            for (int association = 0; association < associationCount; association++)
+            {
+                int propertyIndex = data[offset + association] & 0x7F;
+                int propertyOffset = containerOffset + 8;
+                for (int i = 1; i < propertyIndex; i++)
+                {
+                    propertyOffset += (int)BinaryPrimitives.ReadUInt32BigEndian(data[propertyOffset..]);
+                }
+
+                // The spatial extents property has the box header, the version and flags, then the 32-bit width and
+                // height.
+                if ((Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(data[(propertyOffset + 4)..]) == Heif4CharCode.Ispe)
+                {
+                    return new Size(
+                        (int)BinaryPrimitives.ReadUInt32BigEndian(data[(propertyOffset + 12)..]),
+                        (int)BinaryPrimitives.ReadUInt32BigEndian(data[(propertyOffset + 16)..]));
+                }
+            }
+
+            break;
+        }
+
+        Assert.Fail($"Item {itemId} has no spatial extents property.");
+        return default;
+    }
+
+    /// <summary>
+    /// Creates two copies of a file that end their media data box early. The first copy ends at that point. The second
+    /// copy keeps its length, and its bytes after that point are 0.
+    /// </summary>
+    /// <param name="data">The complete HEIF container. Its media data box is the last box.</param>
+    /// <returns>The truncated copy and the copy with the bytes after the end set to 0.</returns>
+    private static (byte[] Truncated, byte[] Zeroed) TruncateMediaData(byte[] data)
+    {
+        // The media data box is the last box of the file, so the file can end inside it and keep all metadata.
+        int mediaData = FindBoxOffset(data, Heif4CharCode.Mdat, 0, data.Length);
+        Assert.True(mediaData >= 0);
+        Assert.Equal(data.Length, mediaData + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(mediaData)));
+
+        // Keep three quarters of the payload after the 8-byte box header.
+        int end = mediaData + 8 + ((data.Length - mediaData - 8) * 3 / 4);
+        byte[] zeroed = [.. data];
+        zeroed.AsSpan(end).Clear();
+        return (data[..end], zeroed);
     }
 
     /// <summary>

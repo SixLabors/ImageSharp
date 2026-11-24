@@ -26,8 +26,8 @@ internal struct CcittBitReader
     public const int NoCode = -1;
 
     /// <summary>
-    /// The result of <see cref="ReadRun"/> when the next bits are not a valid run: bits that are no code, or a run that
-    /// is longer than the rest of the row.
+    /// The result of <see cref="ReadRun"/> when the next bits are not a valid run. They are bits that are no code, or a
+    /// run that is longer than the rest of the row.
     /// </summary>
     public const int InvalidCode = -2;
 
@@ -126,13 +126,56 @@ internal struct CcittBitReader
     }
 
     /// <summary>
+    /// Reads the white and black runs of one row. The first run is white, and the runs alternate. See ITU-T
+    /// Recommendation T.4 (07/2003), section 4.1.1, pages 3-4: https://www.itu.int/rec/T-REC-T.4
+    /// </summary>
+    /// <param name="row">
+    /// The destination row. It holds at least (width + 7) / 8 bytes, and all of its bits are 0. A black pixel is a 1
+    /// bit, and the first pixel goes to the most significant bit of the first byte.
+    /// </param>
+    /// <param name="width">The number of pixels in the row.</param>
+    /// <returns>
+    /// <paramref name="width"/> when the row has all of its pixels. Else <see cref="NoCode"/> or
+    /// <see cref="InvalidCode"/>: the result of the run that ended the row early. The other bits of the row stay 0.
+    /// </returns>
+    public int ReadRow(Span<byte> row, int width)
+    {
+        int x = 0;
+        bool isWhite = true;
+        while (x < width)
+        {
+            int run = this.ReadRun(isWhite, width - x);
+            if (run < 0)
+            {
+                return run;
+            }
+
+            // The row starts with all bits 0, so only a black run writes to it.
+            if (!isWhite)
+            {
+                BitWriterUtils.SetBits(row, x, run);
+            }
+
+            x += run;
+            isWhite = !isWhite;
+        }
+
+        return width;
+    }
+
+    /// <summary>
     /// Skips fill bits and EOL codes. An EOL code is 11 zero bits, then a 1 bit. Fill bits are zero bits before an EOL
     /// code, so the reader accepts 11 or more zero bits. See ITU-T Recommendation T.4 (07/2003), sections 4.1.2 and
     /// 4.1.3, page 4: https://www.itu.int/rec/T-REC-T.4
     /// </summary>
-    /// <returns><see langword="true"/> if a code follows; <see langword="false"/> if the data ends.</returns>
-    public bool SkipEolCodes()
+    /// <param name="skippedRow">
+    /// Set to <see langword="true"/> when the next bits are no code. Then the reader skips the bits up to the next EOL
+    /// code, and that EOL code. These bits are the data of one row, so the caller keeps that row empty.
+    /// </param>
+    /// <returns><see langword="true"/> if a code follows. <see langword="false"/> if the data ends.</returns>
+    public bool SkipEolCodes(out bool skippedRow)
     {
+        skippedRow = false;
         int zeros = 0;
         while (true)
         {
@@ -161,10 +204,13 @@ internal struct CcittBitReader
             zeros += leadingZeros;
             this.ConsumeToOne(leadingZeros);
 
-            // 8 to 10 zero bits, then a 1 bit, is no code. The next EOL code starts a valid row again.
-            if (zeros < 11 && !this.SkipToEol())
+            // 8 to 10 zero bits, then a 1 bit, is no code. The bits up to the next EOL code are the damaged data of one
+            // row. The next row starts after that EOL code, so the reader stops there. Thus the rows after the damaged
+            // row keep their places.
+            if (zeros < 11)
             {
-                return false;
+                skippedRow = true;
+                return this.SkipToEol();
             }
 
             zeros = 0;
@@ -172,11 +218,11 @@ internal struct CcittBitReader
     }
 
     /// <summary>
-    /// Skips the bits up to the next EOL code, and the EOL code. An EOL code cannot occur in a valid row, so the decoder
-    /// can continue at the next row after data that is not valid. See ITU-T Recommendation T.4 (07/2003), section 4.1.2,
-    /// page 4.
+    /// Skips the bits up to the next EOL code, and the EOL code. An EOL code cannot occur in a valid row. Thus the
+    /// decoder can continue at the next row after data that is not valid. See ITU-T Recommendation T.4 (07/2003),
+    /// section 4.1.2, page 4.
     /// </summary>
-    /// <returns><see langword="true"/> if the reader found an EOL code; <see langword="false"/> if the data ends.</returns>
+    /// <returns><see langword="true"/> if the reader found an EOL code. <see langword="false"/> if the data ends.</returns>
     public bool SkipToEol()
     {
         int zeros = 0;
@@ -206,8 +252,8 @@ internal struct CcittBitReader
     }
 
     /// <summary>
-    /// Ends the data. The reader drops its window and the bytes that it did not read, so each later read sees zero bits
-    /// after the end of the data.
+    /// Ends the data. The reader drops its window and the bytes that it did not read. Thus each later read sees zero
+    /// bits after the end of the data.
     /// </summary>
     public void End()
     {

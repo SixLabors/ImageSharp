@@ -70,8 +70,21 @@ internal static class EncodingUtilities
     /// Packs one row of palette indices to 1, 2, 4 or 8 bits for each index.
     /// </summary>
     /// <remarks>
-    /// The first index goes in the most significant bits of the first byte. BMP, PNG and TIFF use this layout.
-    /// When the row ends inside a byte, the low bits of that byte are zero.
+    /// The first index goes in the most significant bits of the first byte. When the row ends inside a byte, the low
+    /// bits of that byte are zero. BMP, PNG and TIFF use this bit order:
+    /// <list type="bullet">
+    /// <item><description>
+    /// BMP: BITMAPINFOHEADER structure, the 4-bit example of biBitCount.
+    /// See https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85).
+    /// </description></item>
+    /// <item><description>
+    /// PNG: PNG Specification (Third Edition), section 7.2 Scanlines. See https://www.w3.org/TR/png-3/#7Scanline.
+    /// </description></item>
+    /// <item><description>
+    /// TIFF: TIFF 6.0 Specification, section 8, FillOrder value 1, the default.
+    /// See https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf.
+    /// </description></item>
+    /// </list>
     /// </remarks>
     /// <param name="indices">The indices, one byte each. Each index must be less than 2^<paramref name="bitsPerIndex"/>.</param>
     /// <param name="destination">
@@ -322,8 +335,8 @@ internal static class EncodingUtilities
             Unsafe.Add(ref destinationBase, (uint)x) = TPacker.Pack(ref Unsafe.Add(ref sourceBase, (uint)(x * TPacker.IndicesPerByte)));
         }
 
-        // The row ends inside the last byte. Put each remaining index below the previous one, the first index in the top
-        // bits. The low bits that have no index stay zero.
+        // When the row ends inside the last byte, the first remaining index goes in the top bits. Each next index goes
+        // below the previous one. The low bits that have no index stay zero.
         if (remainder != 0)
         {
             uint value = 0;
@@ -347,8 +360,8 @@ internal static class EncodingUtilities
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<byte> CombinePairs(Vector128<byte> first, Vector128<byte> second, int valueBits)
     {
-        // A 16-bit lane holds one pair: the first value in its low byte and the second value in its high byte, because
-        // the vector layout is little endian. The left shift moves the first value up by valueBits bits. The right shift
+        // A 16-bit lane holds one pair. The vector layout is little endian, so the first value is in the low byte and
+        // the second value is in the high byte. The left shift moves the first value up by valueBits bits. The right shift
         // moves the second value to the low byte. Each value has valueBits bits, so the two values do not overlap, and
         // the low byte of the lane is (firstValue << valueBits) | secondValue. Narrow keeps the low byte of each lane.
         Vector128<ushort> a = first.AsUInt16();
@@ -415,7 +428,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Pack128(ref byte source)
         {
-            // Join pairs three times: 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
+            // Three pair joins change 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
             Vector128<byte> v0 = CombinePairs(Vector128.LoadUnsafe(ref source), Vector128.LoadUnsafe(ref source, 16), 1);
             Vector128<byte> v1 = CombinePairs(Vector128.LoadUnsafe(ref source, 32), Vector128.LoadUnsafe(ref source, 48), 1);
             Vector128<byte> v2 = CombinePairs(Vector128.LoadUnsafe(ref source, 64), Vector128.LoadUnsafe(ref source, 80), 1);
@@ -427,7 +440,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<byte> Pack256(ref byte source)
         {
-            // Join pairs three times: 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
+            // Three pair joins change 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
             Vector256<byte> v0 = CombinePairs(Vector256.LoadUnsafe(ref source), Vector256.LoadUnsafe(ref source, 32), 1);
             Vector256<byte> v1 = CombinePairs(Vector256.LoadUnsafe(ref source, 64), Vector256.LoadUnsafe(ref source, 96), 1);
             Vector256<byte> v2 = CombinePairs(Vector256.LoadUnsafe(ref source, 128), Vector256.LoadUnsafe(ref source, 160), 1);
@@ -439,7 +452,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Pack512(ref byte source)
         {
-            // Join pairs three times: 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
+            // Three pair joins change 1-bit values to 2-bit values, then to 4-bit values, then to bytes.
             Vector512<byte> v0 = CombinePairs(Vector512.LoadUnsafe(ref source), Vector512.LoadUnsafe(ref source, 64), 1);
             Vector512<byte> v1 = CombinePairs(Vector512.LoadUnsafe(ref source, 128), Vector512.LoadUnsafe(ref source, 192), 1);
             Vector512<byte> v2 = CombinePairs(Vector512.LoadUnsafe(ref source, 256), Vector512.LoadUnsafe(ref source, 320), 1);
@@ -475,7 +488,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Pack128(ref byte source)
         {
-            // Join pairs two times: 2-bit values to 4-bit values, then to bytes.
+            // Two pair joins change 2-bit values to 4-bit values, then to bytes.
             Vector128<byte> v0 = CombinePairs(Vector128.LoadUnsafe(ref source), Vector128.LoadUnsafe(ref source, 16), 2);
             Vector128<byte> v1 = CombinePairs(Vector128.LoadUnsafe(ref source, 32), Vector128.LoadUnsafe(ref source, 48), 2);
             return CombinePairs(v0, v1, 4);
@@ -485,7 +498,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<byte> Pack256(ref byte source)
         {
-            // Join pairs two times: 2-bit values to 4-bit values, then to bytes.
+            // Two pair joins change 2-bit values to 4-bit values, then to bytes.
             Vector256<byte> v0 = CombinePairs(Vector256.LoadUnsafe(ref source), Vector256.LoadUnsafe(ref source, 32), 2);
             Vector256<byte> v1 = CombinePairs(Vector256.LoadUnsafe(ref source, 64), Vector256.LoadUnsafe(ref source, 96), 2);
             return CombinePairs(v0, v1, 4);
@@ -495,7 +508,7 @@ internal static class EncodingUtilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Pack512(ref byte source)
         {
-            // Join pairs two times: 2-bit values to 4-bit values, then to bytes.
+            // Two pair joins change 2-bit values to 4-bit values, then to bytes.
             Vector512<byte> v0 = CombinePairs(Vector512.LoadUnsafe(ref source), Vector512.LoadUnsafe(ref source, 64), 2);
             Vector512<byte> v1 = CombinePairs(Vector512.LoadUnsafe(ref source, 128), Vector512.LoadUnsafe(ref source, 192), 2);
             return CombinePairs(v0, v1, 4);

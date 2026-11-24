@@ -68,8 +68,8 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     /// </summary>
     /// <remarks>
     /// The decoder sets the color type of the decoded bitmap. The encoder does not read this value. The icon format
-    /// permits only BI_RGB, so the encoder writes a palette at 8 bits per pixel or fewer, 5-5-5 BGR at 16, BGR at 24, and
-    /// BGRA at 32.
+    /// permits only BI_RGB. Thus the encoder writes a palette at 8 bits per pixel or fewer, 5-5-5 BGR at 16, BGR at 24,
+    /// and BGRA at 32.
     /// </remarks>
     public BmpColorType BmpColorType { get; set; } = BmpColorType.Bgra;
 
@@ -83,13 +83,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         get => this.colorTable;
         set
         {
-            if (value.HasValue)
-            {
-                // ICONDIRENTRY stores the color count in one byte, and only bitmaps of 8 bits or fewer have a
-                // color table: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
-                Guard.MustBeLessThanOrEqualTo(value.Value.Length, 256, nameof(value));
-            }
-
+            IconDirEntry.GuardColorTable(value, nameof(value));
             this.colorTable = value;
         }
     }

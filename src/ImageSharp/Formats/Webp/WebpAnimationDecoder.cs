@@ -65,14 +65,9 @@ internal class WebpAnimationDecoder : IDisposable
     private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
-    /// Executes a known ancillary segment parsing action using the configured integrity policy.
+    /// The segment integrity mode. It controls incomplete ICC profiles and damaged or truncated frame image data.
     /// </summary>
-    private readonly Action<Action> executeAncillarySegmentAction;
-
-    /// <summary>
-    /// Whether to keep readable tags from an incomplete ICC profile.
-    /// </summary>
-    private readonly bool allowTruncatedIcc;
+    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
@@ -82,24 +77,21 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
     /// <param name="skipMetadata">Whether to skip metadata.</param>
     /// <param name="backgroundColorHandling">The flag to decide how to handle the background color in the Animation Chunk.</param>
-    /// <param name="allowTruncatedIcc">Whether to keep readable tags from an incomplete ICC profile.</param>
-    /// <param name="executeAncillarySegmentAction">Executes a known ancillary segment parsing action using the configured integrity policy.</param>
+    /// <param name="segmentIntegrityHandling">The segment integrity mode of the decode.</param>
     public WebpAnimationDecoder(
         MemoryAllocator memoryAllocator,
         Configuration configuration,
         uint maxFrames,
         bool skipMetadata,
         BackgroundColorHandling backgroundColorHandling,
-        bool allowTruncatedIcc,
-        Action<Action> executeAncillarySegmentAction)
+        SegmentIntegrityHandling segmentIntegrityHandling)
     {
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
         this.maxFrames = maxFrames;
         this.skipMetadata = skipMetadata;
         this.backgroundColorHandling = backgroundColorHandling;
-        this.executeAncillarySegmentAction = executeAncillarySegmentAction;
-        this.allowTruncatedIcc = allowTruncatedIcc;
+        this.segmentIntegrityHandling = segmentIntegrityHandling;
     }
 
     /// <summary>
@@ -141,7 +133,7 @@ internal class WebpAnimationDecoder : IDisposable
                 case WebpChunkType.FrameData:
 
                     ImageFrameMetadata frameMetadata = new();
-                    ReadFrameInfo(stream, frameMetadata, containerEnd);
+                    ReadFrameInfo(stream, frameMetadata, containerEnd, this.segmentIntegrityHandling);
                     framesMetadata.Add(frameMetadata);
 
                     frameCount++;
@@ -262,16 +254,22 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="stream">The stream from which to read the frame information. Must support reading and seeking.</param>
     /// <param name="frameMetadata">The metadata updated from the frame header.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
-    private static void ReadFrameInfo(BufferedReadStream stream, ImageFrameMetadata frameMetadata, long containerEnd)
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls a frame that ends at EOF.</param>
+    private static void ReadFrameInfo(
+        BufferedReadStream stream,
+        ImageFrameMetadata frameMetadata,
+        long containerEnd,
+        SegmentIntegrityHandling segmentIntegrityHandling)
     {
-        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd);
+        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd, segmentIntegrityHandling);
         SetFrameMetadata(frameMetadata, frameData);
 
         // Size of the frame header chunk.
         const int chunkHeaderSize = 16;
 
+        // IgnoreImageData permits a frame that ends at EOF. Stop at EOF in that case.
         uint remaining = frameData.DataSize - chunkHeaderSize;
-        stream.Position += remaining + (frameData.DataSize & 1);
+        stream.Position = Math.Min(stream.Position + remaining + (frameData.DataSize & 1), stream.Length);
     }
 
     /// <summary>
@@ -297,7 +295,7 @@ internal class WebpAnimationDecoder : IDisposable
         long containerEnd)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd);
+        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd, this.segmentIntegrityHandling);
 
         // Nested chunks must fit inside this ANMF payload. Bytes in the next frame cannot complete this frame.
         long frameEnd = stream.Position + frameData.DataSize - 16;
@@ -328,7 +326,7 @@ internal class WebpAnimationDecoder : IDisposable
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
-                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, frameEnd, false);
+                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, frameEnd, this.segmentIntegrityHandling);
                 features.Alpha = hasAlpha;
                 features.AlphaChunkHeader = alphaChunkHeader;
                 break;
@@ -338,7 +336,7 @@ internal class WebpAnimationDecoder : IDisposable
                     WebpThrowHelper.ThrowNotSupportedException("Alpha channel is not supported for lossless webp images.");
                 }
 
-                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, frameEnd, false);
+                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, frameEnd, this.segmentIntegrityHandling);
                 break;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Read unexpected chunk type, should be VP8 or VP8L");
@@ -397,7 +395,8 @@ internal class WebpAnimationDecoder : IDisposable
             this.restoreArea = interest;
         }
 
-        stream.Position = frameEnd + (frameData.DataSize & 1);
+        // IgnoreImageData permits a frame that ends at EOF. Stop at EOF in that case.
+        stream.Position = Math.Min(frameEnd + (frameData.DataSize & 1), stream.Length);
     }
 
     /// <summary>
@@ -436,13 +435,19 @@ internal class WebpAnimationDecoder : IDisposable
                 // precede the frame data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, this.allowTruncatedIcc, this.executeAncillarySegmentAction, containerEnd);
+                WebpChunkParsingUtils.ReadIccProfile(
+                    stream,
+                    imageMetadata,
+                    this.segmentIntegrityHandling,
+                    containerEnd);
                 break;
             case WebpChunkType.Exif:
-                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata, containerEnd));
+                this.segmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata, containerEnd, this.segmentIntegrityHandling));
                 break;
             case WebpChunkType.Xmp:
-                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, imageMetadata, ignoreMetadata, containerEnd));
+                this.segmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => WebpChunkParsingUtils.ReadXmpProfile(stream, imageMetadata, ignoreMetadata, containerEnd, this.segmentIntegrityHandling));
                 break;
         }
     }
@@ -455,18 +460,20 @@ internal class WebpAnimationDecoder : IDisposable
     private byte ReadAlphaData(BufferedReadStream stream, long containerEnd)
     {
         this.alphaData?.Dispose();
+        this.alphaData = null;
 
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, stackalloc byte[4], containerEnd, 1, false);
-        long chunkEnd = stream.Position + alphaChunkSize + (alphaChunkSize & 1);
-        int alphaDataSize = (int)(alphaChunkSize - 1);
-        this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+        // Alpha data is image data, so an ALPH chunk that ends at EOF follows the image data integrity policy.
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, stackalloc byte[4], containerEnd, 1, this.segmentIntegrityHandling);
+
+        // IgnoreImageData permits a chunk that ends at EOF. Stop at EOF in that case.
+        long chunkEnd = Math.Min(stream.Position + alphaChunkSize + (alphaChunkSize & 1), stream.Length);
 
         byte alphaChunkHeader = (byte)stream.ReadByte();
-        Span<byte> alphaData = this.alphaData.GetSpan();
-        if (stream.Read(alphaData, 0, alphaDataSize) != alphaDataSize)
-        {
-            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read WebP frame alpha data.");
-        }
+        this.alphaData = WebpChunkParsingUtils.ReadAlphaData(
+            stream,
+            this.memoryAllocator,
+            (int)(alphaChunkSize - 1),
+            this.segmentIntegrityHandling);
 
         stream.Position = chunkEnd;
 
@@ -492,13 +499,25 @@ internal class WebpAnimationDecoder : IDisposable
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
-                losslessDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height, colorProfileConverter);
+                losslessDecoder.Decode(
+                    decodeBuffer,
+                    (int)webpInfo.Width,
+                    (int)webpInfo.Height,
+                    colorProfileConverter,
+                    this.segmentIntegrityHandling);
             }
             else
             {
                 WebpLossyDecoder lossyDecoder =
                     new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData, colorProfileConverter);
+                lossyDecoder.Decode(
+                    decodeBuffer,
+                    (int)webpInfo.Width,
+                    (int)webpInfo.Height,
+                    webpInfo,
+                    this.alphaData,
+                    colorProfileConverter,
+                    this.segmentIntegrityHandling);
             }
 
             return decodeBuffer;

@@ -439,10 +439,7 @@ internal struct JxlBitReader
         }
         catch (DecoderFallbackException exception)
         {
-            if (handling == SegmentIntegrityHandling.Strict)
-            {
-                throw new InvalidImageContentException("The JPEG XL name is not valid UTF-8.", exception);
-            }
+            handling.ThrowOrIgnoreAncillaryError("The JPEG XL name is not valid UTF-8.", exception);
 
             // The complete byte field has already been consumed. Its text cannot affect reconstruction,
             // so both non-strict policies can omit the label without losing the next field's bit position.

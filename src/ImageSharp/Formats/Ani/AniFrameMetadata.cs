@@ -57,7 +57,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     /// encodes the frame as its own animation step.
     /// </summary>
     /// <remarks>
-    /// The decoder gives each frame the number of the stored frame that it plays, so a frame that plays in two steps
+    /// The decoder gives each frame the number of the stored frame that it plays. Thus a frame that plays in two steps
     /// has the same number in both. For each number, the encoder writes only the frames of the first step, and it
     /// ignores the pixels of later steps. To change the pixels of one step only, give its frames a new number.
     /// </remarks>
@@ -94,9 +94,9 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     /// Gets or sets the color type of the embedded bitmap.
     /// </summary>
     /// <remarks>
-    /// The decoder sets the color type of the decoded bitmap. The icon format permits only BI_RGB, so the encoder writes
-    /// a palette for 8 bits per pixel or fewer, and BGR without masks for more bits per pixel. At 16 bits per pixel, the
-    /// layout is 5-5-5.
+    /// The decoder sets the color type of the decoded bitmap. The encoder does not read this value. The icon format
+    /// permits only BI_RGB. Thus the encoder writes a palette at 8 bits per pixel or fewer, 5-5-5 BGR at 16, BGR at 24,
+    /// and BGRA at 32.
     /// </remarks>
     public BmpColorType BmpColorType { get; set; } = BmpColorType.Bgra;
 
@@ -110,13 +110,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         get => this.colorTable;
         set
         {
-            if (value.HasValue)
-            {
-                // ICONDIRENTRY stores the color count in one byte, and only bitmaps of 8 bits or fewer have a
-                // color table: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
-                Guard.MustBeLessThanOrEqualTo(value.Value.Length, 256, nameof(value));
-            }
-
+            IconDirEntry.GuardColorTable(value, nameof(value));
             this.colorTable = value;
         }
     }

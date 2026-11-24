@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 internal sealed class GifDecoderCore : ImageDecoderCore
 {
     /// <summary>
+    /// The message for a frame whose LZW minimum code size is missing or not valid.
+    /// </summary>
+    private const string InvalidMinCodeSizeMessage = "The GIF LZW minimum code size is missing or not valid.";
+
+    /// <summary>
     /// The temp buffer used to reduce allocations.
     /// </summary>
     private InlineArray16<byte> buffer; // mutable struct, don't make readonly
@@ -155,10 +160,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
-                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
+                            this.ReadComments(stream);
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
+                            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -240,10 +245,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         this.ReadGraphicalControlExtension(stream);
                         break;
                     case GifConstants.CommentLabel:
-                        this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
+                        this.ReadComments(stream);
                         break;
                     case GifConstants.ApplicationExtensionLabel:
-                        this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
+                        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
                         break;
                     case GifConstants.PlainTextLabel:
                         SkipBlock(stream); // Not supported by any known decoder.
@@ -348,12 +353,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         int appLength = stream.ReadByte();
         if (appLength == -1)
         {
-            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif application extension");
+            return;
         }
 
         if (appLength != GifConstants.ApplicationBlockSize)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError($"Gif application extension length '{appLength}' is invalid");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError($"Gif application extension length '{appLength}' is invalid");
             SkipBlock(stream, appLength);
             return;
         }
@@ -363,7 +369,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         int bytesRead = stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
         if (bytesRead != GifConstants.ApplicationBlockSize)
         {
-            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif application extension");
+            return;
         }
 
         bool isXmp = ((ReadOnlySpan<byte>)this.buffer).StartsWith(GifConstants.XmpApplicationIdentificationBytes);
@@ -391,14 +398,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         int subBlockSize = stream.ReadByte();
         if (subBlockSize == -1)
         {
-            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif application extension");
+            return;
         }
 
         // TODO: There's also a NETSCAPE buffer extension.
         // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
         if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
         {
-            this.ReadNetscapeApplicationExtension(stream);
+            this.ReadNetscapeApplicationExtensionData(stream);
             return;
         }
 
@@ -424,7 +432,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             {
                 if (!reader.TryReadSegment(stream, length))
                 {
-                    GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif ICC profile");
+                    return;
                 }
             }
             catch (InvalidIccProfileException)
@@ -439,10 +448,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         if (length < 0)
         {
-            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif ICC profile");
+            return;
         }
 
-        metadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+        metadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
     }
 
     /// <summary>
@@ -461,7 +471,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         bool completed = false;
-        this.ExecuteAncillarySegmentAction(
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
             () =>
         {
             this.ReadXmpApplicationExtensionData(stream, applicationPosition, appLength);
@@ -494,13 +504,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the GIF NETSCAPE looping application extension.
-    /// </summary>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    private void ReadNetscapeApplicationExtension(BufferedReadStream stream) =>
-        this.ExecuteAncillarySegmentAction(() => this.ReadNetscapeApplicationExtensionData(stream));
-
-    /// <summary>
     /// Reads the GIF NETSCAPE looping application extension data.
     /// </summary>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
@@ -509,15 +512,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         int bytesRead = stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
         if (bytesRead != GifConstants.NetscapeLoopingSubBlockSize)
         {
-            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif application extension");
+            return;
         }
 
         this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer[1..]).RepeatCount;
 
-        int terminator = stream.ReadByte();
-        if (terminator == -1)
+        if (stream.ReadByte() == -1)
         {
-            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif application extension");
         }
     }
 
@@ -554,13 +557,16 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             if (length > GifConstants.MaxCommentSubBlockLength)
             {
-                GifThrowHelper.ThrowInvalidImageContentException(
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                     $"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
+
+                return;
             }
 
             if (length == -1)
             {
-                GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif comment");
+                return;
             }
 
             if (this.skipMetadata)
@@ -575,7 +581,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             int bytesRead = stream.Read(commentsSpan);
             if (bytesRead != length)
             {
-                GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif comment");
+                return;
             }
 
             string commentPart = GifConstants.Encoding.GetString(commentsSpan);
@@ -646,15 +653,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             }
         }
 
-        try
-        {
-            this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colors, backgroundColor.ToPixel<TPixel>());
-        }
-        catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
-        {
-            // Keep completed rows. SkipBlock below consumes the rest of this frame so the next descriptor remains readable.
-            // Header and palette parsing stay outside this recovery boundary; structural errors remain fatal.
-        }
+        // ReadFrameColors throws for damaged LZW data unless the integrity mode ignores image data errors.
+        // In that mode, the frame keeps its decoded rows. The LZW decoder stops at the end of the data and leaves
+        // a block terminator in the stream. SkipBlock below then reads the remaining sub-blocks and the terminator.
+        // Thus, the next block stays readable.
+        this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colors, backgroundColor.ToPixel<TPixel>());
 
         // Update from newly decoded frame.
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
@@ -854,9 +857,16 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         // A frame that starts at or beyond the right or bottom edge of the logical screen has nothing to draw.
         // Its image data is then left to the caller, which skips the remaining data sub-blocks.
         int minCodeSize = stream.ReadByte();
-        if (descriptorTop < imageHeight && descriptorLeft < imageWidth && LzwDecoder.IsValidMinCodeSize(minCodeSize))
+        bool isValidMinCodeSize = LzwDecoder.IsValidMinCodeSize(minCodeSize);
+        if (!isValidMinCodeSize)
         {
-            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
+            // The frame data is missing, or the decoder cannot decode its LZW data. The frame keeps its initial pixels.
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(InvalidMinCodeSizeMessage);
+        }
+
+        if (descriptorTop < imageHeight && descriptorLeft < imageWidth && isValidMinCodeSize)
+        {
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize, this.Options.SegmentIntegrityHandling);
 
             for (int y = descriptorTop; y < descriptorBottom; y++)
             {
@@ -910,11 +920,19 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         break;
                     }
 
-                    lzwDecoder.SkipIndices(descriptor.Width);
+                    if (!lzwDecoder.SkipIndices(descriptor.Width))
+                    {
+                        return;
+                    }
+
                     continue;
                 }
 
-                lzwDecoder.DecodePixelRow(indicesRow);
+                if (!lzwDecoder.DecodePixelRow(indicesRow))
+                {
+                    // The decoder cannot decode more LZW data. The decoded rows stay.
+                    return;
+                }
 
                 // #403 The left + width value can be larger than the image width
                 int maxX = Math.Min(descriptorRight, imageWidth);
@@ -982,19 +1000,17 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         // Skip the frame indices. Pixels length + mincode size.
         // The gif format does not tell us the length of the compressed data beforehand.
+        // Identify still reads LZW codes. It uses the same image data integrity policy and sub-block skipping as
+        // full decoding.
         int minCodeSize = stream.ReadByte();
         if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
         {
-            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
-
-            try
-            {
-                lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
-            }
-            catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
-            {
-                // Identify still reads LZW codes. Use the same recovery policy and sub-block skipping as full decoding.
-            }
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize, this.Options.SegmentIntegrityHandling);
+            lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+        }
+        else
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(InvalidMinCodeSizeMessage);
         }
 
         ImageFrameMetadata currentFrame = new();

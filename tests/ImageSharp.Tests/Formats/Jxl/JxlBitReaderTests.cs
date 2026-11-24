@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
@@ -22,7 +23,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader codestream = new(buffered);
+        JxlCodestreamReader codestream = new(buffered, SegmentIntegrityHandling.Strict);
         JxlBitReader reader = new(codestream);
 
         // These literal values describe the first twelve stored bytes of libjxl's splines codestream.
@@ -62,7 +63,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlCodestreamReader codestream = new(buffered);
+        JxlCodestreamReader codestream = new(buffered, SegmentIntegrityHandling.Strict);
         JxlBitReader reader = new(codestream);
 
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
@@ -78,7 +79,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WidthExceedsInt32).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
 
         // The stored header declares height 2^30 and ratio 2:1. Its derived width is 2^31, beyond Size's int range.
@@ -95,7 +96,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
 
         // The stored codestream contains 81 bytes. Consume every actual bit, including the final short refill.
         for (int i = 0; i < 20; i++)
@@ -130,7 +131,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         reader.BeginSection(1);
 
@@ -157,7 +158,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         reader.BeginSection(10);
         reader.ReadBits(prefixBits);
         byte[] actual = new byte[9];
@@ -188,7 +189,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         reader.BeginSection(2);
 
@@ -209,7 +210,7 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         reader.SeekBytePosition(79);
         reader.BeginSection(3);
 

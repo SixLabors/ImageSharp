@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -134,29 +135,36 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// RLE data that ends before the last pixel is not an error, as for PNG and JPEG data that ends early. The
-    /// decoder keeps the pixels decoded before the end, for each integrity option.
+    /// RLE data that ends before the last pixel throws in the Strict and IgnoreAncillary modes. In the IgnoreImageData
+    /// mode, the decoder keeps the pixels decoded before the end.
     /// </summary>
-    /// <param name="integrityHandling">The segment integrity handling.</param>
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
-    public void Decode_TruncatedRle8_KeepsDecodedPixels(SegmentIntegrityHandling integrityHandling)
+    [Fact]
+    public void Decode_TruncatedRle8_UsesImageDataIntegrityPolicy()
     {
         // One encoded run of 2 pixels with palette index 1 fills the first stored row, the bottom image row.
         // The data then ends before the second stored row.
         byte[] payload = CreateRle8Bitmap(2, 2, [2, 1]);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling };
 
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+                });
 
-        // The decoded row keeps its color. The row that the data does not reach keeps the cleared image buffer.
-        Rgba32 red = new(255, 0, 0, 255);
-        Assert.Equal(red, image[0, 1]);
-        Assert.Equal(red, image[1, 1]);
-        Assert.Equal(default, image[0, 0]);
-        Assert.Equal(default, image[1, 0]);
+                continue;
+            }
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+            // The decoded row keeps its color. The row that the data does not reach keeps the cleared image buffer.
+            Rgba32[] expectedPixels = [default, default, Red, Red];
+            using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(expectedPixels, 2, 2);
+            ImageComparer.Exact.VerifySimilarity(expected, image);
+        }
     }
 
     /// <summary>
@@ -202,7 +210,7 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// BI_RGB does not use the fourth byte of a 32-bit pixel, so a bitmap with a version 3 header is opaque, also when
+    /// BI_RGB does not use the fourth byte of a 32-bit pixel. Thus a bitmap with a version 3 header is opaque, also when
     /// that byte is not 0. Identify and Decode both give the color type without alpha.
     /// </summary>
     [Fact]
@@ -215,8 +223,10 @@ public class BmpDecoderTests
         ImageInfo info = Image.Identify(payload);
         using Image<Rgba32> image = Image.Load<Rgba32>(payload);
 
-        Assert.Equal(new Rgba32(255, 0, 0, 255), image[0, 1]);
-        Assert.Equal(new Rgba32(0, 0, 255, 255), image[0, 0]);
+        // Both rows are opaque. The top image row is blue, and the bottom image row is red.
+        Rgba32[] expectedPixels = [Blue, Red];
+        using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(expectedPixels, 1, 2);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
         Assert.Equal(BmpColorType.Bgr, info.Metadata.GetBmpMetadata().ColorType);
         Assert.Equal(BmpColorType.Bgr, image.Metadata.GetBmpMetadata().ColorType);
     }
@@ -256,26 +266,35 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// RGB data that ends before the last row is not an error, as for PNG, JPEG and RLE data that ends early. The
-    /// decoder keeps the rows decoded before the end, for each integrity option.
+    /// RGB data that ends before the last row throws in the Strict and IgnoreAncillary modes. In the IgnoreImageData
+    /// mode, the decoder keeps the rows decoded before the end.
     /// </summary>
-    /// <param name="integrityHandling">The segment integrity handling.</param>
-    [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
-    public void Decode_TruncatedRgb24_KeepsDecodedRows(SegmentIntegrityHandling integrityHandling)
+    [Fact]
+    public void Decode_TruncatedRgb24_UsesImageDataIntegrityPolicy()
     {
         // A 2 x 2 image with only the first stored row (the bottom image row): red, green, then 2 bytes of padding.
         byte[] payload = CreateBitmap(2, 2, 24, RgbCompression, [], [], [0, 0, 255, 0, 255, 0, 0, 0]);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling };
 
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+                });
 
-        Assert.Equal(Red, image[0, 1]);
-        Assert.Equal(Green, image[1, 1]);
-        Assert.Equal(default, image[0, 0]);
-        Assert.Equal(default, image[1, 0]);
+                continue;
+            }
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+            // The stored row is the bottom image row. The top image row keeps the cleared image buffer.
+            Rgba32[] expectedPixels = [default, default, Red, Green];
+            using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(expectedPixels, 2, 2);
+            ImageComparer.Exact.VerifySimilarity(expected, image);
+        }
     }
 
     [Theory]
@@ -840,9 +859,10 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// Fill bits can come before each EOL code: ITU-T T.4 (07/2003), section 4.1.3, page 4, https://www.itu.int/rec/T-REC-T.4. The test puts 52 fill bits
-    /// before the first EOL code of the bmpsuite file, so the fill bits and the EOL code are 64 bits, and they decode to
-    /// the same pixels.
+    /// Fill bits can come before each EOL code. See ITU-T T.4 (07/2003), section 4.1.3, page 4:
+    /// https://www.itu.int/rec/T-REC-T.4
+    /// The test puts 52 fill bits before the first EOL code of the bmpsuite file. Thus the fill bits and the EOL code are
+    /// 64 bits. The data decodes to the same pixels.
     /// </summary>
     [Fact]
     public void Decode_Huffman1DLongFill_DecodesSameRows()
@@ -867,28 +887,105 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// Huffman 1D data that ends early is not an error, as for RGB and RLE data that ends early. The decoder keeps the
-    /// rows decoded before the end, even with <see cref="SegmentIntegrityHandling.Strict"/>.
+    /// Huffman 1D data that ends early throws in the Strict and IgnoreAncillary modes, as RGB and RLE data that ends
+    /// early does. In the IgnoreImageData mode, the decoder keeps the rows decoded before the end.
     /// </summary>
     [Fact]
-    public void Decode_TruncatedHuffman1D_KeepsDecodedRows()
+    public void Decode_TruncatedHuffman1D_UsesImageDataIntegrityPolicy()
     {
-        // Keep the headers, the color table and half of the compressed data. bfOffBits is at byte 10 of the file header.
+        // bfOffBits is at byte 10 of the file header. The rows are stored from the bottom up, and pal1wb.bmp holds the
+        // same image.
         byte[] data = TestFile.Create(Os2v2Huffman1D).Bytes;
         int offset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
-        byte[] truncated = data[..(offset + ((data.Length - offset) / 2))];
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> reference = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
+        int width = reference.Width;
+        int height = reference.Height;
 
-        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, truncated);
+        // An EOL code comes before the first row and after each row. Thus EOL code n + 1 ends stored row n.
+        int completeRows = height / 2;
+        long cutBit = FindEolEnd(data.AsSpan(offset), completeRows + 1);
 
-        // The rows are bottom-up. The data has the last image row first, so that row is decoded. The first image row is
-        // stored last, so it is not decoded and stays transparent black.
-        int last = image.Height - 1;
-        for (int x = 0; x < image.Width; x++)
+        // Keep the data up to the byte that holds the last bit of that EOL code. The bits after the EOL code in that byte
+        // become 0, as fill bits. Thus the data ends after the EOL code, and it holds no code of the next row.
+        byte[] truncated = data[..(offset + (int)(cutBit >> 3) + 1)];
+        truncated[^1] &= (byte)(0xFF << (7 - (int)(cutBit & 7)));
+
+        // The stored rows before the end are the bottom rows of the image. The other rows keep the cleared image buffer.
+        using Image<Rgba32> decodedRows = reference.Clone(x => x.Crop(new Rectangle(0, height - completeRows, width, completeRows)));
+        using Image<Rgba32> expected = new(width, height);
+        expected.Mutate(x => x.DrawImage(decodedRows, new Point(0, height - completeRows), PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Src, 1F));
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            Assert.Equal(expected[x, last], image[x, last]);
-            Assert.Equal(default, image[x, 0]);
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, truncated);
+                });
+
+                continue;
+            }
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, truncated);
+            ImageComparer.Exact.VerifySimilarity(expected, image);
+        }
+    }
+
+    /// <summary>
+    /// A row that starts with bits that are no code is damaged. The decoder skips the bits up to the next EOL code, and
+    /// the row keeps its cleared bits, which select color 0. The other rows keep their places. The damage throws in the
+    /// Strict and IgnoreAncillary modes.
+    /// </summary>
+    [Fact]
+    public void Decode_Huffman1DRowWithoutCode_KeepsOtherRows()
+    {
+        // bfOffBits is at byte 10 of the file header. The rows are stored from the bottom up, and pal1wb.bmp holds the
+        // same image.
+        byte[] data = TestFile.Create(Os2v2Huffman1D).Bytes;
+        int offset = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(10));
+        using Image<Rgba32> reference = Image.Load<Rgba32>(TestFile.Create(Bit1WhiteBlack).Bytes);
+        int width = reference.Width;
+        int height = reference.Height;
+
+        // Stored row n starts after EOL code n + 1. Its first 10 code bits become 9 zero bits and a 1 bit. No run code
+        // starts with 8 or more zero bits, and an EOL code has 11. Each row of 127 pixels has more than 10 code bits, so
+        // the change stays inside the row.
+        Assert.Equal(127, width);
+        int damagedRow = height / 2;
+        long start = FindEolEnd(data.AsSpan(offset), damagedRow + 1) + 1;
+        byte[] damaged = (byte[])data.Clone();
+        for (int i = 0; i < 10; i++)
+        {
+            long bit = start + i;
+            int index = offset + (int)(bit >> 3);
+            int mask = 0x80 >> (int)(bit & 7);
+            damaged[index] = (byte)(i == 9 ? damaged[index] | mask : damaged[index] & ~mask);
+        }
+
+        // The OS/2 v2 color table follows the 14-byte file header and the info header, whose size is the first field of
+        // the info header. Each entry is B, G, R and one reserved byte.
+        int colorTable = 14 + BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(14));
+        Rgba32 color0 = new(data[colorTable + 2], data[colorTable + 1], data[colorTable], byte.MaxValue);
+        using Image<Rgba32> clearedRow = new(width, 1, color0);
+        using Image<Rgba32> expected = reference.Clone(x => x.DrawImage(clearedRow, new Point(0, height - 1 - damagedRow), 1F));
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, damaged);
+                });
+
+                continue;
+            }
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, damaged);
+            ImageComparer.Exact.VerifySimilarity(expected, image);
         }
     }
 
@@ -1006,8 +1103,8 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// RGB and bit-field data that ends before the last row is not an error, as for PNG, JPEG and RLE data that ends
-    /// early. The image has its declared size and keeps the rows decoded before the end, for each integrity option.
+    /// RGB and bit-field data that ends before the last row throws in the Strict and IgnoreAncillary modes. In the
+    /// IgnoreImageData mode, the image has its declared size and keeps the rows decoded before the end.
     /// </summary>
     /// <param name="path">The stored bitmap with incomplete RGB or bit-fields pixel data.</param>
     /// <param name="width">The declared width.</param>
@@ -1018,13 +1115,22 @@ public class BmpDecoderTests
     [InlineData(TruncatedBitFields16, 100000, 1)]
     [InlineData(TruncatedBitFields32, 100000, 1)]
     [InlineData(TruncatedAlphaBitFields32, 100000, 1)]
-    public void BmpDecoder_PixelDataSmallerThanDeclared_KeepsDecodedRows(string path, int width, int height)
+    public void BmpDecoder_PixelDataSmallerThanDeclared_UsesImageDataIntegrityPolicy(string path, int width, int height)
     {
         byte[] data = TestFile.Create(path).Bytes;
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
             DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+                });
+
+                continue;
+            }
 
             using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
 
@@ -1077,6 +1183,39 @@ public class BmpDecoderTests
         Assert.Equal(new Size(1, 2), actual.Size);
         Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
         Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
+    }
+
+    /// <summary>
+    /// Gets the position of the last bit of an EOL code in Huffman 1D data.
+    /// </summary>
+    /// <remarks>
+    /// An EOL code is 11 zero bits, then a 1 bit, and fill bits before it are more zero bits. No valid row holds an EOL
+    /// code. Thus each 1 bit after 11 or more zero bits ends an EOL code. See ITU-T T.4 (07/2003), sections 4.1.2 and
+    /// 4.1.3, page 4: https://www.itu.int/rec/T-REC-T.4
+    /// The first code bit is the most significant bit of a byte.
+    /// </remarks>
+    /// <param name="data">The Huffman 1D data.</param>
+    /// <param name="number">The number of the EOL code. The first EOL code is 1.</param>
+    /// <returns>The bit position from the start of the data.</returns>
+    private static long FindEolEnd(ReadOnlySpan<byte> data, int number)
+    {
+        int count = 0;
+        int zeros = 0;
+        for (long bit = 0; ; bit++)
+        {
+            if (((data[(int)(bit >> 3)] >> (7 - (int)(bit & 7))) & 1) == 0)
+            {
+                zeros++;
+                continue;
+            }
+
+            if (zeros >= 11 && ++count == number)
+            {
+                return bit;
+            }
+
+            zeros = 0;
+        }
     }
 
     /// <summary>

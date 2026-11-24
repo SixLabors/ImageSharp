@@ -14,6 +14,11 @@ internal static class PbmConstants
     public const ushort MaxLength = 65535;
 
     /// <summary>
+    /// The error message for raster data that ends before the image is complete. The binary and plain decoders use it.
+    /// </summary>
+    public const string TruncatedRasterMessage = "PBM sample data ends before the image is complete.";
+
+    /// <summary>
     /// The list of mimetypes that equate to a ppm.
     /// </summary>
     public static readonly IEnumerable<string> MimeTypes = ["image/x-portable-pixmap", "image/x-portable-anymap"];

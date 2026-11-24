@@ -15,8 +15,8 @@ public enum BmpColorType
     Palette = 0,
 
     /// <summary>
-    /// Each pixel has blue, green and red, and no alpha. The bit depth is 16 bits per pixel, with 5 bits for each
-    /// channel, or 24 or 32 bits per pixel, with 8 bits for each channel.
+    /// Each pixel has blue, green and red, and no alpha. The bit depth is 16 bits per pixel with 5 bits for each
+    /// channel. It can also be 24 or 32 bits per pixel with 8 bits for each channel.
     /// </summary>
     Bgr = 1,
 

@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -244,14 +246,23 @@ public class BmpMetadataTests
         header.WriteV5Header(infoHeaderData);
 
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        using Image<Rgba32> expected = provider.GetImage();
         ImageInfo info = Image.Identify(options, encoded);
         using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
 
-        Assert.Equal(expected.Size, info.Size);
         Assert.Null(info.Metadata.IccProfile);
-        Assert.Equal(expected.Size, image.Size);
         Assert.Null(image.Metadata.IccProfile);
+
+        // The file stores 24-bit B, G, R rows from the bottom up, and each row is padded to a multiple of 4 bytes.
+        // bfOffBits is at byte 10 of the file header. The decoder reads no ICC data, so the image holds the stored colors.
+        Assert.Equal(24, header.BitsPerPixel);
+        Assert.Equal(BmpInfoCompression.Rgb, header.Compression);
+        int pixelOffset = BinaryPrimitives.ReadInt32LittleEndian(encoded.AsSpan(10));
+        int stride = ((header.Width * 3) + 3) & ~3;
+        using Image<Bgr24> stored = Image.LoadPixelData<Bgr24>(encoded.AsSpan(pixelOffset, stride * header.Height), header.Width, header.Height, stride);
+        stored.Mutate(x => x.Flip(FlipMode.Vertical));
+
+        Assert.Equal(stored.Size, info.Size);
+        ImageComparer.Exact.VerifySimilarity(stored, image);
     }
 
     /// <summary>

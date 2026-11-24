@@ -116,9 +116,10 @@ internal sealed class JxlFrameSections : IDisposable
     {
         long length = ReadTable(ref reader, allocator, sectionCount, [], cancellationToken).Length;
         bool complete = reader.TrySkipBytes(length);
-        if (!complete && handling != SegmentIntegrityHandling.IgnoreImageData)
+        if (!complete)
         {
-            throw new InvalidImageContentException("The JPEG XL section payload is truncated.");
+            // A short payload is truncated image data. Strict and IgnoreAncillary throw here.
+            handling.ThrowOrIgnoreImageDataError("The JPEG XL section payload is truncated.");
         }
 
         return complete;

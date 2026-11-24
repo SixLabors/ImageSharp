@@ -123,7 +123,12 @@ internal sealed class TiffLzwDecoder
     /// Decodes and decompresses all pixel indices from the stream.
     /// </summary>
     /// <param name="pixels">The pixel array to decode to.</param>
-    public void DecodePixels(Span<byte> pixels)
+    /// <returns>
+    /// <see langword="true"/> if each code is valid and the data fills <paramref name="pixels"/>. Else
+    /// <see langword="false"/>: the decoder found a code that is not valid, or the data ended early. Then the pixels
+    /// after the decoded pixels are 0.
+    /// </returns>
+    public bool DecodePixels(Span<byte> pixels)
     {
         // Adapted from the pseudo-code example found in the TIFF 6.0 Specification, 1992.
         // See Section 13: "LZW Compression"/"LZW Decoding", page 61+
@@ -142,9 +147,12 @@ internal sealed class TiffLzwDecoder
                     break;
                 }
 
-                if (this.table[code] == null)
+                // Init resets the table length but keeps the old entries. Thus a code after the clear code must be in the
+                // new table, not only have an entry. Codes 256 and 257 have no entry.
+                if (!this.IsInTable(code) || this.table[code] == null)
                 {
-                    TiffThrowHelper.ThrowImageFormatException($"Corrupted TIFF LZW: code {code} (table size: {this.tableLength})");
+                    pixels[offset..].Clear();
+                    return false;
                 }
 
                 offset += this.table[code].WriteTo(pixels, offset);
@@ -153,21 +161,39 @@ internal sealed class TiffLzwDecoder
             {
                 if (this.table[this.oldCode] == null)
                 {
-                    TiffThrowHelper.ThrowImageFormatException($"Corrupted TIFF LZW: code {this.oldCode} (table size: {this.tableLength})");
+                    pixels[offset..].Clear();
+                    return false;
                 }
 
+                bool added;
                 if (this.IsInTable(code))
                 {
                     offset += this.table[code].WriteTo(pixels, offset);
 
-                    this.AddStringToTable(this.table[this.oldCode].Concatenate(this.table[code].FirstChar));
+                    added = this.AddStringToTable(this.table[this.oldCode].Concatenate(this.table[code].FirstChar));
                 }
-                else
+                else if (code == this.tableLength)
                 {
+                    // The code is the next table entry, which the decoder does not have yet. It is the old string and
+                    // the first byte of the old string. See TIFF 6.0 specification, section 13, LZW Decoding, page 61:
+                    // https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
                     LzwString outString = this.table[this.oldCode].Concatenate(this.table[this.oldCode].FirstChar);
 
                     offset += outString.WriteTo(pixels, offset);
-                    this.AddStringToTable(outString);
+                    added = this.AddStringToTable(outString);
+                }
+                else
+                {
+                    // A code after the next table entry is not valid data.
+                    pixels[offset..].Clear();
+                    return false;
+                }
+
+                // A full table and no clear code is not valid data. The pixels of this code stay.
+                if (!added)
+                {
+                    pixels[offset..].Clear();
+                    return false;
                 }
             }
 
@@ -178,13 +204,28 @@ internal sealed class TiffLzwDecoder
                 break;
             }
         }
+
+        // The data ended before it filled the pixels. The buffer is reused, so the pixels after the data are cleared.
+        if (offset < pixels.Length)
+        {
+            pixels[offset..].Clear();
+            return false;
+        }
+
+        return true;
     }
 
-    private void AddStringToTable(LzwString lzwString)
+    /// <summary>
+    /// Adds a string to the table.
+    /// </summary>
+    /// <param name="lzwString">The string.</param>
+    /// <returns><see langword="true"/> if the table has room for the string. Else <see langword="false"/>.</returns>
+    private bool AddStringToTable(LzwString lzwString)
     {
-        if (this.tableLength > this.table.Length)
+        // The table has TableSize entries, so a full table has no index for the next string.
+        if (this.tableLength >= this.table.Length)
         {
-            TiffThrowHelper.ThrowImageFormatException($"TIFF LZW with more than {MaxBits} bits per code encountered (table overflow)");
+            return false;
         }
 
         this.table[this.tableLength++] = lzwString;
@@ -207,6 +248,8 @@ internal sealed class TiffLzwDecoder
         {
             this.maxString = lzwString.Length;
         }
+
+        return true;
     }
 
     private int GetNextCode()

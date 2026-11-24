@@ -51,14 +51,19 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             {
                 int entryIndex = i;
 
-                this.ExecuteImageDataSegmentAction(() =>
+                this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
                     ref IconDirEntry entry = ref this.entries[entryIndex];
                     this.SetFrameStreamBounds(frameStream, stream, basePosition, entry);
                     Span<byte> flag = this.buffer[..PngConstants.HeaderBytes.Length];
-                    CheckEndOfStream(frameStream.Read(flag), flag.Length);
+                    if (frameStream.Read(flag) != flag.Length)
+                    {
+                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough bytes to read the icon frame header.");
+                        return;
+                    }
+
                     frameStream.Position = 0;
 
                     bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
@@ -184,7 +189,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         {
             int entryIndex = i;
 
-            this.ExecuteImageDataSegmentAction(() =>
+            this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -194,7 +199,12 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 ref IconDirEntry entry = ref this.entries[entryIndex];
                 this.SetFrameStreamBounds(frameStream, stream, basePosition, entry);
                 Span<byte> flag = this.buffer[..PngConstants.HeaderBytes.Length];
-                CheckEndOfStream(frameStream.Read(flag), flag.Length);
+                if (frameStream.Read(flag) != flag.Length)
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough bytes to read the icon frame header.");
+                    return;
+                }
+
                 frameStream.Position = 0;
 
                 bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
@@ -366,8 +376,8 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             : (metadata.BitsPerPixel, metadata.ColorType);
 
     /// <summary>
-    /// Creates the BMP decoder options for the bitmap of an icon image: a headerless DIB whose height covers the color
-    /// data and the AND mask that follows it.
+    /// Creates the BMP decoder options for the bitmap of an icon image. The bitmap is a DIB with no file header. Its height
+    /// covers the color data and the AND mask that follows it.
     /// </summary>
     /// <remarks>
     /// The ICO, CUR and ANI decoders use these options, so each icon bitmap decodes in the same way.
@@ -410,7 +420,22 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             if (this.fileHeader.Count is not 1)
             {
                 // Clamping a multi-entry resource could expose the next image payload to the current child decoder.
-                throw new InvalidImageContentException("The icon directory contains an invalid image resource range.");
+                // The clamp is safe only when every directory entry is known and no other payload starts after this
+                // one. Then the stream ends inside this payload, so the payload is truncated image data.
+                IconDirEntry[] entries = this.entries!;
+                bool exposesSibling = entries.Length != this.fileHeader.Count;
+                foreach (IconDirEntry sibling in entries)
+                {
+                    exposesSibling |= sibling.ImageOffset > entry.ImageOffset && sibling.ImageOffset < available;
+                }
+
+                if (exposesSibling)
+                {
+                    throw new InvalidImageContentException("The icon directory contains an invalid image resource range.");
+                }
+
+                // When the error is ignored, the child decoder keeps the pixels that it can decode from the payload.
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The icon image resource is truncated.");
             }
 
             // Some established single-image ICO files overstate BytesInRes but contain a complete payload.

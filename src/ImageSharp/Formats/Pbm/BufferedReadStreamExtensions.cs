@@ -52,19 +52,6 @@ internal static class BufferedReadStreamExtensions
     }
 
     /// <summary>
-    /// Read a decimal text value and signal if EOF has been reached.
-    /// </summary>
-    /// <param name="stream">The buffered read stream.</param>
-    /// <param name="value">The read value.</param>
-    /// <returns><see langword="false"/> if EOF has been reached while reading the stream; <see langword="true"/> otherwise.</returns>
-    /// <remarks>
-    /// A 'false' return value doesn't mean that the parsing has been failed, since it's possible to reach EOF while reading the last decimal in the file.
-    /// It's up to the call site to handle such a situation.
-    /// </remarks>
-    public static bool ReadDecimal(this BufferedReadStream stream, out int value)
-        => stream.ReadDecimal(out value, out _);
-
-    /// <summary>
     /// Reads a decimal value and reports values above the supported integer range without wrapping.
     /// </summary>
     /// <param name="stream">The input stream.</param>
@@ -72,33 +59,55 @@ internal static class BufferedReadStreamExtensions
     /// <param name="overflow">True if the decimal value exceeds <see cref="int.MaxValue"/>.</param>
     /// <returns>False if EOF was reached. The final digits are retained in <paramref name="value"/>.</returns>
     public static bool ReadDecimal(this BufferedReadStream stream, out int value, out bool overflow)
+        => stream.ReadDecimal(out value, out overflow, out _);
+
+    /// <summary>
+    /// Reads a decimal value, reports values above the supported integer range without wrapping, and reports a
+    /// token that is not a decimal number.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="value">The parsed value, saturated at <see cref="int.MaxValue"/>.</param>
+    /// <param name="overflow">True if the decimal value exceeds <see cref="int.MaxValue"/>.</param>
+    /// <param name="isValid">
+    /// True if the token has at least one digit and ends at whitespace or at EOF. The byte after the digits is
+    /// consumed in each case.
+    /// </param>
+    /// <returns>False if EOF was reached. The final digits are retained in <paramref name="value"/>.</returns>
+    public static bool ReadDecimal(this BufferedReadStream stream, out int value, out bool overflow, out bool isValid)
     {
         value = 0;
         overflow = false;
+        bool hasDigit = false;
         while (true)
         {
             int current = stream.ReadByte();
             if (current < 0)
             {
+                isValid = hasDigit;
                 return false;
             }
 
-            current -= 0x30;
-            if ((uint)current > 9)
+            int digit = current - 0x30;
+            if ((uint)digit > 9)
             {
+                // The plain Netpbm formats separate samples with whitespace. Any other byte makes the token not valid.
+                // See Netpbm pgm(5), section "Plain PGM", and ppm(5), section "Plain PPM".
+                isValid = hasDigit && current is 0x09 or 0x0a or 0x0d or 0x20;
                 break;
             }
 
+            hasDigit = true;
+
             // Keep consuming digits after overflow so the next sample starts at the correct byte.
             // Sample conversion can saturate this value. Header parsing rejects an overflowing field.
-            if (value > (int.MaxValue - current) / 10)
+            if (value > (int.MaxValue - digit) / 10)
             {
                 value = int.MaxValue;
                 overflow = true;
             }
             else
             {
-                value = (value * 10) + current;
+                value = (value * 10) + digit;
             }
         }
 

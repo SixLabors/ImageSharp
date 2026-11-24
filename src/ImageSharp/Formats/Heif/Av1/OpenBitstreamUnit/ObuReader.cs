@@ -86,6 +86,16 @@ internal sealed class ObuReader
     public ObuFrameHeader? FrameHeader { get; set; }
 
     /// <summary>
+    /// Gets the segment integrity mode. It controls if a truncated OBU payload, tile group or coded frame throws.
+    /// </summary>
+    /// <remarks>
+    /// In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, the reader keeps the bytes that the payload
+    /// holds. The tile reader decodes a tile that has part of its data from those bytes, and a tile that has no data from
+    /// an empty entropy stream. The frame then completes. The other modes throw.
+    /// </remarks>
+    public SegmentIntegrityHandling IntegrityHandling { get; init; }
+
+    /// <summary>
     /// Gets content light-level metadata parsed from the current AV1 session.
     /// </summary>
     public HeifContentLightLevel? ContentLightLevel { get; private set; }
@@ -181,8 +191,15 @@ internal sealed class ObuReader
                 int annexObuSize = 0;
                 if (isAnnexB)
                 {
+                    if (!HoldsLeb128(reader.PeekBytes(dataSize)))
+                    {
+                        // The data ends inside the Annex B length field. No OBU follows it.
+                        this.IntegrityHandling.ThrowOrIgnoreImageDataError("The Annex B AV1 OBU length is truncated.");
+                        break;
+                    }
+
                     ReadObuSize(ref reader, out annexObuSize, out int annexLengthSize);
-                    if (annexLengthSize > dataSize || annexObuSize < 1)
+                    if (annexObuSize < 1)
                     {
                         throw new InvalidImageContentException("The Annex B AV1 OBU length is invalid.");
                     }
@@ -190,12 +207,23 @@ internal sealed class ObuReader
                     dataSize -= annexLengthSize;
                     if (annexObuSize > dataSize)
                     {
-                        throw new InvalidImageContentException("The Annex B AV1 OBU exceeds its temporal-unit boundary.");
+                        // The data ends inside this OBU. IgnoreImageData keeps the bytes that remain.
+                        this.IntegrityHandling.ThrowOrIgnoreImageDataError(
+                            "The Annex B AV1 OBU exceeds its temporal-unit boundary.");
+
+                        annexObuSize = dataSize;
                     }
                 }
                 else if (dataSize < 1)
                 {
                     throw new InvalidImageContentException("The AV1 OBU header is truncated.");
+                }
+
+                if (!HoldsObuHeader(reader.PeekBytes(dataSize)))
+                {
+                    // The data ends inside the OBU header or its size field. No OBU follows it.
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError("The AV1 OBU header is truncated.");
+                    break;
                 }
 
                 int obuStartBitPosition = reader.BitPosition;
@@ -212,7 +240,10 @@ internal sealed class ObuReader
                 int payloadSize = header.HasSize ? header.PayloadSize : boundedObuSize - headerAndLengthSize;
                 if ((uint)payloadSize > (uint)(boundedObuSize - headerAndLengthSize))
                 {
-                    throw new InvalidImageContentException("The AV1 OBU payload exceeds its declared boundary.");
+                    // The data ends inside the OBU payload. IgnoreImageData keeps the bytes that remain, so a truncated tile
+                    // group keeps its complete tiles. A truncated header OBU still fails when its syntax reads past the end.
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError("The AV1 OBU payload exceeds its declared boundary.");
+                    payloadSize = boundedObuSize - headerAndLengthSize;
                 }
 
                 int completeObuSize = headerAndLengthSize + payloadSize;
@@ -442,13 +473,7 @@ internal sealed class ObuReader
 
                 if (decoderToComplete is not null)
                 {
-                    // The reconstruction and the reference-buffer ownership complete before the reader publishes the matching syntax state. If
-                    // the decoder fails, the earlier session state stays intact for deterministic cleanup.
-                    decoderToComplete.CompleteFrame();
-                    this.frameReferenceState.CompleteFrame(
-                        this.CurrentFrameHeader,
-                        this.CurrentSequenceHeader.IsFrameIdNumbersPresent);
-
+                    this.CompleteFrame(decoderToComplete);
                     activeDecoder = null;
                     seenFrameHeader = false;
                     nextTileStart = 0;
@@ -458,7 +483,21 @@ internal sealed class ObuReader
 
             if (seenFrameHeader || activeDecoder is not null)
             {
-                throw new InvalidImageContentException("The AV1 payload ends before the current coded frame is complete.");
+                this.IntegrityHandling.ThrowOrIgnoreImageDataError(
+                    "The AV1 payload ends before the current coded frame is complete.");
+
+                // The frame header is complete, and the payload ends before the last tile group. The tile reader
+                // decodes each missing tile from an empty entropy stream, as it does a truncated tile. Thus the frame
+                // completes with the tiles that the payload holds.
+                activeDecoder ??= tileReaderProvider.Get();
+                ObuTileGroupHeader tilesInfo = this.CurrentFrameHeader.TilesInfo;
+                int tileCount = tilesInfo.TileColumnCount * tilesInfo.TileRowCount;
+                for (int tileNum = nextTileStart; tileNum < tileCount; tileNum++)
+                {
+                    activeDecoder.ReadTile([], tileNum);
+                }
+
+                this.CompleteFrame(activeDecoder);
             }
 
             completed = true;
@@ -472,6 +511,20 @@ internal sealed class ObuReader
                 this.Reset();
             }
         }
+    }
+
+    /// <summary>
+    /// Completes the current coded frame and then publishes its syntax state.
+    /// </summary>
+    /// <param name="decoder">The tile reader that holds the frame.</param>
+    private void CompleteFrame(IAv1TileReader decoder)
+    {
+        // The reconstruction and the reference-buffer ownership complete before the reader publishes the matching syntax state. If
+        // the decoder fails, the earlier session state stays intact for deterministic cleanup.
+        decoder.CompleteFrame();
+        this.frameReferenceState.CompleteFrame(
+            this.CurrentFrameHeader,
+            this.CurrentSequenceHeader.IsFrameIdNumbersPresent);
     }
 
     /// <summary>
@@ -542,6 +595,59 @@ internal sealed class ObuReader
         }
 
         obuSize = (int)rawSize;
+    }
+
+    /// <summary>
+    /// Gets a value that tells if the data holds a complete leb128 value.
+    /// </summary>
+    /// <remarks>
+    /// AV1 Bitstream &amp; Decoding Process Specification, section 4.10.5 "leb128()": each byte holds 7 value bits and
+    /// a continuation flag in bit 7. The value ends at the first byte with bit 7 clear, and it has at most 8 bytes.
+    /// See https://aomediacodec.github.io/av1-spec/av1-spec.pdf.
+    /// </remarks>
+    /// <param name="data">The bytes from the first byte of the value to the end of the data.</param>
+    /// <returns>
+    /// <see langword="false"/> when the data ends before the value ends. Otherwise <see langword="true"/>. A value
+    /// with 8 continuation flags returns <see langword="true"/>, and the size reader rejects it.
+    /// </returns>
+    private static bool HoldsLeb128(ReadOnlySpan<byte> data)
+    {
+        int length = Math.Min(data.Length, 8);
+        for (int i = 0; i < length; i++)
+        {
+            if ((data[i] & 0x80) == 0)
+            {
+                return true;
+            }
+        }
+
+        return data.Length >= 8;
+    }
+
+    /// <summary>
+    /// Gets a value that tells if the data holds a complete OBU header and its optional size field.
+    /// </summary>
+    /// <remarks>
+    /// AV1 Bitstream &amp; Decoding Process Specification, section 5.3.2 "OBU header syntax": the first byte holds
+    /// obu_extension_flag in bit 2 and obu_has_size_field in bit 1. The extension adds one byte, and the leb128
+    /// size field follows the header. See https://aomediacodec.github.io/av1-spec/av1-spec.pdf.
+    /// </remarks>
+    /// <param name="data">The bytes from the first header byte to the end of the data.</param>
+    /// <returns><see langword="false"/> when the data ends inside the header or its size field. Otherwise <see langword="true"/>.</returns>
+    private static bool HoldsObuHeader(ReadOnlySpan<byte> data)
+    {
+        if (data.IsEmpty)
+        {
+            return false;
+        }
+
+        int headerLength = (data[0] & 0x04) != 0 ? 2 : 1;
+        if (data.Length < headerLength)
+        {
+            return false;
+        }
+
+        return (data[0] & 0x02) == 0 || HoldsLeb128(data[headerLength..]);
     }
 
     /// <summary>
@@ -2202,15 +2308,30 @@ internal sealed class ObuReader
             frameHeader.LoopRestorationParameters.Items[(int)Av1Plane.V].Type != ObuRestorationType.None);
 
         // The tile group stores each tile size except the last as size minus one. The last tile consumes the bytes that remain in the OBU payload.
+        // In the IgnoreImageData mode, the payload can end early. A tile without its complete size field gets no bytes. A tile whose size is
+        // larger than the remaining payload gets the bytes that remain. The tiles after it get no bytes. The tile reader decodes the missing data
+        // from an empty entropy stream.
+        bool payloadEnded = false;
         for (int tileNum = tileGroupStart; tileNum <= tileGroupEnd; tileNum++)
         {
+            if (payloadEnded)
+            {
+                decoder.ReadTile([], tileNum);
+                continue;
+            }
+
             bool isLastTile = tileNum == tileGroupEnd;
             int tileDataSize;
             if (!isLastTile)
             {
                 if (header.PayloadSize <= tileInfo.TileSizeBytes)
                 {
-                    throw new InvalidImageContentException("The AV1 tile group ends before its declared tile-size field and payload.");
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError(
+                        "The AV1 tile group ends before its declared tile-size field and payload.");
+
+                    payloadEnded = true;
+                    decoder.ReadTile([], tileNum);
+                    continue;
                 }
 
                 uint tileDataSizeMinusOne = reader.ReadLittleEndian(tileInfo.TileSizeBytes);
@@ -2220,10 +2341,15 @@ internal sealed class ObuReader
                 // zero-length signed tile and moves the boundary of the next tile.
                 if (tileDataSizeMinusOne >= (uint)header.PayloadSize)
                 {
-                    throw new InvalidImageContentException("The AV1 tile size exceeds the remaining tile-group payload.");
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError("The AV1 tile size exceeds the remaining tile-group payload.");
+                    payloadEnded = true;
+                    tileDataSize = header.PayloadSize;
+                }
+                else
+                {
+                    tileDataSize = (int)tileDataSizeMinusOne + 1;
                 }
 
-                tileDataSize = (int)tileDataSizeMinusOne + 1;
                 header.PayloadSize -= tileDataSize;
             }
             else
@@ -2232,7 +2358,7 @@ internal sealed class ObuReader
                 header.PayloadSize = 0;
                 if (tileDataSize <= 0)
                 {
-                    throw new InvalidImageContentException("The AV1 tile group contains an empty tile payload.");
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError("The AV1 tile group contains an empty tile payload.");
                 }
             }
 

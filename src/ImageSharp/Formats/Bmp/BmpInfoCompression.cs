@@ -62,8 +62,9 @@ internal enum BmpInfoCompression : int
     Rle24 = 100,
 
     /// <summary>
-    /// OS/2 2.x Huffman 1D (value 3 in the file): a 1-bit bitmap in the one-dimensional coding scheme of ITU-T T.4
-    /// (Modified Huffman). A white run is 0 bits, so it selects palette index 0.
+    /// OS/2 2.x Huffman 1D (value 3 in the file): a 1-bit bitmap in the one-dimensional coding scheme of ITU-T T.4. The
+    /// runs use the Modified Huffman codes, and an EOL code comes before the first row and after each row. A white run
+    /// is 0 bits, so it selects palette index 0.
     /// </summary>
     Huffman1D = 101,
 }

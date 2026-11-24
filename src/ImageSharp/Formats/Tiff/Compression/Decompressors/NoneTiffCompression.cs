@@ -35,10 +35,7 @@ internal sealed class NoneTiffCompression : TiffBaseDecompressor
         int bytesRead = stream.Read(buffer, 0, Math.Min(buffer.Length, byteCount));
         if (bytesRead < buffer.Length)
         {
-            if (this.integrityHandling != SegmentIntegrityHandling.IgnoreImageData)
-            {
-                throw new InvalidImageContentException("TIFF strip or tile contains incomplete image data.");
-            }
+            this.integrityHandling.ThrowOrIgnoreImageDataError("TIFF strip or tile contains incomplete image data.");
 
             // The buffer is reused. Missing samples must not retain bytes from a previous strip, row, or pooled allocation.
             buffer[bytesRead..].Clear();

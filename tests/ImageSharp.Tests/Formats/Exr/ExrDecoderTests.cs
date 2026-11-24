@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
@@ -228,6 +230,95 @@ public class ExrDecoderTests
         Assert.Equal(source.Size, decoded.Size);
         Assert.Equal(source[0, 0], decoded[0, 0]);
         Assert.Equal(source[1, 0], decoded[1, 0]);
+    }
+
+    /// <summary>
+    /// A file that ends in the middle of the pixel data decodes with the default options. The rows of the complete
+    /// chunks match the full decode, and the rows of the partial and missing chunks keep the fill value. In Strict mode
+    /// the decoder throws.
+    /// </summary>
+    /// <param name="imagePath">The test image to truncate.</param>
+    [Theory]
+    [InlineData(TestImages.Exr.Uncompressed)]
+    [InlineData(TestImages.Exr.Zip)]
+    public void Decode_TruncatedPixelData_KeepsCompleteChunks(string imagePath)
+    {
+        byte[] full = TestFile.Create(imagePath).Bytes;
+        byte[] truncated = full[..(full.Length / 2)];
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(strict, truncated));
+
+        // The rows of each complete chunk match the full decode. The rows of a partial chunk and of a missing chunk keep
+        // the fill value.
+        using Image<RgbaVector> expected = Image.Load<RgbaVector>(full);
+        ClearRowsOfIncompleteChunks(expected, full, truncated.Length);
+
+        using Image<RgbaVector> actual = Image.Load<RgbaVector>(truncated);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Clears the rows of the scanline chunks that do not end inside the first bytes of a file. The header is a list of
+    /// attributes. Each attribute has a null-terminated name, a null-terminated type, a 4-byte size and its value. An empty
+    /// name ends the list. The offset table follows, with one 8-byte offset for each chunk. A scanline chunk starts with
+    /// the 4-byte y coordinate of its first row and the 4-byte size of its pixel data. The compression method sets the
+    /// number of rows in each chunk. A chunk has 1 row for no compression, RLE and ZIPS. It has 16 rows for ZIP and
+    /// PXR24, and 32 rows for PIZ, B44 and B44A. See "OpenEXR File Layout", section "Regular Scan Line Blocks",
+    /// https://openexr.com/en/latest/OpenEXRFileLayout.html.
+    /// </summary>
+    /// <param name="image">The complete decode. The rows of the incomplete chunks are cleared.</param>
+    /// <param name="data">The complete file.</param>
+    /// <param name="length">The number of bytes of the file that the decoder gets.</param>
+    private static void ClearRowsOfIncompleteChunks(Image<RgbaVector> image, byte[] data, int length)
+    {
+        // The magic number and the version field come before the attributes.
+        int offset = 8;
+        int yMin = 0;
+        int rowsPerChunk = 1;
+        while (data[offset] != 0)
+        {
+            int nameEnd = Array.IndexOf(data, (byte)0, offset);
+            string name = System.Text.Encoding.ASCII.GetString(data, offset, nameEnd - offset);
+            int typeEnd = Array.IndexOf(data, (byte)0, nameEnd + 1);
+            int size = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(typeEnd + 1));
+            int value = typeEnd + 5;
+            if (name == "dataWindow")
+            {
+                // A box2i value is xMin, yMin, xMax and yMax.
+                yMin = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(value + 4));
+            }
+            else if (name == "compression")
+            {
+                rowsPerChunk = data[value] switch
+                {
+                    3 or 5 => 16,
+                    4 or 6 or 7 => 32,
+                    _ => 1
+                };
+            }
+
+            offset = value + size;
+        }
+
+        // The empty name of the end of the header is one byte.
+        int tableStart = offset + 1;
+        int chunkCount = (image.Height + rowsPerChunk - 1) / rowsPerChunk;
+        for (int i = 0; i < chunkCount; i++)
+        {
+            int chunk = (int)BinaryPrimitives.ReadUInt64LittleEndian(data.AsSpan(tableStart + (i * 8)));
+            int chunkSize = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(chunk + 4));
+            if (chunk + 8 + chunkSize <= length)
+            {
+                continue;
+            }
+
+            int firstRow = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(chunk)) - yMin;
+            for (int y = firstRow; y < Math.Min(firstRow + rowsPerChunk, image.Height); y++)
+            {
+                image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y).Clear();
+            }
+        }
     }
 
     [Theory]

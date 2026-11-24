@@ -60,6 +60,16 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     private BmpMetadata? bmpMetadata;
 
     /// <summary>
+    /// The message for RLE data that ends before the image is complete.
+    /// </summary>
+    private const string RleDataEndMessage = "The BMP run-length data ends before the image is complete.";
+
+    /// <summary>
+    /// The message for uncompressed pixel data that ends before the image is complete.
+    /// </summary>
+    private const string PixelDataEndMessage = "The BMP pixel data ends before the image is complete.";
+
+    /// <summary>
     /// The file header containing general information.
     /// </summary>
     private BmpFileHeader? fileHeader;
@@ -135,9 +145,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-            // The pixel decode does not throw for bad pixel data. When the data ends before the image is complete, the
-            // decode stops, and the image keeps the pixels decoded before the end. This is the same for each
-            // compression. The image buffer is cleared at allocation, so the pixels after the end are transparent black. The allocator limits protect against large dimensions.
+            // Pixel data that is damaged, or that ends before the image is complete, throws in the Strict and
+            // IgnoreAncillary modes. In the IgnoreImageData mode, the image keeps the pixels decoded before the damage.
+            // This is the same for each compression. The image buffer is cleared at allocation, so the other pixels are
+            // transparent black. The allocator limits protect against large dimensions.
             this.ReadPixelData(stream, pixels, palette, this.bmpMetadata.InfoHeaderType, inverted);
 
             if (!isIndexed)
@@ -172,14 +183,15 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
+        long pixelDataStart = stream.Position;
 
         switch (this.infoHeader.Compression)
         {
             // BI_RGB does not use the high byte of a 32-bit pixel: "The high byte in each DWORD is not used." See
             // BITMAPINFOHEADER, biBitCount: https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
             // Many bitmaps hold other values than 0 in that byte, and browsers ignore them, so the bitmap is opaque. Two
-            // cases keep alpha in that byte: an icon bitmap, as icon readers expect, and a V4 or V5 header whose alpha
-            // mask selects that byte.
+            // cases keep alpha in that byte. One is an icon bitmap, as icon readers expect. The other is a V4 or V5
+            // header whose alpha mask selects that byte.
             case BmpInfoCompression.Rgb when bitsPerPixel is 32 && this.processedAlphaMask:
                 this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
@@ -203,11 +215,19 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             case BmpInfoCompression.Rgb when bitsPerPixel is 24:
                 this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                if (this.processedAlphaMask)
+                {
+                    this.ReadAlphaMask(stream, pixels, pixelDataStart, bitsPerPixel, inverted);
+                }
 
                 break;
 
             case BmpInfoCompression.Rgb when bitsPerPixel is 16:
                 this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, false);
+                if (this.processedAlphaMask)
+                {
+                    this.ReadAlphaMask(stream, pixels, pixelDataStart, bitsPerPixel, inverted);
+                }
 
                 break;
 
@@ -236,13 +256,19 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 break;
 
             case BmpInfoCompression.Rle24:
-                this.ReadRle24(stream, pixels, this.infoHeader.Width, inverted);
+                if (!this.ReadRle24(stream, pixels, this.infoHeader.Width, inverted))
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(RleDataEndMessage);
+                }
 
                 break;
 
             case BmpInfoCompression.Rle8:
             case BmpInfoCompression.Rle4:
-                this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, inverted);
+                if (!this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, inverted))
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(RleDataEndMessage);
+                }
 
                 break;
 
@@ -255,6 +281,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             case BmpInfoCompression.BitFields:
             case BmpInfoCompression.AlphaBitFields:
                 this.ReadBitFields(stream, pixels, inverted);
+
+                // A 16-bit icon bitmap with bit fields, for example 5-6-5, stores an AND mask as a 16-bit BI_RGB bitmap
+                // does. Other depths use 32-bit samples, which keep alpha.
+                if (this.processedAlphaMask && bitsPerPixel is 16)
+                {
+                    this.ReadAlphaMask(stream, pixels, pixelDataStart, bitsPerPixel, inverted);
+                }
 
                 break;
         }
@@ -528,7 +561,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (!TryReadPixelBytes(stream, rowSpan, pixelBytes))
+            if (!this.TryReadPixelBytes(stream, rowSpan, pixelBytes))
             {
                 return true;
             }
@@ -589,7 +622,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (!TryReadPixelBytes(stream, rowSpan, pixelBytes))
+            if (!this.TryReadPixelBytes(stream, rowSpan, pixelBytes))
             {
                 return;
             }
@@ -623,7 +656,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="colors">The decoded pixel palette.</param>
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle<TPixel>(
+    /// <returns>
+    /// <see langword="true"/> if the data has the commands for the whole image. <see langword="false"/> if it ends
+    /// before.
+    /// </returns>
+    private bool ReadRle<TPixel>(
         BufferedReadStream stream,
         BmpInfoCompression compression,
         Buffer2D<TPixel> pixels,
@@ -645,7 +682,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         bool rle4 = compression is BmpInfoCompression.Rle4;
 
         // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
-        // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
+        // is complete. Then the method returns false, and the image keeps the pixels written so far (see Decode).
         BmpRleReader reader = new(stream, this.memoryAllocator);
         try
         {
@@ -653,7 +690,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             {
                 if (!reader.TryRead(2, out ReadOnlySpan<byte> command))
                 {
-                    return;
+                    return false;
                 }
 
                 int length = command[0];
@@ -691,7 +728,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         // dy * width + dx pixels. The delta bytes are [dx, dy].
                         if (!reader.TryRead(2, out ReadOnlySpan<byte> delta))
                         {
-                            return;
+                            return false;
                         }
 
                         writer.Skip(((long)delta[1] * width) + delta[0]);
@@ -705,7 +742,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         int byteCount = rle4 ? (value + 1) >> 1 : value;
                         if (!reader.TryRead(byteCount, out ReadOnlySpan<byte> run))
                         {
-                            return;
+                            return false;
                         }
 
                         if (rle4)
@@ -728,6 +765,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             }
 
             reader.Finish();
+            return true;
         }
         finally
         {
@@ -750,8 +788,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// libtiff writes CCITT data: https://github.com/jsummers/bmpsuite
     /// </para>
     /// <para>
-    /// As for RLE data, bad data does not throw. A code that is not valid, or a run that is longer than the row, ends its
-    /// row, and the decode continues after the next EOL code.
+    /// A code that is not valid, or a run that is longer than the row, ends its row. The decode continues after the next
+    /// EOL code. Such damage, and data that ends before the last row, throws in the Strict and IgnoreAncillary modes. In
+    /// the IgnoreImageData mode, the image keeps the decoded rows.
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -784,10 +823,15 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             rowSpan.Clear();
             if (!decoder.DecodeRow(rowSpan))
             {
-                return;
+                break;
             }
 
             BmpPaletteExpander.Expand<TPixel>(rowSpan, 1, paletteSpan, pixels.DangerousGetRowSpan(Invert(y, height, inverted)));
+        }
+
+        if (decoder.IsDamaged)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The BMP Huffman 1D data is damaged or ends before the image is complete.");
         }
     }
 
@@ -804,7 +848,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, bool inverted)
+    /// <returns>
+    /// <see langword="true"/> if the data has the commands for the whole image. <see langword="false"/> if it ends
+    /// before.
+    /// </returns>
+    private bool ReadRle24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // RLE24 has no palette. The first palette color option gives black, the color of zero bytes.
@@ -812,7 +860,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         BmpRleWriter<TPixel> writer = new(pixels, inverted, skipped);
 
         // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
-        // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
+        // is complete. Then the method returns false, and the image keeps the pixels written so far (see Decode).
         BmpRleReader reader = new(stream, this.memoryAllocator);
         try
         {
@@ -820,7 +868,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             {
                 if (!reader.TryRead(2, out ReadOnlySpan<byte> command))
                 {
-                    return;
+                    return false;
                 }
 
                 int length = command[0];
@@ -831,7 +879,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     // Encoded run: 'value' is the blue byte. The green byte and the red byte follow.
                     if (!reader.TryRead(2, out ReadOnlySpan<byte> greenRed))
                     {
-                        return;
+                        return false;
                     }
 
                     writer.Fill(TPixel.FromBgr24(new Bgr24(greenRed[1], greenRed[0], (byte)value)), length);
@@ -853,7 +901,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         // The delta bytes are [dx, dy].
                         if (!reader.TryRead(2, out ReadOnlySpan<byte> delta))
                         {
-                            return;
+                            return false;
                         }
 
                         writer.Skip(((long)delta[1] * width) + delta[0]);
@@ -863,7 +911,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         int byteCount = value * 3;
                         if (!reader.TryRead(byteCount, out ReadOnlySpan<byte> run))
                         {
-                            return;
+                            return false;
                         }
 
                         writer.WriteBgr24(this.configuration, run);
@@ -879,6 +927,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             }
 
             reader.Finish();
+            return true;
         }
         finally
         {
@@ -941,7 +990,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         for (int y = 0; y < height; y++)
         {
             int newY = Invert(y, height, inverted);
-            if (!TryReadPixelBytes(stream, rowSpan, arrayWidth))
+            if (!this.TryReadPixelBytes(stream, rowSpan, arrayWidth))
             {
                 return;
             }
@@ -1018,18 +1067,48 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         // The mask of the low bitsPerPixel bits, for example 0b1111 for 4 bits.
         int indexMask = entryCount - 1;
 
+        // The color rows come before all mask rows, so data that ends early can hold color rows without their mask
+        // rows. Missing mask bits are 0, as other missing image data is. A clear bit is opaque, so those rows keep
+        // their decoded colors.
+        bool maskEnded = false;
         for (int y = 0; y < height; y++)
         {
-            stream.Position = indexStart + ((long)y * indexStride);
-            if (!TryReadPixelBytes(stream, indexSpan, indexBytes))
+            // Some streams do not allow a seek past their end, for example the stream of an icon entry. Thus the
+            // decoder finds the end of the data before each seek.
+            long indexPosition = indexStart + ((long)y * indexStride);
+            if (indexPosition > stream.Length)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(PixelDataEndMessage);
+                return;
+            }
+
+            stream.Position = indexPosition;
+            if (!this.TryReadPixelBytes(stream, indexSpan, indexBytes))
             {
                 return;
             }
 
-            stream.Position = maskStart + ((long)y * maskStride);
-            if (!TryReadPixelBytes(stream, maskSpan, maskBytes))
+            if (maskEnded)
             {
-                return;
+                maskSpan.Clear();
+            }
+            else
+            {
+                long maskPosition = maskStart + ((long)y * maskStride);
+                int maskBytesRead = 0;
+                if (maskPosition <= stream.Length)
+                {
+                    stream.Position = maskPosition;
+                    maskBytesRead = stream.ReadAtLeast(maskSpan, maskBytes, false);
+                }
+
+                if (maskBytesRead < maskBytes)
+                {
+                    // The mask bytes that are read stay. The bytes after them are 0.
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(PixelDataEndMessage);
+                    maskSpan[maskBytesRead..].Clear();
+                    maskEnded = true;
+                }
             }
 
             // One pass writes each pixel with its opaque color. Most icon pixels are opaque.
@@ -1043,7 +1122,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 while (bits != 0)
                 {
                     // Pixel 0 of a mask byte is bit 7, so the highest set bit is the first transparent pixel left.
-                    // In a 32-bit value, bit p has 31 - p leading zeros, so the pixel offset in the byte is
+                    // In a 32-bit value, bit p has 31 - p leading zeros. Thus the pixel offset in the byte is
                     // 7 - p = LeadingZeroCount(bits) - 24. Clear the bit, so the next turn finds the next pixel.
                     int offset = BitOperations.LeadingZeroCount(bits) - 24;
                     bits &= ~(0x80U >> offset);
@@ -1067,6 +1146,99 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Reads the AND mask that follows the color rows of a 16-bit or 24-bit icon or cursor bitmap. Each pixel with a set
+    /// mask bit becomes transparent.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An icon image stores the color rows (icXOR), then the AND mask rows (icAND) for each color depth. The mask has the
+    /// dimensions of the color rows and 1 bit for each pixel. See "Icons", section "The ICO File":
+    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// </para>
+    /// <para>
+    /// A 32-bit icon pixel keeps alpha in its fourth byte, so the 32-bit path does not read the mask.
+    /// <see cref="ReadRgbPaletteWithAlphaMask{TPixel}"/> reads the mask of a palette bitmap with its color rows.
+    /// </para>
+    /// <para>
+    /// Data that ends before the mask is complete is damaged. The missing mask bits are 0, as in the palette path. A
+    /// clear bit is opaque, so those pixels keep their decoded colors.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The decoded color pixels. The method changes the masked pixels.</param>
+    /// <param name="pixelDataStart">The stream position of the first color row.</param>
+    /// <param name="bitsPerPixel">The bit count of a color pixel: 16 or 24.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    private void ReadAlphaMask<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        long pixelDataStart,
+        int bitsPerPixel,
+        bool inverted)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int width = pixels.Width;
+        int height = pixels.Height;
+
+        // A color row and a mask row each round up to a multiple of 4 bytes: (n + 3) & ~3 clears the low two bits after
+        // the add. The mask rows start after all color rows.
+        int colorStride = ((((width * bitsPerPixel) + 7) / 8) + 3) & ~3;
+        int maskBytes = (width + 7) / 8;
+        int maskStride = (maskBytes + 3) & ~3;
+        long maskStart = pixelDataStart + ((long)colorStride * height);
+
+        using IMemoryOwner<byte> maskRow = this.memoryAllocator.Allocate<byte>(maskBytes);
+        Span<byte> maskSpan = maskRow.GetSpan();
+
+        for (int y = 0; y < height; y++)
+        {
+            // Some streams do not allow a seek past their end, for example the stream of an icon entry. Thus the
+            // decoder finds the end of the data before each seek.
+            long maskPosition = maskStart + ((long)y * maskStride);
+            int maskBytesRead = 0;
+            if (maskPosition <= stream.Length)
+            {
+                stream.Position = maskPosition;
+                maskBytesRead = stream.ReadAtLeast(maskSpan, maskBytes, false);
+            }
+
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
+            for (int maskIndex = 0; maskIndex < maskBytesRead; maskIndex++)
+            {
+                uint bits = maskSpan[maskIndex];
+                while (bits != 0)
+                {
+                    // Pixel 0 of a mask byte is bit 7, so the highest set bit is the first transparent pixel left.
+                    // In a 32-bit value, bit p has 31 - p leading zeros. Thus the pixel offset in the byte is
+                    // 7 - p = LeadingZeroCount(bits) - 24. Clear the bit, so the next turn finds the next pixel.
+                    int offset = BitOperations.LeadingZeroCount(bits) - 24;
+                    bits &= ~(0x80U >> offset);
+
+                    // The bits after the last pixel of the row are padding.
+                    int x = (maskIndex * 8) + offset;
+                    if (x >= width)
+                    {
+                        break;
+                    }
+
+                    // The alpha changes on unassociated color, before the pixel type applies its alpha association, as
+                    // for the transparent palette entries of the palette path.
+                    Vector4 color = pixelRow[x].ToUnassociatedScaledVector4();
+                    color.W = 0F;
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(color);
+                }
+            }
+
+            if (maskBytesRead < maskBytes)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(PixelDataEndMessage);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
     /// Reads the 24 bit color palette from the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -1084,7 +1256,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (!TryReadPixelBytes(stream, rowSpan, width * 3))
+            if (!this.TryReadPixelBytes(stream, rowSpan, width * 3))
             {
                 return;
             }
@@ -1131,7 +1303,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (!TryReadPixelBytes(stream, rowSpan, width * 2))
+            if (!this.TryReadPixelBytes(stream, rowSpan, width * 2))
             {
                 return;
             }
@@ -1169,7 +1341,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (!TryReadPixelBytes(stream, rowSpan, width * 4))
+            if (!this.TryReadPixelBytes(stream, rowSpan, width * 4))
             {
                 return;
             }
@@ -1299,17 +1471,25 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// those bytes.
     /// </para>
     /// <para>
-    /// Data that ends before the image is complete is not an error. The caller stops and keeps the rows decoded
-    /// before the end, as the PNG and JPEG decoders do. The image buffer is cleared at allocation, so the rows after
-    /// the end are transparent black.
+    /// Data that ends before the image is complete throws in the Strict and IgnoreAncillary modes. In the
+    /// IgnoreImageData mode, the method returns <see langword="false"/>, and the caller stops and keeps the rows decoded
+    /// before the end. The image buffer is cleared at allocation, so the rows after the end are transparent black.
     /// </para>
     /// </remarks>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="buffer">The buffer, with room for the required bytes and any padding.</param>
     /// <param name="requiredBytes">The byte count of the pixels in the row.</param>
     /// <returns><see langword="true"/> if the stream has the pixel bytes of the row. Else <see langword="false"/>.</returns>
-    private static bool TryReadPixelBytes(BufferedReadStream stream, Span<byte> buffer, int requiredBytes)
-        => stream.ReadAtLeast(buffer, requiredBytes, false) >= requiredBytes;
+    private bool TryReadPixelBytes(BufferedReadStream stream, Span<byte> buffer, int requiredBytes)
+    {
+        if (stream.ReadAtLeast(buffer, requiredBytes, false) >= requiredBytes)
+        {
+            return true;
+        }
+
+        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(PixelDataEndMessage);
+        return false;
+    }
 
     /// <summary>
     /// Reads the <see cref="BmpInfoHeader"/> from the stream.
@@ -1418,7 +1598,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 && this.infoHeader.ProfileSize != 0)
             {
                 long streamPosition = stream.Position;
-                this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
                 stream.Position = streamPosition;
             }
         }
@@ -1506,17 +1686,19 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             this.infoHeader.ProfileSize <= 0 ||
             !stream.IsReadRangeValid(profileStart, (uint)this.infoHeader.ProfileSize))
         {
-            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read BMP ICC profile.");
+            return;
         }
 
         stream.Position = profileStart;
         IccReader reader = new();
         if (!reader.TryReadSegment(stream, this.infoHeader.ProfileSize))
         {
-            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read BMP ICC profile.");
+            return;
         }
 
-        imageMetadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+        imageMetadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
     }
 
     /// <summary>

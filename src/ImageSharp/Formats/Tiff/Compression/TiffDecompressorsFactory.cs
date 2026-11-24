@@ -44,7 +44,7 @@ internal static class TiffDecompressorsFactory
             case TiffDecoderCompressionType.PackBits:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                return new PackBitsTiffCompression(allocator, width, bitsPerPixel);
+                return new PackBitsTiffCompression(allocator, width, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Deflate:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
@@ -58,7 +58,8 @@ internal static class TiffDecompressorsFactory
                     byteOrder == ByteOrder.BigEndian,
                     isTiled,
                     tileWidth,
-                    tileHeight);
+                    tileHeight,
+                    options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Lzw:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
@@ -72,19 +73,20 @@ internal static class TiffDecompressorsFactory
                     byteOrder == ByteOrder.BigEndian,
                     isTiled,
                     tileWidth,
-                    tileHeight);
+                    tileHeight,
+                    options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.T4:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T4TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, faxOptions);
+                return new T4TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, faxOptions, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.T6:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T6TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel);
+                return new T6TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.HuffmanRle:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new ModifiedHuffmanTiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel);
+                return new ModifiedHuffmanTiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

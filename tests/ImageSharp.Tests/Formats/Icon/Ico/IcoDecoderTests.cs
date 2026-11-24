@@ -403,6 +403,10 @@ public class IcoDecoderTests
         Assert.Single(imageInfo.FrameMetadataCollection);
     }
 
+    /// <summary>
+    /// Verifies that a damaged entry throws in strict mode. With the default options the decoder skips the damaged
+    /// entry and keeps the other entries.
+    /// </summary>
     [Fact]
     public void TruncatedEntry_FollowsImageDataIntegrityHandling()
     {
@@ -413,22 +417,117 @@ public class IcoDecoderTests
         // Limit the first resource below the PNG signature length. A bounded child decoder must not read into following data.
         BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(IconDir.Size + 8), 4);
 
-        using MemoryStream defaultStream = new(data, false);
-        Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream));
-
-        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream strictStream = new(data, false);
+        Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(strict, strictStream));
 
         using MemoryStream decodeStream = new(data, false);
-        using Image<Rgba32> image = IcoDecoder.Instance.Decode<Rgba32>(ignore, decodeStream);
+        using Image<Rgba32> image = IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, decodeStream);
         Assert.Equal(entryCount - 1, image.Frames.Count);
 
         using MemoryStream identifyStream = new(data, false);
-        ImageInfo info = IcoDecoder.Instance.Identify(ignore, identifyStream);
+        ImageInfo info = IcoDecoder.Instance.Identify(DecoderOptions.Default, identifyStream);
         Assert.Equal(entryCount - 1, info.FrameMetadataCollection.Count);
     }
 
     /// <summary>
+    /// Verifies that a multi-entry icon file that ends inside its last image resource decodes with the default options.
+    /// Every entry is kept. The complete entries match the decode of the full file, and the last entry keeps the rows
+    /// that the data holds. In strict mode the decoder throws.
+    /// </summary>
+    [Fact]
+    public void TruncatedLastResource_KeepsEveryEntry()
+    {
+        byte[] full = TestFile.Create(MultiSizeMultiBitsB).Bytes;
+        ushort entryCount = BinaryPrimitives.ReadUInt16LittleEndian(full.AsSpan(4));
+        Assert.True(entryCount > 1);
+
+        // Each directory entry stores BytesInRes at byte 8 and ImageOffset at byte 12. Find the last resource in the file.
+        int lastEntry = 0;
+        uint lastOffset = 0;
+        uint lastLength = 0;
+        for (int i = 0; i < entryCount; i++)
+        {
+            Span<byte> entry = full.AsSpan(IconDir.Size + (i * IconDirEntry.Size), IconDirEntry.Size);
+            uint offset = BinaryPrimitives.ReadUInt32LittleEndian(entry[12..]);
+            if (offset > lastOffset)
+            {
+                lastEntry = i;
+                lastOffset = offset;
+                lastLength = BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]);
+            }
+        }
+
+        // End the file in the middle of the last resource. No other resource follows it.
+        byte[] data = full[..(int)(lastOffset + (lastLength / 2))];
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream strictStream = new(data, false);
+        Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+
+        // The complete entries match the full decode. The last entry keeps the rows that the data holds.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(full);
+        ClearPixelsAfterResourceEnd(expected.Frames[lastEntry], full.AsSpan((int)lastOffset, (int)lastLength), data.Length - (int)lastOffset);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Changes the decode of a complete uncompressed icon bitmap to the decode of the same bitmap when its data ends early.
+    /// The bitmap has a BITMAPINFOHEADER, a color table for 8 or fewer bits per pixel, the color rows, then the 1-bit AND
+    /// mask rows. The rows are stored from the bottom up, and each row starts on a 4-byte boundary. The header height is
+    /// two times the image height, because it counts the mask rows. See "BITMAPINFOHEADER structure",
+    /// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader. The decoder keeps each
+    /// complete color row and clears the rows after it. Missing mask bits are 0, so those pixels are opaque. A 32-bit
+    /// bitmap has alpha in its pixels and does not use the mask.
+    /// </summary>
+    /// <param name="frame">The decode of the complete bitmap. It is changed in place.</param>
+    /// <param name="resource">The complete bitmap resource.</param>
+    /// <param name="available">The number of bytes of the resource that the decoder gets.</param>
+    internal static void ClearPixelsAfterResourceEnd(ImageFrame<Rgba32> frame, ReadOnlySpan<byte> resource, int available)
+    {
+        int headerSize = BinaryPrimitives.ReadInt32LittleEndian(resource);
+        int width = BinaryPrimitives.ReadInt32LittleEndian(resource[4..]);
+        int height = BinaryPrimitives.ReadInt32LittleEndian(resource[8..]) / 2;
+        int bitsPerPixel = BinaryPrimitives.ReadUInt16LittleEndian(resource[14..]);
+        int colorsUsed = BinaryPrimitives.ReadInt32LittleEndian(resource[32..]);
+        Assert.Equal(new Size(width, height), frame.Size);
+
+        int colorTableSize = bitsPerPixel <= 8 ? (colorsUsed == 0 ? 1 << bitsPerPixel : colorsUsed) * 4 : 0;
+        int stride = (((width * bitsPerPixel) + 31) / 32) * 4;
+        int maskStride = ((width + 31) / 32) * 4;
+        int colorStart = headerSize + colorTableSize;
+        int maskStart = colorStart + (stride * height);
+        int colorRows = Math.Clamp((available - colorStart) / stride, 0, height);
+
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba32> pixels = frame.PixelBuffer.DangerousGetRowSpan(height - 1 - row);
+            if (row >= colorRows)
+            {
+                pixels.Clear();
+                continue;
+            }
+
+            if (bitsPerPixel > 8)
+            {
+                continue;
+            }
+
+            // Each mask byte holds the bits of 8 pixels.
+            int maskBytes = Math.Clamp(available - (maskStart + (row * maskStride)), 0, (width + 7) / 8);
+            for (int x = maskBytes * 8; x < width; x++)
+            {
+                pixels[x].A = byte.MaxValue;
+            }
+        }
+    }
+
+    /// <summary>
     /// Verifies that a non-empty resource cannot begin at the exclusive end of its containing icon stream.
+    /// In strict mode the decoder reports the invalid range. With the default options the decoder skips the entry,
+    /// and the file has no other entry to decode, so it still throws.
     /// </summary>
     [Fact]
     public void EntryAtEndOfStream_ThrowsInvalidResourceRange()
@@ -439,18 +538,22 @@ public class IcoDecoderTests
         // ImageOffset is the final DWORD in the sole directory entry. The stream length is an exclusive boundary,
         // so accepting this value would create an empty child stream despite the entry declaring non-empty data.
         BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(IconDir.Size + 12), (uint)data.Length);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         using MemoryStream decodeStream = new(data, false);
         InvalidImageContentException decodeException = Assert.Throws<InvalidImageContentException>(
-            () => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, decodeStream));
+            () => IcoDecoder.Instance.Decode<Rgba32>(strict, decodeStream));
 
         Assert.Equal("The icon directory contains an invalid image resource range.", decodeException.Message);
 
         using MemoryStream identifyStream = new(data, false);
         InvalidImageContentException identifyException = Assert.Throws<InvalidImageContentException>(
-            () => IcoDecoder.Instance.Identify(DecoderOptions.Default, identifyStream));
+            () => IcoDecoder.Instance.Identify(strict, identifyStream));
 
         Assert.Equal("The icon directory contains an invalid image resource range.", identifyException.Message);
+
+        using MemoryStream defaultStream = new(data, false);
+        Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream));
     }
 
     [Fact]

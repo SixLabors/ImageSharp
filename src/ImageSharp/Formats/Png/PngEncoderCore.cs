@@ -1460,6 +1460,12 @@ internal sealed class PngEncoderCore : IDisposable
             int startRow = Adam7.FirstRow[pass];
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(pixels.Width, pass);
+            if (blockWidth == 0)
+            {
+                // An image less than five pixels wide has passes without columns. Such a pass is empty and has no
+                // filter type bytes. See PNG Third Edition, section 9.1 "Filter methods and filter types".
+                continue;
+            }
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8
@@ -1547,6 +1553,12 @@ internal sealed class PngEncoderCore : IDisposable
             int startRow = Adam7.FirstRow[pass];
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(quantized.Width, pass);
+            if (blockWidth == 0)
+            {
+                // A pass without columns is empty and has no filter type bytes. See PNG Third Edition, section 9.1
+                // "Filter methods and filter types".
+                continue;
+            }
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8

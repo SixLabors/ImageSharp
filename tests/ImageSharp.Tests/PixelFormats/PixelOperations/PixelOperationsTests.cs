@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -995,9 +996,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int offset = i * size;
             Bgra5551 bgra = Bgra5551.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes bytes = Unsafe.As<Bgra5551, OctetBytes>(ref bgra);
-            expected[offset] = bytes[0];
-            expected[offset + 1] = bytes[1];
+            BinaryPrimitives.WriteUInt16LittleEndian(expected.AsSpan(offset), bgra.PackedValue);
         }
 
         TestOperation(
@@ -1048,9 +1047,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int offset = i * size;
             Bgr565 bgr = Bgr565.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes bytes = Unsafe.As<Bgr565, OctetBytes>(ref bgr);
-            expected[offset] = bytes[0];
-            expected[offset + 1] = bytes[1];
+            BinaryPrimitives.WriteUInt16LittleEndian(expected.AsSpan(offset), bgr.PackedValue);
         }
 
         TestOperation(
@@ -1167,9 +1164,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int offset = i * size;
             La16 la = La16.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes bytes = Unsafe.As<La16, OctetBytes>(ref la);
-            expected[offset] = bytes[0];
-            expected[offset + 1] = bytes[1];
+            MemoryMarshal.Write(expected.AsSpan(offset), in la);
         }
 
         TestOperation(
@@ -1212,11 +1207,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int offset = i * size;
             La32 la = La32.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes bytes = Unsafe.As<La32, OctetBytes>(ref la);
-            expected[offset] = bytes[0];
-            expected[offset + 1] = bytes[1];
-            expected[offset + 2] = bytes[2];
-            expected[offset + 3] = bytes[3];
+            MemoryMarshal.Write(expected.AsSpan(offset), in la);
         }
 
         TestOperation(
@@ -1341,13 +1332,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i6 = i * 6;
             Rgb48 rgb = Rgb48.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes rgb48Bytes = Unsafe.As<Rgb48, OctetBytes>(ref rgb);
-            expected[i6] = rgb48Bytes[0];
-            expected[i6 + 1] = rgb48Bytes[1];
-            expected[i6 + 2] = rgb48Bytes[2];
-            expected[i6 + 3] = rgb48Bytes[3];
-            expected[i6 + 4] = rgb48Bytes[4];
-            expected[i6 + 5] = rgb48Bytes[5];
+            MemoryMarshal.Write(expected.AsSpan(i6), in rgb);
         }
 
         TestOperation(
@@ -1387,15 +1372,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i8 = i * 8;
             Rgba64 rgba = Rgba64.FromScaledVector4(ToUnassociatedScaledVector4(source[i]));
-            OctetBytes rgba64Bytes = Unsafe.As<Rgba64, OctetBytes>(ref rgba);
-            expected[i8] = rgba64Bytes[0];
-            expected[i8 + 1] = rgba64Bytes[1];
-            expected[i8 + 2] = rgba64Bytes[2];
-            expected[i8 + 3] = rgba64Bytes[3];
-            expected[i8 + 4] = rgba64Bytes[4];
-            expected[i8 + 5] = rgba64Bytes[5];
-            expected[i8 + 6] = rgba64Bytes[6];
-            expected[i8 + 7] = rgba64Bytes[7];
+            MemoryMarshal.Write(expected.AsSpan(i8), in rgba);
         }
 
         TestOperation(
@@ -1530,22 +1507,6 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static Vector4 GetScaledVector(Random rnd)
         => new((float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble());
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct OctetBytes
-    {
-        public fixed byte Data[8];
-
-        public byte this[int idx]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                ref byte self = ref Unsafe.As<OctetBytes, byte>(ref this);
-                return Unsafe.Add(ref self, idx);
-            }
-        }
-    }
 
     private class TestBuffers<TSource, TDest> : IDisposable
         where TSource : struct

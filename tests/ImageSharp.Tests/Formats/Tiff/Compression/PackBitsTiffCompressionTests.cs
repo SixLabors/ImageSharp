@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.IO;
@@ -27,12 +28,42 @@ public class PackBitsTiffCompressionTests
         using BufferedReadStream stream = new(Configuration.Default, memoryStream);
         byte[] buffer = new byte[expectedResult.Length];
 
-        using PackBitsTiffCompression decompressor = new(MemoryAllocator.Create(), default, default);
+        using PackBitsTiffCompression decompressor = new(MemoryAllocator.Create(), default, default, SegmentIntegrityHandling.Strict);
 
         // These codecs return raw TIFF samples; no final pixel region is needed.
         decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, default);
 
         Assert.Equal(expectedResult, buffer);
+    }
+
+    /// <summary>
+    /// Data that ends before it fills the strip is damaged. In the IgnoreImageData mode, the strip keeps the decoded
+    /// bytes, and the decoder clears the bytes of the reused buffer after them. The other modes throw.
+    /// </summary>
+    /// <param name="integrity">The segment integrity mode.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decompress_DataEndsEarly_UsesImageDataIntegrityPolicy(SegmentIntegrityHandling integrity)
+    {
+        // A literal run of two bytes for a strip of four bytes. The buffer holds the bytes of an earlier strip.
+        byte[] inputData = [0x01, 0x15, 0x32];
+        using MemoryStream memoryStream = new(inputData);
+        using BufferedReadStream stream = new(Configuration.Default, memoryStream);
+        byte[] buffer = [0xFF, 0xFF, 0xFF, 0xFF];
+
+        using PackBitsTiffCompression decompressor = new(MemoryAllocator.Create(), default, default, integrity);
+
+        if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            Assert.Throws<InvalidImageContentException>(() => decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, default));
+            return;
+        }
+
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, default);
+
+        Assert.Equal(new byte[] { 0x15, 0x32, 0x00, 0x00 }, buffer);
     }
 
     [Theory]

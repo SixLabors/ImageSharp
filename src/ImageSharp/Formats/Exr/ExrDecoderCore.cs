@@ -195,31 +195,44 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.PixelType,
             this.Options.SegmentIntegrityHandling);
 
-        int decodedRows = 0;
-        while (decodedRows < height)
+        // The offset table holds one entry for each chunk, in increasing y order. See "OpenEXR File Layout",
+        // section "Component Four: Offset Tables", "Scan Lines".
+        uint chunkCount = (uint)((height + rowsPerBlock - 1) / rowsPerBlock);
+        for (uint chunk = 0; chunk < chunkCount; chunk++)
         {
-            ulong rowOffset = this.ReadUnsignedLong(stream);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ulong chunkOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
-            this.ValidateChunkOffset(rowOffset, stream);
-            stream.Position = (long)rowOffset;
-
-            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
-            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
-            if (rowStartIndex >= height)
+            // In the IgnoreImageData mode, the decoder skips a chunk with a damaged header. Its rows keep the fill value.
+            if (!this.TryReadChunkHeader(stream, chunkOffset, out uint rowStartIndex, out uint compressedBytesCount))
             {
-                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+                stream.Position = nextRowOffsetPosition;
+                continue;
             }
 
-            uint compressedBytesCount = this.ReadUnsignedInteger(stream);
             uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
             uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
 
-            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
+            // The decoder does not convert a damaged block. Its rows keep the fill value, as the rows of a skipped chunk do.
+            if (!this.TryDecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData))
+            {
+                stream.Position = nextRowOffsetPosition;
+                continue;
+            }
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
             {
+                // A block that ends early in the IgnoreImageData mode decodes only a prefix of some rows.
+                // The decoder does not convert the other pixels, so they keep the fill value.
+                int rowWidth = decompressor.GetCompletePixelCount((int)(rowIndex - rowStartIndex));
+                if (rowWidth == 0)
+                {
+                    break;
+                }
+
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
@@ -235,9 +248,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                         width);
                 }
 
-                for (int x = 0; x < width; x += colors.Length)
+                for (int x = 0; x < rowWidth; x += colors.Length)
                 {
-                    int count = Math.Min(colors.Length, width - x);
+                    int count = Math.Min(colors.Length, rowWidth - x);
                     Span<Vector4> block = colors[..count];
                     Span<TPixel> destination = pixelRow.Slice(x, count);
 
@@ -252,13 +265,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
                     colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
                 }
-
-                decodedRows++;
             }
 
             stream.Position = nextRowOffsetPosition;
-
-            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 
@@ -314,31 +323,44 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.PixelType,
             this.Options.SegmentIntegrityHandling);
 
-        int decodedRows = 0;
-        while (decodedRows < height)
+        // The offset table holds one entry for each chunk, in increasing y order. See "OpenEXR File Layout",
+        // section "Component Four: Offset Tables", "Scan Lines".
+        uint chunkCount = (uint)((height + rowsPerBlock - 1) / rowsPerBlock);
+        for (uint chunk = 0; chunk < chunkCount; chunk++)
         {
-            ulong rowOffset = this.ReadUnsignedLong(stream);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ulong chunkOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
-            this.ValidateChunkOffset(rowOffset, stream);
-            stream.Position = (long)rowOffset;
-
-            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
-            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
-            if (rowStartIndex >= height)
+            // In the IgnoreImageData mode, the decoder skips a chunk with a damaged header. Its rows keep the fill value.
+            if (!this.TryReadChunkHeader(stream, chunkOffset, out uint rowStartIndex, out uint compressedBytesCount))
             {
-                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+                stream.Position = nextRowOffsetPosition;
+                continue;
             }
 
-            uint compressedBytesCount = this.ReadUnsignedInteger(stream);
             uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
             uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
 
-            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
+            // The decoder does not convert a damaged block. Its rows keep the fill value, as the rows of a skipped chunk do.
+            if (!this.TryDecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData))
+            {
+                stream.Position = nextRowOffsetPosition;
+                continue;
+            }
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
             {
+                // A block that ends early in the IgnoreImageData mode decodes only a prefix of some rows.
+                // The decoder does not convert the other pixels, so they keep the fill value.
+                int rowWidth = decompressor.GetCompletePixelCount((int)(rowIndex - rowStartIndex));
+                if (rowWidth == 0)
+                {
+                    break;
+                }
+
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
@@ -354,9 +376,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                         width);
                 }
 
-                for (int x = 0; x < width; x += colors.Length)
+                for (int x = 0; x < rowWidth; x += colors.Length)
                 {
-                    int count = Math.Min(colors.Length, width - x);
+                    int count = Math.Min(colors.Length, rowWidth - x);
                     Span<Vector4> block = colors[..count];
                     Span<TPixel> destination = pixelRow.Slice(x, count);
 
@@ -376,14 +398,49 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     TensorPrimitives.Multiply(components, 1F / uint.MaxValue, components);
                     colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
                 }
-
-                decodedRows++;
             }
 
             stream.Position = nextRowOffsetPosition;
-
-            cancellationToken.ThrowIfCancellationRequested();
         }
+    }
+
+    /// <summary>
+    /// Reads the header of one scanline chunk and checks it against the stream and the data window.
+    /// A damaged chunk header goes to <see cref="SegmentIntegrityHandlingExtensions.ThrowOrIgnoreImageDataError(SegmentIntegrityHandling, string)"/>.
+    /// </summary>
+    /// <param name="stream">The stream containing the image data.</param>
+    /// <param name="chunkOffset">The chunk offset from the offset table.</param>
+    /// <param name="rowStartIndex">The first row of the chunk, relative to the data window.</param>
+    /// <param name="compressedBytes">The declared byte count of the chunk pixel data.</param>
+    /// <returns>
+    /// <see langword="true"/> if the stream is at the chunk pixel data; <see langword="false"/> if the chunk header is
+    /// damaged and the decoder ignores image data errors.
+    /// </returns>
+    private bool TryReadChunkHeader(BufferedReadStream stream, ulong chunkOffset, out uint rowStartIndex, out uint compressedBytes)
+    {
+        rowStartIndex = 0;
+        compressedBytes = 0;
+
+        // A chunk starts after the offset table. It needs 8 bytes for its y coordinate and its byte count.
+        // The header check proved that the offset table fits in the stream, so the subtraction cannot wrap.
+        if (chunkOffset < (ulong)this.MinimumChunkOffset || chunkOffset > (ulong)(stream.Length - 8))
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("EXR chunk offset is outside the bounds of the stream.");
+            return false;
+        }
+
+        stream.Position = (long)chunkOffset;
+
+        // Chunk coordinates are signed and absolute. Pixel rows are relative to the data window.
+        rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
+        if (rowStartIndex >= this.Height)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("EXR chunk row index is outside the data window.");
+            return false;
+        }
+
+        compressedBytes = this.ReadUnsignedInteger(stream);
+        return true;
     }
 
     /// <summary>
@@ -394,18 +451,40 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="compressedBytes">The declared compressed byte count.</param>
     /// <param name="uncompressedBytes">The expected byte count for the rows in this block.</param>
     /// <param name="buffer">The reusable decompressed pixel buffer.</param>
-    private void DecompressBlock(ExrBaseDecompressor decompressor, BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    /// <returns>
+    /// <see langword="true"/> if the buffer holds the block samples; <see langword="false"/> if the block is damaged and
+    /// the decoder ignores image data errors. The caller must then not convert the buffer.
+    /// </returns>
+    /// <remarks>
+    /// In the IgnoreImageData mode, the RLE and B44 decompressors keep the complete pixels of a block that ends early.
+    /// <see cref="ExrBaseDecompressor.GetCompletePixelCount(int)"/> gives these pixels.
+    /// </remarks>
+    private bool TryDecompressBlock(
+        ExrBaseDecompressor decompressor,
+        BufferedReadStream stream,
+        uint compressedBytes,
+        uint uncompressedBytes,
+        Span<byte> buffer)
     {
         try
         {
             decompressor.Decompress(stream, compressedBytes, uncompressedBytes, buffer);
+            return true;
         }
-        catch (Exception ex) when (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData
-            && ex is InvalidImageContentException or InvalidDataException)
+        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
         {
-            // The offset table locates the next block independently of this damaged payload.
-            // Discard the entire failed block so partial output or pooled bytes cannot become pixels.
-            buffer[..(int)uncompressedBytes].Clear();
+            // The Strict and IgnoreAncillary modes do not catch the exception, so the original exception and its stack
+            // trace stay.
+            // The offset table locates the next block independently of this damaged payload. The caller discards the
+            // whole failed block, so partial output or pooled bytes cannot become pixels.
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            // DeflateStream throws InvalidDataException for damaged ZIP data. The integrity handling reports it as
+            // InvalidImageContentException in the Strict and IgnoreAncillary modes.
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ZIP compressed EXR block is damaged.", ex);
+            return false;
         }
     }
 
@@ -1058,19 +1137,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
-
-    /// <summary>
-    /// Validates a scanline chunk offset read from the EXR offset table.
-    /// </summary>
-    /// <param name="chunkOffset">The chunk offset to validate.</param>
-    /// <param name="stream">The stream containing the image data.</param>
-    private void ValidateChunkOffset(ulong chunkOffset, BufferedReadStream stream)
-    {
-        if (chunkOffset < (ulong)this.MinimumChunkOffset || chunkOffset >= (ulong)stream.Length)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk offset is outside the bounds of the stream.");
-        }
-    }
 
     /// <summary>
     /// Determines whether this image  has alpha channel.

@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using System.IO.Compression;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression;
 
@@ -74,16 +76,16 @@ public class CcittTiffCompressionTests
     }
 
     /// <summary>
-    /// T6 data has no code that starts a row, so a run longer than the row ends the data of its block. The decoder does
-    /// not throw, even with <see cref="SegmentIntegrityHandling.Strict"/>. The rows of the damaged block are white, as
-    /// after EOFB. The second block decodes normally, and its pixels are white too.
+    /// T6 data has no code that starts a row, so a run longer than the row ends the data of its block. The damaged block
+    /// throws in the Strict and IgnoreAncillary modes. In the IgnoreImageData mode, the rows of the damaged block are
+    /// white, as after EOFB. The second block decodes normally, and its pixels are white too.
     /// </summary>
     /// <remarks>
-    /// With damagedLow 0xA8, the damaged block has the bits 010 (VL1) and 1 (V0) after the bad run. In a row after the
-    /// bad run, they would make a black pixel, so the test shows that the decoder does not read the bits after the bad
-    /// run.
+    /// With damagedLow 0xA8, the damaged block has the bits 010 (VL1) and 1 (V0) after the bad run. If the decoder reads
+    /// these bits in a row after the bad run, they make a black pixel. Thus the test shows that the decoder does not read
+    /// the bits after the bad run.
     /// </remarks>
-    /// <param name="tiled">True for tiles; false for strips.</param>
+    /// <param name="tiled">True for tiles. False for strips.</param>
     /// <param name="damagedLow">The second byte of the damaged block.</param>
     [Theory]
     [InlineData(false, (byte)0x80)]
@@ -92,11 +94,24 @@ public class CcittTiffCompressionTests
     public void Decode_DamagedFaxBlock_EndsBlockData(bool tiled, byte damagedLow)
     {
         byte[] tiff = CreateTwoBlockFaxTiff(tiled, damagedLow);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, tiff);
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, tiff);
+                });
 
-        AssertWhite(image, image.Width, image.Height);
+                continue;
+            }
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, tiff);
+
+            AssertWhite(image, image.Width, image.Height);
+        }
     }
 
     /// <summary>
@@ -113,8 +128,8 @@ public class CcittTiffCompressionTests
         byte[] whiteIsZero = TestFile.Create(path).Bytes;
         byte[] blackIsZero = (byte[])whiteIsZero.Clone();
 
-        // The files are little-endian. The IFD offset is at byte 4, the entry count is the first 2 bytes of the IFD, and
-        // each 12-byte entry has its tag at byte 0 and a SHORT value at byte 8. PhotometricInterpretation is tag 262.
+        // The files are little-endian. The IFD offset is at byte 4, and the entry count is the first 2 bytes of the IFD.
+        // Each 12-byte entry has its tag at byte 0 and a SHORT value at byte 8. PhotometricInterpretation is tag 262.
         int ifd = BinaryPrimitives.ReadInt32LittleEndian(blackIsZero.AsSpan(4));
         int count = BinaryPrimitives.ReadUInt16LittleEndian(blackIsZero.AsSpan(ifd));
         int entry = Enumerable.Range(0, count).Select(i => ifd + 2 + (i * 12)).Single(e => BinaryPrimitives.ReadUInt16LittleEndian(blackIsZero.AsSpan(e)) == 262);
@@ -124,13 +139,9 @@ public class CcittTiffCompressionTests
         using Image<L8> white = Image.Load<L8>(whiteIsZero);
         using Image<L8> black = Image.Load<L8>(blackIsZero);
 
-        for (int y = 0; y < white.Height; y++)
-        {
-            for (int x = 0; x < white.Width; x++)
-            {
-                Assert.Equal(255 - white[x, y].PackedValue, black[x, y].PackedValue);
-            }
-        }
+        // Each gray value of the BlackIsZero decode is 255 minus the gray value of the WhiteIsZero decode.
+        using Image<L8> expected = white.Clone(x => x.Invert());
+        ImageComparer.Exact.VerifySimilarity(expected, black);
     }
 
     /// <summary>
@@ -141,14 +152,9 @@ public class CcittTiffCompressionTests
     /// <param name="height">The region height.</param>
     private static void AssertWhite(Image<Rgba32> image, int width, int height)
     {
-        Rgba32 white = new(255, 255, 255, 255);
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Assert.Equal(white, image[x, y]);
-            }
-        }
+        using Image<Rgba32> region = image.Clone(x => x.Crop(new Rectangle(0, 0, width, height)));
+        using Image<Rgba32> white = new(width, height, new Rgba32(255, 255, 255, 255));
+        ImageComparer.Exact.VerifySimilarity(white, region);
     }
 
     /// <summary>

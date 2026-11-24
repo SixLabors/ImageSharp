@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Compression.Ccitt;
 internal enum CcittTwoDimensionalCodeType
 {
     /// <summary>
-    /// No valid code word was read.
-    /// </summary>
-    None = 0,
-
-    /// <summary>
     /// Pass mode: This mode is identified when the position of b2 lies to the left of a1.
     /// </summary>
     Pass = 1,

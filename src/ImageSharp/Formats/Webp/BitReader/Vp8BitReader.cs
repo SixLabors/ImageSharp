@@ -82,6 +82,12 @@ internal class Vp8BitReader : BitReaderBase
 
     public int Pos => (int)this.pos;
 
+    /// <summary>
+    /// Gets a value indicating whether a read went past the end of the data.
+    /// The reader then returns zero bits. libwebp treats this as the end of the data.
+    /// </summary>
+    public bool Eof => this.eof;
+
     public uint ImageDataSize { get; }
 
     public uint PartitionLength { get; }

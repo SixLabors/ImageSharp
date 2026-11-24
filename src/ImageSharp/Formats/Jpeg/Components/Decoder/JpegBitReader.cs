@@ -49,6 +49,14 @@ internal unsafe struct JpegBitReader
     // How many times have we hit the eof.
     private int eofHitCount;
 
+    // The number of fill bits at the low end of the bit buffer. After a marker or at the end of the stream, the
+    // reader adds fill bytes in place of entropy-coded bytes. A refill always adds bits at the low end, so the fill
+    // bits are the last bits of the buffer. If fewer valid bits remain than fill bits, the decoder used fill bits.
+    private int fillBits;
+
+    // The segment integrity mode. It controls if damaged or truncated entropy-coded data throws.
+    private readonly SegmentIntegrityHandling integrityHandling;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegBitReader"/> struct.
     /// </summary>
@@ -58,7 +66,10 @@ internal unsafe struct JpegBitReader
     /// The scan decoder owns the memory and keeps it pinned until the end of the scan.
     /// </param>
     /// <param name="entropyBufferLength">The length of <paramref name="entropyBuffer"/> in bytes.</param>
-    public JpegBitReader(BufferedReadStream stream, byte* entropyBuffer, int entropyBufferLength)
+    /// <param name="integrityHandling">
+    /// The segment integrity mode. It controls if damaged or truncated entropy-coded data throws.
+    /// </param>
+    public JpegBitReader(BufferedReadStream stream, byte* entropyBuffer, int entropyBufferLength, SegmentIntegrityHandling integrityHandling)
     {
         this.stream = stream;
         this.entropyBuffer = entropyBuffer;
@@ -72,6 +83,8 @@ internal unsafe struct JpegBitReader
         this.badData = false;
         this.NoData = false;
         this.eofHitCount = 0;
+        this.fillBits = 0;
+        this.integrityHandling = integrityHandling;
     }
 
     /// <summary>
@@ -141,6 +154,30 @@ internal unsafe struct JpegBitReader
         this.MarkerPosition = 0;
         this.badData = false;
         this.NoData = false;
+        this.fillBits = 0;
+    }
+
+    /// <summary>
+    /// Reports damaged or truncated entropy-coded data if the decoder used fill bits.
+    /// The scan decoder calls this method at the end of each restart interval and at the end of each Huffman-coded scan.
+    /// </summary>
+    /// <remarks>
+    /// The reader reads bytes before the decoder needs them. Thus, fill bits after the last entropy-coded byte are
+    /// usual, and they are not an error until the decoder uses them. A Huffman decoder uses them only when the
+    /// data ends early, or when an unexpected marker interrupts the data.
+    /// An arithmetic decoder can use fill bits in correct data, because the encoder can remove the last zero bytes
+    /// (ITU T.81, section D.1.8). Thus, the arithmetic scan decoder does not call this method.
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">
+    /// The decoder used fill bits, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    public readonly void ThrowOrIgnoreIfFillBitsUsed()
+    {
+        if (this.remainingBits < this.fillBits)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The JPEG entropy-coded data ends early or contains an unexpected marker.");
+        }
     }
 
     /// <summary>
@@ -333,6 +370,14 @@ internal unsafe struct JpegBitReader
             size++;
         }
 
+        // The sentinel MaxCode[17] stops the loop. A JPEG Huffman code has a maximum of 16 bits (ITU T.81, Annex C).
+        // Thus, a size of 17 shows that the bits are not a code of the table.
+        // When the mode ignores image data errors, the decoder keeps the value from the sentinel position.
+        if (size > 16)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data contains a bad Huffman code.");
+        }
+
         this.remainingBits -= size;
 
         return h.Values[(h.ValOffset[size] + (int)(x >> (JpegConstants.Huffman.RegisterSize - size))) & 0xFF];
@@ -505,7 +550,22 @@ internal unsafe struct JpegBitReader
                 }
             }
 
-            temp = (temp << 8) | (ulong)(long)b;
+            // After a marker, the byte is a zero fill byte or the first byte of the marker. At the end of the stream,
+            // the byte is -1 or a zero fill byte. These bytes are not entropy-coded data.
+            if (this.badData || b < 0)
+            {
+                // The count stops at the register size. Fewer bits than that remain valid, so the result does not change.
+                if (this.fillBits < JpegConstants.Huffman.RegisterSize)
+                {
+                    this.fillBits += 8;
+                }
+
+                // At the end of the stream, libjpeg-turbo inserts zero bits (jdhuff.c, jpeg_fill_bit_buffer).
+                // A value of -1 sets all 64 bits of the buffer and changes the valid bits before it, so the reader adds 0.
+                b = Math.Max(b, 0);
+            }
+
+            temp = (temp << 8) | (uint)b;
         }
 
         return temp;
@@ -514,19 +574,18 @@ internal unsafe struct JpegBitReader
     /// <summary>
     /// Finds the next marker at a restart boundary and applies the selected image-data recovery policy.
     /// </summary>
-    /// <param name="integrityHandling">The recovery policy for compressed image data.</param>
     /// <returns>True if a marker was found. False if the stream ended first.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool FindNextMarker(SegmentIntegrityHandling integrityHandling)
+    public bool FindNextMarker()
     {
         do
         {
             // The bit reader can already hold a marker from its entropy-data lookahead.
             // Libjpeg treats codes before SOF0 as damaged image data and scans forward to another marker.
             // Only IgnoreImageData permits that recovery. Real segment markers stay with the segment parser.
-            if (this.HasReservedMarker() && integrityHandling != SegmentIntegrityHandling.IgnoreImageData)
+            if (this.HasReservedMarker())
             {
-                JpegThrowHelper.ThrowInvalidImageContentException("Unexpected marker before a JPEG restart marker.");
+                this.integrityHandling.ThrowOrIgnoreImageDataError("Unexpected marker before a JPEG restart marker.");
             }
 
             while (true)

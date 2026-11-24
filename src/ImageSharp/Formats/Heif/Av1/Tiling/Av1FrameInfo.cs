@@ -601,6 +601,20 @@ internal sealed partial class Av1FrameInfo : IDisposable
     }
 
     /// <summary>
+    /// Discards the mode-information records of a superblock, so that the tile reader can parse the superblock again.
+    /// </summary>
+    /// <remarks>
+    /// A new parse of the superblock covers each of its mode-information positions again. Thus it replaces every map
+    /// entry and every record of the earlier parse.
+    /// </remarks>
+    /// <param name="index">The position in the frame superblock grid.</param>
+    public void ResetModeInfos(Point index)
+    {
+        int storageRow = (index.Y * this.superblockColumnCount) + index.X;
+        this.modeInfoCounts[0, storageRow] = 0;
+    }
+
+    /// <summary>
     /// Gets the mode information record covering the specified frame-relative mode information position.
     /// </summary>
     /// <param name="modeInfoPosition">The frame-relative position in 4x4 mode-information units.</param>

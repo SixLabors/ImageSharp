@@ -185,6 +185,10 @@ public partial struct Rgb24 : IPixel<Rgb24>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb24 FromBgra5551(Bgra5551 source) => FromRgba32(source.ToRgba32());
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb24 FromBgr565(Bgr565 source) => FromRgba32(source.ToRgba32());
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb24 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);

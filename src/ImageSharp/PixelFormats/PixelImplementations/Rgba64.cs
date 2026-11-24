@@ -296,6 +296,10 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba64 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba64 FromBgr24(Bgr24 source) => new(source);
 
     /// <inheritdoc />

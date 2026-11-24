@@ -4,7 +4,12 @@
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Ani;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Ani;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Ani;
@@ -15,17 +20,20 @@ public class AniDecoderTests
 {
     /// <summary>
     /// Verifies that ANI animation steps and embedded CUR resolution variants are flattened with their ANI metadata.
+    /// The sequence number of each frame is the stored frame index plus 1. Help.ani plays its stored frames in the
+    /// sequence 0, 1, 2, 1. The other files play each stored frame once, in order.
     /// </summary>
     [Theory]
-    [WithFile(Work, PixelTypes.Rgba32, 17, 1, 6U, 6U)]
-    [WithFile(MultiFramesInEveryIconChunk, PixelTypes.Rgba32, 54, 3, 3U, 3U)]
-    [WithFile(Help, PixelTypes.Rgba32, 4, 1, 10U, 12U)]
+    [WithFile(Work, PixelTypes.Rgba32, 17, 1, 6U, 6U, null)]
+    [WithFile(MultiFramesInEveryIconChunk, PixelTypes.Rgba32, 54, 3, 3U, 3U, null)]
+    [WithFile(Help, PixelTypes.Rgba32, 4, 1, 10U, 12U, new[] { 0, 1, 2, 1 })]
     public void AniDecoder_Decode(
         TestImageProvider<Rgba32> provider,
         int expectedFrameCount,
         int variantsPerStep,
         uint expectedDisplayRate,
-        uint expectedFrameDelay)
+        uint expectedFrameDelay,
+        int[] sequence)
     {
         using Image<Rgba32> image = provider.GetImage(AniDecoder.Instance);
 
@@ -36,7 +44,8 @@ public class AniDecoderTests
         {
             AniFrameMetadata metadata = image.Frames[i].Metadata.GetAniMetadata();
 
-            Assert.Equal((i / variantsPerStep) + 1, metadata.SequenceNumber);
+            int step = i / variantsPerStep;
+            Assert.Equal((sequence is null ? step : sequence[step]) + 1, metadata.SequenceNumber);
             Assert.Equal(expectedFrameDelay, metadata.FrameDelay);
             Assert.Equal(AniFrameFormat.Cur, metadata.FrameFormat);
             Assert.NotEqual(0, (int)metadata.BmpBitsPerPixel);
@@ -89,6 +98,79 @@ public class AniDecoderTests
     }
 
     /// <summary>
+    /// Verifies that a file without AF_ICON decodes its raw frames as icon bitmaps: the color data, then the AND mask. The
+    /// height covers both. ReactOS reads raw frames in this layout (CURSORICON_GetCursorDataFromANI). The
+    /// decoder reports each raw frame as a CUR frame that holds a bitmap of the same depth.
+    /// </summary>
+    [Fact]
+    public void AniDecoder_RawBitmapFrame_DecodesIconBitmap()
+    {
+        using Image<Rgba32> source = NearColorPalette.CreateImage();
+        IcoFrameMetadata icoMetadata = source.Frames.RootFrame.Metadata.GetIcoMetadata();
+        icoMetadata.Compression = IconFrameCompression.Bmp;
+        icoMetadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
+        icoMetadata.ColorTable = NearColorPalette.Palette;
+
+        // The bitmap of an ICO entry is an icon bitmap. The directory entry gives its size and offset.
+        using MemoryStream icoStream = new();
+        source.Save(icoStream, new IcoEncoder());
+        ReadOnlySpan<byte> ico = icoStream.GetBuffer().AsSpan(0, (int)icoStream.Length);
+        int bitmapSize = BinaryPrimitives.ReadInt32LittleEndian(ico[(IconDir.Size + IconDirEntry.Size - (2 * sizeof(uint)))..]);
+        int bitmapOffset = BinaryPrimitives.ReadInt32LittleEndian(ico[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]);
+        ReadOnlySpan<byte> bitmap = ico.Slice(bitmapOffset, bitmapSize);
+
+        // RIFF('ACON' anih(header) LIST('fram' icon(bitmap))). The anih flags are 0, so AF_ICON is clear.
+        int frameListSize = 4 + AniConstants.ChunkHeaderSize + bitmap.Length + (bitmap.Length & 1);
+        int riffSize = 4 + AniConstants.ChunkHeaderSize + AniHeader.Size + AniConstants.ChunkHeaderSize + frameListSize;
+        using MemoryStream ani = new();
+        byte[] value = new byte[4];
+        void WriteUInt32(uint v)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(value, v);
+            ani.Write(value);
+        }
+
+        ani.Write("RIFF"u8);
+        WriteUInt32((uint)riffSize);
+        ani.Write("ACONanih"u8);
+        WriteUInt32(AniHeader.Size);
+        foreach (uint field in new uint[] { AniHeader.Size, 1, 1, (uint)source.Width, (uint)source.Height, 8, 1, 6, 0 })
+        {
+            WriteUInt32(field);
+        }
+
+        ani.Write("LIST"u8);
+        WriteUInt32((uint)frameListSize);
+        ani.Write("framicon"u8);
+        WriteUInt32((uint)bitmap.Length);
+        ani.Write(bitmap);
+        if ((bitmap.Length & 1) != 0)
+        {
+            ani.WriteByte(0);
+        }
+
+        ani.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(ani);
+        AniFrameMetadata metadata = decoded.Frames.RootFrame.Metadata.GetAniMetadata();
+
+        Assert.Equal(AniFrameFormat.Cur, metadata.FrameFormat);
+        Assert.Equal(IconFrameCompression.Bmp, metadata.Compression);
+        Assert.Equal(BmpBitsPerPixel.Bit8, metadata.BmpBitsPerPixel);
+        ImageComparer.Exact.VerifySimilarity(source, decoded);
+
+        using MemoryStream encoded = new();
+        decoded.Save(encoded, new AniEncoder());
+        encoded.Position = 0;
+        using Image<Rgba32> roundTrip = Image.Load<Rgba32>(encoded);
+        AniFrameMetadata roundTripMetadata = roundTrip.Frames.RootFrame.Metadata.GetAniMetadata();
+
+        Assert.Equal(AniFrameFormat.Cur, roundTripMetadata.FrameFormat);
+        Assert.Equal(IconFrameCompression.Bmp, roundTripMetadata.Compression);
+        Assert.Equal(BmpBitsPerPixel.Bit8, roundTripMetadata.BmpBitsPerPixel);
+        ImageComparer.Exact.VerifySimilarity(source, roundTrip);
+    }
+
+    /// <summary>
     /// Verifies that ignored corrupt resources retain their sequence-table slot.
     /// </summary>
     [Fact]
@@ -111,6 +193,54 @@ public class AniDecoderTests
 
         Assert.Equal(16, image.Frames.Count);
         Assert.Equal(2, image.Frames.RootFrame.Metadata.GetAniMetadata().SequenceNumber);
+    }
+
+    /// <summary>
+    /// Verifies that a file that ends inside its last frame resource decodes with the default options. Every animation
+    /// step is kept. The steps with complete resources match the decode of the full file, and the last step keeps the
+    /// rows that the data holds. In strict mode the decoder throws.
+    /// </summary>
+    [Fact]
+    public void AniDecoder_TruncatedLastResource_KeepsEveryStep()
+    {
+        byte[] full = TestFile.Create(Work).Bytes;
+
+        // The frame list starts with its 'fram' list type. Walk its chunks to find the last frame resource.
+        int chunkOffset = full.AsSpan().IndexOf("fram"u8) + sizeof(uint);
+        Assert.True(chunkOffset > sizeof(uint));
+
+        int lastResourceOffset = chunkOffset;
+        int lastResourceSize = 0;
+        while (chunkOffset + AniConstants.ChunkHeaderSize <= full.Length)
+        {
+            int size = (int)BinaryPrimitives.ReadUInt32LittleEndian(full.AsSpan(chunkOffset + sizeof(uint)));
+            lastResourceOffset = chunkOffset;
+            lastResourceSize = size;
+            chunkOffset += AniConstants.ChunkHeaderSize + size + (size & 1);
+        }
+
+        // End the file in the middle of the payload of the last frame resource.
+        byte[] data = full[..(lastResourceOffset + AniConstants.ChunkHeaderSize + (lastResourceSize / 2))];
+
+        using MemoryStream strictStream = new(data, false);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+
+        // Each step of the file plays one stored frame in order, so only the last output frame uses the truncated
+        // resource. That resource is an icon file with one entry. Its directory entry stores BytesInRes at byte 8 and
+        // ImageOffset at byte 12. The last frame keeps the rows of the entry bitmap that the data holds.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(full);
+        int resourceStart = lastResourceOffset + AniConstants.ChunkHeaderSize;
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(full.AsSpan(resourceStart + 4)));
+        int bitmapLength = BinaryPrimitives.ReadInt32LittleEndian(full.AsSpan(resourceStart + IconDir.Size + 8));
+        int bitmapStart = resourceStart + BinaryPrimitives.ReadInt32LittleEndian(full.AsSpan(resourceStart + IconDir.Size + 12));
+        IcoDecoderTests.ClearPixelsAfterResourceEnd(
+            expected.Frames[expected.Frames.Count - 1],
+            full.AsSpan(bitmapStart, bitmapLength),
+            data.Length - bitmapStart);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 
     /// <summary>

@@ -168,6 +168,10 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rg32 FromBgr24(Bgr24 source) => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G));
 
     /// <inheritdoc />

@@ -27,13 +27,10 @@ public partial class AniEncoderTests
     [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgb24, AniFrameFormat.Ico, IconFrameCompression.Bmp)]
     [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgb24, AniFrameFormat.Cur, IconFrameCompression.Png)]
     [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgb24, AniFrameFormat.Cur, IconFrameCompression.Bmp)]
-    [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgb24, AniFrameFormat.Bmp, IconFrameCompression.Bmp)]
     public void Encode_IccProfile_PreservesResourceProfiles(TestImageProvider<Rgb24> provider, AniFrameFormat format, IconFrameCompression compression)
     {
         using Image<Rgb24> source = provider.GetImage();
         source.Frames.AddFrame(source.Frames.RootFrame);
-        source.Metadata.GetAniMetadata().BitCount = 32;
-        source.Metadata.GetAniMetadata().Planes = 1;
 
         // The first resource overrides the image profile. The next resource must use the image fallback, not the first profile.
         IccProfile frameProfile = TestIccProfiles.GetProfile(TestIccProfiles.RommRgb);
@@ -45,8 +42,8 @@ public partial class AniEncoderTests
 
         foreach (bool skipMetadata in new[] { false, true })
         {
-            // Raw ANI bitmaps use the full canvas. Icon resources also exercise the top-left crop used for smaller variants.
-            int[] widths = format == AniFrameFormat.Bmp ? [source.Width] : [source.Width, source.Width / 2];
+            // Each resource also exercises the top-left crop used for smaller variants.
+            int[] widths = [source.Width, source.Width / 2];
 
             foreach (int width in widths)
             {

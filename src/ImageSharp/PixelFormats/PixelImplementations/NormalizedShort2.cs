@@ -192,6 +192,10 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedShort2 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static NormalizedShort2 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

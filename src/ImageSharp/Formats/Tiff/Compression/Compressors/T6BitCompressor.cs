@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
@@ -44,21 +45,18 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     /// <inheritdoc />
     public override TiffCompression Method => TiffCompression.CcittGroup4Fax;
 
-    /// <summary>
-    /// Writes a image compressed with CCITT T6 to the output buffer.
-    /// </summary>
-    /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
-    /// <param name="height">The strip height.</param>
-    /// <param name="compressedData">The destination for the compressed data.</param>
-    protected override void CompressStrip(Span<byte> pixelsAsGray, int height, Span<byte> compressedData)
+    /// <inheritdoc/>
+    protected override void EncodeStrip(ReadOnlySpan<byte> pixelsAsGray, int height)
     {
+        CcittBitWriter writer = this.Writer;
+
         // Initial reference line is all white.
         Span<byte> referenceLine = this.referenceLineBuffer.GetSpan();
         referenceLine.Fill(0xff);
 
         for (int y = 0; y < height; y++)
         {
-            Span<byte> row = pixelsAsGray.Slice(y * this.Width, this.Width);
+            ReadOnlySpan<byte> row = pixelsAsGray.Slice(y * this.Width, this.Width);
             uint a0 = 0;
             uint a1 = row[0] == 0 ? 0 : FindRunEnd(row, 0);
             uint b1 = referenceLine[0] == 0 ? 0 : FindRunEnd(referenceLine, 0);
@@ -69,7 +67,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
                 if (b2 < a1)
                 {
                     // Pass mode.
-                    this.WriteCode(4, 1, compressedData);
+                    writer.WriteCode(1, 4);
                     a0 = b2;
                 }
                 else
@@ -88,24 +86,24 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
                     {
                         // Vertical mode.
                         (uint length, uint code) = VerticalCodes[d + 3];
-                        this.WriteCode(length, code, compressedData);
+                        writer.WriteCode(code, (int)length);
                         a0 = a1;
                     }
                     else
                     {
                         // Horizontal mode.
-                        this.WriteCode(3, 1, compressedData);
+                        writer.WriteCode(1, 3);
 
                         uint a2 = FindRunEnd(row, a1);
                         if ((a0 + a1 == 0) || (row[(int)a0] != 0))
                         {
-                            this.WriteRun(a1 - a0, true, compressedData);
-                            this.WriteRun(a2 - a1, false, compressedData);
+                            writer.WriteRun((int)(a1 - a0), true);
+                            writer.WriteRun((int)(a2 - a1), false);
                         }
                         else
                         {
-                            this.WriteRun(a1 - a0, false, compressedData);
-                            this.WriteRun(a2 - a1, true, compressedData);
+                            writer.WriteRun((int)(a1 - a0), false);
+                            writer.WriteRun((int)(a2 - a1), true);
                         }
 
                         a0 = a2;
@@ -127,16 +125,9 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
             row.CopyTo(referenceLine);
         }
 
-        this.WriteCode(12, 1, compressedData);
-        this.WriteCode(12, 1, compressedData);
-    }
-
-    /// <inheritdoc />
-    protected override long GetMaximumEncodedBits(int rowsPerStrip)
-    {
-        // Alternating pixels use at most 29 bits per two-pixel horizontal mode.
-        // Allow 16 bits per pixel, row transition overhead, and the final 24-bit EOFB.
-        return ((((long)this.Width * 16) + 24) * rowsPerStrip) + 24;
+        // EOFB: two EOL codes end the data.
+        writer.WriteEol();
+        writer.WriteEol();
     }
 
     /// <inheritdoc />
@@ -163,16 +154,10 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
             return (uint)row.Length;
         }
 
-        byte colorValue = color ?? row[(int)startIndex];
-        for (int i = (int)startIndex; i < row.Length; i++)
-        {
-            if (row[i] != colorValue)
-            {
-                return (uint)i;
-            }
-        }
-
-        return (uint)row.Length;
+        // The vectorized search finds the first pixel of another color.
+        ReadOnlySpan<byte> rest = row[(int)startIndex..];
+        int end = rest.IndexOfAnyExcept(color ?? rest[0]);
+        return end < 0 ? (uint)row.Length : startIndex + (uint)end;
     }
 
     /// <inheritdoc />
@@ -180,28 +165,5 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     {
         base.Initialize(rowsPerStrip);
         this.referenceLineBuffer = this.Allocator.Allocate<byte>(this.Width);
-    }
-
-    /// <summary>
-    /// Writes a run to the output buffer.
-    /// </summary>
-    /// <param name="runLength">The length of the run.</param>
-    /// <param name="isWhiteRun">If <c>true</c> the run is white pixels,
-    /// if <c>false</c> the run is black pixels.</param>
-    /// <param name="compressedData">The destination to write the run to.</param>
-    private void WriteRun(uint runLength, bool isWhiteRun, Span<byte> compressedData)
-    {
-        uint code;
-        uint codeLength;
-        while (runLength > 63)
-        {
-            uint makeupLength = GetBestFittingMakeupRunLength(runLength);
-            code = GetMakeupCode(makeupLength, out codeLength, isWhiteRun);
-            this.WriteCode(codeLength, code, compressedData);
-            runLength -= makeupLength;
-        }
-
-        code = GetTermCode(runLength, out codeLength, isWhiteRun);
-        this.WriteCode(codeLength, code, compressedData);
     }
 }

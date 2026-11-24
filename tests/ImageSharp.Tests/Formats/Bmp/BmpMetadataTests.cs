@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -14,18 +16,115 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 [Trait("Format", "Bmp")]
 public class BmpMetadataTests
 {
+    /// <summary>
+    /// A clone of the metadata does not share its values with the source.
+    /// </summary>
     [Fact]
     public void CloneIsDeep()
     {
         BmpMetadata meta = new()
-        { BitsPerPixel = BmpBitsPerPixel.Bit24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        {
+            BitsPerPixel = BmpBitsPerPixel.Bit24,
+            ColorType = BmpColorType.Bgr565,
+            InfoHeaderType = BmpInfoHeaderType.Os2Version2,
+            Compression = BmpCompression.RunLength
+        };
+
         BmpMetadata clone = meta.DeepClone();
 
+        Assert.Equal(meta.ColorType, clone.ColorType);
+        Assert.Equal(meta.Compression, clone.Compression);
+
         clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
+        clone.ColorType = BmpColorType.Bgr;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
+        clone.Compression = BmpCompression.None;
 
         Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
+        Assert.False(meta.ColorType.Equals(clone.ColorType));
         Assert.False(meta.InfoHeaderType.Equals(clone.InfoHeaderType));
+        Assert.False(meta.Compression.Equals(clone.Compression));
+    }
+
+    /// <summary>
+    /// Identify reports the compression of the file in the metadata.
+    /// </summary>
+    /// <param name="imagePath">The image path.</param>
+    /// <param name="expectedCompression">The expected compression.</param>
+    [Theory]
+    [InlineData(Bit8, BmpCompression.None)]
+    [InlineData(Car, BmpCompression.None)]
+    [InlineData(RLE8, BmpCompression.RunLength)]
+    [InlineData(RLE4, BmpCompression.RunLength)]
+    [InlineData(RLE24, BmpCompression.RunLength)]
+    [InlineData(Os2v2Huffman1D, BmpCompression.Huffman1D)]
+    public void Identify_DetectsCompression(string imagePath, BmpCompression expectedCompression)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.Equal(expectedCompression, imageInfo.Metadata.GetBmpMetadata().Compression);
+    }
+
+    [Fact]
+    public void FromFormatConnectingMetadata_SelectsColorType()
+    {
+        static BmpMetadata Create(PixelTypeInfo info) => BmpMetadata.FromFormatConnectingMetadata(new FormatConnectingMetadata { PixelTypeInfo = info });
+
+        BmpMetadata bgr565 = Create(Bgr565.GetPixelTypeInfo());
+        BmpMetadata bgra5551 = Create(Bgra5551.GetPixelTypeInfo());
+        BmpMetadata bgr = Create(Rgb24.GetPixelTypeInfo());
+        BmpMetadata bgra = Create(Rgba32.GetPixelTypeInfo());
+        BmpMetadata palette = Create(L8.GetPixelTypeInfo());
+
+        Assert.Equal((BmpBitsPerPixel.Bit16, BmpColorType.Bgr565), (bgr565.BitsPerPixel, bgr565.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit16, BmpColorType.Bgra5551), (bgra5551.BitsPerPixel, bgra5551.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit24, BmpColorType.Bgr), (bgr.BitsPerPixel, bgr.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit32, BmpColorType.Bgra), (bgra.BitsPerPixel, bgra.ColorType));
+        Assert.Equal((BmpBitsPerPixel.Bit8, BmpColorType.Palette), (palette.BitsPerPixel, palette.ColorType));
+    }
+
+    [Theory]
+    [InlineData(Bit8, BmpColorType.Palette)]
+    [InlineData(Rgb16, BmpColorType.Bgr)]
+    [InlineData(Rgb16bfdef, BmpColorType.Bgr)]
+    [InlineData(Rgb16565, BmpColorType.Bgr565)]
+    [InlineData(Rgb16565pal, BmpColorType.Bgr565)]
+    [InlineData(Car, BmpColorType.Bgr)]
+    [InlineData(Bit32Rgb, BmpColorType.Bgr)]
+    [InlineData(Rgb32bf, BmpColorType.Bgr)]
+    [InlineData(Bit32Rgba, BmpColorType.Bgra)]
+    public void Identify_DetectsColorType(string imagePath, BmpColorType expectedColorType)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
+
+        Assert.Equal(expectedColorType, bitmapMetadata.ColorType);
+    }
+
+    /// <summary>
+    /// Each direct color type reports the BGR storage order.
+    /// </summary>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitsPerPixel">The bit depth.</param>
+    /// <param name="expected">The expected color type.</param>
+    [Theory]
+    [InlineData(BmpColorType.Palette, BmpBitsPerPixel.Bit8, PixelColorType.Indexed)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit16, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit24, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgr, BmpBitsPerPixel.Bit32, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgra, BmpBitsPerPixel.Bit32, PixelColorType.BGR | PixelColorType.Alpha)]
+    [InlineData(BmpColorType.Bgr565, BmpBitsPerPixel.Bit16, PixelColorType.BGR)]
+    [InlineData(BmpColorType.Bgra5551, BmpBitsPerPixel.Bit16, PixelColorType.BGR | PixelColorType.Alpha)]
+    public void GetPixelTypeInfo_ReportsStorageOrder(BmpColorType colorType, BmpBitsPerPixel bitsPerPixel, PixelColorType expected)
+    {
+        // A bitmap stores blue first, so each direct color type reports BGR.
+        BmpMetadata metadata = new() { ColorType = colorType, BitsPerPixel = bitsPerPixel };
+
+        Assert.Equal(expected, metadata.GetPixelTypeInfo().ColorType);
     }
 
     [Theory]
@@ -124,6 +223,46 @@ public class BmpMetadataTests
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
         });
+    }
+
+    /// <summary>
+    /// Checks that Identify and Decode do not read the profile data of a linked profile as ICC data.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void DecodeAndIdentify_LinkedProfile_DoesNotReadIccProfile(TestImageProvider<Rgba32> provider)
+    {
+        byte[] encoded = TestFile.Create(provider.SourceFileOrDescription).Bytes.ToArray();
+        Span<byte> infoHeaderData = encoded.AsSpan(BmpFileHeader.Size, BmpInfoHeader.SizeV5);
+        BmpInfoHeader header = BmpInfoHeader.ParseV5(infoHeaderData);
+
+        // A linked profile stores a null-terminated file name at the profile offset. Strict handling throws for any ICC
+        // data that the decoder reads, so the file name must not be read as a profile.
+        byte[] fileName = "profile.icc\0"u8.ToArray();
+        fileName.CopyTo(encoded.AsSpan(BmpFileHeader.Size + header.ProfileData));
+        header.CsType = BmpColorSpace.PROFILE_LINKED;
+        header.ProfileSize = fileName.Length;
+        header.WriteV5Header(infoHeaderData);
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        ImageInfo info = Image.Identify(options, encoded);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
+
+        Assert.Null(info.Metadata.IccProfile);
+        Assert.Null(image.Metadata.IccProfile);
+
+        // The file stores 24-bit B, G, R rows from the bottom up, and each row is padded to a multiple of 4 bytes.
+        // bfOffBits is at byte 10 of the file header. The decoder reads no ICC data, so the image holds the stored colors.
+        Assert.Equal(24, header.BitsPerPixel);
+        Assert.Equal(BmpInfoCompression.Rgb, header.Compression);
+        int pixelOffset = BinaryPrimitives.ReadInt32LittleEndian(encoded.AsSpan(10));
+        int stride = ((header.Width * 3) + 3) & ~3;
+        using Image<Bgr24> stored = Image.LoadPixelData<Bgr24>(encoded.AsSpan(pixelOffset, stride * header.Height), header.Width, header.Height, stride);
+        stored.Mutate(x => x.Flip(FlipMode.Vertical));
+
+        Assert.Equal(stored.Size, info.Size);
+        ImageComparer.Exact.VerifySimilarity(stored, image);
     }
 
     /// <summary>

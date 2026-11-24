@@ -633,6 +633,113 @@ public class GifDecoderTests
     }
 
     /// <summary>
+    /// Keeps the decoded rows by default when the LZW data of a frame ends early.
+    /// Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedFrameData_RespectsIntegrityHandling()
+    {
+        byte[] complete = TestFile.Create(TestImages.Gif.Rings).Bytes;
+
+        // The stored file has one frame. Half of the file ends inside its LZW data.
+        byte[] data = complete.AsSpan(0, complete.Length / 2).ToArray();
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        // The default options ignore image data errors. The frame has no interlace, so the decoder writes its pixels in
+        // row order. The indices after the end of the LZW data are 0. The frame has no transparent index, so those
+        // pixels get color 0 of the global color table. That table follows the 13-byte header and screen descriptor.
+        Rgba32 fill = new(complete[13], complete[14], complete[15], byte.MaxValue);
+        using Image<Rgba32> full = Image.Load<Rgba32>(complete);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        using Image<Rgba32> expected = PartialDecodeExpectation.Create(full.Frames.RootFrame, actual.Frames.RootFrame, 1, false, _ => fill);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Decodes a file that has complete frames but no trailer in every integrity mode.
+    /// A missing trailer is not damaged image data.
+    /// </summary>
+    [Fact]
+    public void Decode_MissingTrailer_IsNotImageDataError()
+    {
+        byte[] complete = TestFile.Create(TestImages.Gif.Rings).Bytes;
+
+        // The last byte of the stored file is the trailer.
+        byte[] data = complete.AsSpan(0, complete.Length - 1).ToArray();
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// The data sub-blocks of a frame end before its last index. By default, the decoder keeps the decoded rows of the
+    /// frame and decodes the next frame. Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    [Fact]
+    public void Decode_FrameDataEndsBeforeLastIndex_DecodesNextFrame()
+    {
+        // GIF89a, sections 18 to 22 and Appendix F. https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        // The 4 x 4 screen has a global color table with 4 colors: black, red, green and blue.
+        // Each frame covers the screen and has LZW minimum code size 2. Thus, the clear code is 4, the end code is 5,
+        // and each code has 3 bits. The codes repeat clear, index, index, so the code size does not increase.
+        // The single sub-block of frame 1 holds the codes of 8 red pixels and a clear code. The block terminator
+        // follows, so the data ends before the last 8 indices. Frame 2 holds the codes of 16 green pixels and the end code.
+        byte[] data =
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x04, 0x00, 0x04, 0x00, 0x81, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x05, 0x4C, 0x98, 0x30, 0x61, 0x42, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x3B
+        ];
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        // The default options ignore image data errors. The two decoded rows of frame 1 are red. The indices after the
+        // end of the data are 0. The frames have no transparent index, so the last two rows get color 0, black.
+        // Frame 2 loses no bytes to frame 1, so it is completely green.
+        Rgba32 black = new(0, 0, 0);
+        Rgba32 red = new(255, 0, 0);
+        Rgba32[] firstFrame = [.. Enumerable.Repeat(red, 8), .. Enumerable.Repeat(black, 8)];
+        using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(firstFrame, 4, 4);
+        using (Image<Rgba32> secondFrame = new(4, 4, new Rgba32(0, 255, 0)))
+        {
+            expected.Frames.AddFrame(secondFrame.Frames.RootFrame);
+        }
+
+        ImageInfo info = Image.Identify(data);
+        Assert.Equal(2, info.FrameMetadataCollection.Count);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Clips stored frame rows to the logical screen without changing interlace order or later frame parsing.
     /// </summary>
     /// <param name="path">The stored GIF with a four-color row pattern and a second frame containing one white pixel.</param>

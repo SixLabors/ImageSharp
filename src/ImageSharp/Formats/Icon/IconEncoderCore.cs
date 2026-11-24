@@ -189,10 +189,17 @@ internal abstract class IconEncoderCore
                             ProcessedAlphaMask = true,
                             UseDoubleHeight = true,
                             SkipFileHeader = true,
-                            SupportTransparency = false,
                             TransparentColorMode = this.encoder.TransparentColorMode,
                             PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                             BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
+
+                            // ICONIMAGE uses only six BITMAPINFOHEADER members, and "All other members must be 0", so
+                            // biCompression is 0 (BI_RGB): https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+                            // BI_RGB stores a palette, or BGR without masks. A 32-bit icon keeps alpha in the fourth byte
+                            // of each pixel, which BI_RGB does not define. The encoder sets the compression, so the BMP
+                            // metadata of the image cannot select RLE.
+                            ColorType = encodingMetadata.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8 ? BmpColorType.Palette : BmpColorType.Bgr,
+                            Compression = BmpCompression.None,
                             SkipMetadata = this.encoder.SkipMetadata
                         };
 
@@ -276,8 +283,8 @@ internal abstract class IconEncoderCore
             });
         }
 
-        // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(colorTable.Value, new QuantizerOptions { Dither = null });
+        // Keep the colors of the palette.
+        return EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.encoder.TransparentColorMode);
     }
 
     /// <summary>

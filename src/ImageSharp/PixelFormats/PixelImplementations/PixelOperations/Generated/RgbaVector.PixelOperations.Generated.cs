@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -72,6 +71,10 @@ public partial struct RgbaVector
 
         /// <inheritdoc />
         public override void FromBgra5551(Configuration configuration, ReadOnlySpan<Bgra5551> source, Span<RgbaVector> destination)
+            => this.From(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void FromBgr565(Configuration configuration, ReadOnlySpan<Bgr565> source, Span<RgbaVector> destination)
             => this.From(configuration, source, destination);
 
         /// <inheritdoc />

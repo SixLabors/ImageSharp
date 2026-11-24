@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -100,7 +102,7 @@ public class ObuFrameLifecycleTests
         // A standalone frame-header OBU selects retained slot zero. The payload contains show_existing_frame, the
         // three-bit slot index, and the required trailing-one bit; no tile-group OBU follows it.
         byte[] showExistingFrame = [0x1A, 0x01, 0x88];
-        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex);
+        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, SegmentIntegrityHandling.Strict);
         using ImageFrame<Rgba32> reconstructed = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
         decoder.DecodeSequenceFrame(
             bitStream,
@@ -136,6 +138,62 @@ public class ObuFrameLifecycleTests
         }
 
         Assert.Null(decoder.FrameInfo);
+    }
+
+    /// <summary>
+    /// Verifies that a payload that ends inside the header of its last OBU throws in strict mode. In the
+    /// IgnoreImageData mode, the decoder keeps the frames before that header. Thus the output equals the output of
+    /// the payload without the partial header.
+    /// </summary>
+    [Fact]
+    public void DecodeKeepsFramesWhenPayloadEndsInsideObuHeader()
+    {
+        // 0x12 is the header of a temporal delimiter OBU with obu_has_size_field set. The payload ends before the
+        // size field.
+        byte[] truncated = [.. ProgressiveTwoFrameObuStream, 0x12];
+        using Image<Rgba32> expected = DecodeProgressiveStream([.. ProgressiveTwoFrameObuStream], SegmentIntegrityHandling.Strict);
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = DecodeProgressiveStream(truncated, SegmentIntegrityHandling.Strict);
+        });
+
+        using Image<Rgba32> actual = DecodeProgressiveStream(truncated, SegmentIntegrityHandling.IgnoreImageData);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Decodes a progressive two-layer payload as one sequence sample.
+    /// </summary>
+    /// <param name="bitStream">The AV1 payload.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decoder.</param>
+    /// <returns>The presented frame.</returns>
+    private static Image<Rgba32> DecodeProgressiveStream(byte[] bitStream, SegmentIntegrityHandling integrityHandling)
+    {
+        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, integrityHandling);
+        Image<Rgba32> image = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
+        try
+        {
+            ImageFrame<Rgba32> frame = image.Frames.RootFrame;
+            decoder.DecodeSequenceFrame(
+                bitStream,
+                null,
+                null,
+                frame.Size,
+                frame.Bounds,
+                frame.PixelBuffer.GetRegion(frame.Bounds),
+                default,
+                null,
+                null,
+                false);
+
+            return image;
+        }
+        catch
+        {
+            image.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

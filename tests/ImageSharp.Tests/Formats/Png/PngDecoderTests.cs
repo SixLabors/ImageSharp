@@ -705,15 +705,24 @@ public partial class PngDecoderTests
         Assert.Contains("Invalid or unsupported color type", ex.Message);
     }
 
+    /// <summary>
+    /// Checks that an IDAT chunk with a wrong CRC throws in the modes that do not ignore image data errors.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="provider">The test image provider.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
     [Theory]
-    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32)]
-    public void Decode_InvalidDataChunkCrc_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32, SegmentIntegrityHandling.Strict)]
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32, SegmentIntegrityHandling.IgnoreAncillary)]
+    public void Decode_InvalidDataChunkCrc_ThrowsException<TPixel>(TestImageProvider<TPixel> provider, SegmentIntegrityHandling integrity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+                using Image<TPixel> image = provider.GetImage(
+                    PngDecoder.Instance,
+                    new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = integrity });
             });
         Assert.NotNull(ex);
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);

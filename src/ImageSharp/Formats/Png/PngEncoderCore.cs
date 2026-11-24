@@ -614,15 +614,8 @@ internal sealed class PngEncoderCore : IDisposable
         switch (this.colorType)
         {
             case PngColorType.Palette:
-                if (this.bitDepth < 8)
-                {
-                    PngEncoderHelpers.ScaleDownFrom8BitArray(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
-                }
-                else
-                {
-                    quantized?.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
-                }
-
+                // The palette has at most 2^bitDepth entries, so each index fits in bitDepth bits.
+                EncodingUtilities.PackIndices(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                 break;
             case PngColorType.Grayscale:
             case PngColorType.GrayscaleWithAlpha:
@@ -701,15 +694,7 @@ internal sealed class PngEncoderCore : IDisposable
         ref Span<byte> attempt)
     {
         // CollectPixelBytes
-        if (this.bitDepth < 8)
-        {
-            PngEncoderHelpers.ScaleDownFrom8BitArray(row, this.currentScanline.GetSpan(), this.bitDepth);
-        }
-        else
-        {
-            row.CopyTo(this.currentScanline.GetSpan());
-        }
-
+        EncodingUtilities.PackIndices(row, this.currentScanline.GetSpan(), this.bitDepth);
         this.FilterPixelBytes(ref filter, ref attempt);
     }
 
@@ -1475,6 +1460,12 @@ internal sealed class PngEncoderCore : IDisposable
             int startRow = Adam7.FirstRow[pass];
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(pixels.Width, pass);
+            if (blockWidth == 0)
+            {
+                // An image less than five pixels wide has passes without columns. Such a pass is empty and has no
+                // filter type bytes. See PNG Third Edition, section 9.1 "Filter methods and filter types".
+                continue;
+            }
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8
@@ -1562,6 +1553,12 @@ internal sealed class PngEncoderCore : IDisposable
             int startRow = Adam7.FirstRow[pass];
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(quantized.Width, pass);
+            if (blockWidth == 0)
+            {
+                // A pass without columns is empty and has no filter type bytes. See PNG Third Edition, section 9.1
+                // "Filter methods and filter types".
+                continue;
+            }
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8
@@ -1803,10 +1800,8 @@ internal sealed class PngEncoderCore : IDisposable
         {
             if (metadata.ColorTable?.Length > 0)
             {
-                // We can use the color data from the decoded metadata here.
-                // We avoid dithering by default to preserve the original colors.
-                QuantizerOptions options = new() { Dither = null, TransparentColorMode = encoder.TransparentColorMode };
-                this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, options);
+                // We can use the color data from the decoded metadata here, and keep its colors.
+                this.quantizer = EncodingUtilities.CreateDecodedPaletteQuantizer(metadata.ColorTable.Value, encoder.TransparentColorMode);
             }
             else
             {

@@ -14,9 +14,10 @@ public sealed class TgaEncoder : AlphaAwareImageEncoder
     public TgaBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether no compression or run length compression should be used.
+    /// Gets the compression of the pixel data. If the value is <see langword="null"/>, the encoder uses
+    /// <see cref="TgaMetadata.Compression"/>.
     /// </summary>
-    public TgaCompression Compression { get; init; } = TgaCompression.RunLength;
+    public TgaCompression? Compression { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

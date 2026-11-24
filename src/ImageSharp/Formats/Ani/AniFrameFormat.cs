@@ -16,10 +16,5 @@ public enum AniFrameFormat : byte
     /// <summary>
     /// The frame resource is encoded as a Windows icon.
     /// </summary>
-    Ico,
-
-    /// <summary>
-    /// The frame resource is encoded as a Windows bitmap.
-    /// </summary>
-    Bmp
+    Ico
 }

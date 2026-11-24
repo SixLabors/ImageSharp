@@ -157,6 +157,10 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb96 FromBgr24(Bgr24 source)
         => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 

@@ -162,7 +162,7 @@ internal sealed class HeifSequenceParser
         {
             ValidateAlphaTrack(colorTrack, alphaTrack);
         }
-        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
+        catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
         {
             // Alpha is optional image data. IgnoreImageData permits a malformed auxiliary sequence to be omitted while
             // retaining the independently decodable color presentation.
@@ -304,7 +304,7 @@ internal sealed class HeifSequenceParser
                 stream.Position = metadata.Offset;
                 track.Metadata = this.metadataParser.Parse(stream, metadata.Length, readBuffer);
             }
-            catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
+            catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
             {
                 // The validated parent range lets decoding continue safely without this optional metadata box.
             }
@@ -963,7 +963,7 @@ internal sealed class HeifSequenceParser
                         {
                             ParseTrackImageProperty(stream, childLength, childType, track, readBuffer);
                         }
-                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
+                        catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // The complete child range remains known, so optional metadata can be discarded safely.
                         }
@@ -977,7 +977,7 @@ internal sealed class HeifSequenceParser
                     {
                         ParseTrackImageProperty(stream, childLength, childType, track, readBuffer);
                     }
-                    catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
+                    catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
                     {
                         // IgnoreImageData permits a recoverable presentation property to be omitted.
                     }
@@ -1125,7 +1125,7 @@ internal sealed class HeifSequenceParser
                 prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, 11, "color information");
                 track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
             }
-            catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
+            catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
             {
                 // IgnoreImageData permits the decoder to fall back to the coded sequence's color description.
             }
@@ -1143,9 +1143,9 @@ internal sealed class HeifSequenceParser
                 track.IccProfile = HeifPropertyParser.ParseIccProfile(
                     stream,
                     boxLength - 4,
-                    this.options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+                    this.options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
             }
-            catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
+            catch (Exception ex) when (this.options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
             {
                 // A malformed optional ICC profile does not invalidate the coded image outside strict mode.
             }
@@ -1562,7 +1562,12 @@ internal sealed class HeifSequenceParser
             ulong chunkOffset = entrySize == 8 ? reader.ReadUInt64() : reader.ReadUInt32();
             if (chunkOffset > (ulong)fileLength)
             {
-                throw new InvalidImageContentException("An image-sequence chunk offset extends beyond the file.");
+                // The file ends before this chunk. IgnoreImageData keeps the samples before the end. The samples of this
+                // chunk then have no bytes, and the decoder skips them.
+                this.options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
+                    "An image-sequence chunk offset extends beyond the file.");
+
+                chunkOffset = (ulong)fileLength;
             }
 
             uint chunkNumber = chunkIndex + 1;
@@ -1579,7 +1584,14 @@ internal sealed class HeifSequenceParser
                 ulong sampleEnd = checked(sampleOffset + (uint)sample.Length);
                 if (sampleEnd > (ulong)fileLength || sampleOffset > long.MaxValue)
                 {
-                    throw new InvalidImageContentException("An image-sequence sample extends beyond the file.");
+                    // The file ends inside or before this sample. IgnoreImageData keeps the bytes that the file holds, so
+                    // the sample decodes in part. The decoder skips a sample with no bytes.
+                    this.options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
+                        "An image-sequence sample extends beyond the file.");
+
+                    sampleOffset = Math.Min(sampleOffset, (ulong)fileLength);
+                    sampleEnd = (ulong)fileLength;
+                    sample.Length = (int)(sampleEnd - sampleOffset);
                 }
 
                 sample.Offset = (long)sampleOffset;

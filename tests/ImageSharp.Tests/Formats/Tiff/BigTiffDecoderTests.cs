@@ -32,13 +32,20 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Both files store Modified Huffman data with PhotometricInterpretation BlackIsZero. For BlackIsZero CCITT data, a
+    /// TIFF reader reverses the meaning of white and black (TIFF 6.0 specification, section 10, page 44). Thus the
+    /// decode matches the reference decoder.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="provider">The test image provider.</param>
     [Theory]
     [WithFile(Damaged_MinIsWhite_RLE, PixelTypes.Rgba32)]
     [WithFile(Damaged_MinIsBlack_RLE, PixelTypes.Rgba32)]
-    public void DamagedFiles<TPixel>(TestImageProvider<TPixel> provider)
+    public void ModifiedHuffmanBlackIsZero_MatchesReference<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
+        TestTiffDecoder(provider);
 
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         ExifProfile exif = image.Frames.RootFrame.Metadata.ExifProfile;

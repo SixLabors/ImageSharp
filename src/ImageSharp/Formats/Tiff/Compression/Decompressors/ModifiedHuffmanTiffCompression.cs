@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,96 +13,55 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
 {
-    private readonly byte whiteValue;
+    private readonly CcittBitOrder bitOrder;
 
-    private readonly byte blackValue;
+    /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ModifiedHuffmanTiffCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="fillOrder">The logical order of bits within a byte.</param>
+    /// <param name="bitOrder">The order of the code bits in each byte.</param>
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
-    /// <param name="photometricInterpretation">The photometric interpretation.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public ModifiedHuffmanTiffCompression(
         MemoryAllocator allocator,
-        TiffFillOrder fillOrder,
+        CcittBitOrder bitOrder,
         int width,
         int bitsPerPixel,
-        TiffPhotometricInterpretation photometricInterpretation)
+        SegmentIntegrityHandling integrityHandling)
         : base(allocator, width, bitsPerPixel)
     {
-        this.FillOrder = fillOrder;
-        bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-        this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
-        this.blackValue = (byte)(isWhiteZero ? 1 : 0);
+        this.bitOrder = bitOrder;
+        this.integrityHandling = integrityHandling;
     }
-
-    /// <summary>
-    /// Gets the logical order of bits within a byte.
-    /// </summary>
-    private TiffFillOrder FillOrder { get; }
-
-    /// <inheritdoc/>
-    /// <remarks>The fax decoder clears the sample buffer before each block and checks the range of every write.</remarks>
-    protected override bool CanDiscardFailedBlock => true;
 
     /// <inheritdoc/>
     protected override void Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        ModifiedHuffmanBitReader bitReader = new(stream, this.FillOrder, byteCount);
-
+        // The sample rows hold 1 for a black pixel of the code. The TIFF color decoder applies the photometric
+        // interpretation, which reverses white and black for BlackIsZero. See TIFF 6.0 specification, section 10, page 44.
         buffer.Clear();
-        nint bitsWritten = 0;
-        nuint pixelsWritten = 0;
-        nint rowsWritten = 0;
-        while (bitReader.HasMoreData)
+
+        // Each sample row holds 1 bit for each pixel and starts on a byte boundary.
+        int rowBytes = (this.Width + 7) / 8;
+        ModifiedHuffmanRowDecoder decoder = new(stream, this.bitOrder, byteCount, this.Width);
+        for (int y = 0; y < stripHeight; y++)
         {
-            bitReader.ReadNextRun();
+            decoder.DecodeRow(buffer.Slice(y * rowBytes, rowBytes));
+        }
 
-            if (bitReader.RunLength > 0)
-            {
-                // A decoded run is untrusted and must fit the current row before the unchecked bit writer is used.
-                if (bitReader.RunLength > (nuint)this.Width - pixelsWritten)
-                {
-                    TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
-                }
-
-                if (bitReader.IsWhiteRun)
-                {
-                    BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
-                }
-                else
-                {
-                    BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.blackValue);
-                }
-
-                bitsWritten += (int)bitReader.RunLength;
-                pixelsWritten += bitReader.RunLength;
-            }
-
-            if (pixelsWritten == (ulong)this.Width)
-            {
-                rowsWritten++;
-                pixelsWritten = 0;
-
-                // Write padding bits, if necessary.
-                nint pad = 8 - Numerics.Modulo8(bitsWritten);
-                if (pad != 8)
-                {
-                    BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
-                    bitsWritten += pad;
-                }
-
-                if (rowsWritten >= stripHeight)
-                {
-                    break;
-                }
-
-                bitReader.StartNewRow();
-            }
+        // In the IgnoreImageData mode, the strip or tile keeps the decoded rows, and the other rows stay 0. In the other
+        // modes, damaged data throws.
+        if (decoder.IsDamaged)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF CCITT Modified Huffman data is damaged or ends before the strip or tile is complete.");
         }
     }
 

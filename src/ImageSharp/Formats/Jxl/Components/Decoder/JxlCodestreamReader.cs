@@ -31,6 +31,12 @@ internal sealed class JxlCodestreamReader
     private readonly List<(uint Type, long Offset, long Length)> boxes = [];
     private readonly long codestreamOrigin;
 
+    /// <summary>
+    /// The segment integrity mode. It controls if a codestream that ends before its final fragment throws, and if a
+    /// damaged metadata box throws.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
     // Container ranges are indexed in logical order as fragment sequencing discovers them.
     // Seeking reuses these validated ranges without revisiting box headers or retaining payload bytes.
     private List<(long LogicalOffset, long PhysicalOffset, long Length)>? fragments;
@@ -52,12 +58,17 @@ internal sealed class JxlCodestreamReader
     private bool hasLevel;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlCodestreamReader"/> class and reads the file signature and type.
+    /// Initializes a new instance of the <see cref="JxlCodestreamReader"/> class. It reads the file signature and type,
+    /// and it finds every codestream fragment of a container.
     /// </summary>
     /// <param name="stream">The buffered, seekable input owned by the decoder core.</param>
-    public JxlCodestreamReader(BufferedReadStream stream)
+    /// <param name="integrityHandling">
+    /// The segment integrity mode. It controls if a container whose codestream ends before its final fragment throws.
+    /// </param>
+    public JxlCodestreamReader(BufferedReadStream stream, SegmentIntegrityHandling integrityHandling)
     {
         this.stream = stream;
+        this.integrityHandling = integrityHandling;
         long start = stream.Position;
         this.codestreamOrigin = start;
         this.MaximumLength = stream.Length - start;
@@ -101,6 +112,22 @@ internal sealed class JxlCodestreamReader
         {
             throw new InvalidImageContentException("The JPEG XL container brand or version is not supported.");
         }
+
+        // The reader reads the box structure before the decoder reads image data, as the HEIF decoder does. Thus a
+        // container error throws here in each mode, and the image data policy of the decoder never sees it.
+        while (!this.lastFragment)
+        {
+            this.Position += this.fragmentRemaining;
+            this.fragmentRemaining = 0;
+            this.DiscoverNextFragment();
+        }
+
+        if (this.pendingFragments is not null && this.pendingFragments.Count != 0)
+        {
+            throw new InvalidImageContentException("The JPEG XL container contains fragments after its final fragment.");
+        }
+
+        this.SelectFragment(this.fragments!, 0, 0);
     }
 
     /// <summary>
@@ -127,8 +154,8 @@ internal sealed class JxlCodestreamReader
     /// <exception cref="InvalidImageContentException">The offset is negative or crosses an invalid container boundary.</exception>
     public bool TrySeek(long position)
     {
-        // TOC offsets come from untrusted lengths. The physical file supplies a conservative first bound;
-        // fragment traversal below also validates the actual logical end and every required container box.
+        // TOC offsets come from untrusted lengths. The physical file length is the first bound. The fragments that
+        // the constructor found give the actual logical end.
         if (position < 0)
         {
             throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
@@ -147,7 +174,7 @@ internal sealed class JxlCodestreamReader
             return true;
         }
 
-        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments ?? this.OpenNextFragment();
+        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments!;
         (long LogicalOffset, long PhysicalOffset, long Length) last = ranges[^1];
         long frontier = last.LogicalOffset + last.Length;
         if (position > frontier)
@@ -192,8 +219,7 @@ internal sealed class JxlCodestreamReader
     /// <returns>The bytes read, or zero at the logical end. A read can stop at a fragment boundary.</returns>
     public int Read(Span<byte> destination)
     {
-        // Return after reading one physical range. A malformed later box must not discard bytes already delivered
-        // from this fragment. The core can then apply its image-data recovery policy after decoding available data.
+        // Return after reading one physical range, so the caller gets the bytes of each fragment in turn.
         while (this.fragmentRemaining == 0 && this.MoveToNextFragment())
         {
         }
@@ -207,7 +233,6 @@ internal sealed class JxlCodestreamReader
 
     /// <summary>
     /// Skips logical codestream bytes without copying their payloads into a temporary buffer.
-    /// Missing fragments and invalid container boxes remain fatal.
     /// </summary>
     /// <param name="count">The nonnegative byte count supplied by the header parser.</param>
     /// <returns>Whether the complete range was skipped. False leaves the reader at the final logical codestream end.</returns>
@@ -222,8 +247,7 @@ internal sealed class JxlCodestreamReader
             long step = Math.Min(count, this.fragmentRemaining);
             if (step == 0)
             {
-                // Only a known final fragment can reach this result. Opening a missing or malformed
-                // fragment throws above; callers must not treat those container errors as a short image payload.
+                // The reader is at the end of the last fragment.
                 return false;
             }
 
@@ -241,7 +265,7 @@ internal sealed class JxlCodestreamReader
     /// </summary>
     /// <remarks>
     /// This skips remaining codestream bytes without decoding them, including frames omitted by MaxFrames.
-    /// Box bounds and fragment sequencing remain mandatory after recovery of a short image payload.
+    /// The constructor already found every fragment, so this method reads only the boxes after the last fragment.
     /// </remarks>
     public void Complete()
     {
@@ -250,28 +274,11 @@ internal sealed class JxlCodestreamReader
             return;
         }
 
-        if (this.fragments is not null)
-        {
-            // Random section reads can leave the current position behind the discovery frontier.
-            // Resume from the last validated range; box and sequence state already describe that point.
-            (long LogicalOffset, long PhysicalOffset, long Length) last = this.fragments[^1];
-            this.SelectFragment(this.fragments, this.fragments.Count - 1, last.LogicalOffset + last.Length);
-        }
-
-        // Fragment boundaries belong to the container. Skip bytes by file position; do not materialize unrequested frames.
-        while (!this.lastFragment)
-        {
-            this.Position += this.fragmentRemaining;
-            this.fragmentRemaining = 0;
-            this.OpenNextFragment();
-        }
-
-        this.Position += this.fragmentRemaining;
-        this.fragmentRemaining = 0;
-        if (this.pendingFragments is not null && this.pendingFragments.Count != 0)
-        {
-            throw new InvalidImageContentException("The JPEG XL container contains fragments after its final fragment.");
-        }
+        // Random section reads can leave the current position before the end of the last fragment.
+        // Resume at that end. The box and sequence state already describe that point.
+        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments!;
+        (long LogicalOffset, long PhysicalOffset, long Length) last = ranges[^1];
+        this.SelectFragment(ranges, ranges.Count - 1, last.LogicalOffset + last.Length);
 
         // Buffered reads can stop inside the last payload. Resume at the next physical box, even when
         // no boxes follow it. Version-one fragments can also finish in an earlier physical payload.
@@ -337,7 +344,8 @@ internal sealed class JxlCodestreamReader
                 // so validate it under the core's ancillary policy without reading into the following box.
                 if (length < sizeof(uint))
                 {
-                    throw new InvalidImageContentException("The JPEG XL compressed metadata type is incomplete.");
+                    this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL compressed metadata type is incomplete.");
+                    return;
                 }
 
                 InlineArray4<byte> typeStorage = default;
@@ -346,7 +354,8 @@ internal sealed class JxlCodestreamReader
                 type = BinaryPrimitives.ReadUInt32BigEndian(typeBytes);
                 if (type is JxlConstants.CompressedMetadataBox or JxlConstants.JpegReconstructionBox || (type >> 8) == 0x6A786C)
                 {
-                    throw new InvalidImageContentException("The JPEG XL compressed metadata wraps a forbidden box type.");
+                    this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL compressed metadata wraps a forbidden box type.");
+                    return;
                 }
 
                 if (type is not (JxlConstants.ExifBox or JxlConstants.XmlBox))
@@ -386,7 +395,8 @@ internal sealed class JxlCodestreamReader
                         offset += consumed;
                         if (written > Array.MaxLength - decoded.Length)
                         {
-                            throw new InvalidImageContentException("The JPEG XL metadata exceeds the supported profile size.");
+                            this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL metadata exceeds the supported profile size.");
+                            return;
                         }
 
                         decoded.Write(output[..written]);
@@ -396,7 +406,8 @@ internal sealed class JxlCodestreamReader
                             // Extra compressed bytes cannot be interpreted as another profile or codestream.
                             if (remaining != 0 || offset != available)
                             {
-                                throw new InvalidImageContentException("The JPEG XL compressed metadata contains trailing bytes.");
+                                this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL compressed metadata contains trailing bytes.");
+                                return;
                             }
 
                             break;
@@ -404,7 +415,8 @@ internal sealed class JxlCodestreamReader
 
                         if (status == OperationStatus.InvalidData || (status == OperationStatus.NeedMoreData && remaining == 0))
                         {
-                            throw new InvalidImageContentException("The JPEG XL compressed metadata is invalid or incomplete.");
+                            this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL compressed metadata is invalid or incomplete.");
+                            return;
                         }
                     }
                 }
@@ -414,11 +426,11 @@ internal sealed class JxlCodestreamReader
                 }
 
                 decoded.Position = 0;
-                ApplyProfile(decoded, decoded.Length, type, metadata);
+                this.ApplyProfile(decoded, decoded.Length, type, metadata);
             }
             else
             {
-                ApplyProfile(this.stream, length, type, metadata);
+                this.ApplyProfile(this.stream, length, type, metadata);
             }
         }
         finally
@@ -436,13 +448,14 @@ internal sealed class JxlCodestreamReader
     /// <param name="length">The exact payload byte count.</param>
     /// <param name="type">The EXIF or XML box type.</param>
     /// <param name="metadata">The image metadata receiving the profile.</param>
-    private static void ApplyProfile(Stream stream, long length, uint type, ImageMetadata metadata)
+    private void ApplyProfile(Stream stream, long length, uint type, ImageMetadata metadata)
     {
         if (type == JxlConstants.XmlBox)
         {
             if (!XmpReader.TryReadProfile(stream, length, out XmpProfile? profile))
             {
-                throw new InvalidImageContentException("The JPEG XL XMP box payload is incomplete.");
+                this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL XMP box payload is incomplete.");
+                return;
             }
 
             metadata.XmpProfile = profile ?? metadata.XmpProfile;
@@ -453,7 +466,8 @@ internal sealed class JxlCodestreamReader
         {
             if (length < sizeof(uint))
             {
-                throw new InvalidImageContentException("The JPEG XL EXIF offset field is incomplete.");
+                this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL EXIF offset field is incomplete.");
+                return;
             }
 
             InlineArray4<byte> storage = default;
@@ -463,7 +477,8 @@ internal sealed class JxlCodestreamReader
             length -= sizeof(uint);
             if (length < 8 || offset > (ulong)(length - 8))
             {
-                throw new InvalidImageContentException("The JPEG XL EXIF TIFF-header offset exceeds its payload.");
+                this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL EXIF TIFF-header offset exceeds its payload.");
+                return;
             }
 
             // The offset counts from the byte following its own field. Keep the TIFF header and all
@@ -474,7 +489,8 @@ internal sealed class JxlCodestreamReader
 
         if (!ExifReader.TryReadProfile(stream, length, out ExifProfile? exifProfile))
         {
-            throw new InvalidImageContentException("The JPEG XL EXIF box payload is incomplete.");
+            this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL EXIF box payload is incomplete.");
+            return;
         }
 
         // Validate lazy EXIF entries under the box's ancillary error policy.
@@ -483,10 +499,16 @@ internal sealed class JxlCodestreamReader
     }
 
     /// <summary>
-    /// Opens the next undiscovered logical fragment and retains intervening metadata box ranges.
+    /// Discovers the next logical fragment and retains intervening metadata box ranges.
     /// </summary>
-    /// <returns>The discovered fragment ranges, including the newly opened fragment.</returns>
-    private List<(long LogicalOffset, long PhysicalOffset, long Length)> OpenNextFragment()
+    /// <remarks>
+    /// The reader treats a codestream that ends before its final fragment as truncated image data. The HEIF decoder
+    /// treats a media data box that ends early in the same way. The codestream box can extend past the end of the file,
+    /// or the file can end before the next fragment.
+    /// The Strict and IgnoreAncillary modes throw. The IgnoreImageData mode keeps the codestream bytes that the file
+    /// holds. Other box errors throw in each mode.
+    /// </remarks>
+    private void DiscoverNextFragment()
     {
         // A version-one fragment found earlier can now become the next logical fragment. Removing its index entry
         // releases only metadata; the payload has remained in the caller's stream throughout.
@@ -496,7 +518,8 @@ internal sealed class JxlCodestreamReader
             this.fragmentRemaining = pending.Length;
             this.lastFragment = pending.IsLast;
             this.nextFragmentIndex++;
-            return this.RetainFragment(pending.Offset, pending.Length);
+            this.RetainFragment(pending.Offset, pending.Length);
+            return;
         }
 
         InlineArray16<byte> storage = default;
@@ -505,9 +528,19 @@ internal sealed class JxlCodestreamReader
         {
             // BufferedReadStream also monitors cancellation on seeks. Box traversal performs no sample-level checks.
             this.stream.Position = this.nextBoxPosition;
-            long length = IsoBoxReader.ReadHeader(this.stream, this.stream.Length, header, out uint type, true);
+            long length = IsoBoxReader.ReadHeader(this.stream, this.stream.Length, header, out uint type, true, out bool truncated);
             long offset = this.stream.Position;
             this.nextBoxPosition = offset + length;
+            if (truncated)
+            {
+                if (type is not (JxlConstants.CompleteCodestreamBox or JxlConstants.PartialCodestreamBox))
+                {
+                    throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
+                }
+
+                // The box holds the last codestream bytes of the file.
+                this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG XL codestream box extends beyond the end of the file.");
+            }
 
             if (type == JxlConstants.CompleteCodestreamBox)
             {
@@ -519,13 +552,20 @@ internal sealed class JxlCodestreamReader
                 this.hasCodestream = true;
                 this.lastFragment = true;
                 this.fragmentRemaining = length;
-                return this.RetainFragment(offset, length);
+                this.RetainFragment(offset, length);
+                return;
             }
 
             if (type == JxlConstants.PartialCodestreamBox)
             {
                 if (length < sizeof(uint))
                 {
+                    if (truncated)
+                    {
+                        // The file ends inside the sequence number, so the box holds no codestream bytes.
+                        break;
+                    }
+
                     throw new InvalidImageContentException("The JPEG XL fragment sequence number is incomplete.");
                 }
 
@@ -546,7 +586,8 @@ internal sealed class JxlCodestreamReader
                     this.nextFragmentIndex++;
                     this.lastFragment = last;
                     this.fragmentRemaining = length;
-                    return this.RetainFragment(offset, length);
+                    this.RetainFragment(offset, length);
+                    return;
                 }
 
                 // Version one permits out-of-order fragments. Keep just their validated file ranges; finding a
@@ -567,11 +608,20 @@ internal sealed class JxlCodestreamReader
             }
         }
 
-        throw new InvalidImageContentException("The JPEG XL codestream is missing a fragment or its final-fragment flag.");
+        // The file ends before the final fragment. Later fragments that the reader found out of order follow a missing
+        // fragment, so the decoder cannot use them.
+        this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG XL codestream is missing a fragment or its final-fragment flag.");
+        if (this.fragments is null)
+        {
+            throw new InvalidImageContentException("The JPEG XL container holds no codestream bytes.");
+        }
+
+        this.lastFragment = true;
+        this.pendingFragments = null;
     }
 
     /// <summary>
-    /// Advances through cached ranges before discovering another container fragment.
+    /// Moves to the next fragment that the constructor found.
     /// </summary>
     /// <returns>Whether another logical fragment is available.</returns>
     private bool MoveToNextFragment()
@@ -583,13 +633,7 @@ internal sealed class JxlCodestreamReader
             return true;
         }
 
-        if (this.lastFragment)
-        {
-            return false;
-        }
-
-        this.OpenNextFragment();
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -597,13 +641,11 @@ internal sealed class JxlCodestreamReader
     /// </summary>
     /// <param name="offset">The validated physical payload start.</param>
     /// <param name="length">The validated payload length, excluding its sequence number.</param>
-    /// <returns>The retained range list, which is created only for a container.</returns>
-    private List<(long LogicalOffset, long PhysicalOffset, long Length)> RetainFragment(long offset, long length)
+    private void RetainFragment(long offset, long length)
     {
         List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments ??= [];
         this.fragmentIndex = ranges.Count;
         ranges.Add((this.Position, offset, length));
-        return ranges;
     }
 
     /// <summary>

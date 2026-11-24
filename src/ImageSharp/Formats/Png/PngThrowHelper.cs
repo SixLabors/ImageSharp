@@ -32,9 +32,6 @@ internal static class PngThrowHelper
     public static void ThrowMissingPalette() => throw new InvalidImageContentException("PNG Image does not contain a palette chunk.");
 
     [DoesNotReturn]
-    public static void ThrowInvalidChunkType() => throw new InvalidImageContentException("Invalid PNG data.");
-
-    [DoesNotReturn]
     public static void ThrowInvalidChunkType(string message) => throw new InvalidImageContentException(message);
 
     [DoesNotReturn]
@@ -56,7 +53,4 @@ internal static class PngThrowHelper
 
     [DoesNotReturn]
     public static void ThrowNotSupportedColor() => throw new NotSupportedException("Unsupported PNG color type.");
-
-    [DoesNotReturn]
-    public static void ThrowUnknownFilter() => throw new InvalidImageContentException("Unknown filter type.");
 }

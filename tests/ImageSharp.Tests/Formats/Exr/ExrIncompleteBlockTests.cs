@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -38,7 +38,8 @@ public class ExrIncompleteBlockTests
     }
 
     /// <summary>
-    /// A recovered RLE block keeps its complete samples and never exposes pooled bytes.
+    /// A recovered RLE block keeps its complete samples and never exposes pooled bytes. The other pixels keep the
+    /// fill value, transparent black.
     /// </summary>
     /// <param name="length">The number of decoded bytes the block supplies.</param>
     /// <param name="completeSamples">The number of samples that have both of their byte halves.</param>
@@ -52,7 +53,7 @@ public class ExrIncompleteBlockTests
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
         DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
-        using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
         AssertRedPrefix(image, completeSamples);
     }
 
@@ -75,7 +76,8 @@ public class ExrIncompleteBlockTests
     }
 
     /// <summary>
-    /// A recovered B44 block keeps its complete tiles and never exposes pooled bytes.
+    /// A recovered B44 block keeps its complete tiles and never exposes pooled bytes. The other pixels keep the fill
+    /// value, transparent black.
     /// </summary>
     /// <param name="tiles">The number of complete 4x4 tiles the block supplies.</param>
     [Theory]
@@ -88,29 +90,25 @@ public class ExrIncompleteBlockTests
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
         DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
-        using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
 
         // Each tile covers four pixels of the single row.
         AssertRedPrefix(image, tiles * 4);
     }
 
     /// <summary>
-    /// Asserts that the first pixels have red 1 and that all other pixels are black.
+    /// Asserts that the first pixels are opaque red and that all other pixels keep the fill value, transparent black.
     /// </summary>
     /// <param name="image">The decoded 256x1 image.</param>
-    /// <param name="count">The number of pixels with red 1.</param>
-    private static void AssertRedPrefix(Image<RgbaVector> image, int count)
+    /// <param name="count">The number of complete pixels with red 1.</param>
+    private static void AssertRedPrefix(Image<Rgba32> image, int count)
     {
-        Assert.Equal(new Size(256, 1), image.Size);
-
-        // The file has only a red channel. The decoder sets green and blue to 0 and alpha to 1.
-        // Color conversion can move red 1 by a few millionths. Stale pooled bytes decode far outside the tolerance.
-        ApproximateFloatComparer comparer = new(1e-4F);
-        for (int x = 0; x < image.Width; x++)
-        {
-            Vector4 expected = new(x < count ? 1 : 0, 0, 0, 1);
-            Assert.Equal(expected, image[x, 0].ToVector4(), comparer);
-        }
+        // The file has only a red channel. The decoder sets green and blue to 0 and alpha to 1 for each decoded pixel.
+        // The decoder does not convert the pixels that the block does not hold, so they keep the fill value.
+        Rgba32[] pixels = new Rgba32[256];
+        pixels.AsSpan(0, count).Fill(new Rgba32(255, 0, 0, 255));
+        using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(pixels, 256, 1);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 
     /// <summary>

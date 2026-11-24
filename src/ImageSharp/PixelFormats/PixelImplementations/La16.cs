@@ -187,6 +187,10 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La16 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static La16 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La16 FromBgr24(Bgr24 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), byte.MaxValue);

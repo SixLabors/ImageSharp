@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Cur;
@@ -25,6 +27,26 @@ public class CurDecoderTests
         CurImageFormatDetector detector = new();
 
         Assert.False(detector.TryDetectFormat(file.Bytes, out _));
+    }
+
+    /// <summary>
+    /// Verifies that the color table of an embedded BMP that is larger than the input is rejected before the palette is allocated.
+    /// </summary>
+    [Fact]
+    public void Decode_WithColorTableLargerThanInput_ThrowsBeforeAllocating()
+    {
+        // 70-byte CUR with one 2x2, 1 bpp BMP entry. The entry has no file header and declares ClrUsed = 0x5C0000FF.
+        byte[] payload = Convert.FromHexString(
+            "000002000100020200000100010030000000160000002800000002000000040000000100010000000000" +
+            "000000000000000000000000FF00005C000000000000000000000000");
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        // The declared color table needs about 6 GB. Rejecting it before the allocation costs far less.
+        Assert.True(allocated < 1024 * 1024, $"Identify and Load allocated {allocated} bytes.");
     }
 
     [Theory]
@@ -77,5 +99,31 @@ public class CurDecoderTests
 
         Assert.Equal((byte)128, metadata.EncodingWidth);
         Assert.Equal((byte)128, metadata.EncodingHeight);
+    }
+
+    /// <summary>
+    /// An icon bitmap must be BI_RGB, which has no 5-6-5 layout. The decoder gives a 5-6-5 entry the 24-bit layout in the
+    /// metadata, so a re-encode keeps each bit of the decoded pixels.
+    /// </summary>
+    [Fact]
+    public void DecodeAndIdentify_Bgr565BitmapEntry_RecordsLosslessLayout()
+    {
+        using Image<Rgba32> source = IcoDecoderTests.CreateGradient();
+        byte[] data = IcoDecoderTests.CreateIconWithRgb565Bitmap(2, source);
+
+        ImageInfo info = Image.Identify(data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        using Image<Bgr565> quantized = source.CloneAs<Bgr565>();
+        using Image<Rgba32> expected = quantized.CloneAs<Rgba32>();
+
+        CurFrameMetadata identified = info.FrameMetadataCollection[0].GetCurMetadata();
+        CurFrameMetadata decoded = image.Frames.RootFrame.Metadata.GetCurMetadata();
+
+        Assert.Equal(BmpBitsPerPixel.Bit24, identified.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit24, decoded.BmpBitsPerPixel);
+        Assert.Equal(BmpColorType.Bgr, identified.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr, decoded.BmpColorType);
+        Assert.Equal(BmpColorType.Bgr, image.Metadata.GetCurMetadata().BmpColorType);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 }

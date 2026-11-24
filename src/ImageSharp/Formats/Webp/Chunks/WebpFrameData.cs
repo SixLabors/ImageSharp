@@ -122,13 +122,15 @@ internal readonly struct WebpFrameData
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="containerEnd">The end of the RIFF payload containing this frame.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls a frame that ends at EOF.</param>
     /// <returns>Animation frame data.</returns>
-    public static WebpFrameData Parse(BufferedReadStream stream, long containerEnd)
+    public static WebpFrameData Parse(BufferedReadStream stream, long containerEnd, SegmentIntegrityHandling segmentIntegrityHandling)
     {
         Span<byte> buffer = stackalloc byte[4];
 
+        // The frame payload holds the frame image data. A frame that ends at EOF is truncated image data.
         return new WebpFrameData(
-            dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 16, false),
+            dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 16, segmentIntegrityHandling),
             x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             width: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,

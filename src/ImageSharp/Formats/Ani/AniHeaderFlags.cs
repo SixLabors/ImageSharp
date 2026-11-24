@@ -7,10 +7,10 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 /// Flags for the ANI header.
 /// </summary>
 [Flags]
-public enum AniHeaderFlags : uint
+internal enum AniHeaderFlags : uint
 {
     /// <summary>
-    /// The "icon" chunks contain ICO or CUR resources. Without this flag, they contain BMP resources.
+    /// The "icon" chunks contain ICO or CUR resources. Without this flag, they contain raw bitmaps.
     /// </summary>
     IsIcon = 1,
 

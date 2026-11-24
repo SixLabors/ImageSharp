@@ -208,23 +208,36 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                 }
             }
 
+            // The item data reader reports a truncated tile through the integrity mode, and it throws for a
+            // structural extent error in every mode. Thus it stays outside the catch below.
             using IMemoryOwner<byte> itemMemory = this.itemDataReader(item);
-            decoder.DecodeItemData(
-                options,
-                chromaUpsampling,
-                item,
-                itemMemory.GetSpan(),
-                item.CicpProfile ?? colorProfile,
-                profile,
-                alphaFrame,
-                alphaOutputSize,
-                new Rectangle(alphaRectangle.X + relativeSource.X, alphaRectangle.Y + relativeSource.Y, relativeSource.Width, relativeSource.Height),
-                tilePremultiplied,
-                tileSource,
-                transform,
-                () => tileDestination,
-                metadata,
-                cancellationToken);
+            try
+            {
+                decoder.DecodeItemData(
+                    options,
+                    chromaUpsampling,
+                    item,
+                    itemMemory.GetSpan(),
+                    item.CicpProfile ?? colorProfile,
+                    profile,
+                    alphaFrame,
+                    alphaOutputSize,
+                    new Rectangle(alphaRectangle.X + relativeSource.X, alphaRectangle.Y + relativeSource.Y, relativeSource.Width, relativeSource.Height),
+                    tilePremultiplied,
+                    tileSource,
+                    transform,
+                    () => tileDestination,
+                    metadata,
+                    cancellationToken);
+            }
+            catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
+            {
+                // In this mode the tile decoder keeps the pixels that it can decode from damaged tile data. It throws
+                // when the tile data holds no frame that it can decode. It also throws when the tile data does not
+                // agree with the properties of the tile item. The decoder converts the pixels of a tile after it
+                // decodes the tile payload, so this tile writes no pixels. Its region keeps the fill value, and the
+                // other tiles still decode. The other modes let the original exception pass.
+            }
         }
     }
 

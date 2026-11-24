@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 
@@ -39,7 +40,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
 
             // Each fill loads six bytes. The second fill finds the marker after the eighth entropy-coded byte.
             reader.CheckBits();
@@ -71,7 +72,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
 
             // One fill loads six bytes into the bit buffer. The bytes after them are not read.
             reader.CheckBits();
@@ -95,7 +96,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
 
             reader.CheckBits();
             _ = reader.GetBits(16);

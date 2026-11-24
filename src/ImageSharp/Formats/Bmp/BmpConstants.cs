@@ -24,6 +24,80 @@ internal static class BmpConstants
     public static readonly IEnumerable<string> FileExtensions = ["bm", "bmp", "dip"];
 
     /// <summary>
+    /// The bit depths of each color type. The first depth of each color type is the default depth. The encoder uses it
+    /// when the requested depth does not fit the color type.
+    /// </summary>
+    public static readonly Dictionary<BmpColorType, BmpBitsPerPixel[]> ColorTypes = new()
+    {
+        [BmpColorType.Palette] = [BmpBitsPerPixel.Bit8, BmpBitsPerPixel.Bit1, BmpBitsPerPixel.Bit2, BmpBitsPerPixel.Bit4],
+        [BmpColorType.Bgr] = [BmpBitsPerPixel.Bit24, BmpBitsPerPixel.Bit16, BmpBitsPerPixel.Bit32],
+        [BmpColorType.Bgra] = [BmpBitsPerPixel.Bit32],
+        [BmpColorType.Bgr565] = [BmpBitsPerPixel.Bit16],
+        [BmpColorType.Bgra5551] = [BmpBitsPerPixel.Bit16]
+    };
+
+    /// <summary>
+    /// Gets the bit depth that the encoder writes for a color type. It is the requested depth when that depth fits the
+    /// color type. Otherwise it is the first depth of the color type in <see cref="ColorTypes"/>.
+    /// </summary>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitsPerPixel">The requested bit depth.</param>
+    /// <returns>The bit depth.</returns>
+    public static BmpBitsPerPixel GetBitsPerPixel(BmpColorType colorType, BmpBitsPerPixel bitsPerPixel)
+    {
+        BmpBitsPerPixel[] depths = ColorTypes[colorType];
+        return Array.IndexOf(depths, bitsPerPixel) >= 0 ? bitsPerPixel : depths[0];
+    }
+
+    /// <summary>
+    /// The channel masks of a 16-bit bitmap with the 5-5-5 layout. A 16-bit BI_RGB bitmap has the layout of the color
+    /// masks. The 5-5-5-1 layout adds the alpha mask.
+    /// </summary>
+    public static class Bgr555Masks
+    {
+        /// <summary>
+        /// The red mask: bits 10 to 14.
+        /// </summary>
+        public const int Red = 0x7C00;
+
+        /// <summary>
+        /// The green mask: bits 5 to 9.
+        /// </summary>
+        public const int Green = 0x03E0;
+
+        /// <summary>
+        /// The blue mask: bits 0 to 4.
+        /// </summary>
+        public const int Blue = 0x001F;
+
+        /// <summary>
+        /// The alpha mask: bit 15.
+        /// </summary>
+        public const int Alpha = 0x8000;
+    }
+
+    /// <summary>
+    /// The channel masks of a 16-bit bitmap with the 5-6-5 layout.
+    /// </summary>
+    public static class Bgr565Masks
+    {
+        /// <summary>
+        /// The red mask: bits 11 to 15.
+        /// </summary>
+        public const int Red = 0xF800;
+
+        /// <summary>
+        /// The green mask: bits 5 to 10.
+        /// </summary>
+        public const int Green = 0x07E0;
+
+        /// <summary>
+        /// The blue mask: bits 0 to 4.
+        /// </summary>
+        public const int Blue = 0x001F;
+    }
+
+    /// <summary>
     /// Valid magic bytes markers identifying a Bitmap file.
     /// </summary>
     internal static class TypeMarkers

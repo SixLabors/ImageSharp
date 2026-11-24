@@ -221,14 +221,32 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    pixelRow[x] = palette[this.ReadPaletteIndex(stream)].ToPixel<TPixel>();
+                    if (!this.TryReadPaletteIndex(stream, out int index))
+                    {
+                        // The image data ended. The pixels that the decoder did not read keep the fill value.
+                        return;
+                    }
+
+                    if (index >= 0)
+                    {
+                        pixelRow[x] = palette[index].ToPixel<TPixel>();
+                    }
                 }
             }
             else
             {
                 for (int x = 0; x < width; x++)
                 {
-                    pixelRow[x] = palette[this.ReadPaletteIndex(stream)].ToPixel<TPixel>();
+                    if (!this.TryReadPaletteIndex(stream, out int index))
+                    {
+                        // The image data ended. The pixels that the decoder did not read keep the fill value.
+                        return;
+                    }
+
+                    if (index >= 0)
+                    {
+                        pixelRow[x] = palette[index].ToPixel<TPixel>();
+                    }
                 }
             }
         }
@@ -257,19 +275,24 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         int indexBytes = this.fileHeader.PixelDepth / 8;
         using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * indexBytes, AllocationOptions.Clean);
         Span<byte> bufferSpan = buffer.GetSpan();
-        this.UncompressRle(stream, width, height, bufferSpan, indexBytes);
+        int decodedPixels = this.UncompressRle(stream, width, height, bufferSpan, indexBytes);
 
-        for (int y = 0; y < height; y++)
+        // The decoded pixels are in stream order. The method writes only those pixels. Thus, if the image data is
+        // damaged, the other pixels keep the fill value.
+        for (int y = 0, rowStartIdx = 0; rowStartIdx < decodedPixels; y++, rowStartIdx += width)
         {
             int newY = InvertY(y, height, origin);
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-            int rowStartIdx = y * width;
-            for (int x = 0; x < width; x++)
+            int rowPixels = Math.Min(width, decodedPixels - rowStartIdx);
+            for (int x = 0; x < rowPixels; x++)
             {
                 int idx = (rowStartIdx + x) * indexBytes;
-                int index = indexBytes == 1 ? bufferSpan[idx] : BinaryPrimitives.ReadUInt16LittleEndian(bufferSpan[idx..]);
-                int newX = InvertX(x, width, origin);
-                pixelRow[newX] = palette[this.GetPaletteIndex(index)].ToPixel<TPixel>();
+                int index = this.GetPaletteIndex(indexBytes == 1 ? bufferSpan[idx] : BinaryPrimitives.ReadUInt16LittleEndian(bufferSpan[idx..]));
+                if (index >= 0)
+                {
+                    int newX = InvertX(x, width, origin);
+                    pixelRow[newX] = palette[index].ToPixel<TPixel>();
+                }
             }
         }
     }
@@ -294,7 +317,10 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    ReadL8Pixel(stream, x, pixelSpan);
+                    if (!this.ReadL8Pixel(stream, x, pixelSpan))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -307,14 +333,20 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         {
             for (int y = height - 1; y >= 0; y--)
             {
-                this.ReadL8Row(stream, width, pixels, rowSpan, y);
+                if (!this.ReadL8Row(stream, width, pixels, rowSpan, y))
+                {
+                    return;
+                }
             }
         }
         else
         {
             for (int y = 0; y < height; y++)
             {
-                this.ReadL8Row(stream, width, pixels, rowSpan, y);
+                if (!this.ReadL8Row(stream, width, pixels, rowSpan, y))
+                {
+                    return;
+                }
             }
         }
     }
@@ -348,7 +380,9 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                     int bytesRead = stream.Read(scratchBuffer);
                     if (bytesRead != 2)
                     {
-                        TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+                        // The image data ended. The pixels that the decoder did not read keep the fill value.
+                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel row");
+                        return;
                     }
 
                     if (!this.hasAlpha)
@@ -369,27 +403,33 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             else
             {
                 int bytesRead = stream.Read(rowSpan);
-                if (bytesRead != rowSpan.Length)
-                {
-                    TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
-                }
+
+                // A short read keeps the complete pixels of the row. The other pixels keep the fill value.
+                int pixelCount = bytesRead / 2;
+                Span<byte> pixelBytes = rowSpan[..(pixelCount * 2)];
 
                 if (!this.hasAlpha)
                 {
                     // We need to set the alpha component value to fully opaque.
-                    for (int x = 1; x < rowSpan.Length; x += 2)
+                    for (int x = 1; x < pixelBytes.Length; x += 2)
                     {
-                        rowSpan[x] |= 1 << 7;
+                        pixelBytes[x] |= 1 << 7;
                     }
                 }
 
                 if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                 {
-                    PixelOperations<TPixel>.Instance.FromLa16Bytes(this.configuration, rowSpan, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.FromLa16Bytes(this.configuration, pixelBytes, pixelSpan, pixelCount);
                 }
                 else
                 {
-                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, pixelBytes, pixelSpan, pixelCount);
+                }
+
+                if (bytesRead != rowSpan.Length)
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel row");
+                    return;
                 }
             }
         }
@@ -416,7 +456,10 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    ReadBgr24Pixel(stream, x, pixelSpan, scratchBuffer);
+                    if (!this.ReadBgr24Pixel(stream, x, pixelSpan, scratchBuffer))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -430,14 +473,20 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         {
             for (int y = height - 1; y >= 0; y--)
             {
-                this.ReadBgr24Row(stream, width, pixels, rowSpan, y);
+                if (!this.ReadBgr24Row(stream, width, pixels, rowSpan, y))
+                {
+                    return;
+                }
             }
         }
         else
         {
             for (int y = 0; y < height; y++)
             {
-                this.ReadBgr24Row(stream, width, pixels, rowSpan, y);
+                if (!this.ReadBgr24Row(stream, width, pixels, rowSpan, y))
+                {
+                    return;
+                }
             }
         }
     }
@@ -467,14 +516,20 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             {
                 for (int y = height - 1; y >= 0; y--)
                 {
-                    this.ReadBgra32Row(stream, width, pixels, rowSpan, y);
+                    if (!this.ReadBgra32Row(stream, width, pixels, rowSpan, y))
+                    {
+                        return;
+                    }
                 }
             }
             else
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.ReadBgra32Row(stream, width, pixels, rowSpan, y);
+                    if (!this.ReadBgra32Row(stream, width, pixels, rowSpan, y))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -491,14 +546,20 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer);
+                    if (!this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer))
+                    {
+                        return;
+                    }
                 }
             }
             else
             {
                 for (int x = 0; x < width; x++)
                 {
-                    this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer);
+                    if (!this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer))
+                    {
+                        return;
+                    }
                 }
             }
         }
@@ -524,13 +585,17 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         byte alphaBits = this.tgaMetadata.AlphaChannelBits;
         using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean);
         Span<byte> bufferSpan = buffer.GetSpan();
-        this.UncompressRle(stream, width, height, bufferSpan, bytesPerPixel);
-        for (int y = 0; y < height; y++)
+        int decodedPixels = this.UncompressRle(stream, width, height, bufferSpan, bytesPerPixel);
+
+        // The decoded pixels are in stream order. The method writes only those pixels. Thus, if the image data is
+        // damaged, the other pixels keep the fill value.
+        for (int y = 0, rowStartPixel = 0; rowStartPixel < decodedPixels; y++, rowStartPixel += width)
         {
             int newY = InvertY(y, height, origin);
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-            int rowStartIdx = y * width * bytesPerPixel;
-            for (int x = 0; x < width; x++)
+            int rowStartIdx = rowStartPixel * bytesPerPixel;
+            int rowPixels = Math.Min(width, decodedPixels - rowStartPixel);
+            for (int x = 0; x < rowPixels; x++)
             {
                 int idx = rowStartIdx + (x * bytesPerPixel);
                 switch (bytesPerPixel)
@@ -675,97 +740,183 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             this.metadata);
     }
 
+    /// <summary>
+    /// Reads one row of 8-bit gray pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="pixels">The destination pixel buffer.</param>
+    /// <param name="row">The row buffer for the encoded bytes.</param>
+    /// <param name="y">The destination row.</param>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadL8Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
+    private bool ReadL8Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(row);
+        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         if (bytesRead != row.Length)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            // The pixels of the row that the decoder read stay. The other pixels keep the fill value.
+            PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row[..bytesRead], pixelSpan, bytesRead);
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel row");
+            return false;
         }
 
-        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row, pixelSpan, width);
+        return true;
     }
 
+    /// <summary>
+    /// Reads one 8-bit gray pixel.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="x">The destination column.</param>
+    /// <param name="pixelSpan">The destination row.</param>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadL8Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan)
+    private bool ReadL8Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        byte pixelValue = (byte)stream.ReadByte();
-        pixelSpan[x] = TPixel.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
+        int value = stream.ReadByte();
+        if (value < 0)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a gray pixel");
+            return false;
+        }
+
+        pixelSpan[x] = TPixel.FromL8(new L8((byte)value));
+        return true;
     }
 
+    /// <summary>
+    /// Reads one 24-bit BGR pixel.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="x">The destination column.</param>
+    /// <param name="pixelSpan">The destination row.</param>
+    /// <param name="scratchBuffer">The buffer for the encoded bytes.</param>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadBgr24Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
+    private bool ReadBgr24Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(scratchBuffer, 0, 3);
         if (bytesRead != 3)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgr pixel");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a bgr pixel");
+            return false;
         }
 
         pixelSpan[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetReference(scratchBuffer)));
+        return true;
     }
 
+    /// <summary>
+    /// Reads one row of 24-bit BGR pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="pixels">The destination pixel buffer.</param>
+    /// <param name="row">The row buffer for the encoded bytes.</param>
+    /// <param name="y">The destination row.</param>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgr24Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
+    private bool ReadBgr24Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(row);
+        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         if (bytesRead != row.Length)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            // The complete pixels of the row stay. The other pixels keep the fill value.
+            int pixelCount = bytesRead / 3;
+            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row[..(pixelCount * 3)], pixelSpan, pixelCount);
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel row");
+            return false;
         }
 
-        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row, pixelSpan, width);
+        return true;
     }
 
+    /// <summary>
+    /// Reads one 32-bit BGRA pixel.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="x">The destination column.</param>
+    /// <param name="pixelRow">The destination row.</param>
+    /// <param name="scratchBuffer">The buffer for the encoded bytes.</param>
+    /// <returns><see langword="true"/> if the method reads the pixel. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
+    private bool ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(scratchBuffer, 0, 4);
         if (bytesRead != 4)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgra pixel");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a bgra pixel");
+            return false;
         }
 
         Guard.NotNull(this.tgaMetadata);
 
         byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : scratchBuffer[3];
         pixelRow[x] = TPixel.FromBgra32(new Bgra32(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
+        return true;
     }
 
+    /// <summary>
+    /// Reads one row of 32-bit BGRA pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="pixels">The destination pixel buffer.</param>
+    /// <param name="row">The row buffer for the encoded bytes.</param>
+    /// <param name="y">The destination row.</param>
+    /// <returns><see langword="true"/> if the row is complete. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgra32Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
+    private bool ReadBgra32Row<TPixel>(BufferedReadStream stream, int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(row);
+        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         if (bytesRead != row.Length)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            // The complete pixels of the row stay. The other pixels keep the fill value.
+            int pixelCount = bytesRead / 4;
+            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row[..(pixelCount * 4)], pixelSpan, pixelCount);
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel row");
+            return false;
         }
 
-        Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
         PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row, pixelSpan, width);
+        return true;
     }
 
     /// <summary>
     /// Reads an image index and locates its entry in the stored color map.
     /// </summary>
     /// <param name="stream">The image data stream.</param>
-    /// <returns>The index relative to the first stored color map entry.</returns>
+    /// <param name="relativeIndex">
+    /// The index relative to the first stored color map entry, or -1 if the index is outside the color map.
+    /// </param>
+    /// <returns><see langword="true"/> if the method reads the index. <see langword="false"/> if the image data ended.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int ReadPaletteIndex(BufferedReadStream stream)
+    private bool TryReadPaletteIndex(BufferedReadStream stream, out int relativeIndex)
     {
+        relativeIndex = -1;
         int low = stream.ReadByte();
         if (low < 0)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read color index");
+            return false;
         }
 
         int index = low;
@@ -775,20 +926,24 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             int high = stream.ReadByte();
             if (high < 0)
             {
-                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read color index");
+                return false;
             }
 
             index |= high << 8;
         }
 
-        return this.GetPaletteIndex(index);
+        relativeIndex = this.GetPaletteIndex(index);
+        return true;
     }
 
     /// <summary>
     /// Converts an absolute color-map index to an entry in the colors stored in this file.
+    /// An index outside the color map is damaged image data. In the IgnoreImageData mode, the method returns -1, and
+    /// the caller keeps the fill value for the pixel.
     /// </summary>
     /// <param name="index">The image's absolute palette index.</param>
-    /// <returns>The index relative to the first stored color map entry.</returns>
+    /// <returns>The index relative to the first stored color map entry, or -1 if the index is outside the color map.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetPaletteIndex(int index)
     {
@@ -797,7 +952,8 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         int relativeIndex = index - this.fileHeader.CMapStart;
         if ((uint)relativeIndex >= this.fileHeader.CMapLength)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Tga color index is outside the color map");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Tga color index is outside the color map");
+            return -1;
         }
 
         return relativeIndex;
@@ -811,28 +967,45 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="height">The height of the image.</param>
     /// <param name="buffer">Buffer for uncompressed data.</param>
     /// <param name="bytesPerPixel">The bytes used per pixel.</param>
-    private void UncompressRle(BufferedReadStream stream, int width, int height, Span<byte> buffer, int bytesPerPixel)
+    /// <returns>
+    /// The number of pixels decoded in stream order. This is less than the pixel count of the image only when the
+    /// image data is damaged and the decoder ignores image data errors.
+    /// </returns>
+    private int UncompressRle(BufferedReadStream stream, int width, int height, Span<byte> buffer, int bytesPerPixel)
     {
         int uncompressedPixels = 0;
         Span<byte> pixel = stackalloc byte[bytesPerPixel];
         int totalPixels = width * height;
         while (uncompressedPixels < totalPixels)
         {
-            byte runLengthByte = (byte)stream.ReadByte();
+            int packetHeader = stream.ReadByte();
+            if (packetHeader < 0)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a run length packet");
+                return uncompressedPixels;
+            }
+
+            // The low 7 bits store the pixel count of the packet minus one.
+            // A packet must not write past the last pixel of the image.
+            int packetPixels = (packetHeader & 127) + 1;
+            if (packetPixels > totalPixels - uncompressedPixels)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Run length packet exceeds the image size");
+                packetPixels = totalPixels - uncompressedPixels;
+            }
 
             // The high bit of a run length packet is set to 1.
-            int highBit = runLengthByte >> 7;
-            if (highBit == 1)
+            if ((packetHeader >> 7) == 1)
             {
-                int runLength = runLengthByte & 127;
                 int bytesRead = stream.Read(pixel);
                 if (bytesRead != bytesPerPixel)
                 {
-                    TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel from the stream");
+                    return uncompressedPixels;
                 }
 
                 int bufferIdx = uncompressedPixels * bytesPerPixel;
-                for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                for (int i = 0; i < packetPixels; i++, uncompressedPixels++)
                 {
                     pixel.CopyTo(buffer[bufferIdx..]);
                     bufferIdx += bytesPerPixel;
@@ -841,14 +1014,14 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             else
             {
                 // Non-run-length encoded packet.
-                int runLength = runLengthByte;
                 int bufferIdx = uncompressedPixels * bytesPerPixel;
-                for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                for (int i = 0; i < packetPixels; i++, uncompressedPixels++)
                 {
                     int bytesRead = stream.Read(pixel);
                     if (bytesRead != bytesPerPixel)
                     {
-                        TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
+                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a pixel from the stream");
+                        return uncompressedPixels;
                     }
 
                     pixel.CopyTo(buffer[bufferIdx..]);
@@ -856,6 +1029,8 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                 }
             }
         }
+
+        return uncompressedPixels;
     }
 
     /// <summary>
@@ -939,6 +1114,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         this.metadata = new ImageMetadata();
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
+        this.tgaMetadata.Compression = this.fileHeader.ImageType.IsRunLengthEncoded() ? TgaCompression.RunLength : TgaCompression.None;
 
         // TrueColor images with 32 bits per pixel are assumed to always have 8 bit alpha channel,
         // because some encoders do not set correctly the alpha bits in the image descriptor.

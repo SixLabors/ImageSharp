@@ -349,6 +349,9 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public static TestPixelForAgnosticDecode FromBgra5551(Bgra5551 source) => default;
 
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromBgr565(Bgr565 source) => default;
+
         public static TestPixelForAgnosticDecode FromBgr24(Bgr24 source) => default;
 
         public static TestPixelForAgnosticDecode FromBgra32(Bgra32 source) => default;

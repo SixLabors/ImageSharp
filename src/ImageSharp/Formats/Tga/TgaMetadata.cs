@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// </summary>
 public class TgaMetadata : IFormatMetadata<TgaMetadata>
 {
+    private byte alphaChannelBits;
+    private ReadOnlyMemory<Color>? colorTable;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TgaMetadata"/> class.
     /// </summary>
@@ -28,6 +31,7 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         this.AlphaChannelBits = other.AlphaChannelBits;
         this.ColorMapFirstEntryIndex = other.ColorMapFirstEntryIndex;
         this.ColorMapEntryBitDepth = other.ColorMapEntryBitDepth;
+        this.Compression = other.Compression;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -43,7 +47,20 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// <summary>
     /// Gets or sets the number of alpha bits per pixel.
     /// </summary>
-    public byte AlphaChannelBits { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The value is greater than 15.</exception>
+    public byte AlphaChannelBits
+    {
+        get => this.alphaChannelBits;
+        set
+        {
+            // Bits 3-0 of the image descriptor store the attribute bits, so the value fits in 4 bits. See the Truevision
+            // TGA File Format Specification, Version 2.0, field 5.6 (src/ImageSharp/Formats/Tga/TGA_Specification.pdf,
+            // page 11).
+            Guard.MustBeLessThanOrEqualTo(value, (byte)15, nameof(value));
+
+            this.alphaChannelBits = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the first index represented by <see cref="ColorTable"/>.
@@ -58,7 +75,27 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// <summary>
     /// Gets or sets the color table, if any.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than 65535 entries.</exception>
+    public ReadOnlyMemory<Color>? ColorTable
+    {
+        get => this.colorTable;
+        set
+        {
+            if (value.HasValue)
+            {
+                // The color map length is a 2-byte field. See the Truevision TGA File Format Specification, Version 2.0,
+                // field 4.2 (src/ImageSharp/Formats/Tga/TGA_Specification.pdf, page 10).
+                Guard.MustBeLessThanOrEqualTo(value.Value.Length, ushort.MaxValue, nameof(value));
+            }
+
+            this.colorTable = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compression of the pixel data.
+    /// </summary>
+    public TgaCompression Compression { get; set; } = TgaCompression.RunLength;
 
     /// <inheritdoc/>
     public static TgaMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
@@ -89,6 +126,8 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
             };
         }
 
+        // A true-color TGA image stores blue first: in the first byte, or in the least significant bits of a 16-bit pixel.
+        // So the color type is BGR, and the component precisions follow the same order.
         PixelComponentInfo info;
         PixelColorType color;
         PixelAlphaRepresentation alpha;
@@ -100,18 +139,18 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
                 alpha = PixelAlphaRepresentation.None;
                 break;
             case TgaBitsPerPixel.Bit16:
-                info = PixelComponentInfo.Create(1, bpp, 5, 5, 5, 1);
+                info = PixelComponentInfo.Create(4, bpp, 5, 5, 5, 1);
                 color = PixelColorType.BGR | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;
                 break;
             case TgaBitsPerPixel.Bit24:
                 info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
-                color = PixelColorType.RGB;
+                color = PixelColorType.BGR;
                 alpha = PixelAlphaRepresentation.None;
                 break;
             case TgaBitsPerPixel.Bit32 or _:
                 info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
-                color = PixelColorType.RGB | PixelColorType.Alpha;
+                color = PixelColorType.BGR | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;
                 break;
         }

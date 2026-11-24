@@ -40,6 +40,29 @@ internal readonly struct HeifBoxReader
     }
 
     /// <summary>
+    /// Reads an ISO BMFF box header into a caller-owned buffer. The payload can end after the containing box or file.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the box size field.</param>
+    /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>
+    /// <param name="headerBuffer">A caller-owned buffer of at least eight bytes that receives the header.</param>
+    /// <param name="boxType">Receives the box four-character code.</param>
+    /// <param name="topLevel">Indicates whether a size-zero box can extend to the end of the file.</param>
+    /// <param name="truncated">Receives a value that tells if the declared payload ends after the parent end.</param>
+    /// <returns>The number of payload bytes that follow the complete variable-length header inside the parent.</returns>
+    public static long ReadHeader(
+        Stream stream,
+        long parentEndPosition,
+        Span<byte> headerBuffer,
+        out Heif4CharCode boxType,
+        bool topLevel,
+        out bool truncated)
+    {
+        long length = IsoBoxReader.ReadHeader(stream, parentEndPosition, headerBuffer, out uint type, topLevel, out truncated);
+        boxType = (Heif4CharCode)type;
+        return length;
+    }
+
+    /// <summary>
     /// Parses an ISO BMFF child-box header from a bounded parent payload.
     /// </summary>
     /// <param name="buffer">The remaining bytes in the parent payload, beginning at the child size field.</param>

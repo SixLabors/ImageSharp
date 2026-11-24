@@ -47,7 +47,7 @@ internal readonly struct PngChunk
         {
             PngChunkType.Header => true,
             PngChunkType.Palette => true,
-            PngChunkType.Data or PngChunkType.FrameData => handling < SegmentIntegrityHandling.IgnoreImageData,
-            _ => handling < SegmentIntegrityHandling.IgnoreAncillary,
+            PngChunkType.Data or PngChunkType.FrameData => !handling.IgnoresImageDataErrors(),
+            _ => !handling.IgnoresAncillaryErrors(),
         };
 }

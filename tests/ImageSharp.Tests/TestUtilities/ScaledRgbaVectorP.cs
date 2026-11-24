@@ -128,6 +128,9 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
 
     public static ScaledRgbaVectorP FromBgra5551(Bgra5551 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromBgr565(Bgr565 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
+
     public static ScaledRgbaVectorP FromBgr24(Bgr24 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     public static ScaledRgbaVectorP FromBgra32(Bgra32 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());

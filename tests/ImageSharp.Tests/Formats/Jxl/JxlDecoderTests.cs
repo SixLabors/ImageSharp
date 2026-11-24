@@ -470,7 +470,7 @@ public class JxlDecoderTests
     {
         using MemoryStream headerInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream headerBuffered = new(Configuration.Default, headerInput);
-        JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered));
+        JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -478,7 +478,7 @@ public class JxlDecoderTests
         bool customThresholds = file == TestImages.Jxl.VarDctDcThresholds;
         using MemoryStream input = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
 
         // The partial input contains the same DC-global syntax directly after its two-byte signature.
         // The complete input uses the section offset obtained from its normal frame-table parser.
@@ -758,23 +758,42 @@ public class JxlDecoderTests
     }
 
     /// <summary>
-    /// Verifies that a short modular payload returns all temporary allocations and leaves the caller's stream open.
+    /// Verifies that a short modular payload throws in Strict mode and decodes with the default options.
+    /// Both paths return all temporary allocations and leave the caller's stream open.
     /// </summary>
-    [Fact]
-    public void DecodeRejectsTruncatedLosslessPayload()
+    /// <param name="strict">Whether to use Strict mode instead of the default options.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DecodeTruncatedLosslessPayload(bool strict)
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
-        DecoderOptions options = new(configuration);
+        DecoderOptions options = strict
+            ? new DecoderOptions(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict }
+            : new DecoderOptions(configuration);
+
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LosslessRgb3x3Truncated).Bytes, false);
 
         // This stored fixture omits the original file's final payload byte. The native decoder also rejects it as truncated.
         // Allocation logging checks cleanup immediately, without relying on finalizers to release failed reconstruction buffers.
-        Assert.Throws<InvalidImageContentException>(() =>
+        if (strict)
         {
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+            });
+        }
+        else
+        {
+            // The default mode returns the image for truncated image data. A modular frame reverses its global transforms
+            // only after its last group, so this truncated frame decodes no pixel. Each pixel keeps the fill value,
+            // transparent black.
             using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
-        });
+            using Image<Rgba32> cleared = new(3, 3);
+            ImageComparer.Exact.VerifySimilarity(cleared, image);
+        }
 
         Assert.Equal(0, allocator.LiveBufferBytes);
         Assert.True(stream.CanRead);
@@ -1248,7 +1267,6 @@ public class JxlDecoderTests
     [InlineData(TestImages.Jxl.SquareDuplicateLevel)]
     [InlineData(TestImages.Jxl.SquareLateLevel)]
     [InlineData(TestImages.Jxl.SplinesDuplicateFragment)]
-    [InlineData(TestImages.Jxl.SplinesMissingFinalFlag)]
     public void IdentifyRejectsMalformedStructure(string file)
     {
         Configuration configuration = new(new JxlConfigurationModule());
@@ -1256,6 +1274,58 @@ public class JxlDecoderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+    }
+
+    /// <summary>
+    /// Verifies that a container structure error throws during decode, also when the decoder ignores image data errors.
+    /// </summary>
+    /// <param name="file">The stored input with invalid level or fragment control.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.SquareInvalidLevel)]
+    [InlineData(TestImages.Jxl.SquareDuplicateLevel)]
+    [InlineData(TestImages.Jxl.SquareLateLevel)]
+    [InlineData(TestImages.Jxl.SplinesDuplicateFragment)]
+    public void DecodeRejectsMalformedStructure(string file)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SkipMetadata = true, SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        });
+    }
+
+    /// <summary>
+    /// Verifies a container whose codestream ends at the end of the file before the final fragment. In the first file,
+    /// the last partial codestream box has no final-fragment flag. In the second file, the complete codestream box
+    /// declares more bytes than the file holds. Each file holds every byte of the Splines codestream. This is truncated
+    /// image data, as a HEIF media data box that ends early is. The Strict and IgnoreAncillary modes throw. The
+    /// IgnoreImageData mode decodes the codestream that the file holds, so the image equals the decode of the
+    /// complete Splines codestream.
+    /// </summary>
+    /// <param name="file">The stored container input.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.SplinesMissingFinalFlag)]
+    [InlineData(TestImages.Jxl.SplinesOversizedBox)]
+    public void DecodeKeepsCodestreamOfTruncatedContainer(string file)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        byte[] data = TestFile.Create(file).Bytes;
+        foreach (SegmentIntegrityHandling handling in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions throwing = new(configuration) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(throwing, data);
+            });
+        }
+
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(options, TestFile.Create(TestImages.Jxl.Splines).Bytes);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 
     /// <summary>

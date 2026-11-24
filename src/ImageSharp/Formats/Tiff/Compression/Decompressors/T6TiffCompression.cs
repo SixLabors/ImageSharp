@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,262 +13,55 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 internal sealed class T6TiffCompression : TiffBaseDecompressor
 {
-    private readonly bool isWhiteZero;
+    private readonly CcittBitOrder bitOrder;
 
-    private readonly int width;
-
-    private readonly byte white;
+    /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="T6TiffCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="fillOrder">The logical order of bits within a byte.</param>
+    /// <param name="bitOrder">The order of the code bits in each byte.</param>
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
-    /// <param name="photometricInterpretation">The photometric interpretation.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public T6TiffCompression(
         MemoryAllocator allocator,
-        TiffFillOrder fillOrder,
+        CcittBitOrder bitOrder,
         int width,
         int bitsPerPixel,
-        TiffPhotometricInterpretation photometricInterpretation)
+        SegmentIntegrityHandling integrityHandling)
         : base(allocator, width, bitsPerPixel)
     {
-        this.FillOrder = fillOrder;
-        this.width = width;
-        this.isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-        this.white = (byte)(this.isWhiteZero ? 0 : 255);
+        this.bitOrder = bitOrder;
+        this.integrityHandling = integrityHandling;
     }
-
-    /// <summary>
-    /// Gets the logical order of bits within a byte.
-    /// </summary>
-    private TiffFillOrder FillOrder { get; }
-
-    /// <inheritdoc/>
-    /// <remarks>The fax decoder clears the sample buffer before each block and checks the range of every write.</remarks>
-    protected override bool CanDiscardFailedBlock => true;
 
     /// <inheritdoc/>
     protected override void Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        int height = stripHeight;
+        // The sample rows hold 1 for a black pixel of the code. The TIFF color decoder applies the photometric
+        // interpretation, which reverses white and black for BlackIsZero. See TIFF 6.0 specification, section 10, page 44.
         buffer.Clear();
 
-        using System.Buffers.IMemoryOwner<byte> scanLineBuffer = this.Allocator.Allocate<byte>(this.width * 2);
-        Span<byte> scanLine = scanLineBuffer.GetSpan()[..this.width];
-        Span<byte> referenceScanLineSpan = scanLineBuffer.GetSpan().Slice(this.width, this.width);
-
-        T6BitReader bitReader = new(stream, this.FillOrder, byteCount);
-
-        CcittReferenceScanline referenceScanLine = new(this.isWhiteZero, this.width);
-        nint bitsWritten = 0;
-        for (int y = 0; y < height; y++)
+        // Each sample row holds 1 bit for each pixel and starts on a byte boundary.
+        int rowBytes = (this.Width + 7) / 8;
+        using T6RowDecoder decoder = new(stream, this.bitOrder, byteCount, this.Width, this.Allocator);
+        for (int y = 0; y < stripHeight; y++)
         {
-            scanLine.Clear();
-            Decode2DScanline(bitReader, this.isWhiteZero, referenceScanLine, scanLine);
-
-            bitsWritten = this.WriteScanLine(buffer, scanLine, bitsWritten);
-
-            scanLine.CopyTo(referenceScanLineSpan);
-            referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, referenceScanLineSpan);
-        }
-    }
-
-    private nint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, nint bitsWritten)
-    {
-        BitWriterUtils.ValidateWriteRange(buffer.Length, bitsWritten, scanLine.Length);
-
-        nint bitPos = Numerics.Modulo8(bitsWritten);
-        nint bufferPos = bitsWritten / 8;
-        ref byte scanLineRef = ref MemoryMarshal.GetReference(scanLine);
-        for (nuint i = 0; i < (uint)scanLine.Length; i++)
-        {
-            if (Unsafe.Add(ref scanLineRef, i) != this.white)
-            {
-                BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
-            }
-
-            bitPos++;
-            bitsWritten++;
-
-            if (bitPos >= 8)
-            {
-                bitPos = 0;
-                bufferPos++;
-            }
+            decoder.DecodeRow(buffer.Slice(y * rowBytes, rowBytes));
         }
 
-        // Write padding bytes, if necessary.
-        nint remainder = Numerics.Modulo8(bitsWritten);
-        if (remainder != 0)
+        // In the IgnoreImageData mode, the strip or tile keeps the decoded rows, and the other rows stay 0. In the other
+        // modes, damaged data throws.
+        if (decoder.IsDamaged)
         {
-            nint padding = 8 - remainder;
-            BitWriterUtils.WriteBits(buffer, bitsWritten, padding, 0);
-            bitsWritten += padding;
-        }
-
-        return bitsWritten;
-    }
-
-    private static void Decode2DScanline(T6BitReader bitReader, bool whiteIsZero, CcittReferenceScanline referenceScanline, Span<byte> scanline)
-    {
-        int width = scanline.Length;
-        bitReader.StartNewRow();
-
-        // 2D Encoding variables.
-        int a0 = -1;
-        byte fillByte = whiteIsZero ? (byte)0 : (byte)255;
-
-        // Process every code word in this scanline.
-        int unpacked = 0;
-        while (true)
-        {
-            // Read next code word and advance pass it.
-            bool isEol = bitReader.ReadNextCodeWord();
-
-            // Special case handling for EOL.
-            if (isEol)
-            {
-                // If a TIFF reader encounters EOFB before the expected number of lines has been extracted,
-                // it is appropriate to assume that the missing rows consist entirely of white pixels.
-                if (whiteIsZero)
-                {
-                    scanline.Clear();
-                }
-                else
-                {
-                    scanline.Fill(255);
-                }
-
-                break;
-            }
-
-            // Update 2D Encoding variables.
-            int b1 = referenceScanline.FindB1(a0, fillByte);
-
-            // Switch on the code word.
-            int a1;
-            switch (bitReader.Code.Type)
-            {
-                case CcittTwoDimensionalCodeType.None:
-                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, could not read a valid code word.");
-                    break;
-
-                case CcittTwoDimensionalCodeType.Pass:
-                    int b2 = referenceScanline.FindB2(b1);
-                    scanline[unpacked..b2].Fill(fillByte);
-                    unpacked = b2;
-                    a0 = b2;
-                    break;
-                case CcittTwoDimensionalCodeType.Horizontal:
-                    // Decode M(a0a1)
-                    bitReader.ReadNextRun();
-                    int runLength = (int)bitReader.RunLength;
-                    if (runLength > (uint)(scanline.Length - unpacked))
-                    {
-                        TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
-                    }
-
-                    scanline.Slice(unpacked, runLength).Fill(fillByte);
-                    unpacked += runLength;
-                    fillByte = (byte)~fillByte;
-
-                    // Decode M(a1a2)
-                    bitReader.ReadNextRun();
-                    runLength = (int)bitReader.RunLength;
-                    if (runLength > (uint)(scanline.Length - unpacked))
-                    {
-                        TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
-                    }
-
-                    scanline.Slice(unpacked, runLength).Fill(fillByte);
-                    unpacked += runLength;
-                    fillByte = (byte)~fillByte;
-
-                    // Prepare next a0
-                    a0 = unpacked;
-                    break;
-
-                case CcittTwoDimensionalCodeType.Vertical0:
-                    a1 = b1;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalR1:
-                    a1 = b1 + 1;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalR2:
-                    a1 = b1 + 2;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalR3:
-                    a1 = b1 + 3;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalL1:
-                    a1 = b1 - 1;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalL2:
-                    a1 = b1 - 2;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                case CcittTwoDimensionalCodeType.VerticalL3:
-                    a1 = b1 - 3;
-                    scanline[unpacked..a1].Fill(fillByte);
-                    unpacked = a1;
-                    a0 = a1;
-                    fillByte = (byte)~fillByte;
-                    bitReader.SwapColor();
-                    break;
-
-                default:
-                    throw new NotSupportedException("ccitt extensions are not supported.");
-            }
-
-            // This line is fully unpacked. Should exit and process next line.
-            if (unpacked == width)
-            {
-                break;
-            }
-
-            if (unpacked > width)
-            {
-                TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, unpacked data > width");
-            }
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF CCITT T.6 data is damaged or ends before the strip or tile is complete.");
         }
     }
 

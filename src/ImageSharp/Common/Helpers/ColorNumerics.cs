@@ -251,6 +251,29 @@ internal static class ColorNumerics
         => (uint)(component * 16843009);
 
     /// <summary>
+    /// Scales an unsigned normalized value to another bit depth: <c>round(value * destinationMax / sourceMax)</c>.
+    /// </summary>
+    /// <remarks>
+    /// The Direct3D 11.3 Functional Specification, sections 3.2.3.5 and 3.2.3.6, gives the UNORM to FLOAT and FLOAT to
+    /// UNORM conversions. With exact arithmetic, the two conversions in sequence give this result. See
+    /// https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm.
+    /// <para/>
+    /// Each maximum is <c>2^n - 1</c>, an odd number. <c>value * destinationMax / sourceMax</c> is never <c>k + 1/2</c>
+    /// for an integer <c>k</c>. That result needs <c>2 * value * destinationMax = sourceMax * (2k + 1)</c>, but the
+    /// left side is even and the right side is odd. Thus the integer division of
+    /// <c>value * destinationMax + sourceMax / 2</c> by <c>sourceMax</c> is the rounded value. Callers pass constant
+    /// maximums, so the JIT replaces the division with a multiply and a shift. The caller makes sure that
+    /// <c>value * destinationMax + sourceMax / 2</c> fits in 32 bits.
+    /// </remarks>
+    /// <param name="value">The value, from 0 to <paramref name="sourceMax"/>.</param>
+    /// <param name="sourceMax">The maximum value at the source bit depth.</param>
+    /// <param name="destinationMax">The maximum value at the destination bit depth.</param>
+    /// <returns>The scaled value, from 0 to <paramref name="destinationMax"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ScaleUnorm(uint value, uint sourceMax, uint destinationMax)
+        => ((value * destinationMax) + (sourceMax / 2)) / sourceMax;
+
+    /// <summary>
     /// Returns how many bits are required to store the specified number of colors.
     /// Performs a Log2() on the value.
     /// </summary>

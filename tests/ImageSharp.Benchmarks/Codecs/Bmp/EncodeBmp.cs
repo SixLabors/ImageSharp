@@ -57,20 +57,20 @@ public class EncodeBmp
         this.bmpCore.SaveAsBmp(this.outputStream);
     }
 
-    /* Results 12.11.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
+    /* Results 24.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.10075)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
-    .NET SDK 11.0.100-preview.7.26381.103
-      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
-      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+    .NET SDK 11.0.100
+      [Host]     : .NET 10.0.15 (10.0.15, 10.0.1526.53008), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.15 (10.0.15, 10.0.1526.53008), X64 RyuJIT x86-64-v4
 
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method               | Mean      | Error      | StdDev    | Ratio | RatioSD | Allocated | Alloc Ratio |
-    |--------------------- |----------:|-----------:|----------:|------:|--------:|----------:|------------:|
-    | 'System.Drawing Bmp' | 472.85 us | 266.669 us | 14.617 us |  1.00 |    0.04 |    3256 B |        1.00 |
-    | 'ImageSharp Bmp'     |  22.82 us |   2.609 us |  0.143 us |  0.05 |    0.00 |     280 B |        0.09 |
+    | Method               | Mean      | Error     | StdDev   | Ratio | Allocated | Alloc Ratio |
+    |--------------------- |----------:|----------:|---------:|------:|----------:|------------:|
+    | 'System.Drawing Bmp' | 429.18 us | 18.204 us | 0.998 us |  1.00 |    3256 B |        1.00 |
+    | 'ImageSharp Bmp'     |  22.10 us |  1.831 us | 0.100 us |  0.05 |     392 B |        0.12 |
 
     Allocated reports managed memory only.
     Input: Bmp/Car.bmp.

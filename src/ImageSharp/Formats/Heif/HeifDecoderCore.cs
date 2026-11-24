@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
@@ -172,7 +173,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // the metadata box. Complete the top-level scan before resolving and decoding the primary item.
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
+            long boxLength = this.ReadTopLevelBoxHeader(stream, out Heif4CharCode boxType);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -219,7 +220,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // metadata come from item declarations and associated properties rather than reconstructed pixels.
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
+            long boxLength = this.ReadTopLevelBoxHeader(stream, out Heif4CharCode boxType);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -238,6 +239,33 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         Size presentationExtent = GetPresentationExtent(item);
         return new ImageInfo(new(presentationExtent.Width, presentationExtent.Height), this.metadata);
+    }
+
+    /// <summary>
+    /// Reads the header of a top-level box after the file-type box.
+    /// </summary>
+    /// <remarks>
+    /// A media data box holds only item and sample payloads. When a file ends inside it, the payloads are damaged image
+    /// data. Strict and IgnoreAncillary throw. IgnoreImageData keeps the bytes that the file holds, so each item and sample
+    /// keeps the part of its payload that is present. A truncated box of another type throws in every mode.
+    /// </remarks>
+    /// <param name="stream">The container stream positioned at the box size field.</param>
+    /// <param name="boxType">Receives the box four-character code.</param>
+    /// <returns>The number of payload bytes that the file holds after the complete box header.</returns>
+    private long ReadTopLevelBoxHeader(BufferedReadStream stream, out Heif4CharCode boxType)
+    {
+        long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out boxType, true, out bool truncated);
+        if (truncated)
+        {
+            if (boxType != Heif4CharCode.Mdat)
+            {
+                throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
+            }
+
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The HEIF media data box is truncated.");
+        }
+
+        return boxLength;
     }
 
     /// <summary>
@@ -278,7 +306,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifSequence? sequence = null;
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
+            long boxLength = this.ReadTopLevelBoxHeader(stream, out Heif4CharCode boxType);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -380,12 +408,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 visibleSource.Width,
                 visibleSource.Height);
 
-            using Av1Decoder colorDecoder = new(this.configuration);
+            using Av1Decoder colorDecoder = new(this.configuration, 0, this.Options.SegmentIntegrityHandling);
 
             HeifSequenceTrack? alphaTrack = sequence.AlphaTrack;
             (HeifSequenceTrack Track, Av1Decoder Decoder)? alphaState = alphaTrack is null
                 ? null
-                : (alphaTrack, new Av1Decoder(this.configuration));
+                : (alphaTrack, new Av1Decoder(this.configuration, 0, this.Options.SegmentIntegrityHandling));
 
             using Av1Decoder? alphaDecoder = alphaState?.Decoder;
 
@@ -396,14 +424,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 HeifSequenceSample colorSample = colorTrack.Samples[sampleIndex];
                 if (colorSample.IsHidden)
                 {
-                    this.ExecuteImageDataSegmentAction(
+                    this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                         () => this.DecodeSequenceReference(stream, colorTrack, colorSample, colorDecoder));
 
                     if (alphaState is not null)
                     {
                         (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
                         HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
-                        this.ExecuteImageDataSegmentAction(
+                        this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                             () => this.DecodeSequenceReference(
                                 stream,
                                 currentAlphaState.Track,
@@ -433,19 +461,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     alphaDecoded = false;
                     (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
                     HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
-                    this.ExecuteImageDataSegmentAction(
+                    this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                         () =>
                         {
-                            alphaFrame = this.DecodeSequenceAlphaFrame(
-                                stream, currentAlphaState.Track, alphaSample, currentAlphaState.Decoder);
-
-                            alphaDecoded = true;
+                            alphaDecoded = this.TryDecodeSequenceAlphaFrame(
+                                stream, currentAlphaState.Track, alphaSample, currentAlphaState.Decoder, out alphaFrame);
                         });
                 }
 
                 if (!alphaDecoded)
                 {
-                    this.ExecuteImageDataSegmentAction(
+                    this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                         () => this.DecodeSequenceReference(stream, colorTrack, colorSample, colorDecoder));
 
                     if (appendedDestination)
@@ -457,10 +483,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
 
                 bool colorDecoded = false;
-                this.ExecuteImageDataSegmentAction(
+                this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                     () =>
                     {
-                        CicpProfile? outputProfile = this.DecodeSequenceFrame(
+                        colorDecoded = this.TryDecodeSequenceFrame(
                             stream,
                             colorTrack,
                             colorSample,
@@ -469,14 +495,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             decodedFrame.PixelBuffer.GetRegion(outputBounds),
                             transform,
                             alphaFrame,
-                            alphaFrame is not null && colorTrack.IsPremultiplied);
+                            alphaFrame is not null && colorTrack.IsPremultiplied,
+                            out CicpProfile? outputProfile);
 
-                        if (!this.Options.SkipMetadata)
+                        if (colorDecoded && !this.Options.SkipMetadata)
                         {
                             decodedFrame.Metadata.CicpProfile = outputProfile;
                         }
-
-                        colorDecoded = true;
                     });
 
                 if (!colorDecoded)
@@ -539,8 +564,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="transform">The rotation and mirroring within the destination region.</param>
     /// <param name="alphaFrame">The decoder-owned auxiliary frame, or null for opaque pixels.</param>
     /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
-    /// <returns>The output color description, or null when metadata is skipped.</returns>
-    private CicpProfile? DecodeSequenceFrame<TPixel>(
+    /// <param name="outputProfile">Receives the output color description, or null when metadata is skipped.</param>
+    /// <returns>
+    /// <see langword="true"/> if the sample decodes. <see langword="false"/> if the track or sample cannot be decoded
+    /// and the mode ignores image data errors.
+    /// </returns>
+    private bool TryDecodeSequenceFrame<TPixel>(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
@@ -549,19 +578,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Buffer2DRegion<TPixel> destination,
         HeifPixelTransform transform,
         Av1FrameBuffer<byte>? alphaFrame,
-        bool premultiplied)
+        bool premultiplied,
+        out CicpProfile? outputProfile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (track.CodecType != Heif4CharCode.Av01)
+        outputProfile = null;
+        if (!this.TryGetSequenceCodecConfiguration(track, "image-sequence", out Av1CodecConfiguration? codecConfiguration)
+            || !this.TryReadSequenceSample(stream, track, sample, codecConfiguration, out IMemoryOwner<byte>? sampleOwner))
         {
-            throw new ImageFormatException($"No decoder is available for image-sequence sample type '{track.CodecType}'.");
+            return false;
         }
 
-        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
-            ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
-
-        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
-        Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+        using IMemoryOwner<byte> ownedSample = sampleOwner;
+        Span<byte> sampleData = ownedSample.GetSpan()[..sample.Length];
 
         // Preserve and Convert both produce sRGB pixels. The base decoder controls profile retention.
         IccProfile.TryGetIccProfileForColorConversion(track.IccProfile, out IccProfile? profile);
@@ -581,18 +610,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         if (this.Options.SkipMetadata)
         {
-            return null;
+            return true;
         }
 
         // Sequence output has the same packed RGB description as a still image. ICC conversion changes the
         // primaries and transfer to sRGB. Without ICC conversion, the source primaries and transfer stay.
-        return profile is null || profile.IsUnusableForDecoding
+        outputProfile = profile is null || profile.IsUnusableForDecoding
             ? new CicpProfile(
                 (byte)sourceProfile.ColorPrimaries,
                 (byte)sourceProfile.TransferCharacteristics,
                 (byte)CicpMatrixCoefficients.Identity,
                 true)
             : new CicpProfile(1, 13, 0, true);
+
+        return true;
     }
 
     /// <summary>
@@ -602,33 +633,46 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="track">The alpha track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated alpha sample range.</param>
     /// <param name="decoder">The decoder retaining earlier alpha-sequence references.</param>
-    /// <returns>The auxiliary plane retained by the sequence decoder until the next sample is decoded.</returns>
-    private Av1FrameBuffer<byte> DecodeSequenceAlphaFrame(
+    /// <param name="alphaFrame">
+    /// Receives the auxiliary plane retained by the sequence decoder until the next sample is decoded.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the sample decodes. <see langword="false"/> if the track or sample cannot be decoded
+    /// and the mode ignores image data errors.
+    /// </returns>
+    private bool TryDecodeSequenceAlphaFrame(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
-        Av1Decoder decoder)
+        Av1Decoder decoder,
+        out Av1FrameBuffer<byte>? alphaFrame)
     {
-        if (track.CodecType != Heif4CharCode.Av01)
+        alphaFrame = null;
+        if (!this.TryGetSequenceCodecConfiguration(track, "alpha image-sequence", out Av1CodecConfiguration? codecConfiguration))
         {
-            throw new ImageFormatException($"No decoder is available for image-sequence alpha sample type '{track.CodecType}'.");
+            return false;
         }
-
-        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
-            ?? throw new InvalidImageContentException("The AV1 alpha image-sequence track has no codec configuration.");
 
         if (!codecConfiguration.IsMonochrome)
         {
-            throw new InvalidImageContentException("An AV1 alpha image-sequence track must be encoded as monochrome.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("An AV1 alpha image-sequence track must be encoded as monochrome.");
+            return false;
         }
 
-        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
-        Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
-        return decoder.DecodeSequenceAlpha(
+        if (!this.TryReadSequenceSample(stream, track, sample, codecConfiguration, out IMemoryOwner<byte>? sampleOwner))
+        {
+            return false;
+        }
+
+        using IMemoryOwner<byte> ownedSample = sampleOwner;
+        Span<byte> sampleData = ownedSample.GetSpan()[..sample.Length];
+        alphaFrame = decoder.DecodeSequenceAlpha(
             sampleData,
             track.CicpProfile,
             codecConfiguration,
             new Size(track.CodedWidth, track.CodedHeight));
+
+        return true;
     }
 
     /// <summary>
@@ -644,38 +688,82 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifSequenceSample sample,
         Av1Decoder decoder)
     {
-        if (track.CodecType != Heif4CharCode.Av01)
+        if (!this.TryGetSequenceCodecConfiguration(track, "image-sequence", out Av1CodecConfiguration? codecConfiguration)
+            || !this.TryReadSequenceSample(stream, track, sample, codecConfiguration, out IMemoryOwner<byte>? sampleOwner))
         {
-            throw new ImageFormatException($"No decoder is available for image-sequence sample type '{track.CodecType}'.");
+            return;
         }
 
-        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
-            ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
-
-        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
-        Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+        using IMemoryOwner<byte> ownedSample = sampleOwner;
+        Span<byte> sampleData = ownedSample.GetSpan()[..sample.Length];
         decoder.DecodeSequenceReference(sampleData, track.CicpProfile, codecConfiguration);
+    }
+
+    /// <summary>
+    /// Gets the AV1 codec configuration of a sequence track.
+    /// </summary>
+    /// <param name="track">The color or alpha sequence track.</param>
+    /// <param name="trackName">The name of the track kind in the error messages.</param>
+    /// <param name="codecConfiguration">Receives the AV1 codec configuration of the track.</param>
+    /// <returns>
+    /// <see langword="true"/> if the track uses AV1 and has a codec configuration. Otherwise <see langword="false"/>,
+    /// when the mode ignores image data errors.
+    /// </returns>
+    private bool TryGetSequenceCodecConfiguration(
+        HeifSequenceTrack track,
+        string trackName,
+        [NotNullWhen(true)] out Av1CodecConfiguration? codecConfiguration)
+    {
+        codecConfiguration = null;
+        if (track.CodecType != Heif4CharCode.Av01)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError($"No decoder is available for {trackName} sample type '{track.CodecType}'.");
+            return false;
+        }
+
+        if (track.Av1CodecConfiguration is null)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError($"The AV1 {trackName} track has no codec configuration.");
+            return false;
+        }
+
+        codecConfiguration = track.Av1CodecConfiguration;
+        return true;
     }
 
     /// <summary>
     /// Reads and validates one bounded AV1 sequence sample into allocator-owned codec input storage.
     /// </summary>
     /// <param name="stream">The complete seekable HEIF stream.</param>
-    /// <param name="track">The track supplying the codec configuration and color description.</param>
+    /// <param name="track">The track supplying the color description.</param>
     /// <param name="sample">The validated sample range.</param>
-    /// <returns>The allocator-owned buffer containing the validated coded sample.</returns>
-    private IMemoryOwner<byte> ReadSequenceSample(
+    /// <param name="codecConfiguration">The AV1 codec configuration of the track.</param>
+    /// <param name="sampleOwner">Receives the allocator-owned buffer containing the validated coded sample.</param>
+    /// <returns>
+    /// <see langword="true"/> if the sample is read. <see langword="false"/> if the sample has no bytes and the mode
+    /// ignores image data errors.
+    /// </returns>
+    private bool TryReadSequenceSample(
         BufferedReadStream stream,
         HeifSequenceTrack track,
-        HeifSequenceSample sample)
+        HeifSequenceSample sample,
+        Av1CodecConfiguration codecConfiguration,
+        [NotNullWhen(true)] out IMemoryOwner<byte>? sampleOwner)
     {
-        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
-            ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
+        sampleOwner = null;
 
-        IMemoryOwner<byte> sampleOwner = this.configuration.MemoryAllocator.Allocate<byte>(sample.Length);
+        // The parser rejects a declared size of 0. A sample has no bytes only when the file ends before it, and the
+        // parser already applied the integrity mode to that. Such a sample holds no frame.
+        if (sample.Length == 0)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The HEIF image-sequence sample is after the end of the file.");
+            return false;
+        }
+
+        IMemoryOwner<byte> owner = this.configuration.MemoryAllocator.Allocate<byte>(sample.Length);
         try
         {
-            Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+            Span<byte> sampleData = owner.GetSpan()[..sample.Length];
             stream.Position = this.fileStartOffset + sample.Offset;
             HeifBoxReader.ReadExactly(stream, sampleData, "The HEIF image-sequence sample is truncated.");
             codecConfiguration.ValidateSampleData(
@@ -687,11 +775,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 out _,
                 out _);
 
-            return sampleOwner;
+            sampleOwner = owner;
+            return true;
         }
         catch
         {
-            sampleOwner.Dispose();
+            owner.Dispose();
             throw;
         }
     }
@@ -753,12 +842,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifSequenceMetadata? trackMetadata = colorTrack.Metadata;
         if (trackMetadata?.ExifData is not null)
         {
-            this.ExecuteAncillarySegmentAction(() => ApplyExifProfile(metadata, trackMetadata.ExifData));
+            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => this.ApplyExifProfile(metadata, trackMetadata.ExifData));
         }
 
         if (trackMetadata?.XmpData is not null)
         {
-            this.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = XmpReader.ReadProfile(trackMetadata.XmpData));
+            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = XmpReader.ReadProfile(trackMetadata.XmpData));
         }
     }
 
@@ -1236,12 +1325,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 this.itemLinks.Add(link);
             }
-            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && ShouldIgnoreAncillarySegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
             {
                 // A malformed descriptive link cannot change reconstructed pixels, so non-strict modes omit it.
                 bytesRead = referenceEnd;
             }
-            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
             {
                 // IgnoreImageData permits a malformed optional image relationship to be omitted while retaining
                 // independently reconstructable items.
@@ -1369,9 +1458,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         iccProfile = HeifPropertyParser.ParseIccProfile(
                             stream,
                             itemLength - 4,
-                            this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+                            this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
                     }
-                    catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                    catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                     {
                         // Length validation can fail before consuming the payload. Resume at the next property.
                         HeifBoxReader.Skip(stream, profileEnd - stream.Position);
@@ -1414,7 +1503,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             pixelAspectRatio = HeifPropertyParser.ParsePixelAspectRatio(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1487,7 +1576,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentLightLevel = HeifPropertyParser.ParseContentLightLevel(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1500,7 +1589,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             masteringDisplayColorVolume = HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1513,7 +1602,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentColorVolume = HeifPropertyParser.ParseContentColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1526,7 +1615,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             ambientViewingEnvironment = HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1539,7 +1628,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             referenceViewingEnvironment = HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1552,7 +1641,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             nominalDiffuseWhite = HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer);
                         }
-                        catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1615,7 +1704,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         break;
                 }
             }
-            catch (Exception ex) when (ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
             {
                 // Invalid image properties retain their physical association index. Typed association handling ignores
                 // the placeholder so another decodable item or the coded-image defaults can remain usable.
@@ -1705,7 +1794,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (!essential && prop.Key is Heif4CharCode.Clap or Heif4CharCode.Irot or Heif4CharCode.Imir)
                 {
-                    this.ThrowOrIgnoreImageDataSegmentError(
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                         $"Item {itemId} associates nonessential transformative property '{prop.Key}'.");
 
                     continue;
@@ -1715,7 +1804,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // requirement for lsel. A reader that ignores either selector decodes a different image.
                 if (!essential && prop.Key is Heif4CharCode.A1op or Heif4CharCode.Lsel)
                 {
-                    this.ThrowOrIgnoreImageDataSegmentError(
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                         $"Item {itemId} associates AV1 selector property '{prop.Key}' without marking it essential.");
 
                     continue;
@@ -1725,7 +1814,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // payload and ignore the optional layer boundaries.
                 if (essential && prop.Key == Heif4CharCode.A1lx)
                 {
-                    this.ThrowOrIgnoreImageDataSegmentError(
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                         $"Item {itemId} marks AV1 layered-image indexing property '{prop.Key}' as essential.");
 
                     continue;
@@ -1745,7 +1834,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.PixelAspectRatio is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one pixel aspect ratio property.");
 
                                 break;
@@ -1760,7 +1849,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.ChannelBitDepths is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one pixel information property.");
 
                                 break;
@@ -1783,7 +1872,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.Type != Heif4CharCode.Av01)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
 
                                 break;
@@ -1791,7 +1880,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                             if (item.Av1CodecConfiguration is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one AV1 codec configuration property.");
 
                                 break;
@@ -1806,7 +1895,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.Type != Heif4CharCode.Av01)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates an AV1 operating-point selector with non-AV1 item type '{item.Type}'.");
 
                                 break;
@@ -1814,7 +1903,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                             if (item.Av1OperatingPointSelector is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one AV1 operating-point selector property.");
 
                                 break;
@@ -1829,7 +1918,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.Type != Heif4CharCode.Av01)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates an AV1 layer selector with non-AV1 item type '{item.Type}'.");
 
                                 break;
@@ -1837,7 +1926,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                             if (item.Av1LayerSelector is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one AV1 layer selector property.");
 
                                 break;
@@ -1852,7 +1941,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.Type != Heif4CharCode.Av01)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates AV1 layered-image indexing with non-AV1 item type '{item.Type}'.");
 
                                 break;
@@ -1860,7 +1949,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                             if (item.Av1LayeredImageIndex is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one AV1 layered-image indexing property.");
 
                                 break;
@@ -1875,7 +1964,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.AuxiliaryType is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one auxiliary type property.");
 
                                 break;
@@ -1890,7 +1979,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.IccProfile is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one ICC color property.");
 
                                 break;
@@ -1902,7 +1991,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.CicpProfile is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one CICP color property.");
 
                                 break;
@@ -1917,7 +2006,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.ContentLightLevel is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one content light level property.");
 
                                 break;
@@ -1932,7 +2021,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.MasteringDisplayColorVolume is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one mastering display color-volume property.");
 
                                 break;
@@ -1947,7 +2036,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.ContentColorVolume is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one content color-volume property.");
 
                                 break;
@@ -1962,7 +2051,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.AmbientViewingEnvironment is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one ambient viewing-environment property.");
 
                                 break;
@@ -1977,7 +2066,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.ReferenceViewingEnvironment is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one reference viewing-environment property.");
 
                                 break;
@@ -1992,7 +2081,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.NominalDiffuseWhite is not null)
                             {
-                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
                                     $"Item {itemId} associates more than one nominal diffuse-white property.");
 
                                 break;
@@ -2007,7 +2096,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.CleanAperture is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one clean aperture property.");
 
                                 break;
@@ -2022,7 +2111,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.RotationAngle is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one image rotation property.");
 
                                 break;
@@ -2037,7 +2126,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.MirrorAxis is not null)
                             {
-                                this.ThrowOrIgnoreImageDataSegmentError(
+                                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
                                     $"Item {itemId} associates more than one image mirror property.");
 
                                 break;
@@ -2249,21 +2338,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>An owner containing the contiguous item payload.</returns>
     private IMemoryOwner<byte> ReadItemData(BufferedReadStream stream, HeifItem item)
     {
-        // Validate every extent against its source before the buffer is allocated. The declared lengths alone could
-        // otherwise request up to int.MaxValue bytes from a file that holds only a few bytes.
+        // Validate every extent against its source before the buffer is allocated. The buffer holds only the bytes that
+        // the source holds, so a file that holds only a few bytes cannot request up to int.MaxValue bytes. One logical
+        // item is the concatenation of its extents in declared order. Thus the item data ends where the first truncated
+        // extent ends, and the bytes of the later extents do not belong after it.
+        long declaredLength = 0;
         long itemLength = 0;
+        int readExtentCount = 0;
+        bool truncated = false;
         foreach (HeifLocation location in item.DataLocations)
         {
-            _ = this.GetExtentSourceOffset(stream, item, location);
-            if (itemLength > int.MaxValue - location.Length)
+            _ = this.GetExtentSourceOffset(stream, item, location, out long availableLength);
+            if (declaredLength > int.MaxValue - location.Length)
             {
                 throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
             }
 
-            itemLength += location.Length;
+            declaredLength += location.Length;
+            if (!truncated)
+            {
+                itemLength += availableLength;
+                readExtentCount++;
+                truncated = availableLength < location.Length;
+            }
         }
 
-        if (itemLength == 0)
+        if (declaredLength == 0)
         {
             throw new InvalidImageContentException($"Item {item.Id} has no data extents.");
         }
@@ -2272,14 +2372,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         IMemoryOwner<byte> itemMemory = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
         try
         {
-            // One logical item is the concatenation of its extents in declared order. Only the selected item is
-            // materialized, and its owner is released as soon as the codec or metadata consumer has finished.
+            // The method reads only the selected item. The caller disposes the owner when the codec or metadata
+            // consumer finishes.
             Span<byte> itemBuffer = itemMemory.GetSpan()[..bufferLength];
             int writeOffset = 0;
-            foreach (HeifLocation location in item.DataLocations)
+            for (int i = 0; i < readExtentCount; i++)
             {
-                stream.Position = this.GetExtentSourceOffset(stream, item, location);
-                int extentLength = (int)location.Length;
+                stream.Position = this.GetExtentSourceOffset(stream, item, item.DataLocations[i], out long availableLength);
+                int extentLength = (int)availableLength;
 
                 // A stream can return fewer bytes than requested before its end, so read until the extent is complete.
                 HeifBoxReader.ReadExactly(stream, itemBuffer.Slice(writeOffset, extentLength), "An item extent is truncated.");
@@ -2296,14 +2396,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Resolves the absolute stream offset of one item extent and validates that the whole extent is inside its source.
+    /// Resolves the absolute stream offset of one item extent and validates the extent against its source.
     /// </summary>
+    /// <remarks>
+    /// A file extent that ends after the end of the file is truncated image data. Strict and IgnoreAncillary throw.
+    /// IgnoreImageData keeps the bytes of the extent that the file holds. An extent outside the item data box is not
+    /// truncation, because the box is complete, so it throws in every mode.
+    /// </remarks>
     /// <param name="stream">The complete seekable HEIF container stream.</param>
     /// <param name="item">The item that owns the extent, used in error messages.</param>
     /// <param name="location">The extent to resolve.</param>
+    /// <param name="availableLength">Receives the number of extent bytes that the source holds.</param>
     /// <returns>The absolute stream offset of the first extent byte.</returns>
-    /// <exception cref="InvalidImageContentException">The extent is not completely inside the file or item data box.</exception>
-    private long GetExtentSourceOffset(BufferedReadStream stream, HeifItem item, HeifLocation location)
+    /// <exception cref="InvalidImageContentException">The extent is not valid, or it is truncated and the mode does not ignore image data errors.</exception>
+    private long GetExtentSourceOffset(BufferedReadStream stream, HeifItem item, HeifLocation location, out long availableLength)
     {
         if (location.BaseOffset < 0
             || location.Offset < 0
@@ -2313,35 +2419,41 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         long relativeOffset = location.BaseOffset + location.Offset;
-        long sourceOffset;
-        long sourceBytesRemaining;
         if (location.Origin == HeifLocationOffsetOrigin.FileOffset)
         {
             // Construction method zero resolves base_offset + extent_offset from the start of the file.
             long fileLength = stream.Length - this.fileStartOffset;
-            HeifBoxReader.EnsureInsideParent(relativeOffset, fileLength);
-            sourceOffset = this.fileStartOffset + relativeOffset;
-            sourceBytesRemaining = fileLength - relativeOffset;
+            if (location.Length < 0)
+            {
+                throw new InvalidImageContentException($"Item {item.Id} has an invalid extent length.");
+            }
+
+            availableLength = location.Length;
+            if (relativeOffset > fileLength || location.Length > fileLength - relativeOffset)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("An item extent is truncated.");
+                relativeOffset = Math.Min(relativeOffset, fileLength);
+                availableLength = fileLength - relativeOffset;
+            }
+
+            return this.fileStartOffset + relativeOffset;
         }
-        else if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
+
+        if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
         {
             if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
             {
                 throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
             }
 
-            // Construction method one resolves the same relative value from the idat payload start.
-            sourceOffset = this.itemDataOffset + relativeOffset;
-            sourceBytesRemaining = this.itemDataLength - relativeOffset;
-        }
-        else
-        {
-            throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
+            // Construction method one resolves the same relative value from the idat payload start. The length check
+            // also rejects a negative length, so the caller can sum validated lengths directly.
+            HeifBoxReader.EnsureInsideParent(location.Length, this.itemDataLength - relativeOffset);
+            availableLength = location.Length;
+            return this.itemDataOffset + relativeOffset;
         }
 
-        // The length check also rejects a negative length, so the caller can sum validated lengths directly.
-        HeifBoxReader.EnsureInsideParent(location.Length, sourceBytesRemaining);
-        return sourceOffset;
+        throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
     }
 
     /// <summary>
@@ -2583,16 +2695,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (metadataItem.Type == Heif4CharCode.Exif)
             {
-                this.ExecuteAncillarySegmentAction(() =>
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() =>
                 {
                     using IMemoryOwner<byte> itemMemory = itemDataReader(metadataItem);
-                    ApplyExifProfile(metadata, itemMemory.GetSpan());
+                    this.ApplyExifProfile(metadata, itemMemory.GetSpan());
                 });
             }
             else if (metadataItem.Type == Heif4CharCode.Mime &&
                 string.Equals(metadataItem.ContentType, "application/rdf+xml", StringComparison.Ordinal))
             {
-                this.ExecuteAncillarySegmentAction(() =>
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() =>
                 {
                     using IMemoryOwner<byte> itemMemory = itemDataReader(metadataItem);
                     metadata.XmpProfile = XmpReader.ReadProfile(itemMemory.GetSpan());
@@ -2606,11 +2718,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The image metadata receiving the Exif profile.</param>
     /// <param name="itemData">The complete HEIF Exif item including its four-byte offset field.</param>
-    private static void ApplyExifProfile(ImageMetadata metadata, ReadOnlySpan<byte> itemData)
+    private void ApplyExifProfile(ImageMetadata metadata, ReadOnlySpan<byte> itemData)
     {
         if (itemData.Length < 8)
         {
-            throw new InvalidImageContentException("The HEIF Exif item is truncated.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The HEIF Exif item is truncated.");
+            return;
         }
 
         uint declaredTiffHeaderOffset = BinaryPrimitives.ReadUInt32BigEndian(itemData);
@@ -2640,7 +2753,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         if (actualTiffHeaderOffset < 0 || declaredTiffHeaderOffset != (uint)actualTiffHeaderOffset)
         {
-            throw new InvalidImageContentException("The HEIF Exif item has an invalid TIFF-header offset.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The HEIF Exif item has an invalid TIFF-header offset.");
+            return;
         }
 
         metadata.TrySetExifProfile(ExifReader.ReadProfile(exifData[actualTiffHeaderOffset..]));
@@ -2698,7 +2812,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             Av1FrameBuffer<byte>? alpha = null;
             bool premultiplied = false;
-            this.ExecuteImageDataSegmentAction(
+            this.Options.SegmentIntegrityHandling.ExecuteImageDataSegmentAction(
                 () => alpha = this.DecodeAlphaPlane<TPixel>(item, itemDataReader, cancellationToken, out premultiplied));
 
             using Av1FrameBuffer<byte>? alphaFrame = alpha;
@@ -2816,13 +2930,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             if (alphaHasTransforms &&
                 (!cleanAperturesMatch || alphaItem.RotationAngle != colorItem.RotationAngle || alphaItem.MirrorAxis != colorItem.MirrorAxis))
             {
-                throw new ImageFormatException("The alpha auxiliary image and color image use different presentation transforms.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
+                    "The alpha auxiliary image and color image use different presentation transforms.");
+
+                return null;
             }
 
             IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(alphaItem, itemDataReader);
             if (itemDecoder is not IHeifAlphaItemDecoder decoder)
             {
-                throw new ImageFormatException($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
+                return null;
             }
 
             premultiplied = this.itemLinks.Any(
@@ -3028,42 +3146,5 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         bytesRead = terminator + 1;
         return Encoding.UTF8.GetString(span[..terminator]);
-    }
-
-    /// <summary>
-    /// Determines whether a malformed ancillary box can be omitted under the selected integrity policy.
-    /// </summary>
-    public static bool ShouldIgnoreAncillarySegmentError(DecoderOptions options, Exception exception)
-        => options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict
-            && IsRecoverableBoxError(exception);
-
-    /// <summary>
-    /// Determines whether a malformed image-data box can be omitted under the selected integrity policy.
-    /// </summary>
-    internal static bool ShouldIgnoreImageDataSegmentError(DecoderOptions options, Exception exception)
-        => options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData
-            && IsRecoverableBoxError(exception);
-
-    /// <summary>
-    /// Identifies malformed-box failures eligible for the segment integrity policy.
-    /// </summary>
-    /// <param name="exception">The failure raised while reading the box.</param>
-    /// <returns>Whether the failure describes recoverable image content.</returns>
-    private static bool IsRecoverableBoxError(Exception exception)
-        => exception is ImageFormatException
-            or InvalidIccProfileException
-            or InvalidOperationException
-            or NotSupportedException;
-
-    /// <summary>
-    /// Rejects malformed image properties unless image-data errors are explicitly ignored.
-    /// </summary>
-    /// <param name="message">The description of the malformed property.</param>
-    private void ThrowOrIgnoreImageDataSegmentError(string message)
-    {
-        if (this.Options.SegmentIntegrityHandling is not SegmentIntegrityHandling.IgnoreImageData)
-        {
-            throw new InvalidImageContentException(message);
-        }
     }
 }

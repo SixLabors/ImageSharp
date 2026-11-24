@@ -29,11 +29,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     private readonly bool colorMetadataOnly;
 
     /// <summary>
-    /// Counts successfully packed rows in the current streamed frame. Recovery cannot expose an image with no decoded output.
-    /// </summary>
-    private int decodedRows;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="JxlDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The JPEG XL decoder options.</param>
@@ -88,7 +83,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
         // The shared decoder base owns the buffered input. The codestream reader borrows it and follows
         // container fragments without copying their payloads. The header owns the decoded ICC profile.
-        JxlCodestreamReader codestream = new(stream);
+        JxlCodestreamReader codestream = new(stream, this.Options.SegmentIntegrityHandling);
         JxlBitReader reader = new(codestream);
         JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
@@ -131,7 +126,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             foreach ((uint Type, long Offset, long Length) box in codestream.Boxes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.ExecuteAncillarySegmentAction(() => codestream.ApplyMetadataBox(box, metadata, this.Options.Configuration, cancellationToken));
+                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
+                    () => codestream.ApplyMetadataBox(box, metadata, this.Options.Configuration, cancellationToken));
             }
 
             // JPEG XL's image header defines orientation. It takes precedence over an EXIF copy of that value.
@@ -149,7 +145,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        JxlCodestreamReader codestream = new(stream);
+        JxlCodestreamReader codestream = new(stream, this.Options.SegmentIntegrityHandling);
         JxlBitReader reader = new(codestream);
         JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
@@ -170,6 +166,31 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Creates the cleared output image and its image-wide metadata.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
+    /// <param name="header">The image-wide size, profile and format declarations.</param>
+    /// <returns>The image with one cleared root frame.</returns>
+    private Image<TPixel> CreateImage<TPixel>(JxlHeader header)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Final color conversion produces working sRGB. Keep the original compact
+        // description in JXL metadata without applying its label to converted pixels.
+        ImageMetadata metadata = new()
+        {
+            IccProfile = header.IccProfile,
+            CicpProfile = this.Options.SkipMetadata ? null : new(1, 13, 0, true)
+        };
+
+        metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
+
+        // Sequential output writes completed rows during AC traversal. Initialize the destination
+        // first so malformed or cancelled input cannot expose samples retained in pooled memory.
+        // Image-data recovery also returns this cleared value for each pixel that it cannot decode.
+        return new Image<TPixel>(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
+    }
+
+    /// <summary>
     /// Reconstructs native dependencies and packs each displayed canvas through the shared pixel APIs.
     /// </summary>
     /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
@@ -183,14 +204,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
-        if (header.PreviewSize.HasValue)
-        {
-            JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true, this.Options.SegmentIntegrityHandling);
-            if (!JxlFrameSections.Skip(ref reader, allocator, preview.SectionCount, this.Options.SegmentIntegrityHandling, cancellationToken))
-            {
-                throw new InvalidImageContentException("The JPEG XL preview ends before the main image frame.");
-            }
-        }
 
         // The ICC profile belongs to the image. All displayed frames share its transform and black point.
         ColorProfileConverter? profileConverter = null;
@@ -214,14 +227,30 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
         InlineArray4<JxlReferenceFrame?> referenceFrames = default;
         Image<TPixel>? image = null;
-        int completedFrames = 0;
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
+
+        // True only while the section payloads of a frame are read. Errors there are damaged image data.
+        // Frame headers and section tables are structural, so their errors stay fatal.
+        bool readingImageData = false;
         try
         {
+            if (header.PreviewSize.HasValue)
+            {
+                JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true, this.Options.SegmentIntegrityHandling);
+                if (!JxlFrameSections.Skip(ref reader, allocator, preview.SectionCount, this.Options.SegmentIntegrityHandling, cancellationToken))
+                {
+                    // Skip returns false only in the IgnoreImageData mode. The truncated preview leaves no main frame
+                    // data, so each pixel keeps the fill value. Damage in a hidden frame before the first displayed
+                    // frame gives the same cleared canvas.
+                    image = this.CreateImage<TPixel>(header);
+                    this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
+                    return image;
+                }
+            }
+
             while (true)
             {
-                this.decodedRows = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
@@ -270,19 +299,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 {
                     if (image is null)
                     {
-                        // Final color conversion produces working sRGB. Keep the original compact
-                        // description in JXL metadata without applying its label to converted pixels.
-                        ImageMetadata metadata = new()
-                        {
-                            IccProfile = header.IccProfile,
-                            CicpProfile = this.Options.SkipMetadata ? null : new(1, 13, 0, true)
-                        };
-
-                        metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
-
-                        // Sequential output writes completed rows during AC traversal. Initialize the destination
-                        // first so malformed or cancelled input cannot expose samples retained in pooled memory.
-                        image = new Image<TPixel>(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
+                        image = this.CreateImage<TPixel>(header);
                         destination = image.Frames.RootFrame;
                     }
                     else
@@ -301,8 +318,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     }
                 }
 
+                readingImageData = true;
                 using JxlFrame reconstructed = this.DecodeFrameData(
                     ref reader, header, frame, sections, dcReference, referenceFrames, destination, profileConverter, cancellationToken);
+
+                readingImageData = false;
 
                 bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
                 if (!pixelsWritten)
@@ -362,7 +382,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                         preservedReference?.Dispose();
                     }
 
-                    completedFrames++;
                     if (frame.IsLast || lastRequestedFrame)
                     {
                         // Container traversal skips any frames omitted by MaxFrames and still reads later metadata boxes.
@@ -409,19 +428,19 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 }
             }
         }
-        catch (InvalidImageContentException) when (reader.IsTruncatedInput
-            && this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData
-            && image is not null && (completedFrames != 0 || this.decodedRows != 0))
+        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex)
+            && (readingImageData || (reader.IsTruncatedInput && image is not null)))
         {
+            // Two cases reach here: damaged or truncated section payloads, and physical EOF after at least
+            // one displayed frame started. The codestream reader finds container box errors before the decode starts.
+            // Frame headers and section tables are outside the image data reads, so their errors skip this handler.
+            // The Strict and IgnoreAncillary modes skip it too, so the original exception and its stack trace stay.
             try
             {
-                // An allocated frame is not decoded output. Keep an incomplete streamed frame only
-                // after at least one row was packed; otherwise retain only earlier complete canvases.
-                // The image constructor initialized every unread row, so retained tails contain no pooled samples.
-                if (this.decodedRows == 0 && image.Frames.Count > completedFrames)
-                {
-                    image.Frames.RemoveFrame(image.Frames.Count - 1);
-                }
+                // IgnoreImageData keeps the frames and streamed rows decoded so far. Frame constructors clear
+                // their pixels, so each unread pixel keeps that value.
+                // Damage in a hidden frame before the first displayed frame leaves no canvas. Return a cleared one.
+                image ??= this.CreateImage<TPixel>(header);
 
                 // Physical pixel EOF does not waive container structure or metadata policies.
                 // Exceptions here leave this catch directly, so dispose the image in its own failure handler.
@@ -430,7 +449,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
             catch
             {
-                image.Dispose();
+                image?.Dispose();
                 throw;
             }
         }
@@ -709,13 +728,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                             while (restoration.TryReadRow(out int outputY, out ReadOnlySpan<float> x, out ReadOnlySpan<float> luma, out ReadOnlySpan<float> b))
                             {
                                 pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
-                                this.decodedRows++;
                             }
                         }
                         else
                         {
                             pixelConverter.ConvertRow(y, rowX[..size.Width], rowY[..size.Width], rowB[..size.Width], pixelRow);
-                            this.decodedRows++;
                         }
                     }
                 }
@@ -730,7 +747,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
-                    this.decodedRows++;
                 }
             }
 

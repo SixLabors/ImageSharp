@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -534,18 +535,231 @@ public class WebpDecoderTests
         image.DebugSave(provider, extension: "webp", encoder: new WebpEncoder());
     }
 
+    /// <summary>
+    /// A file with a backward reference that is not valid and a missing tail decodes with the default options.
+    /// The reference is in the main pixel data, at pixel 48789 of the 512 x 512 image. The transforms are valid.
+    /// Strict mode throws for the damaged image data.
+    /// </summary>
     [Theory]
     [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
-    public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        // Ignore the missing tail so this assertion still tests the invalid compressed color transform.
-        Assert.Throws<ImageFormatException>(
-            () =>
+    public void WebpDecoder_DamagedLosslessImageData_DecodesByDefaultAndThrowsWithStrict<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => provider.GetImage(WebpDecoder.Instance, strict));
+
+        // The default mode is IgnoreImageData. It returns the pixels that it can decode and does not throw.
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, new DecoderOptions(Configuration.Default));
+        image.DebugSave(provider);
+    }
+
+    /// <summary>
+    /// A still image whose image data ends early decodes with the default options. The rows before the end
+    /// match a full decode, and the rows after it stay cleared. Strict mode throws.
+    /// </summary>
+    /// <param name="fileFormat">The WebP bitstream to test.</param>
+    /// <param name="endsAtEof">
+    /// True when the file ends inside the image chunk. False when the image chunk is complete but its
+    /// bitstream ends early.
+    /// </param>
+    [Theory]
+    [InlineData(WebpFileFormatType.Lossy, true)]
+    [InlineData(WebpFileFormatType.Lossy, false)]
+    [InlineData(WebpFileFormatType.Lossless, true)]
+    [InlineData(WebpFileFormatType.Lossless, false)]
+    public void Decode_TruncatedImageData_KeepsDecodedRowsByDefaultAndThrowsWithStrict(WebpFileFormatType fileFormat, bool endsAtEof)
+    {
+        using Image<Rgb24> source = CreateNoiseImage(64, 64, 1);
+        using MemoryStream stream = new();
+        source.Save(stream, new WebpEncoder { FileFormat = fileFormat, Quality = 90 });
+        byte[] data = stream.ToArray();
+
+        string fourCc = fileFormat == WebpFileFormatType.Lossy ? "VP8 " : "VP8L";
+        int chunk = FindChunks(data, fourCc)[0];
+        int payloadSize = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(chunk + 4));
+
+        // Keep the fixed VP8 header and the first partition, so that only the token data ends early.
+        // The 19-bit first partition size is in the 3-byte frame tag. See RFC 6386, section 9.1.
+        int keep = payloadSize / 2;
+        if (fileFormat == WebpFileFormatType.Lossy)
+        {
+            int frameTag = data[chunk + 8] | (data[chunk + 9] << 8) | (data[chunk + 10] << 16);
+            int firstPartitionSize = frameTag >> 5;
+            keep = 10 + firstPartitionSize + ((payloadSize - 10 - firstPartitionSize) / 2);
+        }
+
+        byte[] truncated = Truncate(data, chunk, keep & ~1, !endsAtEof);
+
+        // The decoder writes whole rows in row order. The rows after the end keep the cleared value.
+        using Image<Rgba32> full = Image.Load<Rgba32>(data);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        using Image<Rgba32> expected = PartialDecodeExpectation.Create(full.Frames.RootFrame, actual.Frames.RootFrame, actual.Width, false, _ => default);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions ancillary = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, truncated));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(ancillary, truncated));
+    }
+
+    /// <summary>
+    /// An animated image whose last frame ends at EOF decodes with the default options. The first frame matches
+    /// a full decode, and the last frame keeps the rows that it can decode. Strict mode throws.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedAnimationFrame_KeepsDecodedFramesByDefaultAndThrowsWithStrict()
+    {
+        using Image<Rgb24> source = CreateNoiseImage(64, 64, 1);
+        using (Image<Rgb24> second = CreateNoiseImage(64, 64, 2))
+        {
+            // Source blending copies the decoded frame to the canvas, so the rows that are not decoded stay cleared.
+            source.Frames.AddFrame(second.Frames.RootFrame).Metadata.GetWebpMetadata().BlendMode = FrameBlendMode.Source;
+        }
+
+        source.Frames.RootFrame.Metadata.GetWebpMetadata().BlendMode = FrameBlendMode.Source;
+
+        using MemoryStream stream = new();
+        source.Save(stream, new WebpEncoder { FileFormat = WebpFileFormatType.Lossless });
+        byte[] data = stream.ToArray();
+
+        // An ANMF payload starts with a 16-byte frame header. The frame image chunk follows it.
+        List<int> frames = FindChunks(data, "ANMF");
+        Assert.Equal(2, frames.Count);
+        int imageChunk = frames[1] + 8 + 16;
+        int imageSize = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(imageChunk + 4));
+        byte[] truncated = data.AsSpan(0, imageChunk + 8 + (imageSize / 2)).ToArray();
+
+        // The first frame is complete. The last frame keeps its whole decoded rows, and its other rows keep the cleared value.
+        using Image<Rgba32> full = Image.Load<Rgba32>(data);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        using Image<Rgba32> expected = full.Frames.CloneFrame(0);
+        using (Image<Rgba32> lastFrame = PartialDecodeExpectation.Create(full.Frames[1], actual.Frames[1], actual.Width, false, _ => default))
+        {
+            expected.Frames.AddFrame(lastFrame.Frames.RootFrame);
+        }
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, truncated));
+    }
+
+    /// <summary>
+    /// A lossy image whose ALPH data ends early decodes with the default options. The color rows decode, the alpha
+    /// rows before the end match a full decode, and the alpha values after it are 0. Strict mode throws.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedAlphaData_KeepsDecodedAlphaByDefaultAndThrowsWithStrict()
+    {
+        Random random = new(3);
+        using Image<Rgba32> source = new(64, 64);
+        for (int y = 0; y < source.Height; y++)
+        {
+            for (int x = 0; x < source.Width; x++)
             {
-                using (provider.GetImage(WebpDecoder.Instance, new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }))
-                {
-                }
-            });
+                source[x, y] = new Rgba32((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+            }
+        }
+
+        using MemoryStream stream = new();
+        source.Save(stream, new WebpEncoder { FileFormat = WebpFileFormatType.Lossy });
+        byte[] data = stream.ToArray();
+
+        // Halve the ALPH payload and set the ALPH and RIFF sizes to the new length. The VP8 chunk follows unchanged,
+        // so only the alpha bitstream ends early.
+        int alpha = FindChunks(data, "ALPH")[0];
+        int alphaSize = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(alpha + 4));
+        int alphaEnd = alpha + 8 + alphaSize + (alphaSize & 1);
+        int keep = (alphaSize / 2) & ~1;
+        byte[] truncated = [.. data.AsSpan(0, alpha + 8 + keep), .. data.AsSpan(alphaEnd)];
+        BinaryPrimitives.WriteUInt32LittleEndian(truncated.AsSpan(alpha + 4), (uint)keep);
+        BinaryPrimitives.WriteUInt32LittleEndian(truncated.AsSpan(4), (uint)(truncated.Length - 8));
+
+        // The color data is complete. The alpha decoder writes whole rows in row order, and the alpha values of the
+        // rows after the end are 0.
+        using Image<Rgba32> full = Image.Load<Rgba32>(data);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(truncated);
+        using Image<Rgba32> expected = PartialDecodeExpectation.Create(
+            full.Frames.RootFrame,
+            actual.Frames.RootFrame,
+            actual.Width,
+            false,
+            pixel => new Rgba32(pixel.R, pixel.G, pixel.B, 0));
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, truncated));
+    }
+
+    /// <summary>
+    /// Creates an image of fixed pseudo-random noise. Noise is hard to compress, so most of the encoded data is pixel data.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="seed">The seed of the noise.</param>
+    /// <returns>The image.</returns>
+    private static Image<Rgb24> CreateNoiseImage(int width, int height, int seed)
+    {
+        Random random = new(seed);
+        Image<Rgb24> image = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                image[x, y] = new Rgb24((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+            }
+        }
+
+        return image;
+    }
+
+    /// <summary>
+    /// Gets the offsets of the top-level RIFF chunks with the given FourCC.
+    /// </summary>
+    /// <param name="data">The WebP file.</param>
+    /// <param name="fourCc">The chunk FourCC.</param>
+    /// <returns>The offsets of the chunk headers.</returns>
+    private static List<int> FindChunks(byte[] data, string fourCc)
+    {
+        List<int> offsets = [];
+
+        // The first chunk follows the 12-byte RIFF header. Each chunk has an 8-byte header and an even padded size.
+        int offset = 12;
+        while (offset + 8 <= data.Length)
+        {
+            int size = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 4));
+            if (System.Text.Encoding.ASCII.GetString(data, offset, 4) == fourCc)
+            {
+                offsets.Add(offset);
+            }
+
+            offset += 8 + size + (size & 1);
+        }
+
+        return offsets;
+    }
+
+    /// <summary>
+    /// Cuts a chunk payload. The file can end inside the chunk. Or, the chunk and the RIFF sizes can be set to the new
+    /// length, so that only the bitstream ends early.
+    /// </summary>
+    /// <param name="data">The WebP file.</param>
+    /// <param name="chunk">The offset of the chunk header.</param>
+    /// <param name="payloadSize">The payload bytes to keep. It is even, so the chunk needs no padding byte.</param>
+    /// <param name="updateSizes">True to set the chunk and the RIFF sizes to the new length.</param>
+    /// <returns>The changed file.</returns>
+    private static byte[] Truncate(byte[] data, int chunk, int payloadSize, bool updateSizes)
+    {
+        byte[] result = data.AsSpan(0, chunk + 8 + payloadSize).ToArray();
+        if (updateSizes)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(chunk + 4), (uint)payloadSize);
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4), (uint)(result.Length - 8));
+        }
+
+        return result;
+    }
 
     private static void RunDecodeLossyWithHorizontalFilter()
     {

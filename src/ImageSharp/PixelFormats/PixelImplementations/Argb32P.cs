@@ -247,6 +247,9 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
     public static Argb32P FromBgra5551(Bgra5551 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
+    public static Argb32P FromBgr565(Bgr565 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
     public static Argb32P FromBgr24(Bgr24 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

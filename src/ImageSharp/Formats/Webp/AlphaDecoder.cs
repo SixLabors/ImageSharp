@@ -24,6 +24,11 @@ internal class AlphaDecoder : IDisposable
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
+    /// The image data integrity mode. It controls damaged or truncated alpha data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AlphaDecoder"/> class.
     /// </summary>
     /// <param name="width">The width of the image.</param>
@@ -32,12 +37,21 @@ internal class AlphaDecoder : IDisposable
     /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on how to decode the stream.</param>
     /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
     /// <param name="configuration">The configuration.</param>
-    public AlphaDecoder(int width, int height, IMemoryOwner<byte> data, byte alphaChunkHeader, MemoryAllocator memoryAllocator, Configuration configuration)
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated alpha data.</param>
+    public AlphaDecoder(
+        int width,
+        int height,
+        IMemoryOwner<byte> data,
+        byte alphaChunkHeader,
+        MemoryAllocator memoryAllocator,
+        Configuration configuration,
+        SegmentIntegrityHandling segmentIntegrityHandling)
     {
         this.Width = width;
         this.Height = height;
         this.Data = data;
         this.memoryAllocator = memoryAllocator;
+        this.segmentIntegrityHandling = segmentIntegrityHandling;
         this.LastRow = 0;
         int totalPixels = width * height;
 
@@ -56,22 +70,19 @@ internal class AlphaDecoder : IDisposable
             WebpThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
         }
 
+        // The allocation is not clean. Decode() writes each decoded row and sets the other alpha values to 0, the
+        // transparent fill of the other codecs. A complete decode writes every value, so it clears nothing.
         this.Alpha = memoryAllocator.Allocate<byte>(totalPixels);
         this.AlphaFilterType = (WebpAlphaFilterType)filter;
         this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
         if (this.Compressed)
         {
+            // Decode() reads the lossless header, because damage in the header is image data damage. Decode() runs
+            // inside the using statement of the caller. Thus, that statement disposes the buffers when the integrity
+            // policy throws.
             Vp8LBitReader bitReader = new(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
-            this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
-
-            // Special case: if alpha data uses only the color indexing transform and
-            // doesn't use color cache (a frequent case), we will use DecodeAlphaData()
-            // method that only needs allocation of 1 byte per pixel (alpha channel).
-            this.Use8BDecode = this.Vp8LDec.Transforms.Count is 1
-                               && this.Vp8LDec.Transforms[0].TransformType == Vp8LTransformType.ColorIndexingTransform
-                               && Is8BOptimizable(this.Vp8LDec.Metadata);
         }
     }
 
@@ -130,8 +141,10 @@ internal class AlphaDecoder : IDisposable
     /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.
     /// Although Alpha Channel requires only 1 byte per pixel, sometimes Vp8LDecoder may need to allocate
     /// 4 bytes per pixel internally during decode.
+    /// <see cref="Decode"/> sets the value after it reads the lossless header. Before that, the value is
+    /// <see langword="false"/>.
     /// </summary>
-    public bool Use8BDecode { get; }
+    public bool Use8BDecode { get; private set; }
 
     /// <summary>
     /// Decodes and filters the maybe compressed alpha data.
@@ -141,23 +154,26 @@ internal class AlphaDecoder : IDisposable
         if (!this.Compressed)
         {
             Span<byte> dataSpan = this.Data.Memory.Span;
-            int pixelCount = this.Width * this.Height;
-            if (dataSpan.Length < pixelCount)
+            int rows = this.Height;
+            Span<byte> alphaSpan = this.Alpha.Memory.Span;
+            if (dataSpan.Length < this.Width * this.Height)
             {
-                WebpThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
+                // Raw alpha that is too short is truncated image data. The decoder keeps the complete rows.
+                this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data in the ALPH chunk.");
+                rows = dataSpan.Length / this.Width;
+                alphaSpan[(rows * this.Width)..].Clear();
             }
 
-            Span<byte> alphaSpan = this.Alpha.Memory.Span;
             if (this.AlphaFilterType == WebpAlphaFilterType.None)
             {
-                dataSpan[..pixelCount].CopyTo(alphaSpan);
+                dataSpan[..(rows * this.Width)].CopyTo(alphaSpan);
                 return;
             }
 
             Span<byte> deltas = dataSpan;
             Span<byte> dst = alphaSpan;
             Span<byte> prev = default;
-            for (int y = 0; y < this.Height; y++)
+            for (int y = 0; y < rows; y++)
             {
                 switch (this.AlphaFilterType)
                 {
@@ -177,14 +193,39 @@ internal class AlphaDecoder : IDisposable
                 dst = dst[this.Width..];
             }
         }
-        else if (this.Use8BDecode)
-        {
-            this.LosslessDecoder.DecodeAlphaData(this);
-        }
         else
         {
-            this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
-            this.ExtractAlphaRows(this.Vp8LDec, this.Width);
+            if (!this.LosslessDecoder.TryDecodeImageStream(this.Vp8LDec, this.Width, this.Height, this.segmentIntegrityHandling))
+            {
+                // The header is damaged, so the decoder cannot decode an alpha value.
+                this.Alpha.Memory.Span.Clear();
+                return;
+            }
+
+            // If the alpha data uses only the color indexing transform, no color cache and trivial red, blue and
+            // alpha codes, DecodeAlphaData() decodes it. This frequent case needs only 1 byte per pixel.
+            this.Use8BDecode = this.Vp8LDec.Transforms.Count is 1
+                               && this.Vp8LDec.Transforms[0].TransformType == Vp8LTransformType.ColorIndexingTransform
+                               && Is8BOptimizable(this.Vp8LDec.Metadata);
+
+            int rows;
+            if (this.Use8BDecode)
+            {
+                this.LosslessDecoder.DecodeAlphaData(this, this.segmentIntegrityHandling);
+                rows = this.LastRow;
+            }
+            else
+            {
+                rows = this.LosslessDecoder.DecodeImageRows(
+                    this.Vp8LDec,
+                    this.segmentIntegrityHandling,
+                    "The WebP alpha data is damaged or ends before the last value.");
+
+                this.ExtractAlphaRows(this.Vp8LDec, this.Width, rows);
+            }
+
+            // After damaged data, the rows after the decoded rows get 0.
+            this.Alpha.Memory.Span[(rows * this.Width)..].Clear();
         }
     }
 
@@ -259,9 +300,9 @@ internal class AlphaDecoder : IDisposable
     /// </summary>
     /// <param name="dec">The VP8L decoder.</param>
     /// <param name="width">The image width.</param>
-    private void ExtractAlphaRows(Vp8LDecoder dec, int width)
+    /// <param name="numRowsToProcess">The number of decoded rows. The alpha values of the other rows stay 0.</param>
+    private void ExtractAlphaRows(Vp8LDecoder dec, int width, int numRowsToProcess)
     {
-        int numRowsToProcess = dec.Height;
         Span<uint> input = dec.Pixels.Memory.Span;
         Span<byte> output = this.Alpha.Memory.Span;
 

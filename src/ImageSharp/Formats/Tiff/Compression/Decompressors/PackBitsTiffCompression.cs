@@ -17,15 +17,20 @@ internal sealed class PackBitsTiffCompression : TiffBaseDecompressor
     private IMemoryOwner<byte> compressedDataMemory;
 
     /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PackBitsTiffCompression" /> class.
     /// </summary>
     /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
-    public PackBitsTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel)
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
+    public PackBitsTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, SegmentIntegrityHandling integrityHandling)
             : base(memoryAllocator, width, bitsPerPixel)
-    {
-    }
+        => this.integrityHandling = integrityHandling;
 
     /// <inheritdoc/>
     protected override void Decompress<TPixel>(
@@ -41,24 +46,28 @@ internal sealed class PackBitsTiffCompression : TiffBaseDecompressor
             this.compressedDataMemory = this.Allocator.Allocate<byte>(byteCount);
         }
 
-        Span<byte> compressedData = this.compressedDataMemory.GetSpan();
-
-        stream.Read(compressedData, 0, byteCount);
+        // The memory is reused, so only the bytes that the stream gives are data. The stream can end before the
+        // byte count.
+        int length = stream.ReadAtLeast(this.compressedDataMemory.GetSpan()[..byteCount], byteCount, false);
+        ReadOnlySpan<byte> compressedData = this.compressedDataMemory.GetSpan()[..length];
         int compressedOffset = 0;
         int decompressedOffset = 0;
+        bool damaged = length < byteCount;
 
-        while (compressedOffset < byteCount)
+        while (compressedOffset < length)
         {
             byte headerByte = compressedData[compressedOffset];
 
             if (headerByte <= 127)
             {
+                // A literal run of n + 1 bytes. The run must be in the data and fit the strip or tile.
                 int literalOffset = compressedOffset + 1;
-                int literalLength = compressedData[compressedOffset] + 1;
+                int literalLength = headerByte + 1;
 
-                if ((literalOffset + literalLength) > compressedData.Length)
+                if (literalOffset + literalLength > length || literalLength > buffer.Length - decompressedOffset)
                 {
-                    TiffThrowHelper.ThrowImageFormatException("Tiff packbits compression error: not enough data.");
+                    damaged = true;
+                    break;
                 }
 
                 compressedData.Slice(literalOffset, literalLength).CopyTo(buffer[decompressedOffset..]);
@@ -72,14 +81,30 @@ internal sealed class PackBitsTiffCompression : TiffBaseDecompressor
             }
             else
             {
-                byte repeatData = compressedData[compressedOffset + 1];
+                // A repeat run of 257 - n copies of the next byte. The byte must be in the data, and the run must fit
+                // the strip or tile.
                 int repeatLength = 257 - headerByte;
+                if (compressedOffset + 1 >= length || repeatLength > buffer.Length - decompressedOffset)
+                {
+                    damaged = true;
+                    break;
+                }
 
-                buffer.Slice(decompressedOffset, repeatLength).Fill(repeatData);
+                buffer.Slice(decompressedOffset, repeatLength).Fill(compressedData[compressedOffset + 1]);
 
                 compressedOffset += 2;
                 decompressedOffset += repeatLength;
             }
+        }
+
+        // The buffer holds the samples of this strip or tile only, so data that ends before it fills the buffer is
+        // damaged. In the IgnoreImageData mode, the strip or tile keeps the decoded bytes. The buffer is reused, so the
+        // bytes after them are cleared. In the other modes, damaged data throws.
+        if (damaged || decompressedOffset < buffer.Length)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF PackBits data is damaged or ends before the strip or tile is complete.");
+            buffer[decompressedOffset..].Clear();
         }
     }
 

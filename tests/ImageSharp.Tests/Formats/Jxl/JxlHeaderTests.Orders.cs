@@ -29,7 +29,7 @@ public partial class JxlHeaderTests
         // with a raw codestream signature, followed only by the independently encoded coefficient-order syntax.
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.Square).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
-        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
+        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered, SegmentIntegrityHandling.Strict));
         JxlHeader image = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, image, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -38,7 +38,7 @@ public partial class JxlHeaderTests
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, image, frame, Configuration.Default.MemoryAllocator, dcFactors, []);
         using MemoryStream orderInput = new(TestFile.Create(TestImages.Jxl.VarDctCustomOrders).Bytes, false);
         using BufferedReadStream orderBuffered = new(Configuration.Default, orderInput);
-        JxlBitReader reader = new(new JxlCodestreamReader(orderBuffered));
+        JxlBitReader reader = new(new JxlCodestreamReader(orderBuffered, SegmentIntegrityHandling.Strict));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         long start = reader.Position;
         int[] offsets = new int[JxlCoefficientOrder.CoefficientOrderCount];

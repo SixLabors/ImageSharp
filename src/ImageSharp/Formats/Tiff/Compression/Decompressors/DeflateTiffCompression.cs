@@ -30,6 +30,11 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     private readonly int tileHeight;
 
     /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
     /// </summary>
     /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
@@ -41,6 +46,7 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
     /// <param name="tileWidth">Number of pixels in a tile row.</param>
     /// <param name="tileHeight">Number of rows in a tile.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public DeflateTiffCompression(
         MemoryAllocator memoryAllocator,
         int width,
@@ -50,9 +56,11 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
         bool isBigEndian,
         bool isTiled,
         int tileWidth,
-        int tileHeight)
+        int tileHeight,
+        SegmentIntegrityHandling integrityHandling)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
+        this.integrityHandling = integrityHandling;
         this.colorType = colorType;
         this.isBigEndian = isBigEndian;
         this.isTiled = isTiled;
@@ -65,6 +73,7 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         long pos = stream.Position;
+        int totalRead = 0;
         using (ZlibInflateReader deframeStream = new(
             stream,
             () =>
@@ -73,22 +82,42 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
                 return left > 0 ? left : 0;
             }))
         {
-            if (deframeStream.AllocateNewBytes(byteCount, true))
+            // The header check does not throw. A bad header gives no data, and the integrity mode below decides what
+            // that does.
+            if (deframeStream.AllocateNewBytes(byteCount, false))
             {
                 DeflateStream? dataStream = deframeStream.CompressedStream;
 
-                int totalRead = 0;
-                while (totalRead < buffer.Length)
+                try
                 {
-                    int bytesRead = dataStream.Read(buffer[totalRead..]);
-                    if (bytesRead <= 0)
+                    while (totalRead < buffer.Length)
                     {
-                        break;
-                    }
+                        int bytesRead = dataStream.Read(buffer[totalRead..]);
+                        if (bytesRead <= 0)
+                        {
+                            break;
+                        }
 
-                    totalRead += bytesRead;
+                        totalRead += bytesRead;
+                    }
+                }
+                catch (InvalidDataException ex)
+                {
+                    // The inflater throws for deflate data that is not valid. In the IgnoreImageData mode, the bytes
+                    // before the error stay, and the code below clears the rest.
+                    this.integrityHandling.ThrowOrIgnoreImageDataError("The TIFF deflate data is damaged.", ex);
                 }
             }
+        }
+
+        // The buffer holds the samples of this strip or tile only. A bad header, deflate data that is not valid, or data
+        // that ends early gives fewer bytes. In the IgnoreImageData mode, the strip or tile keeps the inflated bytes.
+        // The buffer is reused, so the bytes after them are cleared. In the other modes, damaged data throws.
+        if (totalRead < buffer.Length)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF deflate data is damaged or ends before the strip or tile is complete.");
+            buffer[totalRead..].Clear();
         }
 
         if (this.Predictor == TiffPredictor.Horizontal)

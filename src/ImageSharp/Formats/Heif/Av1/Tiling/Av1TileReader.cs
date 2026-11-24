@@ -478,6 +478,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public IAv1FrameDecoder? FrameDecoder { get; set; }
 
     /// <summary>
+    /// Gets or sets the segment integrity mode. It controls if damaged or truncated tile data throws.
+    /// </summary>
+    /// <remarks>
+    /// In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, the reader keeps every superblock that it
+    /// decodes before the damage. It decodes the damaged superblock and the rest of the tile from an empty entropy stream.
+    /// That stream gives valid syntax, so the frame state stays consistent and the frame completes. The other modes throw.
+    /// </remarks>
+    public SegmentIntegrityHandling IntegrityHandling { get; set; }
+
+    /// <summary>
     /// Gets the decoder-session entropy owner that publishes the completed frame context.
     /// </summary>
     public Av1FrameEntropyContexts EntropyContexts => this.entropyContexts;
@@ -563,6 +573,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> frameLuma = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.Y);
         Span<byte> frameBlue = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.U);
         Span<byte> frameRed = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.V);
+
+        // IgnoreImageData replaces damaged tile data with an empty entropy stream. The reader then reads implicit zero
+        // padding only, as it does at the end of truncated data, and each symbol stays inside its alphabet.
+        bool readsEmptyStream = false;
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
             int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
@@ -572,47 +586,79 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int superBlockColumn = (column << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
                 Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
-
                 Point modeInfoPosition = new(column, row);
-                if (this.FrameDecoder is null)
-                {
-                    // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to
-                    // clear them. Full decoding clears each written coefficient region after its inverse transform.
-                    coefficientsY.Clear();
-                    coefficientsU.Clear();
-                    coefficientsV.Clear();
-                }
 
-                this.FrameInfo.ClearCdef(superblockPosition);
-                firstTransformOffset[0] = 0;
-                firstTransformOffset[1] = 0;
-                planeCoefficientIndices.Clear();
-                this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
-                this.FrameDecoder?.BeginSuperblock(superblockInfo);
-                this.ParsePartition(
-                    ref reader,
-                    levelStorage,
-                    aboveContextStorage,
-                    leftContextStorage,
-                    coefficientsY,
-                    coefficientsU,
-                    coefficientsV,
-                    transformInfoY,
-                    transformInfoUv,
-                    decoderWorkspace,
-                    frameLuma,
-                    frameBlue,
-                    frameRed,
-                    modeInfoPosition,
-                    superBlockSize,
-                    superblockInfo,
-                    tileInfo);
+                bool parseAgain;
+                do
+                {
+                    parseAgain = false;
+                    try
+                    {
+                        if (this.FrameDecoder is null)
+                        {
+                            // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to
+                            // clear them. Full decoding clears each written coefficient region after its inverse transform.
+                            coefficientsY.Clear();
+                            coefficientsU.Clear();
+                            coefficientsV.Clear();
+                        }
+
+                        this.FrameInfo.ClearCdef(superblockPosition);
+                        firstTransformOffset[0] = 0;
+                        firstTransformOffset[1] = 0;
+                        planeCoefficientIndices.Clear();
+                        this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
+                        this.FrameDecoder?.BeginSuperblock(superblockInfo);
+                        this.ParsePartition(
+                            ref reader,
+                            levelStorage,
+                            aboveContextStorage,
+                            leftContextStorage,
+                            coefficientsY,
+                            coefficientsU,
+                            coefficientsV,
+                            transformInfoY,
+                            transformInfoUv,
+                            decoderWorkspace,
+                            frameLuma,
+                            frameBlue,
+                            frameRed,
+                            modeInfoPosition,
+                            superBlockSize,
+                            superblockInfo,
+                            tileInfo);
+                    }
+                    catch (Exception ex) when (this.IntegrityHandling.ShouldIgnoreImageDataError(ex) && !readsEmptyStream)
+                    {
+                        // The tile data is damaged. The superblocks before this one keep their decoded state. This
+                        // superblock parses again from an empty stream. The mode-information reset removes the records
+                        // of the failed parse from the frame map. The second parse starts from the other state that the
+                        // failed parse left. This state is the adapted CDFs, the quantizer and loop filter deltas, the
+                        // restoration references and the neighbor contexts of this superblock. The failed parse wrote
+                        // each of these values from decoded syntax before the error, so the second parse gives a
+                        // deterministic result. Reconstruction clears a coefficient region only after its inverse
+                        // transform. Thus the failed parse can leave coefficients, and the code clears them here.
+                        readsEmptyStream = true;
+                        reader = new Av1SymbolDecoder(
+                            this.configuration,
+                            [],
+                            this.entropyContexts.Working,
+                            !this.FrameHeader.DisableCdfUpdate);
+
+                        this.FrameInfo.ResetModeInfos(superblockPosition);
+                        coefficientsY.Clear();
+                        coefficientsU.Clear();
+                        coefficientsV.Clear();
+                        parseAgain = true;
+                    }
+                }
+                while (parseAgain);
             }
         }
 
         // Range decoding can read implicit zero padding when it normalizes its final interval. The reader validates the logical stop position before the tile
-        // commits pixels or adapted CDF state, so a truncated tile cannot commit.
-        reader.ValidateTrailingBits();
+        // commits adapted CDF state. In the IgnoreImageData mode, a truncated tile keeps the superblocks decoded from the padding.
+        reader.ValidateTrailingBits(this.IntegrityHandling);
 
         if (!this.FrameHeader.DisableFrameEndUpdateCdf && tileNum == this.FrameHeader.TilesInfo.ContextUpdateTileId)
         {

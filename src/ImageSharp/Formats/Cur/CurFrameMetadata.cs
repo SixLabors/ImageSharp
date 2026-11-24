@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Cur;
 /// </summary>
 public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 {
+    private ReadOnlyMemory<Color>? colorTable;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class.
     /// </summary>
@@ -32,6 +34,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         this.EncodingWidth = other.EncodingWidth;
         this.EncodingHeight = other.EncodingHeight;
         this.BmpBitsPerPixel = other.BmpBitsPerPixel;
+        this.BmpColorType = other.BmpColorType;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -73,10 +76,29 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Bit32;
 
     /// <summary>
+    /// Gets or sets the color type of the embedded bitmap.
+    /// </summary>
+    /// <remarks>
+    /// The decoder sets the color type of the decoded bitmap. The encoder does not read this value. The icon format
+    /// permits only BI_RGB. Thus the encoder writes a palette at 8 bits per pixel or fewer, 5-5-5 BGR at 16, BGR at 24,
+    /// and BGRA at 32.
+    /// </remarks>
+    public BmpColorType BmpColorType { get; set; } = BmpColorType.Bgra;
+
+    /// <summary>
     /// Gets or sets the color table, if any.
     /// The underlying pixel format is represented by <see cref="Bgr24"/>.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than 256 entries.</exception>
+    public ReadOnlyMemory<Color>? ColorTable
+    {
+        get => this.colorTable;
+        set
+        {
+            IconDirEntry.GuardColorTable(value, nameof(value));
+            this.colorTable = value;
+        }
+    }
 
     /// <inheritdoc/>
     public static CurFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
@@ -215,10 +237,10 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
                     color = PixelColorType.Indexed;
                     break;
 
-                // Could be 555 with padding but 565 is more common in newer bitmaps and offers
-                // greater accuracy due to extra green precision.
                 case BmpBitsPerPixel.Bit16:
-                    info = PixelComponentInfo.Create(3, bpp, 5, 6, 5);
+                    // The icon encoder writes BI_RGB bitmaps, and a 16-bit BI_RGB bitmap has the 5-5-5 layout.
+                    info = PixelComponentInfo.Create(3, bpp, 5, 5, 5);
+
                     color = PixelColorType.RGB;
                     break;
                 case BmpBitsPerPixel.Bit24:

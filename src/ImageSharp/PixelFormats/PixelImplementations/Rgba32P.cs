@@ -247,6 +247,9 @@ public partial struct Rgba32P : IPixel<Rgba32P>, IPackedVector<uint>
     public static Rgba32P FromBgra5551(Bgra5551 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
+    public static Rgba32P FromBgr565(Bgr565 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
     public static Rgba32P FromBgr24(Bgr24 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

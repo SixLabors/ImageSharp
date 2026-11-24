@@ -14,6 +14,13 @@ internal struct IconDirEntry
     public const int Size = (4 * sizeof(byte)) + (2 * sizeof(ushort)) + (2 * sizeof(uint));
 
     /// <summary>
+    /// The largest number of entries in the color table of an icon bitmap. ICONDIRENTRY stores the color count in one
+    /// byte, and only bitmaps of 8 bits or fewer have a color table:
+    /// https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// </summary>
+    public const int MaxColorCount = 256;
+
+    /// <summary>
     /// Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
     /// </summary>
     public byte Width;
@@ -54,6 +61,21 @@ internal struct IconDirEntry
     /// Specifies the offset of BMP or PNG data from the beginning of the ICO/CUR file.
     /// </summary>
     public uint ImageOffset;
+
+    /// <summary>
+    /// Makes sure that a color table fits an icon bitmap. The ICO, CUR and ANI metadata use this check for each color
+    /// table that a caller sets.
+    /// </summary>
+    /// <param name="colorTable">The color table, or <see langword="null"/>.</param>
+    /// <param name="paramName">The name of the parameter that holds the color table.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The color table has more than <see cref="MaxColorCount"/> entries.</exception>
+    public static void GuardColorTable(ReadOnlyMemory<Color>? colorTable, string paramName)
+    {
+        if (colorTable.HasValue)
+        {
+            Guard.MustBeLessThanOrEqualTo(colorTable.Value.Length, MaxColorCount, paramName);
+        }
+    }
 
     /// <summary>
     /// Parses an icon directory entry from its byte representation.

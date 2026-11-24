@@ -162,7 +162,10 @@ internal sealed partial class HeifEncoderCore
                 ?? image.Metadata.GetHeifMetadata().AnimateRootFrame;
 
             int firstFrameIndex = animateRootFrame ? 0 : 1;
-            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, firstFrameIndex, allIntra: false, layers: null, cancellationToken);
+
+            // A color track has one profile for all its samples. A separate primary image selects its own profile.
+            IccProfile? trackProfile = IccProfile.SelectValidProfile(image.Frames[firstFrameIndex].Metadata.IccProfile, image.Metadata.IccProfile);
+            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, trackProfile, allIntra: false, layers: null, cancellationToken);
             int sequenceFrameCount = image.Frames.Count - firstFrameIndex;
             int sampleCount = sequenceFrameCount * (settings.HasAlpha ? 2 : 1);
             using IMemoryOwner<HeifSequenceSampleInfo> samplesOwner =
@@ -172,13 +175,12 @@ internal sealed partial class HeifEncoderCore
             List<HeifItemLink> sequenceLinks = new();
             if (!animateRootFrame)
             {
-                IccProfile? primaryProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
-                IccProfile? trackProfile = image.Frames[firstFrameIndex].Metadata.IccProfile ?? image.Metadata.IccProfile;
+                IccProfile? primaryProfile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
 
                 // Resolve a different primary profile separately. Reuse the track settings when both resources use the same profile.
                 Av1EncodingSettings primarySettings = ReferenceEquals(primaryProfile, trackProfile)
                     ? settings
-                    : this.ResolveAv1Encoding(image, 0, allIntra: false, layers: null, cancellationToken);
+                    : this.ResolveAv1Encoding(image, primaryProfile, allIntra: false, layers: null, cancellationToken);
 
                 Av1ImageItemEncoding primaryImage = this.CompressAv1ImageItem(
                     image.Frames.RootFrame,
@@ -1157,9 +1159,10 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        IccProfile? profile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
         if (this.encoder.Layers is IReadOnlyList<HeifLayer> layers)
         {
-            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, 0, allIntra: false, layers, cancellationToken);
+            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, profile, allIntra: false, layers, cancellationToken);
             Av1ImageItemEncoding layeredEncoding = this.CompressAv1LayeredImageItem(
                 image.Frames.RootFrame,
                 stream,
@@ -1171,7 +1174,7 @@ internal sealed partial class HeifEncoderCore
             return;
         }
 
-        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, 0, allIntra: true, layers: null, cancellationToken);
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, profile, allIntra: true, layers: null, cancellationToken);
         if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
         {
             this.CompressAv1GridPixels(image, stream, settings, items, links, cancellationToken);

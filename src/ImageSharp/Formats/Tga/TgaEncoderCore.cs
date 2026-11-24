@@ -25,9 +25,9 @@ internal sealed class TgaEncoderCore
     private TgaBitsPerPixel? bitsPerPixel;
 
     /// <summary>
-    /// Indicates if run length compression should be used.
+    /// The compression from the encoder options, or <see langword="null"/> to use the image metadata.
     /// </summary>
-    private readonly TgaCompression compression;
+    private TgaCompression? compression;
 
     private readonly TransparentColorMode transparentColorMode;
 
@@ -60,6 +60,7 @@ internal sealed class TgaEncoderCore
         ImageMetadata metadata = image.Metadata;
         TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
         this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
+        this.compression ??= tgaMetadata.Compression;
 
         TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
         if (this.bitsPerPixel == TgaBitsPerPixel.Bit8)

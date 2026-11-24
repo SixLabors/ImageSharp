@@ -227,6 +227,17 @@ internal ref struct Av1BitStreamReader
         => this.ReadBytes(tileDataSize);
 
     /// <summary>
+    /// Gets the next byte-aligned portion of the encoded data and does not advance.
+    /// </summary>
+    /// <param name="byteCount">The number of bytes to get. The caller keeps it inside the encoded data.</param>
+    /// <returns>The requested bytes.</returns>
+    public readonly ReadOnlySpan<byte> PeekBytes(int byteCount)
+    {
+        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Byte spans must start on a byte boundary.");
+        return this.data.Slice(Av1Math.DivideBy8Floor(this.BitPosition), byteCount);
+    }
+
+    /// <summary>
     /// Gets the next byte-aligned portion of the encoded data and advances past it.
     /// </summary>
     /// <param name="byteCount">The number of bytes to read.</param>

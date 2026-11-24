@@ -391,6 +391,114 @@ public partial class JpegDecoderTests
     }
 
     /// <summary>
+    /// Keeps the complete MCU by default when a baseline stream ends inside the entropy-coded data of a scan.
+    /// Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedBaselineScan_RespectsIntegrity()
+    {
+        // The file has a restart marker after each MCU. The data of the first MCU ends at the RST0 marker at byte 667.
+        // The data of the second MCU is at bytes 669 to 709, so the input ends inside it.
+        byte[] complete = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+        byte[] data = complete.AsSpan(0, 690).ToArray();
+        Assert.Equal(JpegConstants.Markers.RST0, complete[668]);
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+        using Image<Rgba32> actual = DecodeDamagedImageData(data);
+        Assert.Equal(expected.Size, actual.Size);
+
+        // The first MCU covers 16 x 16 pixels. Chroma upsampling at the right and bottom edges of the MCU uses the
+        // next MCU. Thus, these 8 x 8 pixels use only the blocks of the first MCU.
+        AssertRegionsEqual(expected, actual, new Rectangle(0, 0, 8, 8));
+    }
+
+    /// <summary>
+    /// Keeps the complete scans by default when a progressive stream ends inside the entropy-coded data of a scan.
+    /// Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    [Fact]
+    public void Decode_TruncatedProgressiveScan_RespectsIntegrity()
+    {
+        // The fifth scan starts with its SOS marker at byte 475. It codes the luma AC coefficients of one 8 x 8 block
+        // in each restart interval. Its RST markers are at bytes 486 to 516. The input ends at byte 500, so the
+        // scan has data for the first six blocks and part of the seventh. The 32 x 24 image has 4 x 3 luma blocks.
+        byte[] complete = TestFile.Create(MarkerDirectory + "progressive.jpg").Bytes;
+        byte[] data = complete.AsSpan(0, 500).ToArray();
+        Assert.Equal(JpegConstants.Markers.SOS, complete[476]);
+
+        // The reference has the first four scans and then the EOI marker.
+        byte[] reference = [.. complete.AsSpan(0, 475), 0xFF, JpegConstants.Markers.EOI];
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(strict, reference);
+        using Image<Rgba32> actual = DecodeDamagedImageData(data);
+        Assert.Equal(expected.Size, actual.Size);
+
+        // The last block row gets no data from the fifth scan, and the later scans are missing in both inputs.
+        // Each luma sample uses only its own block, and the chroma data is the same in both inputs.
+        AssertRegionsEqual(expected, actual, new Rectangle(0, 16, 32, 8));
+    }
+
+    /// <summary>
+    /// Keeps the decoded MCU by default when a marker that is not a restart marker ends a restart interval.
+    /// Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    /// <param name="fileName">The complete stored input. It has a restart marker after each MCU.</param>
+    /// <param name="markerCodeOffset">The offset of the code byte of the first restart marker.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "baseline.jpg", 668)]
+    [InlineData(MarkerDirectory + "arithmetic.jpg", 243)]
+    public void Decode_MissingRestartMarker_RespectsIntegrity(string fileName, int markerCodeOffset)
+    {
+        byte[] complete = TestFile.Create(fileName).Bytes;
+        byte[] data = (byte[])complete.Clone();
+
+        // Replace RST0 with EOI. The first MCU is complete. The second MCU has no data.
+        Assert.Equal(JpegConstants.Markers.RST0, data[markerCodeOffset]);
+        data[markerCodeOffset] = JpegConstants.Markers.EOI;
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+        using Image<Rgba32> actual = DecodeDamagedImageData(data);
+        Assert.Equal(expected.Size, actual.Size);
+
+        // The first MCU covers 16 x 16 pixels. Chroma upsampling at the right and bottom edges of the MCU uses the
+        // next MCU. Thus, these 8 x 8 pixels use only the blocks of the first MCU.
+        AssertRegionsEqual(expected, actual, new Rectangle(0, 0, 8, 8));
+    }
+
+    /// <summary>
+    /// Checks that a region of two images has the same pixels.
+    /// </summary>
+    /// <param name="expected">The expected image.</param>
+    /// <param name="actual">The actual image.</param>
+    /// <param name="region">The region to compare.</param>
+    private static void AssertRegionsEqual(Image<Rgba32> expected, Image<Rgba32> actual, Rectangle region)
+    {
+        using Image<Rgba32> expectedRegion = expected.Clone(x => x.Crop(region));
+        using Image<Rgba32> actualRegion = actual.Clone(x => x.Crop(region));
+        ImageComparer.Exact.VerifySimilarity(expectedRegion, actualRegion);
+    }
+
+    /// <summary>
+    /// Checks that the integrity modes that do not ignore image data errors throw for the input.
+    /// Then decodes the input with the default options, which ignore image data errors.
+    /// </summary>
+    /// <param name="data">The input with damaged or truncated image data.</param>
+    /// <returns>The image that the default options decode.</returns>
+    private static Image<Rgba32> DecodeDamagedImageData(byte[] data)
+    {
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        return Image.Load<Rgba32>(data);
+    }
+
+    /// <summary>
     /// Accepts a standalone TEM marker between header segments under every integrity policy.
     /// </summary>
     [Fact]

@@ -4,10 +4,12 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Compression.Ccitt;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -22,11 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </summary>
 internal sealed class BmpEncoderCore
 {
-    /// <summary>
-    /// The amount to pad each row by.
-    /// </summary>
-    private int padding;
-
     /// <summary>
     /// The mask for the alpha channel of the color for 32 bit rgba bitmaps.
     /// </summary>
@@ -53,66 +50,55 @@ internal sealed class BmpEncoderCore
     private const int ColorPaletteSize8Bit = 1024;
 
     /// <summary>
-    /// The color palette for an 4 bit image will have 16 entry's with 4 bytes for each entry.
-    /// </summary>
-    private const int ColorPaletteSize4Bit = 64;
-
-    /// <summary>
-    /// The color palette for an 2 bit image will have 4 entry's with 4 bytes for each entry.
-    /// </summary>
-    private const int ColorPaletteSize2Bit = 16;
-
-    /// <summary>
-    /// The color palette for an 1 bit image will have 2 entry's with 4 bytes for each entry.
-    /// </summary>
-    private const int ColorPaletteSize1Bit = 8;
-
-    /// <summary>
     /// Used for allocating memory during processing operations.
     /// </summary>
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The color depth, in number of bits per pixel.
+    /// The encoder with options. The core reads the options from it, as the other encoder cores do.
     /// </summary>
-    private BmpBitsPerPixel? bitsPerPixel;
+    private readonly BmpEncoder encoder;
 
     /// <summary>
-    /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
-    /// In this case the compression type BITFIELDS will be used.
-    /// If the image contains a color profile, a bitmap v5 header is written, which is needed to write this info.
-    /// Otherwise a bitmap v3 header will be written, which is supported by almost all decoders.
+    /// The amount to pad each row by.
+    /// </summary>
+    private int padding;
+
+    /// <summary>
+    /// The color type of the image being encoded.
+    /// </summary>
+    private BmpColorType colorType;
+
+    /// <summary>
+    /// Whether the encoder writes the indexed rows as RLE8 or RLE4 data. Only 8-bit and 4-bit palette bitmaps can use
+    /// RLE.
+    /// </summary>
+    private bool runLength;
+
+    /// <summary>
+    /// Whether the encoder writes the indexed rows as Huffman 1D data in an OS/2 2.x bitmap. Only 1-bit palette bitmaps
+    /// can use Huffman 1D.
+    /// </summary>
+    private bool huffman1D;
+
+    /// <summary>
+    /// The color depth of the image being encoded, in number of bits per pixel. It always fits <see cref="colorType"/>.
+    /// </summary>
+    private BmpBitsPerPixel bitsPerPixel;
+
+    /// <summary>
+    /// The info header version. The alpha color types write a V4 header, which holds an alpha mask. An ICC profile
+    /// needs a V5 header. Huffman 1D needs an OS/2 2.x header. Other images write a V3 header, which almost all decoders
+    /// read.
     /// </summary>
     private BmpInfoHeaderType infoHeaderType;
 
     /// <summary>
     /// The quantizer for reducing the color count in one-, two-, four- and eight-bit indexed images.
+    /// <see cref="Encode{TPixel}(ImageFrame{TPixel}, ImageMetadata, Stream, CancellationToken)"/> selects it for each
+    /// image before it writes the pixels.
     /// </summary>
-    private readonly IQuantizer quantizer;
-
-    /// <summary>
-    /// The pixel sampling strategy for quantization.
-    /// </summary>
-    private readonly IPixelSamplingStrategy pixelSamplingStrategy;
-
-    /// <summary>
-    /// The transparent color mode.
-    /// </summary>
-    private readonly TransparentColorMode transparentColorMode;
-
-    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
-    private readonly bool processedAlphaMask;
-
-    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
-    private readonly bool skipFileHeader;
-
-    /// <summary>
-    /// Whether optional image metadata should be omitted.
-    /// </summary>
-    private readonly bool skipMetadata;
-
-    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
-    private readonly bool isDoubleHeight;
+    private IQuantizer quantizer = KnownQuantizers.Hexadecatree;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
@@ -122,18 +108,13 @@ internal sealed class BmpEncoderCore
     public BmpEncoderCore(BmpEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.bitsPerPixel = encoder.BitsPerPixel;
-
-        // TODO: Use a palette quantizer if supplied.
-        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Hexadecatree;
-        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
-        this.transparentColorMode = encoder.TransparentColorMode;
-        this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
-        this.processedAlphaMask = encoder.ProcessedAlphaMask;
-        this.skipFileHeader = encoder.SkipFileHeader;
-        this.skipMetadata = encoder.SkipMetadata;
-        this.isDoubleHeight = encoder.UseDoubleHeight;
+        this.encoder = encoder;
     }
+
+    /// <summary>
+    /// Gets the zero bytes for the padding of an 8-bit row. That padding is 0 to 3 bytes.
+    /// </summary>
+    private static ReadOnlySpan<byte> PaddingBytes => [0, 0, 0];
 
     /// <summary>
     /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
@@ -184,30 +165,57 @@ internal sealed class BmpEncoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // ICC offsets start at the DIB header, whether it follows a BMP file header or sits inside an ICO/CUR resource.
-        long infoHeaderPosition = stream.Position + (this.skipFileHeader ? 0 : BmpFileHeader.Size);
+        long infoHeaderPosition = stream.Position + (this.encoder.SkipFileHeader ? 0 : BmpFileHeader.Size);
 
         Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
-        this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
+
+        // As in the PNG encoder, the encoder options take precedence over the metadata. A bit depth that does not fit the
+        // color type falls back to the default depth of that color type.
+        this.colorType = this.encoder.ColorType ?? bmpMetadata.ColorType;
+        this.bitsPerPixel = BmpConstants.GetBitsPerPixel(this.colorType, this.encoder.BitsPerPixel ?? bmpMetadata.BitsPerPixel);
+        this.infoHeaderType = this.colorType is BmpColorType.Bgra or BmpColorType.Bgra5551
+            ? BmpInfoHeaderType.WinVersion4
+            : BmpInfoHeaderType.WinVersion3;
+
+        // BI_RLE8 compresses 8-bit bitmaps and BI_RLE4 compresses 4-bit bitmaps. Windows defines RLE for no other depth:
+        // https://learn.microsoft.com/en-us/windows/win32/gdi/bitmap-compression
+        // The encoder does not write OS/2 RLE24, so it writes the bitmaps of other depths uncompressed.
+        BmpCompression compression = this.encoder.Compression ?? bmpMetadata.Compression;
+        this.runLength = compression is BmpCompression.RunLength && this.bitsPerPixel is BmpBitsPerPixel.Bit8 or BmpBitsPerPixel.Bit4;
 
         ushort bpp = (ushort)this.bitsPerPixel;
-        int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
-        this.padding = bytesPerLine - (int)(frame.Width * (bpp / 8F));
 
-        int colorPaletteSize = this.bitsPerPixel switch
+        // A row has its pixel bytes, then zero padding to a multiple of 4 bytes. A row of 1, 2 or 4-bit indices can end
+        // inside a byte. That last byte holds pixels, so it is not padding.
+        int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
+        this.padding = bytesPerLine - (int)((((uint)frame.Width * bpp) + 7) / 8);
+
+        // An indexed bitmap has a color table of 2^bpp entries of 4 bytes. A direct-color bitmap has no color table.
+        int colorPaletteSize = bpp <= 8 ? 4 << bpp : 0;
+
+        // Without a configured quantizer, an indexed image keeps the color table of its decoded bitmap when the table fits
+        // the output depth. The PNG, GIF and icon encoders do the same. Dithering stays off and color matching is exact,
+        // so each pixel that has a palette color keeps that color. Other images use the default quantizer.
+        ReadOnlyMemory<Color>? colorTable = bmpMetadata.ColorTable;
+        if (this.encoder.Quantizer is not null)
         {
-            BmpBitsPerPixel.Bit8 => ColorPaletteSize8Bit,
-            BmpBitsPerPixel.Bit4 => ColorPaletteSize4Bit,
-            BmpBitsPerPixel.Bit2 => ColorPaletteSize2Bit,
-            BmpBitsPerPixel.Bit1 => ColorPaletteSize1Bit,
-            _ => 0
-        };
+            this.quantizer = this.encoder.Quantizer;
+        }
+        else if (colorPaletteSize > 0 && colorTable?.Length > 0 && colorTable.Value.Length <= 1 << bpp)
+        {
+            this.quantizer = EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.encoder.TransparentColorMode);
+        }
+        else
+        {
+            this.quantizer = KnownQuantizers.Hexadecatree;
+        }
 
         // Direct samples and palette entries store RGB. Indexed compatibility is determined by the palette, not its indices.
-        PixelColorType colorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
+        PixelColorType pixelColorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
         IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile,
-            colorType,
+            pixelColorType,
             this.memoryAllocator,
             out ColorProfileConverter? converter);
 
@@ -219,33 +227,92 @@ internal sealed class BmpEncoderCore
             this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
         }
 
+        // Huffman 1D compresses 1-bit bitmaps, and only the OS/2 2.x header defines it. That header has no field for an
+        // ICC profile, so the encoder writes a bitmap with a profile uncompressed, with the V5 header. See
+        // BITMAPINFOHEADER2: http://www.edm2.com/index.php/BITMAPINFOHEADER2
+        this.huffman1D = compression is BmpCompression.Huffman1D && this.bitsPerPixel is BmpBitsPerPixel.Bit1 && iccProfileData.IsEmpty;
+        if (this.huffman1D)
+        {
+            this.infoHeaderType = BmpInfoHeaderType.Os2Version2;
+        }
+
         int infoHeaderSize = this.infoHeaderType switch
         {
             BmpInfoHeaderType.WinVersion3 => BmpInfoHeader.SizeV3,
             BmpInfoHeaderType.WinVersion4 => BmpInfoHeader.SizeV4,
             BmpInfoHeaderType.WinVersion5 => BmpInfoHeader.SizeV5,
+            BmpInfoHeaderType.Os2Version2 => BmpInfoHeader.Os2v2Size,
             _ => BmpInfoHeader.SizeV3
         };
 
         // ICO/CUR DIB headers include the XOR bitmap and following AND mask in one doubled height.
         int height = frame.Height;
-        if (this.isDoubleHeight)
+        if (this.encoder.UseDoubleHeight)
         {
             height <<= 1;
         }
 
         BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(frame.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
 
-        Span<byte> buffer = stackalloc byte[infoHeaderSize];
+        // A V3 header has no mask fields. With BI_BITFIELDS, the red, green and blue masks follow the header in the
+        // place of the color table. V4 and V5 headers hold the masks.
+        int bitFieldsSize =
+            this.infoHeaderType is BmpInfoHeaderType.WinVersion3 && infoHeader.Compression is BmpInfoCompression.BitFields
+            ? 3 * sizeof(int)
+            : 0;
 
-        // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
-        if (!this.skipFileHeader)
+        // The size fields of the headers are 32-bit signed integers in this encoder and in its decoder. Compressed data has
+        // its size only after the encode, so Encode checks it then.
+        bool compressed = this.runLength || this.huffman1D;
+        long dataSize = compressed ? 0 : (long)height * bytesPerLine;
+        if (BmpFileHeader.Size + infoHeaderSize + bitFieldsSize + colorPaletteSize + iccProfileSize + dataSize > int.MaxValue)
         {
-            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+            throw new ImageFormatException("Image is too large to encode in BMP format.");
         }
 
-        this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
+        // The largest header is the 124-byte V5 header. The V3 mask block adds 12 bytes to the 40-byte V3 header. The OS/2
+        // 2.x header has 64 bytes.
+        Span<byte> buffer = stackalloc byte[infoHeaderSize + bitFieldsSize];
+
+        // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
+        if (!this.encoder.SkipFileHeader)
+        {
+            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize + bitFieldsSize, iccProfileSize, infoHeader, buffer);
+        }
+
+        this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize, bitFieldsSize);
         this.WriteImage(configuration, stream, frame, converter, cancellationToken);
+
+        if (compressed)
+        {
+            // The size of compressed data is known only after the encode. The output stream is seekable, so write the size
+            // into the headers now. The pixel data starts after the info header and the color table.
+            long end = stream.Position;
+            long compressedSize = end - (infoHeaderPosition + infoHeaderSize + colorPaletteSize);
+            if (BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + compressedSize > int.MaxValue)
+            {
+                throw new ImageFormatException("Image is too large to encode in BMP format.");
+            }
+
+            int imageSize = (int)compressedSize;
+
+            // biSizeImage (cbImage in the OS/2 2.x header) is at byte 20 of the info header.
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, imageSize);
+            stream.Position = infoHeaderPosition + 20;
+            stream.Write(buffer[..4]);
+
+            if (!this.encoder.SkipFileHeader)
+            {
+                // bfSize is at byte 2 of the file header. The ICC profile follows the pixel data.
+                int fileSize = BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + imageSize + iccProfileSize;
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, fileSize);
+                stream.Position = infoHeaderPosition - BmpFileHeader.Size + 2;
+                stream.Write(buffer[..4]);
+            }
+
+            stream.Position = end;
+        }
+
         WriteColorProfile(stream, iccProfileData, buffer, infoHeaderPosition);
 
         stream.Flush();
@@ -274,7 +341,7 @@ internal sealed class BmpEncoderCore
         int hResolution = 0;
         int vResolution = 0;
 
-        if (!this.skipMetadata
+        if (!this.encoder.SkipMetadata
             && metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio
             && metadata.HorizontalResolution > 0
             && metadata.VerticalResolution > 0)
@@ -313,13 +380,41 @@ internal sealed class BmpEncoderCore
             clrUsed: 0,
             clrImportant: 0);
 
-        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Bit32)
+        // Compressed data has its size only after the encode. Encode writes the size into the headers then.
+        if (this.runLength)
         {
-            infoHeader.AlphaMask = Rgba32AlphaMask;
-            infoHeader.RedMask = Rgba32RedMask;
-            infoHeader.GreenMask = Rgba32GreenMask;
-            infoHeader.BlueMask = Rgba32BlueMask;
-            infoHeader.Compression = BmpCompression.BitFields;
+            infoHeader.Compression = bpp == 8 ? BmpInfoCompression.Rle8 : BmpInfoCompression.Rle4;
+            infoHeader.ImageSize = 0;
+        }
+        else if (this.huffman1D)
+        {
+            infoHeader.Compression = BmpInfoCompression.Huffman1D;
+            infoHeader.ImageSize = 0;
+        }
+
+        // The color types with masks use BI_BITFIELDS. Palette and RGB use BI_RGB, which has fixed layouts.
+        switch (this.colorType)
+        {
+            case BmpColorType.Bgra:
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+                infoHeader.RedMask = Rgba32RedMask;
+                infoHeader.GreenMask = Rgba32GreenMask;
+                infoHeader.BlueMask = Rgba32BlueMask;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
+                break;
+            case BmpColorType.Bgr565:
+                infoHeader.RedMask = BmpConstants.Bgr565Masks.Red;
+                infoHeader.GreenMask = BmpConstants.Bgr565Masks.Green;
+                infoHeader.BlueMask = BmpConstants.Bgr565Masks.Blue;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
+                break;
+            case BmpColorType.Bgra5551:
+                infoHeader.AlphaMask = BmpConstants.Bgr555Masks.Alpha;
+                infoHeader.RedMask = BmpConstants.Bgr555Masks.Red;
+                infoHeader.GreenMask = BmpConstants.Bgr555Masks.Green;
+                infoHeader.BlueMask = BmpConstants.Bgr555Masks.Blue;
+                infoHeader.Compression = BmpInfoCompression.BitFields;
+                break;
         }
 
         if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && !iccProfileData.IsEmpty)
@@ -361,23 +456,23 @@ internal sealed class BmpEncoderCore
     /// </summary>
     /// <param name="stream">The stream to write the header to.</param>
     /// <param name="infoHeaderSize">Size of the bitmap information header.</param>
-    /// <param name="colorPaletteSize">Size of the color palette.</param>
+    /// <param name="colorTableSize">The size in bytes of the color table: the palette, or the V3 bit-field masks.</param>
     /// <param name="iccProfileSize">The size in bytes of the color profile.</param>
     /// <param name="infoHeader">The information header to write.</param>
     /// <param name="buffer">The buffer to write to.</param>
     private static void WriteBitmapFileHeader(
         Stream stream,
         int infoHeaderSize,
-        int colorPaletteSize,
+        int colorTableSize,
         int iccProfileSize,
         BmpInfoHeader infoHeader,
         Span<byte> buffer)
     {
         BmpFileHeader fileHeader = new(
             type: BmpConstants.TypeMarkers.Bitmap,
-            fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + infoHeader.ImageSize,
+            fileSize: BmpFileHeader.Size + infoHeaderSize + colorTableSize + iccProfileSize + infoHeader.ImageSize,
             reserved: 0,
-            offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
+            offset: BmpFileHeader.Size + infoHeaderSize + colorTableSize);
 
         fileHeader.WriteTo(buffer);
         stream.Write(buffer, 0, BmpFileHeader.Size);
@@ -390,7 +485,8 @@ internal sealed class BmpEncoderCore
     /// <param name="infoHeader">The information header.</param>
     /// <param name="buffer">The buffer.</param>
     /// <param name="infoHeaderSize">Size of the information header.</param>
-    private void WriteBitmapInfoHeader(Stream stream, BmpInfoHeader infoHeader, Span<byte> buffer, int infoHeaderSize)
+    /// <param name="bitFieldsSize">The size in bytes of the mask block after a V3 header, or 0 when it has no masks.</param>
+    private void WriteBitmapInfoHeader(Stream stream, BmpInfoHeader infoHeader, Span<byte> buffer, int infoHeaderSize, int bitFieldsSize)
     {
         switch (this.infoHeaderType)
         {
@@ -403,9 +499,21 @@ internal sealed class BmpEncoderCore
             case BmpInfoHeaderType.WinVersion5:
                 infoHeader.WriteV5Header(buffer);
                 break;
+            case BmpInfoHeaderType.Os2Version2:
+                infoHeader.WriteOs2Version2Header(buffer);
+                break;
         }
 
-        stream.Write(buffer, 0, infoHeaderSize);
+        // With BI_BITFIELDS, the color table of a V3 bitmap holds three masks, in the order red, green, blue.
+        if (bitFieldsSize > 0)
+        {
+            Span<byte> masks = buffer.Slice(infoHeaderSize, bitFieldsSize);
+            BinaryPrimitives.WriteInt32LittleEndian(masks[..4], infoHeader.RedMask);
+            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(4, 4), infoHeader.GreenMask);
+            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(8, 4), infoHeader.BlueMask);
+        }
+
+        stream.Write(buffer[..(infoHeaderSize + bitFieldsSize)]);
     }
 
     /// <summary>
@@ -429,21 +537,45 @@ internal sealed class BmpEncoderCore
     {
         // The indexed paths quantize, and the quantizer applies the transparent color mode. The direct-color paths
         // replace transparent pixels in each converted row, so the source frame stays unchanged without a copy.
-        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode);
+        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.encoder.TransparentColorMode);
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
         switch (this.bitsPerPixel)
         {
             case BmpBitsPerPixel.Bit32:
-                this.WriteDirectColorPixels<TPixel, Bgra32>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                // BI_RGB does not use the fourth byte of a 32-bit pixel, so a BGR pixel stores 0 there. See BITMAPINFOHEADER,
+                // biBitCount: https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+                // An icon bitmap is BI_RGB too, but it keeps alpha in the fourth byte, as icon readers expect.
+                this.WriteDirectColorPixels<TPixel, Bgra32>(
+                    configuration,
+                    stream,
+                    pixels,
+                    converter,
+                    replaceTransparent,
+                    this.colorType is BmpColorType.Bgr && !this.encoder.UseDoubleHeight,
+                    cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit24:
-                this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, false, cancellationToken);
+                break;
+
+            case BmpBitsPerPixel.Bit16 when this.colorType is BmpColorType.Bgr565:
+                this.WriteDirectColorPixels<TPixel, Bgr565>(configuration, stream, pixels, converter, replaceTransparent, false, cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit16:
-                this.WriteDirectColorPixels<TPixel, Bgra5551>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                // A BI_RGB 16-bit pixel is 5-5-5, and BI_RGB does not use its high bit, so a BGR pixel stores 0 there. The
+                // 5-5-5-1 color type keeps alpha in the high bit with its alpha mask. See BITMAPINFOHEADER, biBitCount:
+                // https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+                this.WriteDirectColorPixels<TPixel, Bgra5551>(
+                    configuration,
+                    stream,
+                    pixels,
+                    converter,
+                    replaceTransparent,
+                    this.colorType is BmpColorType.Bgr,
+                    cancellationToken);
                 break;
 
             case BmpBitsPerPixel.Bit8:
@@ -451,33 +583,30 @@ internal sealed class BmpEncoderCore
                 break;
 
             case BmpBitsPerPixel.Bit4:
-                this.Write4BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
-                break;
-
             case BmpBitsPerPixel.Bit2:
-                this.Write2BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
-                break;
-
             case BmpBitsPerPixel.Bit1:
-                this.Write1BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
+                this.WriteIndexedColorPixels(configuration, stream, frame, (int)this.bitsPerPixel, converter, cancellationToken);
                 break;
         }
 
         // The mask stores alpha only. Replacement keeps alpha, so the source frame gives the same mask.
-        if (this.processedAlphaMask)
+        if (this.encoder.ProcessedAlphaMask)
         {
-            ProcessedAlphaMask(stream, frame);
+            this.ProcessedAlphaMask(stream, frame, cancellationToken);
         }
     }
 
     /// <summary>
-    /// Allocates one packed BMP row, including its four-byte alignment padding.
+    /// Allocates one BMP row: its pixel bytes, then its alignment padding.
     /// </summary>
-    /// <param name="width">The number of pixels in the row.</param>
-    /// <param name="bytesPerPixel">The packed sample size.</param>
+    /// <param name="pixelBytes">The byte count of the pixels in the row. It includes a last byte that holds fewer pixels.</param>
     /// <returns>The owned row buffer.</returns>
-    private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)
-        => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+    private IMemoryOwner<byte> AllocateRow(int pixelBytes)
+    {
+        // Pooled memory can hold old data. The row writers write only the pixel bytes, so a clean buffer keeps each
+        // padding byte zero for all rows.
+        return this.memoryAllocator.Allocate<byte>(pixelBytes + this.padding, AllocationOptions.Clean);
+    }
 
     /// <summary>
     /// Writes bottom-up direct-color rows in the requested BMP sample layout.
@@ -489,6 +618,10 @@ internal sealed class BmpEncoderCore
     /// <param name="pixels">The source pixels, which remain unchanged.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged samples.</param>
     /// <param name="replaceTransparent">Whether pixels with alpha 0 are written as transparent black.</param>
+    /// <param name="clearUnusedAlpha">
+    /// Whether the alpha part of each pixel is written as 0. The alpha part is the fourth byte of a 32-bit pixel, or the
+    /// high bit of a 16-bit pixel.
+    /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void WriteDirectColorPixels<TPixelFrom, TPixelTo>(
         Configuration configuration,
@@ -496,19 +629,24 @@ internal sealed class BmpEncoderCore
         Buffer2D<TPixelFrom> pixels,
         ColorProfileConverter? converter,
         bool replaceTransparent,
+        bool clearUnusedAlpha,
         CancellationToken cancellationToken)
         where TPixelFrom : unmanaged, IPixel<TPixelFrom>
         where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
         int width = pixels.Width;
         int bytesPerPixel = Unsafe.SizeOf<TPixelTo>();
-        using IMemoryOwner<byte> row = this.AllocateRow(width, bytesPerPixel);
+        using IMemoryOwner<byte> row = this.AllocateRow(width * bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
         Span<TPixelTo> packedRow = MemoryMarshal.Cast<byte, TPixelTo>(rowSpan[..(width * bytesPerPixel)]);
+
+        // A 32-bit pixel is one little-endian uint with the fourth byte in bits 24..31, so an AND with 0x00FFFFFF clears
+        // that byte. A 16-bit pixel is one little-endian ushort with alpha in bit 15, so an AND with 0x7FFF clears it.
+        Span<byte> packedBytes = rowSpan[..(width * bytesPerPixel)];
         PixelOperations<TPixelTo> pixelOperations = PixelOperations<TPixelTo>.Instance;
         PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
-        // The destination's bulk From operation delegates to the existing BGR, BGRA or Bgra5551 source packer.
+        // The destination's bulk From operation delegates to the existing BGR, BGRA, Bgra5551 or Bgr565 source packer.
         // Keep alignment padding outside the pixel span, and allocate no ICC scratch for unchanged output.
         if (converter is null && !replaceTransparent)
         {
@@ -517,6 +655,11 @@ internal sealed class BmpEncoderCore
                 cancellationToken.ThrowIfCancellationRequested();
 
                 pixelOperations.From(configuration, pixels.DangerousGetRowSpan(y), packedRow);
+                if (clearUnusedAlpha)
+                {
+                    ClearUnusedAlpha(packedBytes, bytesPerPixel);
+                }
+
                 stream.Write(rowSpan);
             }
 
@@ -548,7 +691,32 @@ internal sealed class BmpEncoderCore
                 converter.Convert(configuration, vectors, packedRow, PixelAlphaRepresentation.Unassociated);
             }
 
+            if (clearUnusedAlpha)
+            {
+                ClearUnusedAlpha(packedBytes, bytesPerPixel);
+            }
+
             stream.Write(rowSpan);
+        }
+    }
+
+    /// <summary>
+    /// Writes 0 in the alpha part of each packed pixel of a row.
+    /// </summary>
+    /// <param name="pixels">The packed pixels of the row.</param>
+    /// <param name="bytesPerPixel">The pixel size: 4 for B, G, R and the fourth byte, or 2 for 5-5-5 and the high bit.</param>
+    private static void ClearUnusedAlpha(Span<byte> pixels, int bytesPerPixel)
+    {
+        // The tensor operations use the widest vectors of the hardware.
+        if (bytesPerPixel == 4)
+        {
+            Span<uint> words = MemoryMarshal.Cast<byte, uint>(pixels);
+            TensorPrimitives.BitwiseAnd(words, 0x00FFFFFFu, words);
+        }
+        else
+        {
+            Span<ushort> words = MemoryMarshal.Cast<byte, ushort>(pixels);
+            TensorPrimitives.BitwiseAnd(words, (ushort)0x7FFF, words);
         }
     }
 
@@ -577,59 +745,138 @@ internal sealed class BmpEncoderCore
             && info.AlphaRepresentation == PixelAlphaRepresentation.None
             && info.ComponentInfo!.Value.ComponentCount == 1;
 
-        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize8Bit, AllocationOptions.Clean);
-        Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-
         if (is8BitLuminance)
         {
             // The generated palette stores gray value i at entry i, so each source luminance byte is also its palette index.
-            this.Write8BitIndexedGrayscalePixels(stream, encodingFrame, colorPalette, converter, cancellationToken);
+            this.Write8BitIndexedGrayscalePixels(stream, encodingFrame, converter, cancellationToken);
         }
         else
         {
             // Other source formats need the quantizer to select palette colors and produce an index for each pixel.
-            this.Write8BitIndexedColorPixels(stream, encodingFrame, colorPalette, converter, cancellationToken);
+            this.WriteIndexedColorPixels(configuration, stream, encodingFrame, 8, converter, cancellationToken);
         }
     }
 
     /// <summary>
-    /// Quantizes source colors and writes the resulting RGB palette and eight-bit indices.
+    /// Quantizes source colors and writes the resulting RGB palette and the packed palette indices.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
+    /// <param name="bitsPerIndex">The bit count of one index: 1, 2, 4 or 8.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged colors.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void Write8BitIndexedColorPixels<TPixel>(
+    private void WriteIndexedColorPixels<TPixel>(
+        Configuration configuration,
         Stream stream,
         ImageFrame<TPixel> encodingFrame,
-        Span<byte> colorPalette,
+        int bitsPerIndex,
         ColorProfileConverter? converter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = encodingFrame.Configuration;
+        // The transparent color mode of the encoder applies to every quantizer, as the GIF encoder does. An 8-bit index
+        // can select each color that a quantizer can make. A smaller index limits the palette to 2^bitsPerIndex colors,
+        // so each index fits in bitsPerIndex bits, as the index packer requires. The method copies the quantizer options
+        // only when they do not already meet both rules.
+        QuantizerOptions options = this.quantizer.Options;
+        int maxColors = bitsPerIndex < 8 ? 1 << bitsPerIndex : options.MaxColors;
+        if (options.TransparentColorMode != this.encoder.TransparentColorMode || options.MaxColors != maxColors)
+        {
+            options = options.DeepClone();
+            options.TransparentColorMode = this.encoder.TransparentColorMode;
+            options.MaxColors = maxColors;
+        }
 
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, options);
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
+        frameQuantizer.BuildPalette(this.encoder.PixelSamplingStrategy, encodingFrame);
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
 
-        ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette, converter);
+        // The color table has 2^bitsPerIndex entries of 4 bytes. The entries after the quantized palette stay zero.
+        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(4 << bitsPerIndex, AllocationOptions.Clean);
+        this.WriteColorPalette(configuration, stream, quantized.Palette.Span, colorPaletteBuffer.GetSpan(), converter);
+
+        if (this.runLength)
+        {
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            using IMemoryOwner<byte> rleRow = this.memoryAllocator.Allocate<byte>(BmpRleEncoder.GetMaxRowLength(encodingFrame.Width));
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                BmpRleEncoder.WriteRow(stream, quantized.DangerousGetRowSpan(y), rleRow.GetSpan(), bitsPerIndex, y == 0);
+            }
+
+            return;
+        }
+
+        if (this.huffman1D)
+        {
+            // The data uses the one-dimensional coding scheme of ITU-T T.4. An EOL code comes before the first row and
+            // after each row. Six EOL codes (RTC) end the data, so the EOL code after the last row is the first of them.
+            // A white run is palette index 0, and the first code bit is the most significant bit of each byte, as the
+            // decoder reads it. See ITU-T Recommendation T.4 (07/2003), section 4.1, pages 3-4:
+            // https://www.itu.int/rec/T-REC-T.4
+            using CcittBitWriter writer = new(stream, this.memoryAllocator);
+            writer.WriteEol();
+
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                T4RowEncoder.EncodeRow(writer, quantized.DangerousGetRowSpan(y), 0);
+                writer.WriteEol();
+            }
+
+            for (int i = 1; i < 6; i++)
+            {
+                writer.WriteEol();
+            }
+
+            writer.Flush();
+            return;
+        }
+
+        if (bitsPerIndex == 8)
+        {
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                this.Write8BitIndexRow(stream, quantized.DangerousGetRowSpan(y));
+            }
+
+            return;
+        }
+
+        int width = encodingFrame.Width;
+        using IMemoryOwner<byte> row = this.AllocateRow(((width * bitsPerIndex) + 7) / 8);
+        Span<byte> rowSpan = row.GetSpan();
 
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ReadOnlySpan<byte> pixelSpan = quantized.DangerousGetRowSpan(y);
-            stream.Write(pixelSpan);
+            // The packer writes the index bytes of the row. The padding after them stays zero from the allocation.
+            EncodingUtilities.PackIndices(quantized.DangerousGetRowSpan(y), rowSpan, bitsPerIndex);
+            stream.Write(rowSpan);
+        }
+    }
 
-            for (int i = 0; i < this.padding; i++)
-            {
-                stream.WriteByte(0);
-            }
+    /// <summary>
+    /// Writes one row of 8-bit palette indices and its alignment padding.
+    /// </summary>
+    /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+    /// <param name="indices">The indices of the row, one byte each.</param>
+    private void Write8BitIndexRow(Stream stream, ReadOnlySpan<byte> indices)
+    {
+        // 8-bit indices need no packing, so the encoder writes the source row directly and does not copy it. Only a row
+        // with padding needs a second write.
+        stream.Write(indices);
+
+        if (this.padding > 0)
+        {
+            stream.Write(PaddingBytes[..this.padding]);
         }
     }
 
@@ -639,18 +886,20 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged colors.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void Write8BitIndexedGrayscalePixels<TPixel>(
         Stream stream,
         ImageFrame<TPixel> encodingFrame,
-        Span<byte> colorPalette,
         ColorProfileConverter? converter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Configuration configuration = encodingFrame.Configuration;
+
+        // The loop below writes all 1024 bytes of the color table.
+        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize8Bit);
+        Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
         // Entry i stores RGB (i, i, i). This order lets the source luminance bytes select their matching entries directly.
         for (int i = 0; i <= 255; i++)
@@ -677,216 +926,26 @@ internal sealed class BmpEncoderCore
             this.WriteColorPalette(configuration, stream, grayPalette, colorPalette, converter);
         }
 
+        // The caller selected single-component eight-bit luminance pixels. Their bytes index the gray ramp built above.
+        // ICC changes the palette colors after index selection. It does not change which entry each pixel uses.
         Buffer2D<TPixel> imageBuffer = encodingFrame.PixelBuffer;
-        for (int y = encodingFrame.Height - 1; y >= 0; y--)
+        if (this.runLength)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            ReadOnlySpan<TPixel> inputPixelRow = imageBuffer.DangerousGetRowSpan(y);
-
-            // The caller selected single-component eight-bit luminance pixels. Their bytes index the gray ramp built above.
-            // ICC changes the palette colors after index selection; it does not change which entry each pixel uses.
-            ReadOnlySpan<byte> outputPixelRow = MemoryMarshal.AsBytes(inputPixelRow);
-            stream.Write(outputPixelRow);
-
-            for (int i = 0; i < this.padding; i++)
+            // Rows are bottom-up, so row 0 is the last row in the stream.
+            using IMemoryOwner<byte> rleRow = this.memoryAllocator.Allocate<byte>(BmpRleEncoder.GetMaxRowLength(encodingFrame.Width));
+            for (int y = encodingFrame.Height - 1; y >= 0; y--)
             {
-                stream.WriteByte(0);
+                cancellationToken.ThrowIfCancellationRequested();
+                BmpRleEncoder.WriteRow(stream, MemoryMarshal.AsBytes(imageBuffer.DangerousGetRowSpan(y)), rleRow.GetSpan(), 8, y == 0);
             }
+
+            return;
         }
-    }
 
-    /// <summary>
-    /// Writes an RGB palette with up to sixteen colors and packs two four-bit indices per byte.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="configuration">The global configuration.</param>
-    /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged colors.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void Write4BitIndexedPixels<TPixel>(
-        Configuration configuration,
-        Stream stream,
-        ImageFrame<TPixel> encodingFrame,
-        ColorProfileConverter? converter,
-        CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 16,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
-
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
-
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
-        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize4Bit, AllocationOptions.Clean);
-
-        Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-        ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette, converter);
-
-        ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
-        int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            pixelRowSpan = quantized.DangerousGetRowSpan(y);
-
-            int endIdx = pixelRowSpan.Length % 2 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 1;
-
-            // BMP stores the first index in the high four bits and the second in the low four bits.
-            for (int i = 0; i < endIdx; i += 2)
-            {
-                stream.WriteByte((byte)((pixelRowSpan[i] << 4) | pixelRowSpan[i + 1]));
-            }
-
-            if (pixelRowSpan.Length % 2 != 0)
-            {
-                // An odd-width row leaves the final byte's low four bits unused.
-                stream.WriteByte((byte)((pixelRowSpan[^1] << 4) | 0));
-            }
-
-            for (int i = 0; i < rowPadding; i++)
-            {
-                stream.WriteByte(0);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Writes an RGB palette with up to four colors and packs four two-bit indices per byte.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="configuration">The global configuration.</param>
-    /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged colors.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void Write2BitIndexedPixels<TPixel>(
-        Configuration configuration,
-        Stream stream,
-        ImageFrame<TPixel> encodingFrame,
-        ColorProfileConverter? converter,
-        CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 4,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
-
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
-
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
-        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize2Bit, AllocationOptions.Clean);
-
-        Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-        ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette, converter);
-
-        ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
-        int rowPadding = pixelRowSpan.Length % 4 != 0 ? this.padding - 1 : this.padding;
-        for (int y = encodingFrame.Height - 1; y >= 0; y--)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            pixelRowSpan = quantized.DangerousGetRowSpan(y);
-
-            int endIdx = pixelRowSpan.Length % 4 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 4;
-            int i = 0;
-
-            // Each byte stores four indices in bits 7..6, 5..4, 3..2 and 1..0, in pixel order.
-            for (i = 0; i < endIdx; i += 4)
-            {
-                stream.WriteByte((byte)((pixelRowSpan[i] << 6) | (pixelRowSpan[i + 1] << 4) | (pixelRowSpan[i + 2] << 2) | pixelRowSpan[i + 3]));
-            }
-
-            if (pixelRowSpan.Length % 4 != 0)
-            {
-                // Pack the remaining indices from the high bits downward. Unused low bits remain zero.
-                int shift = 6;
-                byte pixelData = 0;
-                for (; i < pixelRowSpan.Length; i++)
-                {
-                    pixelData = (byte)(pixelData | (pixelRowSpan[i] << shift));
-                    shift -= 2;
-                }
-
-                stream.WriteByte(pixelData);
-            }
-
-            for (i = 0; i < rowPadding; i++)
-            {
-                stream.WriteByte(0);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Writes an RGB palette with up to two colors and packs eight one-bit indices per byte.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="configuration">The global configuration.</param>
-    /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged colors.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void Write1BitIndexedPixels<TPixel>(
-        Configuration configuration,
-        Stream stream,
-        ImageFrame<TPixel> encodingFrame,
-        ColorProfileConverter? converter,
-        CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
-        {
-            MaxColors = 2,
-            Dither = this.quantizer.Options.Dither,
-            DitherScale = this.quantizer.Options.DitherScale
-        });
-
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
-
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
-        using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize1Bit, AllocationOptions.Clean);
-
-        Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-        ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette, converter);
-
-        ReadOnlySpan<byte> quantizedPixelRow = quantized.DangerousGetRowSpan(0);
-        int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
-        for (int y = encodingFrame.Height - 1; y >= 0; y--)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            quantizedPixelRow = quantized.DangerousGetRowSpan(y);
-
-            int endIdx = quantizedPixelRow.Length % 8 == 0 ? quantizedPixelRow.Length : quantizedPixelRow.Length - 8;
-            for (int i = 0; i < endIdx; i += 8)
-            {
-                Write1BitIndices(stream, i, i + 8, quantizedPixelRow);
-            }
-
-            if (quantizedPixelRow.Length % 8 != 0)
-            {
-                int startIdx = quantizedPixelRow.Length - (quantizedPixelRow.Length % 8);
-                endIdx = quantizedPixelRow.Length;
-                Write1BitIndices(stream, startIdx, endIdx, quantizedPixelRow);
-            }
-
-            for (int i = 0; i < rowPadding; i++)
-            {
-                stream.WriteByte(0);
-            }
+            this.Write8BitIndexRow(stream, MemoryMarshal.AsBytes(imageBuffer.DangerousGetRowSpan(y)));
         }
     }
 
@@ -935,85 +994,42 @@ internal sealed class BmpEncoderCore
     }
 
     /// <summary>
-    /// Packs up to eight palette indices into one byte, starting at the most significant bit.
-    /// </summary>
-    /// <param name="stream">The stream to write the palette to.</param>
-    /// <param name="startIdx">The start index.</param>
-    /// <param name="endIdx">The end index.</param>
-    /// <param name="quantizedPixelRow">A quantized pixel row.</param>
-    private static void Write1BitIndices(Stream stream, int startIdx, int endIdx, ReadOnlySpan<byte> quantizedPixelRow)
-    {
-        // The first pixel occupies bit 7. A partial group leaves the remaining low bits zero.
-        int shift = 7;
-        byte indices = 0;
-        for (int j = startIdx; j < endIdx; j++)
-        {
-            indices = (byte)(indices | ((byte)(quantizedPixelRow[j] & 1) << shift));
-            shift--;
-        }
-
-        stream.WriteByte(indices);
-    }
-
-    /// <summary>
     /// Writes the bottom-up 1-bit transparency mask required by an ICO/CUR bitmap resource.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="stream">The destination stream.</param>
     /// <param name="encodingFrame">The source frame.</param>
-    private static void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
-          where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Each byte represents eight pixels and every scanline is padded to a 4-byte DIB boundary.
-        int arrayWidth = (encodingFrame.Width + 7) / 8;
-        int padding = arrayWidth % 4;
-        if (padding is not 0)
-        {
-            padding = 4 - padding;
-        }
+        // The mask has one bit for each pixel, the first pixel in the most significant bit. A bit of 1 marks a pixel
+        // with alpha 0. Each row is padded to a multiple of 4 bytes.
+        Configuration configuration = encodingFrame.Configuration;
+        int width = encodingFrame.Width;
+        int maskRowLength = (((width + 7) / 8) + 3) & ~3;
 
-        Span<byte> mask = stackalloc byte[arrayWidth];
-        Span<byte> paddingBytes = stackalloc byte[3];
-        paddingBytes.Clear();
+        using IMemoryOwner<A8> alphaBuffer = this.memoryAllocator.Allocate<A8>(width);
+        Span<A8> alpha = alphaBuffer.GetSpan();
+
+        // IsZero writes one bool for each pixel: 1 for alpha 0, else 0. These bytes are the 1-bit mask indices. IsZero
+        // can process the last elements of a row two times, so it writes to a second buffer, not in place.
+        using IMemoryOwner<byte> flagBuffer = this.memoryAllocator.Allocate<byte>(width);
+        Span<byte> flags = flagBuffer.GetSpan();
+        Span<bool> isTransparent = MemoryMarshal.Cast<byte, bool>(flags);
+
+        // The packer writes only the mask bytes, so the padding stays zero from the allocation.
+        using IMemoryOwner<byte> maskBuffer = this.memoryAllocator.Allocate<byte>(maskRowLength, AllocationOptions.Clean);
+        Span<byte> mask = maskBuffer.GetSpan();
 
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
-            mask.Clear();
-            Span<TPixel> row = encodingFrame.PixelBuffer.DangerousGetRowSpan(y);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            for (int i = 0; i < arrayWidth; i++)
-            {
-                int x = i * 8;
-
-                // The final byte can represent fewer than eight pixels when the image width is not byte-aligned.
-                int pixelCount = Math.Min(8, encodingFrame.Width - x);
-                for (int j = 0; j < pixelCount; j++)
-                {
-                    WriteAlphaMask(row[x + j], ref mask[i], j);
-                }
-            }
-
+            PixelOperations<TPixel>.Instance.To(configuration, encodingFrame.PixelBuffer.DangerousGetRowSpan(y), alpha);
+            TensorPrimitives.IsZero(MemoryMarshal.AsBytes(alpha), isTransparent);
+            EncodingUtilities.PackIndices(flags, mask, 1);
             stream.Write(mask);
-
-            // Alpha-mask rows are DWORD-aligned, and the final row padding must extend the stream.
-            stream.Write(paddingBytes[..padding]);
-        }
-    }
-
-    /// <summary>
-    /// Sets one most-significant-bit-first transparency flag in an ICO/CUR AND-mask byte.
-    /// </summary>
-    /// <typeparam name="TPixel">The source pixel type.</typeparam>
-    /// <param name="pixel">The source pixel.</param>
-    /// <param name="mask">The destination mask byte.</param>
-    /// <param name="index">The pixel index within the byte.</param>
-    private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
-          where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Rgba32 rgba = pixel.ToRgba32();
-        if (rgba.A is 0)
-        {
-            mask |= unchecked((byte)(0b10000000 >> index));
         }
     }
 }

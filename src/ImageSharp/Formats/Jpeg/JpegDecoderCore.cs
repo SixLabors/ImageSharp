@@ -347,9 +347,22 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                         return;
                     }
 
-                    if (this.Metadata != null && this.Frame != null && spectralConverter.HasPixelBuffer())
+                    if (this.Metadata != null && this.Frame != null && this.hasSOSMarker)
                     {
-                        // We have enough data to decode the image, so we can stop parsing.
+                        // The stream ends inside a segment after at least one scan. The decoder keeps the decoded scans.
+                        // An APPn or COM segment holds only metadata, so the ancillary policy applies to it.
+                        // The other segments are part of the image data, so the image data policy applies to them.
+                        byte marker = fileMarker.Marker;
+                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15) || marker == JpegConstants.Markers.COM)
+                        {
+                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
+                                $"Input stream does not have enough bytes to parse declared contents of the {marker:X2} marker.");
+                        }
+                        else
+                        {
+                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG data ends before the image is complete.");
+                        }
+
                         return;
                     }
 
@@ -689,7 +702,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // A profile supplied by the TIFF container takes precedence over JPEG APP2 metadata.
         if (this.iccReader is not null && this.Metadata.IccProfile == null)
         {
-            this.Metadata.IccProfile = this.iccReader.ToProfile(this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+            this.Metadata.IccProfile = this.iccReader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
         }
     }
 
@@ -758,11 +771,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitializeMetadataProfiles()
     {
-        this.ExecuteAncillarySegmentAction(this.InitExifProfile);
-        this.ExecuteAncillarySegmentAction(this.InitIccProfile);
-        this.ExecuteAncillarySegmentAction(this.InitIptcProfile);
-        this.ExecuteAncillarySegmentAction(this.InitXmpProfile);
-        this.ExecuteAncillarySegmentAction(this.InitDerivedMetadataProperties);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitExifProfile);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIccProfile);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIptcProfile);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitXmpProfile);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitDerivedMetadataProperties);
     }
 
     /// <summary>
@@ -777,7 +790,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // if it's already been read.
         if (remaining < JFifMarker.Length)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App0 Marker length.");
 
             // Skip the application header length
             stream.Skip(remaining);
@@ -796,7 +809,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         stream.Read(temp, 0, JFifMarker.Length);
         if (!JFifMarker.TryParse(temp, out this.jFif))
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Invalid App0 marker.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid App0 marker.");
         }
 
         remaining -= JFifMarker.Length;
@@ -806,7 +819,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         {
             if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
             {
-                this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App0 Marker length.");
                 stream.Skip(remaining);
                 return;
             }
@@ -826,7 +839,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         const int xmpMarkerLength = 29;
         if (remaining < exifMarkerLength)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App1 Marker length.");
 
             // Skip the application header length.
             stream.Skip(remaining);
@@ -842,7 +855,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App1 Marker length.");
             stream.Skip(remaining);
             return;
         }
@@ -858,7 +871,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             this.exifReader ??= new ExifReader.SegmentReader();
             if (!this.exifReader.TryRead(stream, remaining))
             {
-                this.ThrowOrIgnoreNonStrictSegmentError("The JPEG EXIF segment is incomplete or exceeds the supported size.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The JPEG EXIF segment is incomplete or exceeds the supported size.");
             }
 
             remaining = 0;
@@ -869,7 +882,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             const int remainingXmpMarkerBytes = xmpMarkerLength - exifMarkerLength;
             if (remaining < remainingXmpMarkerBytes)
             {
-                this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App1 Marker length.");
 
                 // Skip the application header length.
                 stream.Skip(remaining);
@@ -883,14 +896,14 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 this.xmpReader ??= new XmpReader();
                 if (!this.xmpReader.TryReadSegment(stream, remaining))
                 {
-                    this.ThrowOrIgnoreNonStrictSegmentError("The JPEG XMP segment is incomplete or exceeds the supported size.");
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XMP segment is incomplete or exceeds the supported size.");
                 }
 
                 remaining = 0;
             }
             else
             {
-                this.ThrowOrIgnoreNonStrictSegmentError("Invalid App1 marker.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid App1 marker.");
             }
         }
 
@@ -909,7 +922,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         const int icclength = 14;
         if (remaining < icclength)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Bad App2 Marker length.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App2 Marker length.");
 
             stream.Skip(remaining);
             return;
@@ -922,7 +935,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
         {
             // APP2 may split one ICC profile across several markers; retain managed segments until final validation.
-            this.ExecuteAncillarySegmentAction(() =>
+            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() =>
             {
                 this.iccReader ??= new IccReader();
 
@@ -930,7 +943,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 {
                     if (!this.iccReader.TryReadSegment(stream, remaining))
                     {
-                        throw new InvalidImageContentException("Not enough data to read JPEG ICC profile.");
+                        this.iccReader = null;
+                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read JPEG ICC profile.");
                     }
                 }
                 catch (InvalidIccProfileException)
@@ -965,7 +979,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.iptcReader ??= new IptcReader();
         if (!this.iptcReader.TryReadPhotoshopSegment(stream, remaining, this.skipMetadata))
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Invalid App13 marker.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid App13 marker.");
         }
     }
 
@@ -1021,7 +1035,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         const int markerLength = AdobeMarker.Length;
         if (remaining < markerLength)
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Bad App14 Marker length.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App14 Marker length.");
 
             // Skip the application header length
             stream.Skip(remaining);
@@ -1039,7 +1053,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         }
         else
         {
-            this.ThrowOrIgnoreNonStrictSegmentError("Invalid App14 marker.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid App14 marker.");
         }
 
         if (remaining > 0)
@@ -1504,7 +1518,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
-        this.ExecuteAncillarySegmentAction(this.InitIccProfile);
+        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIccProfile);
         _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
         this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }

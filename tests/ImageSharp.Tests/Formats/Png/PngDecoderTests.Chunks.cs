@@ -2,11 +2,13 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.IO.Hashing;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
@@ -444,6 +446,425 @@ public partial class PngDecoderTests
         using Image<Rgba64> image = Image.Load<Rgba64>(data);
         Assert.Equal(ushort.MinValue, image[0, 0].A);
         Assert.Equal(ushort.MaxValue, image[1, 0].A);
+    }
+
+    /// <summary>
+    /// Checks that image data that ends before the last row keeps the decoded rows with the default options.
+    /// Strict and IgnoreAncillary throw for the same input.
+    /// </summary>
+    /// <param name="interlace">The interlace mode of the encoded image.</param>
+    [Theory]
+    [InlineData(PngInterlaceMode.None)]
+    [InlineData(PngInterlaceMode.Adam7)]
+    public void Decode_TruncatedImageData_KeepsDecodedRowsByDefaultAndThrowsWithStrict(PngInterlaceMode interlace)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(32, 32, 1);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { InterlaceMethod = interlace, ColorType = PngColorType.RgbWithAlpha });
+
+        // Keep one quarter of the compressed data in a chunk with a valid CRC.
+        // Only the truncation of the image data is then wrong with the input.
+        byte[] kept = [];
+        byte[] data = ReplaceImageData(encoded.ToArray(), compressed => kept = compressed[..(compressed.Length / 4)]);
+
+        // The decoder keeps each complete scanline and drops a partial scanline. The other pixels keep the cleared value.
+        using Image<Rgba32> expected = CreateCompleteScanlineImage(source.Frames.RootFrame, GetInflatedLength(kept), interlace);
+        using (Image<Rgba32> image = Image.Load<Rgba32>(data))
+        {
+            ImageComparer.Exact.VerifySimilarity(expected, image);
+        }
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            });
+
+            Assert.Equal("The PNG image data ends before the last scanline.", exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Checks that a damaged zlib header or deflate stream gives a cleared image with the default options.
+    /// Strict throws for the same input.
+    /// </summary>
+    /// <param name="damagedHeader">True to damage the zlib header. False to damage the first deflate block.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Decode_DamagedCompressedImageData_KeepsClearedPixelsByDefaultAndThrowsWithStrict(bool damagedHeader)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 2);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+
+        // Compression method 15 is not deflate. The second payload has a valid zlib header, then a deflate
+        // block with the reserved block type 3.
+        byte[] payload = damagedHeader ? [0x7F, 0x9C, 0x07, 0, 0, 0, 0] : [0x78, 0x9C, 0x07, 0, 0, 0, 0];
+        byte[] data = ReplaceImageData(encoded.ToArray(), _ => payload);
+
+        // No scanline decodes, so every pixel keeps the cleared value.
+        using (Image<Rgba32> cleared = new(source.Width, source.Height))
+        using (Image<Rgba32> image = Image.Load<Rgba32>(data))
+        {
+            ImageComparer.Exact.VerifySimilarity(cleared, image);
+        }
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        });
+
+        string expected = damagedHeader
+            ? "The PNG image data does not start with a valid zlib header."
+            : "The PNG image data is damaged.";
+        Assert.Equal(expected, exception.Message);
+    }
+
+    /// <summary>
+    /// Checks that a truncated APNG frame keeps the earlier frames and its own decoded rows with the default options.
+    /// Strict throws for the same input.
+    /// </summary>
+    /// <param name="blendMode">The blend mode of the truncated frame.</param>
+    [Theory]
+    [InlineData(FrameBlendMode.Source)]
+    [InlineData(FrameBlendMode.Over)]
+    public void Decode_TruncatedFrameData_KeepsDecodedFramesByDefaultAndThrowsWithStrict(FrameBlendMode blendMode)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(16, 16, 3);
+        using (Image<Rgba32> secondFrame = CreateOpaqueNoiseImage(16, 16, 4))
+        {
+            source.Frames.AddFrame(secondFrame.Frames.RootFrame).Metadata.GetPngMetadata().BlendMode = blendMode;
+        }
+
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] original = encoded.ToArray();
+
+        // Find the last fdAT chunk. It holds the end of the compressed data of the last frame.
+        int offset = 8;
+        int lastFrameDataOffset = -1;
+        while (offset < original.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(original.AsSpan(offset, 4));
+            if (Encoding.ASCII.GetString(original, offset + 4, 4) == "fdAT")
+            {
+                lastFrameDataOffset = offset;
+            }
+
+            offset += length + 12;
+        }
+
+        Assert.NotEqual(-1, lastFrameDataOffset);
+
+        // Keep the sequence number and one quarter of the compressed data, with a valid CRC.
+        int frameDataLength = BinaryPrimitives.ReadInt32BigEndian(original.AsSpan(lastFrameDataOffset, 4));
+        ReadOnlySpan<byte> frameData = original.AsSpan(lastFrameDataOffset + 8, frameDataLength);
+        int keptLength = sizeof(uint) + ((frameDataLength - sizeof(uint)) / 4);
+        int nextChunkOffset = lastFrameDataOffset + frameDataLength + 12;
+
+        using MemoryStream truncated = new();
+        truncated.Write(original, 0, lastFrameDataOffset);
+        WriteChunkWithCrc(truncated, "fdAT", frameData[..keptLength]);
+        truncated.Write(original, nextChunkOffset, original.Length - nextChunkOffset);
+        byte[] data = truncated.ToArray();
+
+        // The first frame is complete. The last frame keeps each complete scanline of the data after its sequence number.
+        // The other pixels of the last frame keep the fill value, transparent black. Source blending replaces the
+        // canvas with the frame pixels. Over blending of a transparent pixel keeps the canvas pixel, which is the
+        // first frame. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control Chunk", blend_op.
+        using Image<Rgba32> expected = source.Frames.CloneFrame(0);
+        using (Image<Rgba32> lastFrame = CreateCompleteScanlineImage(
+            source.Frames[1],
+            GetInflatedLength(frameData[sizeof(uint)..keptLength]),
+            PngInterlaceMode.None))
+        {
+            if (blendMode == FrameBlendMode.Over)
+            {
+                using Image<Rgba32> canvas = source.Frames.CloneFrame(0);
+                canvas.Mutate(x => x.DrawImage(lastFrame, 1F));
+                expected.Frames.AddFrame(canvas.Frames.RootFrame);
+            }
+            else
+            {
+                expected.Frames.AddFrame(lastFrame.Frames.RootFrame);
+            }
+        }
+
+        using (Image<Rgba32> image = Image.Load<Rgba32>(data))
+        {
+            ImageComparer.Exact.VerifySimilarity(expected, image);
+        }
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        });
+
+        Assert.Equal("The PNG image data ends before the last scanline.", exception.Message);
+    }
+
+    /// <summary>
+    /// Checks that an interlaced image less than five pixels wide decodes exactly with Strict. Some Adam7 passes of
+    /// such an image have no columns, so they are empty and have no scanlines. See PNG Third Edition, section 8.1
+    /// "Interlace methods", and section 9.1 "Filter methods and filter types".
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void Decode_InterlacedImageWithEmptyPasses_DecodesAllPixelsWithStrict(int width)
+    {
+        // Eight rows give rows to each pass that has columns.
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(width, 8, width);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder
+        {
+            InterlaceMethod = PngInterlaceMode.Adam7,
+            ColorType = PngColorType.RgbWithAlpha,
+            BitDepth = PngBitDepth.Bit8
+        });
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded.ToArray());
+        ImageComparer.Exact.VerifySimilarity(source, image);
+    }
+
+    /// <summary>
+    /// Checks that an interlaced APNG frame with a vertical offset decodes exactly with Strict. The rows of each
+    /// Adam7 pass start at the top of the frame region. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control
+    /// Chunk", y_offset.
+    /// </summary>
+    [Fact]
+    public void Decode_InterlacedFrameWithVerticalOffset_DecodesAllPixelsWithStrict()
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(16, 16, 5);
+        using (Image<Rgba32> secondFrame = source.Frames.CloneFrame(0))
+        using (Image<Rgba32> changedRows = CreateOpaqueNoiseImage(16, 8, 6))
+        {
+            // The second frame differs from the first frame only in rows 5 to 12. The encoder writes only the
+            // changed region, so the frame control has a y_offset of 5.
+            secondFrame.Mutate(x => x.DrawImage(changedRows, new Point(0, 5), 1F));
+            source.Frames.AddFrame(secondFrame.Frames.RootFrame);
+        }
+
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder
+        {
+            InterlaceMethod = PngInterlaceMode.Adam7,
+            ColorType = PngColorType.RgbWithAlpha,
+            BitDepth = PngBitDepth.Bit8
+        });
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded.ToArray());
+        ImageComparer.Exact.VerifySimilarity(source, image);
+    }
+
+    /// <summary>
+    /// Checks that a valid file decodes in full in each mode when its last IDAT chunks hold no deflate data. The IDAT
+    /// chunks hold one zlib stream. The stream can be split at any byte (PNG Third Edition, section 10.2
+    /// "Compression of the sequence of filtered scanlines"). Here the second to last IDAT chunk holds only the Adler-32
+    /// checksum, and the last IDAT chunk is empty. The decoder can finish all rows before it reads these chunks.
+    /// </summary>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    public void Decode_DataChunksAfterDeflateData_DecodesAllPixels(SegmentIntegrityHandling integrity)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 7);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+
+        // The zlib stream ends with the 4-byte Adler-32 checksum (RFC 1950, section 2.2 "Data format").
+        byte[] checksum = [];
+        byte[] data = ReplaceImageData(encoded.ToArray(), compressed =>
+        {
+            checksum = compressed[^4..];
+            return compressed[..^4];
+        });
+
+        // The encoder writes the IEND chunk, 12 bytes, directly after the image data.
+        int endChunkOffset = data.Length - 12;
+        using MemoryStream split = new();
+        split.Write(data, 0, endChunkOffset);
+        WriteChunkWithCrc(split, "IDAT", checksum);
+        WriteChunkWithCrc(split, "IDAT", []);
+        split.Write(data, endChunkOffset, 12);
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, split.ToArray());
+        ImageComparer.Exact.VerifySimilarity(source, image);
+    }
+
+    /// <summary>
+    /// Creates an image of opaque random pixels. Random pixels do not compress well, so each part of the compressed
+    /// data holds a similar number of rows.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="seed">The seed of the random values.</param>
+    /// <returns>The image.</returns>
+    private static Image<Rgba32> CreateOpaqueNoiseImage(int width, int height, int seed)
+    {
+        Random random = new(seed);
+        Image<Rgba32> image = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                image[x, y] = new Rgba32((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), byte.MaxValue);
+            }
+        }
+
+        return image;
+    }
+
+    /// <summary>
+    /// Gets the number of bytes that a zlib stream inflates to before it ends or becomes invalid.
+    /// </summary>
+    /// <param name="zlibData">The zlib stream. It can end early.</param>
+    /// <returns>The number of inflated bytes.</returns>
+    private static int GetInflatedLength(ReadOnlySpan<byte> zlibData)
+    {
+        using MemoryStream input = new(zlibData.ToArray(), false);
+        using ZLibStream inflater = new(input, CompressionMode.Decompress);
+        byte[] buffer = new byte[4096];
+        int length = 0;
+        try
+        {
+            int count;
+            while ((count = inflater.Read(buffer)) > 0)
+            {
+                length += count;
+            }
+        }
+        catch (InvalidDataException)
+        {
+            // A truncated stream can end inside a deflate block. The bytes before that point stay valid.
+        }
+
+        return length;
+    }
+
+    /// <summary>
+    /// Creates the image that a decoder keeps from filtered 8-bit RGBA scanlines that end early. Each complete scanline
+    /// keeps its source pixels. A partial scanline and the scanlines after it keep the cleared value.
+    /// </summary>
+    /// <param name="source">The encoded frame.</param>
+    /// <param name="inflatedLength">The number of inflated bytes before the data ends.</param>
+    /// <param name="interlace">The interlace mode of the encoded frame.</param>
+    /// <returns>The expected image.</returns>
+    private static Image<Rgba32> CreateCompleteScanlineImage(ImageFrame<Rgba32> source, int inflatedLength, PngInterlaceMode interlace)
+    {
+        Image<Rgba32> expected = new(source.Width, source.Height);
+
+        // Adam7 has seven passes. Each pass has its own start and step in each direction: PNG Third Edition,
+        // section 8.1 "Interlace methods", https://www.w3.org/TR/png-3/#8InterlaceMethods. A frame without
+        // interlace is one pass that starts at 0 and steps by 1.
+        ReadOnlySpan<int> firstRow = interlace == PngInterlaceMode.Adam7 ? [0, 0, 4, 0, 2, 0, 1] : [0];
+        ReadOnlySpan<int> firstColumn = interlace == PngInterlaceMode.Adam7 ? [0, 4, 0, 2, 0, 1, 0] : [0];
+        ReadOnlySpan<int> rowStep = interlace == PngInterlaceMode.Adam7 ? [8, 8, 8, 4, 4, 2, 2] : [1];
+        ReadOnlySpan<int> columnStep = interlace == PngInterlaceMode.Adam7 ? [8, 8, 4, 4, 2, 2, 1] : [1];
+
+        int remaining = inflatedLength;
+        for (int pass = 0; pass < firstRow.Length; pass++)
+        {
+            int passWidth = (source.Width - firstColumn[pass] + columnStep[pass] - 1) / columnStep[pass];
+            if (passWidth <= 0)
+            {
+                continue;
+            }
+
+            // A scanline has one filter type byte, then 4 bytes for each 8-bit RGBA pixel.
+            int scanlineLength = 1 + (passWidth * 4);
+            for (int y = firstRow[pass]; y < source.Height; y += rowStep[pass])
+            {
+                if (remaining < scanlineLength)
+                {
+                    return expected;
+                }
+
+                remaining -= scanlineLength;
+                for (int x = firstColumn[pass]; x < source.Width; x += columnStep[pass])
+                {
+                    expected[x, y] = source[x, y];
+                }
+            }
+        }
+
+        return expected;
+    }
+
+    /// <summary>
+    /// Replaces the IDAT chunks of an encoded PNG with one IDAT chunk that has a valid CRC.
+    /// </summary>
+    /// <param name="png">The encoded PNG. It has no chunks between its IDAT chunks.</param>
+    /// <param name="transform">Gets the new compressed data from the joined compressed data of the IDAT chunks.</param>
+    /// <returns>The new PNG.</returns>
+    private static byte[] ReplaceImageData(byte[] png, Func<byte[], byte[]> transform)
+    {
+        using MemoryStream compressed = new();
+        using MemoryStream result = new();
+        result.Write(png, 0, 8);
+
+        int offset = 8;
+        bool dataWritten = false;
+        while (offset < png.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(offset, 4));
+            string type = Encoding.ASCII.GetString(png, offset + 4, 4);
+            if (type == "IDAT")
+            {
+                compressed.Write(png, offset + 8, length);
+            }
+            else
+            {
+                if (compressed.Length > 0 && !dataWritten)
+                {
+                    WriteChunkWithCrc(result, "IDAT", transform(compressed.ToArray()));
+                    dataWritten = true;
+                }
+
+                result.Write(png, offset, length + 12);
+            }
+
+            offset += length + 12;
+        }
+
+        return result.ToArray();
+    }
+
+    /// <summary>
+    /// Writes a chunk with its length, type, data, and a valid CRC.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="type">The four letter chunk type.</param>
+    /// <param name="data">The chunk data.</param>
+    private static void WriteChunkWithCrc(MemoryStream stream, string type, ReadOnlySpan<byte> data)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(buffer, data.Length);
+        stream.Write(buffer);
+
+        // The CRC covers the chunk type and the chunk data.
+        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
+        stream.Write(typeBytes);
+        stream.Write(data);
+
+        Crc32 crc = new();
+        crc.Append(typeBytes);
+        crc.Append(data);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc.GetCurrentHashAsUInt32());
+        stream.Write(buffer);
     }
 
     private static string GetChunkTypeName(uint value)

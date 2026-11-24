@@ -72,6 +72,12 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private int eobrun;
 
     /// <summary>
+    /// Whether a restart interval ended without its restart marker. The decoder reports the error only when another
+    /// MCU follows, because the last restart interval of a scan has no restart marker.
+    /// </summary>
+    private bool restartMarkerMissing;
+
+    /// <summary>
     /// The DC Huffman tables.
     /// </summary>
     private readonly HuffmanTable[] dcHuffmanTables;
@@ -151,12 +157,17 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         unsafe
         {
-            this.scanBuffer = new JpegBitReader(this.stream, (byte*)this.entropyBufferHandle.Pointer, JpegBitReader.EntropyBufferSize);
+            this.scanBuffer = new JpegBitReader(
+                this.stream,
+                (byte*)this.entropyBufferHandle.Pointer,
+                JpegBitReader.EntropyBufferSize,
+                this.SegmentIntegrityHandling);
         }
 
         this.frame.AllocateComponents();
 
         this.todo = this.restartInterval;
+        this.restartMarkerMissing = false;
 
         if (!this.frame.Progressive)
         {
@@ -166,6 +177,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         {
             this.ParseProgressiveData();
         }
+
+        // A scan that ends early, or that a marker interrupts, makes the decoder use fill bits.
+        this.scanBuffer.ThrowOrIgnoreIfFillBitsUsed();
 
         // The bit reader reads bytes before it needs them.
         // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
@@ -759,13 +773,30 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     [MethodImpl(InliningOptions.ShortMethod)]
     private bool HandleRestart()
     {
-        if (this.restartInterval > 0 && (--this.todo) == 0)
+        if (this.restartInterval <= 0)
         {
+            return false;
+        }
+
+        if (this.restartMarkerMissing)
+        {
+            // An MCU followed the restart interval that had no restart marker.
+            this.restartMarkerMissing = false;
+            this.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data is missing a restart marker.");
+        }
+
+        if ((--this.todo) == 0)
+        {
+            // A restart interval that ends early, or that a marker interrupts, makes the decoder use fill bits.
+            this.scanBuffer.ThrowOrIgnoreIfFillBitsUsed();
+
             // A reserved marker cannot complete a restart interval. The shared reader applies the recovery policy.
             if (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
             {
-                if (!this.scanBuffer.FindNextMarker(this.SegmentIntegrityHandling))
+                if (!this.scanBuffer.FindNextMarker())
                 {
+                    // The stream ends before the restart marker.
+                    this.restartMarkerMissing = true;
                     return false;
                 }
             }
@@ -780,6 +811,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
             if (this.scanBuffer.HasBadMarker())
             {
+                // A marker that is not a restart marker is at the end of the restart interval.
+                this.restartMarkerMissing = true;
                 this.scanBuffer.RewindToMarker();
                 this.Reset();
                 return true;

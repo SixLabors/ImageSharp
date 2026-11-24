@@ -146,6 +146,10 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static A8 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static A8 FromBgr24(Bgr24 source) => new(byte.MaxValue);

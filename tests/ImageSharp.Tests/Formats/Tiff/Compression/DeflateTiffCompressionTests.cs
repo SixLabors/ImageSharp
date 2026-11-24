@@ -3,6 +3,7 @@
 
 using System.IO.Compression;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -34,12 +35,51 @@ public class DeflateTiffCompressionTests
             false,
             false,
             0,
-            0);
+            0,
+            SegmentIntegrityHandling.Strict);
 
         // These codecs return raw TIFF samples; no final pixel region is needed.
         decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default);
 
         Assert.Equal(data, buffer);
+    }
+
+    /// <summary>
+    /// Data that ends before it fills the strip is damaged. In the IgnoreImageData mode, the strip keeps the inflated
+    /// bytes, and the decoder clears the bytes of the reused buffer after them. The other modes throw.
+    /// </summary>
+    /// <param name="integrity">The segment integrity mode.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decompress_DataEndsEarly_UsesImageDataIntegrityPolicy(SegmentIntegrityHandling integrity)
+    {
+        // The data holds three bytes for a strip of five bytes. The buffer holds the bytes of an earlier strip.
+        using BufferedReadStream stream = CreateCompressedStream([1, 2, 3]);
+        byte[] buffer = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+
+        using DeflateTiffCompression decompressor = new(
+            Configuration.Default.MemoryAllocator,
+            10,
+            8,
+            TiffColorType.BlackIsZero8,
+            TiffPredictor.None,
+            false,
+            false,
+            0,
+            0,
+            integrity);
+
+        if (integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            Assert.Throws<InvalidImageContentException>(() => decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default));
+            return;
+        }
+
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default);
+
+        Assert.Equal(new byte[] { 1, 2, 3, 0, 0 }, buffer);
     }
 
     private static BufferedReadStream CreateCompressedStream(byte[] data)

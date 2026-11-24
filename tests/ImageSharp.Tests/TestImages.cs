@@ -519,6 +519,8 @@ public static class TestImages
         public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
         public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
         public const string Os2v2 = "Bmp/pal8os2v2.bmp";
+        public const string Os2v2Huffman1D = "Bmp/pal1huffmsb.bmp";
+        public const string Bit1WhiteBlack = "Bmp/pal1wb.bmp";
         public const string Os2BitmapArray = "Bmp/ba-bm.bmp";
         public const string Os2BitmapArray9s = "Bmp/9S.bmp";
         public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.bmp";
@@ -548,6 +550,10 @@ public static class TestImages
         public const string Rgba32bf56AdobeV3 = "Bmp/rgba32h56.bmp";
         public const string Rgb32h52AdobeV3 = "Bmp/rgb32h52.bmp";
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
+        public const string Rgb16231 = "Bmp/rgb16-231.bmp";
+        public const string Rgb163103 = "Bmp/rgb16-3103.bmp";
+        public const string Rgba164444 = "Bmp/rgba16-4444.bmp";
+        public const string Rgba161924 = "Bmp/rgba16-1924.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
         public const string Issue2696 = "Bmp/issue-2696.bmp";

@@ -70,15 +70,18 @@ internal class Vp8LBitReader : BitReaderBase
         this.bitPos = 0;
         this.Eos = false;
 
+        // Alpha data that ends early can be shorter than the 8-byte bit window. Load only the bytes that exist,
+        // as the stream constructor does.
+        int length = (int)Math.Min(this.len, sizeof(long));
         ulong currentValue = 0;
         Span<byte> dataSpan = this.Data.Memory.Span;
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < length; i++)
         {
             currentValue |= (ulong)dataSpan[i] << (8 * i);
         }
 
         this.value = currentValue;
-        this.pos = 8;
+        this.pos = length;
     }
 
     /// <summary>

@@ -68,8 +68,9 @@ internal ref struct Av1SymbolDecoder
     /// <summary>
     /// Validates that range decoding remained within the bounded tile payload and consumed the required trailing-one bit.
     /// </summary>
-    public void ValidateTrailingBits()
-        => this.reader.ValidateTrailingBits();
+    /// <param name="integrityHandling">The segment integrity mode that decides if a damaged tile stream throws.</param>
+    public readonly void ValidateTrailingBits(SegmentIntegrityHandling integrityHandling)
+        => this.reader.ValidateTrailingBits(integrityHandling);
 
     /// <summary>
     /// Reads a fixed-width CDEF strength index.

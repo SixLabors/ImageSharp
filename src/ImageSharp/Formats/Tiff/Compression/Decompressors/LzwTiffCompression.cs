@@ -25,6 +25,11 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     private readonly int tileHeight;
 
     /// <summary>
+    /// The segment integrity mode of the decode. It selects what happens with damaged data.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.
     /// </summary>
     /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
@@ -36,6 +41,7 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
     /// <param name="tileWidth">Number of pixels in a tile row.</param>
     /// <param name="tileHeight">Number of rows in a tile.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public LzwTiffCompression(
         MemoryAllocator memoryAllocator,
         int width,
@@ -45,9 +51,11 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
         bool isBigEndian,
         bool isTiled,
         int tileWidth,
-        int tileHeight)
+        int tileHeight,
+        SegmentIntegrityHandling integrityHandling)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
+        this.integrityHandling = integrityHandling;
         this.colorType = colorType;
         this.isBigEndian = isBigEndian;
         this.isTiled = isTiled;
@@ -59,8 +67,15 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     protected override void Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
+        // The buffer holds the samples of this strip or tile only. In the IgnoreImageData mode, the strip or tile keeps
+        // the samples before a code that is not valid or before the end of the data. The decoder clears the other
+        // samples. In the other modes, damaged data throws.
         TiffLzwDecoder decoder = new(stream);
-        decoder.DecodePixels(buffer);
+        if (!decoder.DecodePixels(buffer))
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                "The TIFF LZW data is damaged or ends before the strip or tile is complete.");
+        }
 
         if (this.Predictor == TiffPredictor.Horizontal)
         {

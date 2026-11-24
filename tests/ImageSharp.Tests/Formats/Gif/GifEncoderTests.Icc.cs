@@ -156,9 +156,13 @@ public partial class GifEncoderTests
             encoded,
             TestContext.Current.CancellationToken);
 
-        // Independent CMMs use different power evaluation. Bound each pixel by the measured RGB curve error.
-        ImageComparer.Tolerant(0F, (int)MathF.Ceiling(3F * ushort.MaxValue * 5E-4F))
-            .VerifySimilarity(independent, stored);
+        // Independent CMMs use different power evaluation. Bound each pixel by the measured RGB curve error. That error is
+        // less than one eight-bit code, but a value near a rounding boundary can still round to the next code. Thus eight-bit
+        // output allows a per-pixel sum of three codes: one code for each RGB channel.
+        int independentError = TPixel.GetPixelTypeInfo().ComponentInfo.Value.GetMaximumComponentPrecision() <= 8
+            ? 3 * 257
+            : (int)MathF.Ceiling(3F * ushort.MaxValue * 5E-4F);
+        ImageComparer.Tolerant(0F, independentError).VerifySimilarity(independent, stored);
         source.DebugSave(provider, testOutputDetails: $"{colorTableMode}_{skipMetadata}", extension: "gif", encoder: encoder);
     }
 

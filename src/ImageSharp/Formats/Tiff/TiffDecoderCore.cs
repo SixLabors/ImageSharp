@@ -316,18 +316,18 @@ internal class TiffDecoderCore : ImageDecoderCore
         // ICC is needed for pixel conversion even when optional EXIF metadata is skipped.
         if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
         {
-            this.ExecuteAncillarySegmentAction(
+            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
                 () =>
                 {
                     // The EXIF tag retains its array. The reader copies the bounded ICC payload.
                     imageFrameMetaData.IccProfile = IccReader.ReadProfile(
-                        iccProfileBytes.Value, this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
+                        iccProfileBytes.Value, this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
                 });
         }
         else if (tags.InvalidTags.Contains(ExifTag.IccProfile))
         {
             // Oversized or malformed ICC tags are rejected before EXIF allocates their payload.
-            this.ExecuteAncillarySegmentAction(() => throw new InvalidIccProfileException("Invalid TIFF ICC profile."));
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid TIFF ICC profile.");
         }
 
         TiffFrameMetadata tiffMetadata = TiffFrameMetadata.Parse(tags);
@@ -367,6 +367,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
         using IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
+        PairOffsets(ref stripOffsets, ref stripByteCounts);
 
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
@@ -448,6 +449,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
         using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
+        PairOffsets(ref tileOffsets, ref tileByteCounts);
 
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
@@ -480,8 +482,20 @@ internal class TiffDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Planar offsets are grouped by plane, StripsPerImage entries for each plane, and StripsPerImage comes from the
+        // image height. See TIFF 6.0 specification, section 8, RowsPerStrip and StripOffsets, pages 39-40:
+        // https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+        // A file can hold fewer offsets. In the IgnoreImageData mode, the decode stops after the last strip that all
+        // planes have, as for chunky strips. In the other modes, this throws. The product uses 64-bit math, because the
+        // planes before the last one can hold more strips than an int counts.
         int channels = this.BitsPerSample.Channels;
-        int stripsPerPlane = stripOffsets.Length / channels;
+        int stripsPerPlane = (int)(((long)height + rowsPerStrip - 1) / rowsPerStrip);
+        int stripCount = (int)Math.Clamp(stripOffsets.Length - ((long)(channels - 1) * stripsPerPlane), 0, stripsPerPlane);
+        if (stripCount < stripsPerPlane)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The TIFF image has fewer strips than its planes need.");
+        }
+
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
         IMemoryOwner<byte>[] stripBuffers = new IMemoryOwner<byte>[channels];
 
@@ -521,7 +535,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 stripBuffers[channel] = this.memoryAllocator.Allocate<byte>((int)bufferSize);
             }
 
-            for (int strip = 0; strip < stripsPerPlane; strip++)
+            for (int strip = 0; strip < stripCount; strip++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int stripHeight = strip < stripsPerPlane - 1 || height % rowsPerStrip == 0 ? rowsPerStrip : height % rowsPerStrip;
@@ -544,12 +558,10 @@ internal class TiffDecoderCore : ImageDecoderCore
                             byteCount = byteCount > rowStart ? Math.Min(byteCount - rowStart, bytesPerRow) : 0;
                         }
 
-                        Span<byte> samples = stripBuffers[channel].GetSpan();
-                        if (decompressor is NoneTiffCompression)
-                        {
-                            // The final strip can be shorter than the reused buffer. File data excludes that unused storage.
-                            samples = samples[..(int)this.CalculateUncompressedDataSize(width, readHeight, channel)];
-                        }
+                        // The final strip can be shorter than the reused buffer, and chroma expansion needs more storage
+                        // than the file data. The decompressor gets the samples of this strip only, so it can find data
+                        // that ends early.
+                        Span<byte> samples = stripBuffers[channel].GetSpan()[..(int)this.CalculateUncompressedDataSize(width, readHeight, channel)];
 
                         decompressor.Decompress<TPixel>(this.inputStream, offset, byteCount, readHeight, samples, default, cancellationToken);
                         stripIndex += stripsPerPlane;
@@ -590,6 +602,13 @@ internal class TiffDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // A file can hold fewer strips than the image needs. In the IgnoreImageData mode, the decode stops after the
+        // last strip, and the rows of the missing strips keep their cleared value. In the other modes, this throws.
+        if (stripOffsets.Length < ((long)height + rowsPerStrip - 1) / rowsPerStrip)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The TIFF image has fewer strips than its height needs.");
+        }
+
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata);
         bool decodesPixels = decompressor.DecodesPixels;
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
@@ -659,25 +678,23 @@ internal class TiffDecoderCore : ImageDecoderCore
                 }
                 else
                 {
+                    // The final strip can be shorter than the reused buffer. The decompressor gets the samples of this
+                    // strip only, so it can find data that ends early. Nested decoders get no sample buffer.
                     Span<byte> stripSamples = samples;
-                    if (decompressor is NoneTiffCompression)
+                    if (!decodesPixels)
                     {
                         stripSamples = stripSamples[..(int)this.CalculateUncompressedDataSize(width, stripHeight, -1)];
                     }
 
                     Buffer2DRegion<TPixel> destination = pixels.GetRegion(0, top, width, stripHeight);
-                    if (!decompressor.TryDecompress(
-                            this.inputStream,
-                            stripOffsets[stripIndex],
-                            stripByteCounts[stripIndex],
-                            stripHeight,
-                            stripSamples,
-                            destination,
-                            this.Options.SegmentIntegrityHandling,
-                            cancellationToken))
-                    {
-                        continue;
-                    }
+                    decompressor.Decompress(
+                        this.inputStream,
+                        stripOffsets[stripIndex],
+                        stripByteCounts[stripIndex],
+                        stripHeight,
+                        stripSamples,
+                        destination,
+                        cancellationToken);
 
                     // Nested decoders already wrote TPixel. Only raw TIFF samples still require color conversion and packing.
                     if (!decodesPixels)
@@ -727,8 +744,21 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
 
+        // Planar offsets are grouped by plane, TilesPerImage entries for each plane, and TilesPerImage is
+        // TilesAcross * TilesDown. See TIFF 6.0 specification, section 15, TileWidth and TileOffsets, pages 67-68:
+        // https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+        // A file can hold fewer offsets. In the IgnoreImageData mode, the decode stops after the last tile that all
+        // planes have, as for strips. In the other modes, this throws.
+        // The products use 64-bit math, because a large image of small tiles can hold more tiles than an int counts. The
+        // offsets are fewer than int.MaxValue, so tileCount and each plane index of a decoded tile fit an int.
         int channels = this.BitsPerSample.Channels;
-        int tilesPerChannel = tileOffsets.Length / channels;
+        long tilesPerChannel = (long)tilesAcross * tilesDown;
+        int tileCount = (int)Math.Clamp(tileOffsets.Length - ((channels - 1) * tilesPerChannel), 0, tilesPerChannel);
+        if (tileCount < tilesPerChannel)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The TIFF image has fewer tiles than its planes need.");
+        }
+
         IMemoryOwner<byte>[] tilesBuffers = new IMemoryOwner<byte>[channels];
 
         try
@@ -759,6 +789,12 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                 for (int tileX = 0; tileX < tilesAcross; tileX++)
                 {
+                    // The pixels of the missing tiles keep their cleared value.
+                    if (tileIndex >= tileCount)
+                    {
+                        return;
+                    }
+
                     int left = tileX * tileWidth;
                     int visibleWidth = Math.Min(tileWidth, width - left);
                     int planeTileIndex = tileIndex;
@@ -768,11 +804,9 @@ internal class TiffDecoderCore : ImageDecoderCore
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        Span<byte> tileBuffer = tilesBuffers[channel].GetSpan();
-                        if (decompressor is NoneTiffCompression)
-                        {
-                            tileBuffer = tileBuffer[..(int)this.CalculateUncompressedDataSize(tileWidth, tileLength, channel)];
-                        }
+                        // Chroma expansion needs more storage than the file data. The decompressor gets the samples of
+                        // this tile only, so it can find data that ends early.
+                        Span<byte> tileBuffer = tilesBuffers[channel].GetSpan()[..(int)this.CalculateUncompressedDataSize(tileWidth, tileLength, channel)];
 
                         decompressor.Decompress<TPixel>(
                             this.inputStream,
@@ -783,7 +817,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                             default,
                             cancellationToken);
 
-                        planeTileIndex += tilesPerChannel;
+                        planeTileIndex += (int)tilesPerChannel;
                     }
 
                     if (visibleWidth < tileWidth)
@@ -846,6 +880,13 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
 
+        // A file can hold fewer tiles than the image needs. In the IgnoreImageData mode, the decode stops after the last
+        // tile, and the pixels of the missing tiles keep their cleared value. In the other modes, this throws.
+        if (tileOffsets.Length < (long)tilesAcross * tilesDown)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The TIFF image has fewer tiles than its size needs.");
+        }
+
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
         bool decodesPixels = decompressor.DecodesPixels;
         TiffBaseColorDecoder<TPixel> colorDecoder = null;
@@ -866,7 +907,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             Span<byte> samples = tileBuffer is null ? default : tileBuffer.GetSpan();
             int tileIndex = 0;
 
-            for (int tileY = 0; tileY < tilesDown; tileY++)
+            for (int tileY = 0; tileY < tilesDown && tileIndex < tileOffsets.Length; tileY++)
             {
                 int top = tileY * tileLength;
                 int visibleHeight = Math.Min(tileLength, height - top);
@@ -874,24 +915,26 @@ internal class TiffDecoderCore : ImageDecoderCore
                 for (int tileX = 0; tileX < tilesAcross; tileX++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+
+                    // The decode stops after the last tile. The pixels of the missing tiles keep their cleared value.
+                    if (tileIndex >= tileOffsets.Length)
+                    {
+                        break;
+                    }
+
                     int left = tileX * tileWidth;
                     int visibleWidth = Math.Min(tileWidth, width - left);
 
                     // Decode the full encoded tile, but expose only its visible destination to the nested decoder.
                     Buffer2DRegion<TPixel> destination = pixels.GetRegion(left, top, visibleWidth, visibleHeight);
-                    if (!decompressor.TryDecompress(
-                            this.inputStream,
-                            tileOffsets[tileIndex],
-                            tileByteCounts[tileIndex],
-                            tileLength,
-                            samples,
-                            destination,
-                            this.Options.SegmentIntegrityHandling,
-                            cancellationToken))
-                    {
-                        tileIndex++;
-                        continue;
-                    }
+                    decompressor.Decompress(
+                        this.inputStream,
+                        tileOffsets[tileIndex],
+                        tileByteCounts[tileIndex],
+                        tileLength,
+                        samples,
+                        destination,
+                        cancellationToken);
 
                     if (!decodesPixels)
                     {
@@ -979,6 +1022,19 @@ internal class TiffDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Limits the strip or tile offsets and byte counts to the blocks that have both values. A block needs its offset and
+    /// its byte count, so a block that has only one of them is not in the file.
+    /// </summary>
+    /// <param name="offsets">The block offsets.</param>
+    /// <param name="byteCounts">The block byte counts.</param>
+    private static void PairOffsets(ref Span<ulong> offsets, ref Span<ulong> byteCounts)
+    {
+        int count = Math.Min(offsets.Length, byteCounts.Length);
+        offsets = offsets[..count];
+        byteCounts = byteCounts[..count];
+    }
+
+    /// <summary>
     /// Enables ICC conversion at the ordinary RGB or grayscale reader's floating row boundary.
     /// </summary>
     /// <param name="decoder">The reader that owns the reusable conversion rows.</param>
@@ -1059,7 +1115,9 @@ internal class TiffDecoderCore : ImageDecoderCore
         {
             DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
 
-            if (this.CompressionType == TiffDecoderCompressionType.None && !this.CanReadStripRows())
+            // Subsampled YCbCr data has its own size. The decompressors fill the sample buffer with the samples of the
+            // strip, so the buffer has that size for each compression.
+            if (!this.CanReadStripRows())
             {
                 return this.CalculateUncompressedDataSize(width, height, plane);
             }

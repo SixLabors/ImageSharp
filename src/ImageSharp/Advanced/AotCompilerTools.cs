@@ -243,6 +243,9 @@ internal static class AotCompilerTools
 
         operations.FromBgra5551Bytes(default, default, default, default);
         operations.ToBgra5551Bytes(default, default, default, default);
+
+        operations.FromBgr565Bytes(default, default, default, default);
+        operations.ToBgr565Bytes(default, default, default, default);
     }
 
     /// <summary>

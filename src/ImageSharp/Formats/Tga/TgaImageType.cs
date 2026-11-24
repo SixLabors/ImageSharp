@@ -1,14 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.
-    ImageSharp.Formats.Tga;
+namespace SixLabors.ImageSharp.Formats.Tga;
 
 /// <summary>
 /// Defines the tga image type. The TGA File Format can be used to store Pseudo-Color,
 /// True-Color and Direct-Color images of various pixel depths.
 /// </summary>
-public enum TgaImageType : byte
+internal enum TgaImageType : byte
 {
     /// <summary>
     /// No image data included.

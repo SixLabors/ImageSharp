@@ -24,7 +24,7 @@
     public virtual void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destination)
     {
 <# if (!pixelType.EndsWith("P")) { #>
-        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        // Associated storage converts through its explicit alpha API. Straight storage keeps the direct scalar default.
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
             this.From(configuration, source, destination);
@@ -72,7 +72,7 @@
     public virtual void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<<#=pixelType#>> destination)
     {
 <# if (!pixelType.EndsWith("P")) { #>
-        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        // Associated storage converts through its explicit alpha API. Straight storage keeps the direct scalar default.
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
             this.ConvertToUnassociated(configuration, source, destination);
@@ -163,6 +163,9 @@ GenerateToDestFormatMethods("Rgba64");
 
 GenerateFromMethods("Bgra5551");
 GenerateToDestFormatMethods("Bgra5551");
+
+GenerateFromMethods("Bgr565");
+GenerateToDestFormatMethods("Bgr565");
 
 GenerateFromMethods("Argb32P");
 GenerateToDestFormatMethods("Argb32P");

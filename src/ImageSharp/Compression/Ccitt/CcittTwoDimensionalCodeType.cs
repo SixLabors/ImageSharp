@@ -1,18 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
+namespace SixLabors.ImageSharp.Compression.Ccitt;
 
 /// <summary>
 /// Enum for the different two dimensional code words for the ccitt fax compression.
 /// </summary>
 internal enum CcittTwoDimensionalCodeType
 {
-    /// <summary>
-    /// No valid code word was read.
-    /// </summary>
-    None = 0,
-
     /// <summary>
     /// Pass mode: This mode is identified when the position of b2 lies to the left of a1.
     /// </summary>

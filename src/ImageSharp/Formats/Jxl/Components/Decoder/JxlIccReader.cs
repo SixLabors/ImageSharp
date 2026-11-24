@@ -91,18 +91,14 @@ internal static class JxlIccReader
 
             return IccReader.ToProfile(
                 Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize, cancellationToken),
-                handling != SegmentIntegrityHandling.Strict);
+                handling.IgnoresAncillaryErrors());
         }
         catch (InvalidIccProfileException ex)
         {
-            if (handling != SegmentIntegrityHandling.Strict)
-            {
-                return null;
-            }
-
-            throw new InvalidImageContentException("Invalid JPEG XL ICC profile.", ex);
+            handling.ThrowOrIgnoreAncillaryError("Invalid JPEG XL ICC profile.", ex);
+            return null;
         }
-        catch (InvalidImageContentException) when (handling != SegmentIntegrityHandling.Strict)
+        catch (Exception ex) when (handling.ShouldIgnoreAncillaryError(ex))
         {
             // The header permits this policy only for XYB's suggested output profile. Required native
             // component profiles use Strict, even when other ancillary metadata errors can be ignored.

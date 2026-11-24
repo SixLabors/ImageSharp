@@ -88,10 +88,13 @@ internal sealed class Av1CodecConfiguration
         // The constructor reads the delay field only to validate the fixed record. The field describes sample presentation. It has no meaning for an image
         // item, which the decoder presents on its own.
         ReadOnlySpan<byte> configObus = boxBuffer[FixedHeaderSize..];
+
+        // The configuration OBUs belong to the property box, not to image data. A truncated configuration OBU throws in every mode.
         int sequenceHeaderCount = ScanObus(
             configObus,
             true,
             true,
+            SegmentIntegrityHandling.Strict,
             "AV1 codec configuration",
             options,
             out int configSequenceHeaderOffset,
@@ -320,6 +323,7 @@ internal sealed class Av1CodecConfiguration
             data,
             false,
             false,
+            options.SegmentIntegrityHandling,
             sourceName,
             options,
             out int dataSequenceHeaderOffset,
@@ -392,7 +396,7 @@ internal sealed class Av1CodecConfiguration
             contentLightLevel = dataObuContentLightLevel ?? this.configContentLightLevel;
             masteringDisplayColorVolume = dataObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
         }
-        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
+        catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
         {
             // Conflicting optional OBU metadata is discarded without weakening OBU framing or sequence-header checks.
         }
@@ -451,6 +455,10 @@ internal sealed class Av1CodecConfiguration
     /// <param name="sequenceHeaderMustBeFirst">
     /// Indicates that a sequence-header OBU, when present, must be the first OBU in the sequence.
     /// </param>
+    /// <param name="payloadIntegrity">
+    /// The segment integrity mode for an OBU payload that ends after the data. In the
+    /// <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, that OBU is the last one, and the scan keeps the bytes that the data holds.
+    /// </param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
     /// <param name="options">The general options governing metadata validation.</param>
     /// <param name="sequenceHeaderOffset">Receives the first sequence-header payload offset, or <c>-1</c>.</param>
@@ -467,6 +475,7 @@ internal sealed class Av1CodecConfiguration
         ReadOnlySpan<byte> data,
         bool requireSizeFields,
         bool sequenceHeaderMustBeFirst,
+        SegmentIntegrityHandling payloadIntegrity,
         string sourceName,
         DecoderOptions options,
         out int sequenceHeaderOffset,
@@ -501,7 +510,11 @@ internal sealed class Av1CodecConfiguration
             {
                 if (offset >= data.Length)
                 {
-                    throw new InvalidImageContentException($"The {sourceName} contains a truncated OBU extension header.");
+                    // Truncated image data ends inside the OBU header. No OBU follows it.
+                    payloadIntegrity.ThrowOrIgnoreImageDataError(
+                        $"The {sourceName} contains a truncated OBU extension header.");
+
+                    break;
                 }
 
                 // The scan reads extension_header_reserved_3bits with the extension byte and ignores it.
@@ -516,7 +529,14 @@ internal sealed class Av1CodecConfiguration
             int payloadLength;
             if (hasSizeField)
             {
-                payloadLength = ReadObuPayloadLength(data, ref offset, sourceName);
+                if (!TryReadObuPayloadLength(data, ref offset, sourceName, out payloadLength))
+                {
+                    // Truncated image data ends inside the size field. No OBU follows it.
+                    payloadIntegrity.ThrowOrIgnoreImageDataError(
+                        $"The {sourceName} contains a truncated OBU payload length.");
+
+                    break;
+                }
             }
             else
             {
@@ -527,7 +547,11 @@ internal sealed class Av1CodecConfiguration
 
             if (payloadLength > data.Length - offset)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains an OBU payload that exceeds its data boundary.");
+                // Truncated image data ends inside this OBU. The AV1 decoder applies the same mode to the same OBU.
+                payloadIntegrity.ThrowOrIgnoreImageDataError(
+                    $"The {sourceName} contains an OBU payload that exceeds its data boundary.");
+
+                payloadLength = data.Length - offset;
             }
 
             if (type == ObuType.SequenceHeader)
@@ -577,7 +601,7 @@ internal sealed class Av1CodecConfiguration
                         masteringDisplayColorVolume = obuMasteringDisplayColorVolume;
                     }
                 }
-                catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
+                catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
                 {
                     // The image-data scan still bounds the OBU payload. Only its invalid optional metadata is discarded.
                 }
@@ -596,16 +620,23 @@ internal sealed class Av1CodecConfiguration
     /// <param name="data">The complete bounded OBU sequence.</param>
     /// <param name="offset">The current byte offset, advanced past the encoded length.</param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    /// <returns>The payload length representable by the current item buffer.</returns>
-    private static int ReadObuPayloadLength(ReadOnlySpan<byte> data, ref int offset, string sourceName)
+    /// <param name="payloadLength">Receives the payload length representable by the current item buffer.</param>
+    /// <returns><see langword="false"/> when the data ends inside the length. Otherwise <see langword="true"/>.</returns>
+    private static bool TryReadObuPayloadLength(ReadOnlySpan<byte> data, ref int offset, string sourceName, out int payloadLength)
     {
-        ulong value = ReadLeb128(data, ref offset, sourceName, "OBU payload length");
+        if (!TryReadLeb128(data, ref offset, sourceName, "OBU payload length", out ulong value))
+        {
+            payloadLength = 0;
+            return false;
+        }
+
         if (value > int.MaxValue)
         {
             throw new InvalidImageContentException($"The {sourceName} contains an OBU payload too large to buffer.");
         }
 
-        return (int)value;
+        payloadLength = (int)value;
+        return true;
     }
 
     /// <summary>
@@ -624,7 +655,11 @@ internal sealed class Av1CodecConfiguration
         contentLightLevel = null;
         masteringDisplayColorVolume = null;
         int offset = 0;
-        ulong metadataType = ReadLeb128(payload, ref offset, sourceName, "metadata type");
+        if (!TryReadLeb128(payload, ref offset, sourceName, "metadata type", out ulong metadataType))
+        {
+            throw new InvalidImageContentException($"The {sourceName} contains a truncated metadata type.");
+        }
+
         if (metadataType != (ulong)ObuMetadataType.HdrCll
             && metadataType != (ulong)ObuMetadataType.HdrMdcv)
         {
@@ -708,19 +743,21 @@ internal sealed class Av1CodecConfiguration
     /// <param name="offset">The current byte offset, advanced past the encoded value.</param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
     /// <param name="valueName">The value description used by invalid-content errors.</param>
-    /// <returns>The decoded unsigned value.</returns>
-    private static ulong ReadLeb128(
+    /// <param name="value">Receives the decoded unsigned value.</param>
+    /// <returns><see langword="false"/> when the data ends inside the value. Otherwise <see langword="true"/>.</returns>
+    private static bool TryReadLeb128(
         ReadOnlySpan<byte> data,
         ref int offset,
         string sourceName,
-        string valueName)
+        string valueName,
+        out ulong value)
     {
-        ulong value = 0;
+        value = 0;
         for (int byteIndex = 0; byteIndex < 8; byteIndex++)
         {
             if (offset >= data.Length)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains a truncated {valueName}.");
+                return false;
             }
 
             byte current = data[offset++];
@@ -732,7 +769,7 @@ internal sealed class Av1CodecConfiguration
                     throw new InvalidImageContentException($"The {sourceName} contains a {valueName} larger than the AV1 32-bit limit.");
                 }
 
-                return value;
+                return true;
             }
         }
 

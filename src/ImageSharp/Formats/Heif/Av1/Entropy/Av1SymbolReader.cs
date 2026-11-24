@@ -77,13 +77,20 @@ internal ref struct Av1SymbolReader
     /// <summary>
     /// Validates that range decoding remained within the bounded tile payload and ended at the required trailing-one bit.
     /// </summary>
-    public void ValidateTrailingBits()
+    /// <param name="integrityHandling">The segment integrity mode that decides if a damaged tile stream throws.</param>
+    /// <exception cref="InvalidImageContentException">
+    /// The tile stream is damaged, and the mode is not <see cref="SegmentIntegrityHandling.IgnoreImageData"/>.
+    /// </exception>
+    public readonly void ValidateTrailingBits(SegmentIntegrityHandling integrityHandling)
     {
         int consumedBitCount = this.GetConsumedBitCount();
         int consumedByteCount = (consumedBitCount + 7) >> 3;
         if (consumedByteCount > this.buffer.Length)
         {
-            throw new InvalidImageContentException("The AV1 tile entropy stream is truncated.");
+            // The reader decoded the end of the tile from implicit zero padding. Those symbols are valid syntax, so the reconstructed
+            // superblocks stay in a consistent state, and IgnoreImageData keeps them.
+            integrityHandling.ThrowOrIgnoreImageDataError("The AV1 tile entropy stream is truncated.");
+            return;
         }
 
         // The last consumed byte must contain one trailing-one bit at the exact stop position of the range decoder, followed only by
@@ -92,14 +99,16 @@ internal ref struct Av1SymbolReader
         int trailingBitMask = (trailingOneBit << 1) - 1;
         if ((this.buffer[consumedByteCount - 1] & trailingBitMask) != trailingOneBit)
         {
-            throw new InvalidImageContentException("The AV1 tile entropy stream has invalid trailing bits.");
+            integrityHandling.ThrowOrIgnoreImageDataError("The AV1 tile entropy stream has invalid trailing bits.");
+            return;
         }
 
         for (int i = consumedByteCount; i < this.buffer.Length; i++)
         {
             if (this.buffer[i] != 0)
             {
-                throw new InvalidImageContentException("The AV1 tile entropy stream has nonzero padding bytes.");
+                integrityHandling.ThrowOrIgnoreImageDataError("The AV1 tile entropy stream has nonzero padding bytes.");
+                return;
             }
         }
     }

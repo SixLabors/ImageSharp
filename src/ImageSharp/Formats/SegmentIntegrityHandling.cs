@@ -4,23 +4,37 @@
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Specifies how to handle validation of recoverable errors in ancillary and image data segments.
-/// Structural errors that prevent safe decoding remain fatal regardless of the selected mode.
+/// Specifies how a decoder handles recoverable errors in ancillary segments and in image data.
 /// </summary>
+/// <remarks>
+/// <para>
+/// An ancillary segment holds data that the decoder does not need for the pixels, for example optional metadata.
+/// </para>
+/// <para>
+/// Image data is the encoded pixel data. Image data that is damaged, or that ends before the image is complete, is a
+/// recoverable image data error.
+/// </para>
+/// <para>
+/// In each mode, the decoder throws for an error that prevents a safe decode, for example image dimensions that are
+/// not valid.
+/// </para>
+/// </remarks>
 public enum SegmentIntegrityHandling
 {
     /// <summary>
-    /// Do not ignore any recoverable ancillary or image data segment errors.
+    /// The decoder throws an exception for each recoverable error in ancillary segments and in image data.
     /// </summary>
     Strict = 0,
 
     /// <summary>
-    /// Ignore recoverable errors in ancillary segments, such as optional metadata.
+    /// The decoder ignores recoverable errors in ancillary segments. It throws an exception for each recoverable error
+    /// in image data.
     /// </summary>
     IgnoreAncillary = 1,
 
     /// <summary>
-    /// Ignore recoverable errors in image data segments in addition to ancillary segments.
+    /// The decoder ignores recoverable errors in ancillary segments and in image data. It returns each pixel that it
+    /// can decode. The other pixels get the fill value of the format, for example transparent black.
     /// </summary>
     IgnoreImageData = 2,
 }

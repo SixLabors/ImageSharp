@@ -51,7 +51,9 @@ public partial class BmpEncoderTests
 
         foreach (bool skipMetadata in new[] { false, true })
         {
-            BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, SupportTransparency = true, SkipMetadata = skipMetadata };
+            // The 32-bit cases keep alpha, so they use Bgra. The other depths use Bgr.
+            BmpColorType colorType = bitsPerPixel is BmpBitsPerPixel.Bit32 ? BmpColorType.Bgra : BmpColorType.Bgr;
+            BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, ColorType = colorType, SkipMetadata = skipMetadata };
 
             using MemoryStream reference = new();
             expected.Save(reference, encoder);
@@ -99,7 +101,7 @@ public partial class BmpEncoderTests
         IccColorProfile profile = TestIccProfiles.GetProfile(TestIccProfiles.RommRgb);
         Color[] originalPalette = source.Metadata.GetBmpMetadata().ColorTable?.ToArray();
 
-        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, SkipMetadata = true };
+        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, ColorType = BmpColorType.Palette, SkipMetadata = true };
         source.Metadata.IccProfile = null;
         source.Frames.RootFrame.Metadata.IccProfile = null;
 

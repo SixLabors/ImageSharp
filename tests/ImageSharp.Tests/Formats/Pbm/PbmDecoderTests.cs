@@ -212,7 +212,8 @@ public class PbmDecoderTests
     }
 
     /// <summary>
-    /// Preserves the available pixels and channels when a non-standard raster ends early.
+    /// Keeps the available pixels and channels by default when a non-standard raster ends early.
+    /// Throws when the integrity mode does not ignore image data errors.
     /// </summary>
     /// <param name="imagePath">The truncated stored input.</param>
     /// <param name="isRgb">True for a truncated RGB pixel; false for a truncated grayscale row.</param>
@@ -228,17 +229,90 @@ public class PbmDecoderTests
             ? [new(0, 2, 128), new(255, 0, 0)]
             : [new(0, 0, 0), new(18, 18, 18), new(255, 255, 255), new(128, 128, 128), default, default];
 
-        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
-        {
-            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
-            using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
-            Assert.Equal(isRgb ? new Size(2, 1) : new Size(3, 2), image.Size);
+        AssertImageDataErrorThrows(data);
 
-            for (int i = 0; i < expected.Length; i++)
-            {
-                Assert.Equal(expected[i], image[i % image.Width, i / image.Width]);
-            }
-        }
+        // The default options ignore image data errors.
+        Size size = isRgb ? new Size(2, 1) : new Size(3, 2);
+        using Image<Rgb24> expectedImage = Image.LoadPixelData<Rgb24>(expected, size.Width, size.Height);
+        using Image<Rgb24> image = Image.Load<Rgb24>(data);
+        ImageComparer.Exact.VerifySimilarity(expectedImage, image);
+    }
+
+    /// <summary>
+    /// Gets inputs with damaged or truncated full-range samples, the image size from the header, and the pixels that
+    /// the default options decode. A pixel that the decoder cannot decode keeps the fill value, transparent black.
+    /// </summary>
+    public static TheoryData<string, int, int, Rgba32[]> DamagedSampleData { get; } = new()
+    {
+        // The second plain token is not a decimal number. The other samples stay decoded.
+        { "P2\n3 1\n255\n10 x 30\n", 3, 1, [new(10, 10, 10), default, new(30, 30, 30)] },
+
+        // Whitespace separates plain samples, so the damaged token "12x34" is one sample. The next token is the
+        // third sample. See Netpbm pgm(5), section "Plain PGM".
+        { "P2\n3 1\n255\n10 12x34 30\n", 3, 1, [new(10, 10, 10), default, new(30, 30, 30)] },
+
+        // The damaged green token "2x" makes the whole first pixel damaged. The next token is the blue sample.
+        { "P3\n2 1\n255\n1 2x 3 4 5 6\n", 2, 1, [default, new(4, 5, 6)] },
+
+        // The plain raster ends after the red channel of the second pixel. Its missing channels are zero.
+        { "P3\n2 1\n255\n1 2 3 4\n", 2, 1, [new(1, 2, 3), new(4, 0, 0)] },
+
+        // The plain bitmap ends after two of three pixels.
+        { "P1\n3 1\n1 0\n", 3, 1, [new(0, 0, 0), new(255, 255, 255), default] },
+
+        // Each plain bitmap pixel is one byte, '0' or '1'. The byte 'x' is one damaged pixel.
+        { "P1\n3 1\n1x0\n", 3, 1, [new(0, 0, 0), default, new(255, 255, 255)] },
+
+        // Each binary bitmap row needs two bytes, but the raster has one byte. The first eight pixels stay decoded.
+        {
+            "P4\n9 2\n\u0080",
+            9,
+            2,
+            [
+                new(0, 0, 0), new(255, 255, 255), new(255, 255, 255), new(255, 255, 255), new(255, 255, 255),
+                new(255, 255, 255), new(255, 255, 255), new(255, 255, 255), default,
+                default, default, default, default, default, default, default, default, default
+            ]
+        },
+    };
+
+    /// <summary>
+    /// Keeps the decoded samples by default when a full-range raster is damaged or ends early.
+    /// Throws when the integrity mode does not ignore image data errors.
+    /// </summary>
+    /// <param name="text">The input. Each character is one byte.</param>
+    /// <param name="width">The image width in the header.</param>
+    /// <param name="height">The image height in the header.</param>
+    /// <param name="expected">The pixels in row order that the default options decode.</param>
+    [Theory]
+    [MemberData(nameof(DamagedSampleData))]
+    public void Decode_DamagedSamples_RespectsIntegrity(string text, int width, int height, Rgba32[] expected)
+    {
+        byte[] data = System.Text.Encoding.Latin1.GetBytes(text);
+
+        AssertImageDataErrorThrows(data);
+
+        // The default options ignore image data errors.
+        using Image<Rgba32> expectedImage = Image.LoadPixelData<Rgba32>(expected, width, height);
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expectedImage, image);
+    }
+
+    /// <summary>
+    /// Decodes a plain bitmap whose pixels have no whitespace between them. Each pixel is one byte, '0' or '1', and
+    /// whitespace in the raster is ignored. See Netpbm pbm(5), section "Plain PBM".
+    /// </summary>
+    [Fact]
+    public void Decode_PlainBitmapWithoutWhitespace_DecodesEachDigitAsPixel()
+    {
+        byte[] data = System.Text.Encoding.ASCII.GetBytes("P1\n4 2\n0101\n1 1 0\n0\n");
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        // '1' is black and '0' is white.
+        L8[] expected = [new(255), new(0), new(255), new(0), new(0), new(0), new(255), new(255)];
+        using Image<L8> expectedImage = Image.LoadPixelData<L8>(expected, 4, 2);
+        using Image<L8> image = Image.Load<L8>(options, data);
+        ImageComparer.Exact.VerifySimilarity(expectedImage, image);
     }
 
     /// <summary>
@@ -347,5 +421,21 @@ public class PbmDecoderTests
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
         Assert.Equal(new Size(29, 30), eofHitCounter.Image.Size);
+    }
+
+    /// <summary>
+    /// Checks that the integrity modes that do not ignore image data errors throw for the input.
+    /// </summary>
+    /// <param name="data">The input with damaged or truncated image data.</param>
+    private static void AssertImageDataErrorThrows(byte[] data)
+    {
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
     }
 }

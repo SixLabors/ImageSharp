@@ -36,13 +36,15 @@ internal class BinaryDecoder
     /// <param name="colorType">The color type of the encoded pixels.</param>
     /// <param name="componentType">The data type of the pixel components.</param>
     /// <param name="maxPixelValue">The maximum sample value declared in the header. Unused for black and white.</param>
+    /// <param name="handling">The segment integrity mode. It controls if truncated sample data throws.</param>
     public static void Process<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
         BufferedReadStream stream,
         PbmColorType colorType,
         PbmComponentType componentType,
-        int maxPixelValue)
+        int maxPixelValue,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Full-range inputs keep the existing byte and ushort conversion paths.
@@ -50,7 +52,7 @@ internal class BinaryDecoder
         int fullRange = componentType == PbmComponentType.Short ? ushort.MaxValue : byte.MaxValue;
         if (colorType != PbmColorType.BlackAndWhite && maxPixelValue != fullRange)
         {
-            ProcessScaled(configuration, pixels, stream, colorType, componentType, maxPixelValue);
+            ProcessScaled(configuration, pixels, stream, colorType, componentType, maxPixelValue, handling);
             return;
         }
 
@@ -58,27 +60,27 @@ internal class BinaryDecoder
         {
             if (componentType == PbmComponentType.Byte)
             {
-                ProcessGrayscale(configuration, pixels, stream);
+                ProcessGrayscale(configuration, pixels, stream, handling);
             }
             else
             {
-                ProcessWideGrayscale(configuration, pixels, stream);
+                ProcessWideGrayscale(configuration, pixels, stream, handling);
             }
         }
         else if (colorType == PbmColorType.Rgb)
         {
             if (componentType == PbmComponentType.Byte)
             {
-                ProcessRgb(configuration, pixels, stream);
+                ProcessRgb(configuration, pixels, stream, handling);
             }
             else
             {
-                ProcessWideRgb(configuration, pixels, stream);
+                ProcessWideRgb(configuration, pixels, stream, handling);
             }
         }
         else
         {
-            ProcessBlackAndWhite(configuration, pixels, stream);
+            ProcessBlackAndWhite(configuration, pixels, stream, handling);
         }
     }
 
@@ -92,13 +94,15 @@ internal class BinaryDecoder
     /// <param name="colorType">The encoded color type.</param>
     /// <param name="componentType">The encoded sample size.</param>
     /// <param name="maxPixelValue">The declared maximum sample value.</param>
+    /// <param name="handling">The segment integrity mode.</param>
     private static void ProcessScaled<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
         BufferedReadStream stream,
         PbmColorType colorType,
         PbmComponentType componentType,
-        int maxPixelValue)
+        int maxPixelValue,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool isRgb = colorType == PbmColorType.Rgb;
@@ -115,7 +119,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < pixels.Height; y++)
         {
-            int count = ReadRow(stream, encodedRow, bytesPerPixel);
+            int count = ReadRow(stream, encodedRow, bytesPerPixel, handling);
             if (count == 0)
             {
                 return;
@@ -161,7 +165,12 @@ internal class BinaryDecoder
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
-    private static void ProcessGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    /// <param name="handling">The segment integrity mode.</param>
+    private static void ProcessGrayscale<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 1;
@@ -173,7 +182,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            int count = ReadRow(stream, rowSpan, bytesPerPixel, handling);
             if (count == 0)
             {
                 return;
@@ -199,7 +208,12 @@ internal class BinaryDecoder
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
-    private static void ProcessWideGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    /// <param name="handling">The segment integrity mode.</param>
+    private static void ProcessWideGrayscale<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 2;
@@ -211,7 +225,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            int count = ReadRow(stream, rowSpan, bytesPerPixel, handling);
             if (count == 0)
             {
                 return;
@@ -241,7 +255,12 @@ internal class BinaryDecoder
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
-    private static void ProcessRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    /// <param name="handling">The segment integrity mode.</param>
+    private static void ProcessRgb<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 3;
@@ -253,7 +272,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            int count = ReadRow(stream, rowSpan, bytesPerPixel, handling);
             if (count == 0)
             {
                 return;
@@ -279,7 +298,12 @@ internal class BinaryDecoder
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
-    private static void ProcessWideRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    /// <param name="handling">The segment integrity mode.</param>
+    private static void ProcessWideRgb<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 6;
@@ -291,7 +315,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            int count = ReadRow(stream, rowSpan, bytesPerPixel, handling);
             if (count == 0)
             {
                 return;
@@ -314,14 +338,22 @@ internal class BinaryDecoder
 
     /// <summary>
     /// Reads one encoded row and zero-fills only missing bytes in its last incomplete pixel.
+    /// A row that ends early is truncated image data. It throws unless the mode ignores image data errors.
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="row">The reusable encoded row.</param>
     /// <param name="bytesPerPixel">The encoded size of one pixel.</param>
+    /// <param name="handling">The segment integrity mode.</param>
     /// <returns>The number of available pixels, including an incomplete final pixel.</returns>
-    private static int ReadRow(BufferedReadStream stream, Span<byte> row, int bytesPerPixel)
+    private static int ReadRow(BufferedReadStream stream, Span<byte> row, int bytesPerPixel, SegmentIntegrityHandling handling)
     {
+        // BufferedReadStream returns fewer bytes than the row length only at the end of the stream.
         int bytesRead = stream.Read(row);
+        if (bytesRead < row.Length)
+        {
+            handling.ThrowOrIgnoreImageDataError(PbmConstants.TruncatedRasterMessage);
+        }
+
         int count = bytesRead / bytesPerPixel;
         if (bytesRead % bytesPerPixel != 0)
         {
@@ -357,7 +389,12 @@ internal class BinaryDecoder
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
-    private static void ProcessBlackAndWhite<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    /// <param name="handling">The segment integrity mode.</param>
+    private static void ProcessBlackAndWhite<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -373,6 +410,13 @@ internal class BinaryDecoder
                 int raw = stream.ReadByte();
                 if (raw < 0)
                 {
+                    handling.ThrowOrIgnoreImageDataError(PbmConstants.TruncatedRasterMessage);
+
+                    // The pixels of the incomplete row before the end of the stream stay decoded.
+                    PixelOperations<TPixel>.Instance.FromL8(
+                        configuration,
+                        rowSpan[..x],
+                        pixels.DangerousGetRowSpan(y)[..x]);
                     return;
                 }
 

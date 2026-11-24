@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
@@ -20,10 +22,9 @@ internal sealed class AniEncoderCore
 {
     private readonly AniEncoder encoder;
 
-    // Each nested encoder is configured once and reused for every resource of that type in this ANI operation.
+    // The ANI encoder configures each nested icon encoder once and uses it for every resource of that type.
     private IcoEncoderCore? icoEncoder;
     private CurEncoderCore? curEncoder;
-    private BmpEncoderCore? bmpEncoder;
 
     /// <summary>
     /// Reusable storage for the fixed ANI header and smaller RIFF values.
@@ -52,58 +53,28 @@ internal sealed class AniEncoderCore
 
         AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
         AniFrameMetadata firstMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
-        AniFrameFormat firstFormat = firstMetadata.FrameFormat;
-        bool bitmapResources = firstFormat is AniFrameFormat.Bmp;
-        bool writeSequence = imageMetadata.Flags.HasFlag(AniHeaderFlags.ContainsSequence);
         uint displayRate = firstMetadata.FrameDelay is 0 ? imageMetadata.DisplayRate : firstMetadata.FrameDelay;
         bool hasVariableRates = false;
-        int groupCount = 0;
+        bool reusesFrames = false;
+        int stepCount = 0;
+        int resourceCount = 0;
         int maxGroupSize = 1;
 
-        if (bitmapResources && imageMetadata.BitCount is not (0 or 1 or 2 or 4 or 8 or 16 or 24 or 32))
-        {
-            throw new ImageFormatException("ANI bitmap resources require a supported bit depth.");
-        }
+        // Each step has one frame or more, so the frame count bounds the step count.
+        using IMemoryOwner<AniStep> stepsOwner = image.Configuration.MemoryAllocator.Allocate<AniStep>(image.Frames.Count);
+        Span<AniStep> steps = stepsOwner.GetSpan();
 
-        if (bitmapResources && imageMetadata.Planes is not (0 or 1))
-        {
-            throw new ImageFormatException("ANI bitmap resources require exactly one color plane.");
-        }
-
-        // This validation pass derives the fixed ANI header and largest icon directory without allocating a grouping graph.
-        // Encoding repeats the linear grouping scan below, trading a cheap pass for zero per-group collections.
         for (int frameIndex = 0; frameIndex < image.Frames.Count;)
         {
             AniFrameMetadata metadata = image.Frames[frameIndex].Metadata.GetAniMetadata();
-            int groupSize = 1;
 
-            if (metadata.FrameFormat is not (AniFrameFormat.Ico or AniFrameFormat.Cur or AniFrameFormat.Bmp))
+            if (metadata.FrameFormat is not (AniFrameFormat.Ico or AniFrameFormat.Cur))
             {
                 // FrameFormat is public metadata and therefore must be validated before any container bytes are written.
                 throw new ImageFormatException("ANI contains an unsupported embedded frame format.");
             }
 
-            // Positive sequence numbers group adjacent resolution variants; non-positive values form independent steps.
-            if (metadata.SequenceNumber > 0)
-            {
-                while (frameIndex + groupSize < image.Frames.Count
-                    && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
-                {
-                    groupSize++;
-                }
-            }
-
-            if (bitmapResources != (metadata.FrameFormat is AniFrameFormat.Bmp))
-            {
-                // AF_ICON applies to the complete file, so raw DIB resources cannot coexist with ICO/CUR resources.
-                throw new ImageFormatException("ANI cannot mix bitmap resources with ICO or CUR resources.");
-            }
-
-            if (bitmapResources && groupSize > 1)
-            {
-                // Only ICO/CUR directories can contain multiple resolution variants in one physical resource.
-                throw new ImageFormatException("ANI bitmap resources cannot contain resolution variants.");
-            }
+            int groupSize = GetStepLength(image, frameIndex);
 
             // All variants share one animation step, which requires one child format and one rate value.
             for (int i = 1; i < groupSize; i++)
@@ -120,46 +91,70 @@ internal sealed class AniEncoderCore
                 }
             }
 
+            // Equal positive sequence numbers mark one stored frame. The first step with a number stores the frame. Each
+            // later step with that number plays the stored frame again, so the encoder does not write its frames. A
+            // linear search over the earlier steps finds that stored frame without an allocation.
+            int resourceIndex = resourceCount;
+            if (metadata.SequenceNumber > 0)
+            {
+                for (int i = 0; i < stepCount; i++)
+                {
+                    if (steps[i].SequenceNumber == metadata.SequenceNumber)
+                    {
+                        resourceIndex = steps[i].ResourceIndex;
+                        reusesFrames = true;
+                        break;
+                    }
+                }
+            }
+
+            if (resourceIndex == resourceCount)
+            {
+                resourceCount++;
+                maxGroupSize = Math.Max(maxGroupSize, groupSize);
+            }
+
+            steps[stepCount++] = new AniStep(frameIndex, groupSize, resourceIndex, metadata.SequenceNumber);
+
             uint frameDelay = metadata.FrameDelay is 0 ? displayRate : metadata.FrameDelay;
             hasVariableRates |= frameDelay != displayRate;
-            maxGroupSize = Math.Max(maxGroupSize, groupSize);
-            groupCount++;
             frameIndex += groupSize;
         }
 
-        // Icon-based ANI files leave global geometry and pixel layout at zero because each ICO/CUR entry owns those values.
+        steps = steps[..stepCount];
+
+        // The ACON specification defines each frame as an embedded .CUR file (page 9), so the encoder always sets
+        // AF_ICON. It marks cx, cy, cBitCount and cPlanes as "reserved, must be 0" (page 10). Each ICO or CUR frame holds
+        // those values instead. The 'seq ' chunk gives the stored frame of each step, so it is necessary only when a
+        // step plays a stored frame again. See the Multimedia Data Standards Update, April 15, 1994, pages 9-10:
+        // https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Docs/RIFFNEW.pdf
         AniHeader header = new()
         {
             BytesInHeader = AniHeader.Size,
-            FrameCount = (uint)groupCount,
-            StepCount = (uint)groupCount,
-            Width = bitmapResources ? imageMetadata.Width is 0 ? (uint)image.Width : imageMetadata.Width : 0,
-            Height = bitmapResources ? imageMetadata.Height is 0 ? (uint)image.Height : imageMetadata.Height : 0,
-            BitCount = bitmapResources ? imageMetadata.BitCount is 0 ? 32U : imageMetadata.BitCount : 0,
-            Planes = bitmapResources ? 1U : 0,
+            FrameCount = (uint)resourceCount,
+            StepCount = (uint)stepCount,
             DisplayRate = displayRate,
-            Flags = (bitmapResources ? 0 : AniHeaderFlags.IsIcon) | (writeSequence ? AniHeaderFlags.ContainsSequence : 0)
+            Flags = AniHeaderFlags.IsIcon | (reusesFrames ? AniHeaderFlags.ContainsSequence : 0)
         };
 
         // One allocator-owned directory buffer is sliced and reused for every icon resource; its capacity is the largest group.
-        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata>? iconEntriesOwner = bitmapResources
-            ? null
-            : image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
+        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata> iconEntriesOwner =
+            image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
 
-        Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner is null ? [] : iconEntriesOwner.GetSpan();
+        Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner.GetSpan();
 
         // ImageEncoder guarantees a seekable destination, allowing direct nested encoding and RIFF size backpatching.
         long riffSizePosition = this.BeginContainer(stream, AniConstants.RiffFourCc, AniConstants.AniFormTypeFourCc);
         this.WriteHeader(stream, header);
 
-        if (writeSequence)
+        if (reusesFrames)
         {
-            this.WriteSequence(stream, groupCount);
+            this.WriteSequence(stream, steps);
         }
 
         if (hasVariableRates)
         {
-            this.WriteRates(stream, image, displayRate);
+            this.WriteRates(stream, image, steps, displayRate);
         }
 
         if (!this.encoder.SkipMetadata && (imageMetadata.Name is not null || imageMetadata.Artist is not null))
@@ -169,30 +164,91 @@ internal sealed class AniEncoderCore
 
         long frameListSizePosition = this.BeginContainer(stream, "LIST"u8, "fram"u8);
 
-        // Repeat the allocation-free adjacent grouping scan used by the validation pass.
-        for (int frameIndex = 0; frameIndex < image.Frames.Count;)
+        // The encoder writes each stored frame once, from its first step. Stored frames get their indices in this order.
+        int written = 0;
+        foreach (AniStep step in steps)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            AniFrameMetadata metadata = image.Frames[frameIndex].Metadata.GetAniMetadata();
-            int groupSize = 1;
-            if (metadata.SequenceNumber > 0)
+            if (step.ResourceIndex != written)
             {
-                while (frameIndex + groupSize < image.Frames.Count
-                    && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
-                {
-                    groupSize++;
-                }
+                continue;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
+            AniFrameFormat format = image.Frames[step.FrameIndex].Metadata.GetAniMetadata().FrameFormat;
             long frameSizePosition = this.BeginChunk(stream, "icon"u8);
-            this.WriteFrameResource(image, stream, frameIndex, groupSize, metadata.FrameFormat, header.BitCount, iconEntries, cancellationToken);
+            this.WriteFrameResource(image, stream, step.FrameIndex, step.FrameCount, format, iconEntries, cancellationToken);
             this.EndChunk(stream, frameSizePosition);
-            frameIndex += groupSize;
+            written++;
         }
 
         this.EndChunk(stream, frameListSizePosition);
         this.EndChunk(stream, riffSizePosition);
+    }
+
+    /// <summary>
+    /// Gets the frame count of the animation step that starts at a frame.
+    /// </summary>
+    /// <remarks>
+    /// A step holds the resolution variants of one stored frame: adjacent frames with the same positive sequence number.
+    /// A stored frame can play in two adjacent steps, so equal numbers alone do not end a step. The images of one icon
+    /// each have "a different size and/or color depth". Thus an image whose size and depth are already in the step
+    /// starts the next step: https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+    /// </remarks>
+    /// <param name="image">The source image.</param>
+    /// <param name="frameIndex">The first frame of the step.</param>
+    /// <returns>The frame count of the step.</returns>
+    private static int GetStepLength(Image image, int frameIndex)
+    {
+        int sequenceNumber = image.Frames[frameIndex].Metadata.GetAniMetadata().SequenceNumber;
+        if (sequenceNumber <= 0)
+        {
+            // A non-positive value encodes the frame as its own animation step.
+            return 1;
+        }
+
+        int end = frameIndex + 1;
+        while (end < image.Frames.Count)
+        {
+            ImageFrame next = image.Frames[end];
+            if (next.Metadata.GetAniMetadata().SequenceNumber != sequenceNumber)
+            {
+                break;
+            }
+
+            for (int i = frameIndex; i < end; i++)
+            {
+                if (IsSameIconImage(image.Frames[i], next))
+                {
+                    return end - frameIndex;
+                }
+            }
+
+            end++;
+        }
+
+        return end - frameIndex;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether two frames give the same icon image: the same encoded size and the same depth.
+    /// One icon cannot hold two such images.
+    /// </summary>
+    /// <param name="a">The first frame.</param>
+    /// <param name="b">The second frame.</param>
+    /// <returns><see langword="true"/> if the frames give the same icon image. Otherwise, <see langword="false"/>.</returns>
+    private static bool IsSameIconImage(ImageFrame a, ImageFrame b)
+    {
+        AniFrameMetadata first = a.Metadata.GetAniMetadata();
+        AniFrameMetadata second = b.Metadata.GetAniMetadata();
+
+        // A PNG image is always 32 bits per pixel in an icon.
+        int firstDepth = first.Compression is IconFrameCompression.Png ? 32 : (int)first.BmpBitsPerPixel;
+        int secondDepth = second.Compression is IconFrameCompression.Png ? 32 : (int)second.BmpBitsPerPixel;
+
+        return (first.EncodingWidth ?? NarrowDimension(a.Width)) == (second.EncodingWidth ?? NarrowDimension(b.Width))
+            && (first.EncodingHeight ?? NarrowDimension(a.Height)) == (second.EncodingHeight ?? NarrowDimension(b.Height))
+            && firstDepth == secondDepth;
     }
 
     /// <summary>
@@ -210,20 +266,18 @@ internal sealed class AniEncoderCore
     }
 
     /// <summary>
-    /// Writes an identity sequence table when the source metadata declares an explicit sequence.
+    /// Writes the stored frame index of each animation step.
     /// </summary>
     /// <param name="stream">The destination stream.</param>
-    /// <param name="stepCount">The number of animation steps.</param>
-    private void WriteSequence(Stream stream, int stepCount)
+    /// <param name="steps">The animation steps.</param>
+    private void WriteSequence(Stream stream, ReadOnlySpan<AniStep> steps)
     {
         long sizePosition = this.BeginChunk(stream, "seq "u8);
         Span<byte> value = this.buffer[..sizeof(uint)];
 
-        // Decoding expands source resource references into presentation order. Encoding writes those expanded steps as
-        // distinct resources, so an identity table preserves the explicit-sequence flag without changing playback.
-        for (uint i = 0; i < stepCount; i++)
+        foreach (AniStep step in steps)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(value, i);
+            BinaryPrimitives.WriteUInt32LittleEndian(value, (uint)step.ResourceIndex);
             stream.Write(value);
         }
 
@@ -235,28 +289,19 @@ internal sealed class AniEncoderCore
     /// </summary>
     /// <param name="stream">The destination stream.</param>
     /// <param name="image">The source image.</param>
+    /// <param name="steps">The animation steps.</param>
     /// <param name="displayRate">The default header display rate.</param>
-    private void WriteRates(Stream stream, Image image, uint displayRate)
+    private void WriteRates(Stream stream, Image image, ReadOnlySpan<AniStep> steps, uint displayRate)
     {
         long sizePosition = this.BeginChunk(stream, "rate"u8);
         Span<byte> value = this.buffer[..sizeof(uint)];
 
         // The rate table contains one DWORD per animation step, not one value per resolution variant.
-        for (int frameIndex = 0; frameIndex < image.Frames.Count;)
+        foreach (AniStep step in steps)
         {
-            AniFrameMetadata metadata = image.Frames[frameIndex].Metadata.GetAniMetadata();
-            uint frameDelay = metadata.FrameDelay;
+            uint frameDelay = image.Frames[step.FrameIndex].Metadata.GetAniMetadata().FrameDelay;
             BinaryPrimitives.WriteUInt32LittleEndian(value, frameDelay is 0 ? displayRate : frameDelay);
             stream.Write(value);
-
-            frameIndex++;
-            if (metadata.SequenceNumber > 0)
-            {
-                while (frameIndex < image.Frames.Count && image.Frames[frameIndex].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
-                {
-                    frameIndex++;
-                }
-            }
         }
 
         this.EndChunk(stream, sizePosition);
@@ -311,15 +356,14 @@ internal sealed class AniEncoderCore
     }
 
     /// <summary>
-    /// Encodes one ANI frame resource using the existing ICO, CUR, or BMP encoder.
+    /// Encodes one ANI frame resource using the existing ICO or CUR encoder.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="frameIndex">The first source-frame index.</param>
     /// <param name="frameCount">The number of source frames in this resource.</param>
-    /// <param name="format">The embedded resource format.</param>
-    /// <param name="bitCount">The bitmap bit depth declared by the ANI header.</param>
+    /// <param name="format">The embedded resource format: <see cref="AniFrameFormat.Ico"/> or <see cref="AniFrameFormat.Cur"/>.</param>
     /// <param name="iconEntries">The reusable icon directory metadata buffer.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void WriteFrameResource<TPixel>(
@@ -328,65 +372,37 @@ internal sealed class AniEncoderCore
         int frameIndex,
         int frameCount,
         AniFrameFormat format,
-        uint bitCount,
         Span<IconEncoderCore.EncodingFrameMetadata> iconEntries,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        switch (format)
+        // The child encoder gets only the active prefix. Later resources use the same allocation.
+        Span<IconEncoderCore.EncodingFrameMetadata> entries = iconEntries[..frameCount];
+        AniIconFrameMetadataProvider provider = new(format);
+
+        if (format is AniFrameFormat.Ico)
         {
-            case AniFrameFormat.Ico:
-            case AniFrameFormat.Cur:
-                // Only the active prefix is exposed to the child encoder; the same backing allocation serves later resources.
-                Span<IconEncoderCore.EncodingFrameMetadata> entries = iconEntries[..frameCount];
-                AniIconFrameMetadataProvider provider = new(format);
+            this.icoEncoder ??= new IcoEncoderCore(new IcoEncoder
+            {
+                PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                Quantizer = this.encoder.Quantizer,
+                SkipMetadata = this.encoder.SkipMetadata,
+                TransparentColorMode = this.encoder.TransparentColorMode
+            });
 
-                if (format is AniFrameFormat.Ico)
-                {
-                    this.icoEncoder ??= new IcoEncoderCore(new IcoEncoder
-                    {
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    });
+            this.icoEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
+        }
+        else
+        {
+            this.curEncoder ??= new CurEncoderCore(new CurEncoder
+            {
+                PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                Quantizer = this.encoder.Quantizer,
+                SkipMetadata = this.encoder.SkipMetadata,
+                TransparentColorMode = this.encoder.TransparentColorMode
+            });
 
-                    this.icoEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
-                }
-                else
-                {
-                    this.curEncoder ??= new CurEncoderCore(new CurEncoder
-                    {
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    });
-
-                    this.curEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
-                }
-
-                break;
-            case AniFrameFormat.Bmp:
-                if (this.bmpEncoder is null)
-                {
-                    BmpEncoder bmpEncoder = new()
-                    {
-                        BitsPerPixel = GetBmpBitsPerPixel(bitCount),
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        Quantizer = this.encoder.Quantizer,
-                        SkipFileHeader = true,
-                        SkipMetadata = this.encoder.SkipMetadata,
-                        SupportTransparency = bitCount is 32,
-                        TransparentColorMode = this.encoder.TransparentColorMode
-                    };
-
-                    this.bmpEncoder = new BmpEncoderCore(bmpEncoder, image.Configuration.MemoryAllocator);
-                }
-
-                // The frame overload writes the raw DIB directly and avoids constructing a temporary single-frame Image.
-                this.bmpEncoder.Encode(image.Frames[frameIndex], image.Metadata, stream, cancellationToken);
-                break;
+            this.curEncoder.Encode(image, stream, frameIndex, entries, provider, cancellationToken);
         }
     }
 
@@ -416,23 +432,6 @@ internal sealed class AniEncoderCore
                 : metadata.HotspotY
         };
     }
-
-    /// <summary>
-    /// Converts an ANI bitmap bit depth to a supported BMP encoder value.
-    /// </summary>
-    /// <param name="bitCount">The ANI bit depth.</param>
-    /// <returns>The BMP encoder bit depth.</returns>
-    private static BmpBitsPerPixel GetBmpBitsPerPixel(uint bitCount)
-        => bitCount switch
-        {
-            1 => BmpBitsPerPixel.Bit1,
-            2 => BmpBitsPerPixel.Bit2,
-            4 => BmpBitsPerPixel.Bit4,
-            8 => BmpBitsPerPixel.Bit8,
-            16 => BmpBitsPerPixel.Bit16,
-            24 => BmpBitsPerPixel.Bit24,
-            _ => BmpBitsPerPixel.Bit32
-        };
 
     /// <summary>
     /// Converts a pixel dimension to the one-byte ICO/CUR representation.
@@ -500,6 +499,48 @@ internal sealed class AniEncoderCore
         stream.Position = sizePosition;
         stream.Write(size);
         stream.Position = endPosition;
+    }
+
+    /// <summary>
+    /// One animation step: the frames of the step and the stored frame that it plays.
+    /// </summary>
+    private readonly struct AniStep
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AniStep"/> struct.
+        /// </summary>
+        /// <param name="frameIndex">The first frame of the step.</param>
+        /// <param name="frameCount">The frame count of the step.</param>
+        /// <param name="resourceIndex">The index of the stored frame that the step plays.</param>
+        /// <param name="sequenceNumber">The sequence number of the frames of the step.</param>
+        public AniStep(int frameIndex, int frameCount, int resourceIndex, int sequenceNumber)
+        {
+            this.FrameIndex = frameIndex;
+            this.FrameCount = frameCount;
+            this.ResourceIndex = resourceIndex;
+            this.SequenceNumber = sequenceNumber;
+        }
+
+        /// <summary>
+        /// Gets the first frame of the step.
+        /// </summary>
+        public int FrameIndex { get; }
+
+        /// <summary>
+        /// Gets the frame count of the step.
+        /// </summary>
+        public int FrameCount { get; }
+
+        /// <summary>
+        /// Gets the index of the stored frame that the step plays.
+        /// </summary>
+        public int ResourceIndex { get; }
+
+        /// <summary>
+        /// Gets the sequence number of the frames of the step. The reuse search compares this value, so it does not read
+        /// the frame metadata again.
+        /// </summary>
+        public int SequenceNumber { get; }
     }
 
     /// <summary>

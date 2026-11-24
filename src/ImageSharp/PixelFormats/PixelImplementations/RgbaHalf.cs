@@ -205,6 +205,9 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
     public static RgbaHalf FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
+    public static RgbaHalf FromBgr565(Bgr565 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
     public static RgbaHalf FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />

@@ -49,11 +49,17 @@ internal class QoiDecoderCore : ImageDecoderCore
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;
         Image<TPixel> image = new(this.configuration, (int)this.header.Width, (int)this.header.Height, metadata);
-        Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-        this.ProcessPixels(stream, pixels);
-
-        return image;
+        try
+        {
+            this.ProcessPixels(stream, image.GetRootFramePixelBuffer());
+            return image;
+        }
+        catch
+        {
+            image.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -105,7 +111,9 @@ internal class QoiDecoderCore : ImageDecoderCore
         // These numbers are in Big Endian so we have to reverse them to get the real number
         uint width = BinaryPrimitives.ReadUInt32BigEndian(widthBytes);
         uint height = BinaryPrimitives.ReadUInt32BigEndian(heightBytes);
-        if (width == 0 || height == 0)
+
+        // The image types store each dimension as a positive int.
+        if (width == 0 || height == 0 || width > int.MaxValue || height > int.MaxValue)
         {
             throw new InvalidImageContentException(
                 $"The image has an invalid size: width = {width}, height = {height}");
@@ -130,6 +138,14 @@ internal class QoiDecoderCore : ImageDecoderCore
     private static void ThrowInvalidImageContentException()
         => throw new InvalidImageContentException("The image is not a valid QOI image.");
 
+    /// <summary>
+    /// Decodes the QOI chunks into the pixel buffer and reads the end marker.
+    /// Damaged or truncated chunk data goes to <see cref="SegmentIntegrityHandlingExtensions.ThrowOrIgnoreImageDataError(SegmentIntegrityHandling, string)"/>.
+    /// When that method returns, the decode stops. The pixels that the decoder did not decode keep the fill value.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="stream">The stream positioned at the first chunk.</param>
+    /// <param name="pixels">The destination pixel buffer.</param>
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -151,14 +167,22 @@ internal class QoiDecoderCore : ImageDecoderCore
             Span<TPixel> row = pixels.DangerousGetRowSpan(i);
             for (int j = 0; j < row.Length; j++)
             {
-                operationByte = (byte)stream.ReadByte();
+                int operation = stream.ReadByte();
+                if (operation < 0)
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a QOI chunk.");
+                    return;
+                }
+
+                operationByte = (byte)operation;
                 switch ((QoiChunk)operationByte)
                 {
                     // Reading one pixel with previous alpha intact
                     case QoiChunk.QoiOpRgb:
                         if (stream.Read(pixelBytes[..3]) < 3)
                         {
-                            ThrowInvalidImageContentException();
+                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a QOI RGB chunk.");
+                            return;
                         }
 
                         readPixel.A = previousPixel.A;
@@ -171,7 +195,8 @@ internal class QoiDecoderCore : ImageDecoderCore
                     case QoiChunk.QoiOpRgba:
                         if (stream.Read(pixelBytes) < 4)
                         {
-                            ThrowInvalidImageContentException();
+                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a QOI RGBA chunk.");
+                            return;
                         }
 
                         pixel = TPixel.FromRgba32(readPixel);
@@ -210,6 +235,12 @@ internal class QoiDecoderCore : ImageDecoderCore
                                 int diffGreen = operationByte & 0b00111111;
                                 int currentGreen = Numerics.Modulo256(previousPixel.G + (diffGreen - 32));
                                 int nextByte = stream.ReadByte();
+                                if (nextByte < 0)
+                                {
+                                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Not enough data to read a QOI luma chunk.");
+                                    return;
+                                }
+
                                 int diffRedDG = nextByte >> 4;
                                 int diffBlueDG = nextByte & 0b00001111;
                                 int currentRed = Numerics.Modulo256(diffRedDG - 8 + (diffGreen - 32) + previousPixel.R);
@@ -236,6 +267,14 @@ internal class QoiDecoderCore : ImageDecoderCore
                                     {
                                         j = 0;
                                         i++;
+                                        if (i == pixels.Height)
+                                        {
+                                            // The run is longer than the rest of the image. The decoder decoded all
+                                            // pixels of the image, so the IgnoreImageData mode keeps them.
+                                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("A QOI run chunk exceeds the image size.");
+                                            return;
+                                        }
+
                                         row = pixels.DangerousGetRowSpan(i);
                                     }
 
@@ -258,18 +297,17 @@ internal class QoiDecoderCore : ImageDecoderCore
             }
         }
 
-        // Check stream end
-        for (int i = 0; i < 7; i++)
+        // A QOI file is a 14-byte header, the data chunks and an 8-byte end marker. The end marker is seven 0x00 bytes
+        // and one 0x01 byte. See the QOI specification, version 1.0. A missing, short or wrong marker is damaged image
+        // data. The decoder decoded all pixels at this point, so the IgnoreImageData mode keeps them.
+        for (int i = 0; i < 8; i++)
         {
-            if (stream.ReadByte() != 0)
+            // ReadByte returns -1 at the end of the stream, which is not a marker byte.
+            if (stream.ReadByte() != (i < 7 ? 0 : 1))
             {
-                ThrowInvalidImageContentException();
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The QOI end marker is missing or not valid.");
+                return;
             }
-        }
-
-        if (stream.ReadByte() != 1)
-        {
-            ThrowInvalidImageContentException();
         }
     }
 

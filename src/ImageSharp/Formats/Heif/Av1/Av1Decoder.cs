@@ -37,6 +37,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
+    /// The segment integrity mode. It controls if damaged or truncated tile data throws.
+    /// </summary>
+    private readonly SegmentIntegrityHandling integrityHandling;
+
+    /// <summary>
     /// The CDEF filtering stage and working storage shared by successive frames.
     /// </summary>
     private readonly Av1CdefDecoder cdefDecoder;
@@ -111,7 +116,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     public Av1Decoder(Configuration configuration)
-        : this(configuration, 0)
+        : this(configuration, 0, SegmentIntegrityHandling.Strict)
     {
     }
 
@@ -120,10 +125,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
-    public Av1Decoder(Configuration configuration, byte operatingPointIndex)
+    /// <param name="integrityHandling">
+    /// The segment integrity mode. In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, a damaged or truncated
+    /// payload keeps every superblock that decodes before the damage, and the frame completes. The other modes throw.
+    /// </param>
+    public Av1Decoder(Configuration configuration, byte operatingPointIndex, SegmentIntegrityHandling integrityHandling)
     {
         this.configuration = configuration;
-        this.obuReader = new(operatingPointIndex, this.referenceFrames);
+        this.integrityHandling = integrityHandling;
+        this.obuReader = new(operatingPointIndex, this.referenceFrames) { IntegrityHandling = integrityHandling };
         this.cdefDecoder = new(configuration.MemoryAllocator);
         this.restorationBoundary = new(configuration.MemoryAllocator);
         this.restorationDecoder = new(configuration.MemoryAllocator);
@@ -379,6 +389,10 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
 
+        // Each payload presents its own shown frame. A payload can end before its shown frame, for example when
+        // truncated data holds only a hidden frame. Such a payload must not present the output of the earlier payload.
+        this.referenceFrames.ReleaseOutput();
+
         try
         {
             if (layeredImageIndex is null)
@@ -403,7 +417,9 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                         break;
                     }
 
-                    int layerSize = (int)declaredLayerSize;
+                    // A truncated item holds fewer bytes than its layer sizes declare. The item data reader already
+                    // reported the truncation, so the layer that crosses the end keeps the bytes that remain.
+                    int layerSize = Math.Min((int)declaredLayerSize, buffer.Length - layerOffset);
                     Av1BitStreamReader layerReader = new(buffer.Slice(layerOffset, layerSize));
                     this.obuReader.ReadAll(ref layerReader, layerSize, this, false);
                     layerOffset += layerSize;
@@ -624,6 +640,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                         this.chromaPaletteColorIndexMap));
 
                 tileReader.FrameDecoder = frameDecoder;
+                tileReader.IntegrityHandling = this.integrityHandling;
                 frameDecodeState = new(tileReader, frameBuffer, frameDecoder);
                 this.frameDecodeState = frameDecodeState;
             }

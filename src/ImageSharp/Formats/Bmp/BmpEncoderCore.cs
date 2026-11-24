@@ -55,19 +55,9 @@ internal sealed class BmpEncoderCore
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The color type from the encoder options, or <see langword="null"/> to use the image metadata.
+    /// The encoder with options. The core reads the options from it, as the other encoder cores do.
     /// </summary>
-    private readonly BmpColorType? configuredColorType;
-
-    /// <summary>
-    /// The bit depth from the encoder options, or <see langword="null"/> to use the image metadata.
-    /// </summary>
-    private readonly BmpBitsPerPixel? configuredBitsPerPixel;
-
-    /// <summary>
-    /// The compression from the encoder options, or <see langword="null"/> to use the image metadata.
-    /// </summary>
-    private readonly BmpCompression? configuredCompression;
+    private readonly BmpEncoder encoder;
 
     /// <summary>
     /// The amount to pad each row by.
@@ -104,47 +94,11 @@ internal sealed class BmpEncoderCore
     private BmpInfoHeaderType infoHeaderType;
 
     /// <summary>
-    /// The quantizer from the encoder options, or <see langword="null"/> to select one from the image metadata.
-    /// </summary>
-    private readonly IQuantizer? configuredQuantizer;
-
-    /// <summary>
     /// The quantizer for reducing the color count in one-, two-, four- and eight-bit indexed images.
     /// <see cref="Encode{TPixel}(ImageFrame{TPixel}, ImageMetadata, Stream, CancellationToken)"/> selects it for each
     /// image before it writes the pixels.
     /// </summary>
     private IQuantizer quantizer = KnownQuantizers.Hexadecatree;
-
-    /// <summary>
-    /// The options of <see cref="quantizer"/> with the transparent color mode of the encoder.
-    /// <see cref="Encode{TPixel}(ImageFrame{TPixel}, ImageMetadata, Stream, CancellationToken)"/> sets them with the
-    /// quantizer.
-    /// </summary>
-    private QuantizerOptions quantizerOptions = KnownQuantizers.Hexadecatree.Options;
-
-    /// <summary>
-    /// The pixel sampling strategy for quantization.
-    /// </summary>
-    private readonly IPixelSamplingStrategy pixelSamplingStrategy;
-
-    /// <summary>
-    /// The transparent color mode.
-    /// </summary>
-    private readonly TransparentColorMode transparentColorMode;
-
-    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
-    private readonly bool processedAlphaMask;
-
-    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
-    private readonly bool skipFileHeader;
-
-    /// <summary>
-    /// Whether optional image metadata should be omitted.
-    /// </summary>
-    private readonly bool skipMetadata;
-
-    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
-    private readonly bool isDoubleHeight;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
@@ -154,17 +108,7 @@ internal sealed class BmpEncoderCore
     public BmpEncoderCore(BmpEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.configuredColorType = encoder.ColorType;
-        this.configuredBitsPerPixel = encoder.BitsPerPixel;
-        this.configuredCompression = encoder.Compression;
-
-        this.configuredQuantizer = encoder.Quantizer;
-        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
-        this.transparentColorMode = encoder.TransparentColorMode;
-        this.processedAlphaMask = encoder.ProcessedAlphaMask;
-        this.skipFileHeader = encoder.SkipFileHeader;
-        this.skipMetadata = encoder.SkipMetadata;
-        this.isDoubleHeight = encoder.UseDoubleHeight;
+        this.encoder = encoder;
     }
 
     /// <summary>
@@ -221,15 +165,15 @@ internal sealed class BmpEncoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // ICC offsets start at the DIB header, whether it follows a BMP file header or sits inside an ICO/CUR resource.
-        long infoHeaderPosition = stream.Position + (this.skipFileHeader ? 0 : BmpFileHeader.Size);
+        long infoHeaderPosition = stream.Position + (this.encoder.SkipFileHeader ? 0 : BmpFileHeader.Size);
 
         Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
 
         // As in the PNG encoder, the encoder options take precedence over the metadata. A bit depth that does not fit the
         // color type falls back to the default depth of that color type.
-        this.colorType = this.configuredColorType ?? bmpMetadata.ColorType;
-        this.bitsPerPixel = BmpConstants.GetBitsPerPixel(this.colorType, this.configuredBitsPerPixel ?? bmpMetadata.BitsPerPixel);
+        this.colorType = this.encoder.ColorType ?? bmpMetadata.ColorType;
+        this.bitsPerPixel = BmpConstants.GetBitsPerPixel(this.colorType, this.encoder.BitsPerPixel ?? bmpMetadata.BitsPerPixel);
         this.infoHeaderType = this.colorType is BmpColorType.Bgra or BmpColorType.Bgra5551
             ? BmpInfoHeaderType.WinVersion4
             : BmpInfoHeaderType.WinVersion3;
@@ -237,7 +181,7 @@ internal sealed class BmpEncoderCore
         // BI_RLE8 compresses 8-bit bitmaps and BI_RLE4 compresses 4-bit bitmaps. Windows defines RLE for no other depth:
         // https://learn.microsoft.com/en-us/windows/win32/gdi/bitmap-compression
         // The encoder does not write OS/2 RLE24, so it writes the bitmaps of other depths uncompressed.
-        BmpCompression compression = this.configuredCompression ?? bmpMetadata.Compression;
+        BmpCompression compression = this.encoder.Compression ?? bmpMetadata.Compression;
         this.runLength = compression is BmpCompression.RunLength && this.bitsPerPixel is BmpBitsPerPixel.Bit8 or BmpBitsPerPixel.Bit4;
 
         ushort bpp = (ushort)this.bitsPerPixel;
@@ -254,23 +198,18 @@ internal sealed class BmpEncoderCore
         // the output depth. The PNG, GIF and icon encoders do the same. Dithering stays off and color matching is exact,
         // so each pixel that has a palette color keeps that color. Other images use the default quantizer.
         ReadOnlyMemory<Color>? colorTable = bmpMetadata.ColorTable;
-        if (this.configuredQuantizer is not null)
+        if (this.encoder.Quantizer is not null)
         {
-            this.quantizer = this.configuredQuantizer;
+            this.quantizer = this.encoder.Quantizer;
         }
         else if (colorPaletteSize > 0 && colorTable?.Length > 0 && colorTable.Value.Length <= 1 << bpp)
         {
-            this.quantizer = EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.transparentColorMode);
+            this.quantizer = EncodingUtilities.CreateDecodedPaletteQuantizer(colorTable.Value, this.encoder.TransparentColorMode);
         }
         else
         {
             this.quantizer = KnownQuantizers.Hexadecatree;
         }
-
-        // The indexed paths quantize with these options, so the transparent color mode of the encoder applies to every
-        // quantizer, as the GIF encoder does.
-        TransparentColorMode mode = this.transparentColorMode;
-        this.quantizerOptions = this.quantizer.Options.DeepClone(o => o.TransparentColorMode = mode);
 
         // Direct samples and palette entries store RGB. Indexed compatibility is determined by the palette, not its indices.
         PixelColorType pixelColorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
@@ -308,7 +247,7 @@ internal sealed class BmpEncoderCore
 
         // ICO/CUR DIB headers include the XOR bitmap and following AND mask in one doubled height.
         int height = frame.Height;
-        if (this.isDoubleHeight)
+        if (this.encoder.UseDoubleHeight)
         {
             height <<= 1;
         }
@@ -336,7 +275,7 @@ internal sealed class BmpEncoderCore
         Span<byte> buffer = stackalloc byte[infoHeaderSize + bitFieldsSize];
 
         // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
-        if (!this.skipFileHeader)
+        if (!this.encoder.SkipFileHeader)
         {
             WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize + bitFieldsSize, iccProfileSize, infoHeader, buffer);
         }
@@ -362,7 +301,7 @@ internal sealed class BmpEncoderCore
             stream.Position = infoHeaderPosition + 20;
             stream.Write(buffer[..4]);
 
-            if (!this.skipFileHeader)
+            if (!this.encoder.SkipFileHeader)
             {
                 // bfSize is at byte 2 of the file header. The ICC profile follows the pixel data.
                 int fileSize = BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + imageSize + iccProfileSize;
@@ -402,7 +341,7 @@ internal sealed class BmpEncoderCore
         int hResolution = 0;
         int vResolution = 0;
 
-        if (!this.skipMetadata
+        if (!this.encoder.SkipMetadata
             && metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio
             && metadata.HorizontalResolution > 0
             && metadata.VerticalResolution > 0)
@@ -598,7 +537,7 @@ internal sealed class BmpEncoderCore
     {
         // The indexed paths quantize, and the quantizer applies the transparent color mode. The direct-color paths
         // replace transparent pixels in each converted row, so the source frame stays unchanged without a copy.
-        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode);
+        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.encoder.TransparentColorMode);
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
         switch (this.bitsPerPixel)
@@ -613,7 +552,7 @@ internal sealed class BmpEncoderCore
                     pixels,
                     converter,
                     replaceTransparent,
-                    this.colorType is BmpColorType.Bgr && !this.isDoubleHeight,
+                    this.colorType is BmpColorType.Bgr && !this.encoder.UseDoubleHeight,
                     cancellationToken);
                 break;
 
@@ -651,7 +590,7 @@ internal sealed class BmpEncoderCore
         }
 
         // The mask stores alpha only. Replacement keeps alpha, so the source frame gives the same mask.
-        if (this.processedAlphaMask)
+        if (this.encoder.ProcessedAlphaMask)
         {
             this.ProcessedAlphaMask(stream, frame, cancellationToken);
         }
@@ -837,19 +776,22 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // An 8-bit index can select each color that a quantizer can make, so the 8-bit path keeps the quantizer options.
-        // A smaller index limits the palette to 2^bitsPerIndex colors. Thus each index fits in bitsPerIndex bits, as the
-        // index packer requires.
-        QuantizerOptions options = this.quantizerOptions;
-        if (bitsPerIndex < 8)
+        // The transparent color mode of the encoder applies to every quantizer, as the GIF encoder does. An 8-bit index
+        // can select each color that a quantizer can make. A smaller index limits the palette to 2^bitsPerIndex colors,
+        // so each index fits in bitsPerIndex bits, as the index packer requires. The method copies the quantizer options
+        // only when they do not already meet both rules.
+        QuantizerOptions options = this.quantizer.Options;
+        int maxColors = bitsPerIndex < 8 ? 1 << bitsPerIndex : options.MaxColors;
+        if (options.TransparentColorMode != this.encoder.TransparentColorMode || options.MaxColors != maxColors)
         {
             options = options.DeepClone();
-            options.MaxColors = 1 << bitsPerIndex;
+            options.TransparentColorMode = this.encoder.TransparentColorMode;
+            options.MaxColors = maxColors;
         }
 
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, options);
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
+        frameQuantizer.BuildPalette(this.encoder.PixelSamplingStrategy, encodingFrame);
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
 
         // The color table has 2^bitsPerIndex entries of 4 bytes. The entries after the quantized palette stay zero.

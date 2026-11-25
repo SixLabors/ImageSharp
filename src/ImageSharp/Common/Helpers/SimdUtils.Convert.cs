@@ -202,7 +202,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source span of bytes</param>
     /// <param name="destination">The destination span of floats</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> destination)
+    public static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> destination)
         => ByteToNormalizedFloat<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
 
     /// <summary>
@@ -213,7 +213,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source span of bytes.</param>
     /// <param name="destination">The destination span of floats.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void ByteToNormalizedFloat<TAlpha>(ReadOnlySpan<byte> source, Span<float> destination)
+    public static void ByteToNormalizedFloat<TAlpha>(ReadOnlySpan<byte> source, Span<float> destination)
         where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
@@ -236,7 +236,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source span of floats</param>
     /// <param name="destination">The destination span of bytes</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+    public static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
         => NormalizedFloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
 
     /// <summary>
@@ -248,7 +248,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source span of floats.</param>
     /// <param name="destination">The destination span of bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void NormalizedFloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
+    public static void NormalizedFloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
         where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
@@ -267,7 +267,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source byte magnitudes.</param>
     /// <param name="destination">The destination bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void FloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+    public static void FloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
         => FloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
 
     /// <summary>
@@ -279,7 +279,7 @@ internal static partial class SimdUtils
     /// <param name="source">The source components.</param>
     /// <param name="destination">The destination bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void FloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
+    public static void FloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
         where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
@@ -292,6 +292,11 @@ internal static partial class SimdUtils
         }
     }
 
+    /// <summary>
+    /// Converts the bytes that the vector paths leave to floats from 0 to 1, one byte at a time.
+    /// </summary>
+    /// <param name="source">The bytes.</param>
+    /// <param name="destination">The floats. The length is the length of <paramref name="source"/>.</param>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> destination)
     {
@@ -357,6 +362,12 @@ internal static partial class SimdUtils
         }
     }
 
+    /// <summary>
+    /// Converts the floats that the vector paths leave to bytes, one float at a time.
+    /// </summary>
+    /// <param name="source">The floats.</param>
+    /// <param name="destination">The bytes. The length is the length of <paramref name="source"/>.</param>
+    /// <param name="scale">The factor that multiplies each float before the conversion.</param>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ConvertFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> destination, float scale)
     {
@@ -369,6 +380,13 @@ internal static partial class SimdUtils
         }
     }
 
+    /// <summary>
+    /// Scales a float, then rounds it to the nearest byte value. A value halfway between two bytes rounds up.
+    /// A value outside the byte range clamps to 0 or 255.
+    /// </summary>
+    /// <param name="value">The float.</param>
+    /// <param name="scale">The factor that multiplies the float.</param>
+    /// <returns>The byte.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte ConvertToByte(float value, float scale) => (byte)ColorNumerics.ClampToFinite((value * scale) + .5F, 0, byte.MaxValue);
 }

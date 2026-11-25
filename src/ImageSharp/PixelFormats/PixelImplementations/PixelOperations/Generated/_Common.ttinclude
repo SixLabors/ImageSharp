@@ -46,6 +46,24 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Bgr565"
             ];
 
+    // Rgba32CompatiblePixelOperations<TPixel, TOrder> owns the conversions from these luminance and 16-bit layouts to each
+    // layout in Rgba32FamilyPixelTypes.
+    private static readonly string[] Rgba32FamilySourcePixelTypes =
+        ["L8", "La16", "L16", "La32", "Rgb48", "Rgba64"];
+
+    // The straight byte layouts that derive from Rgba32CompatiblePixelOperations<TPixel, TOrder>.
+    private static readonly string[] Rgba32FamilyPixelTypes =
+        ["Rgba32", "Argb32", "Abgr32", "Bgra32", "Rgb24", "Bgr24"];
+
+    // Rgba64CompatiblePixelOperations<TPixel> owns the conversions from these layouts to each layout in
+    // Rgba64FamilyPixelTypes, except the conversion of a layout to itself.
+    private static readonly string[] Rgba64FamilySourcePixelTypes =
+        ["L8", "La16", "L16", "La32", "Rgb24", "Bgr24", "Rgba32", "Bgra32", "Argb32", "Abgr32", "Rgb48", "Rgba64"];
+
+    // The 16-bit layouts that derive from Rgba64CompatiblePixelOperations<TPixel>.
+    private static readonly string[] Rgba64FamilyPixelTypes =
+        ["Rgba64", "Rgb48"];
+
     // These layouts store associated bytes. Channel shuffles retain those bytes; straight-alpha conversions change their meaning.
     private static readonly string[] AssociatedOptimizedPixelTypes =
         ["Rgba32P", "Argb32P", "Abgr32P", "Bgra32P"];
@@ -168,6 +186,37 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 <#+ } #>
             PixelConverter.From<#=otherConverterType#>.To<#=thisConverterType#>(sourceBytes, destinationBytes);
         }
+<#+
+    }
+
+    /// <summary>
+    /// Gets the destination types whose family base class owns the conversion from <paramref name="pixelType"/>.
+    /// </summary>
+    /// <param name="pixelType">The source pixel type.</param>
+    /// <returns>The destination types.</returns>
+    IEnumerable<string> GetOwnedDestinationTypes(string pixelType)
+    {
+        IEnumerable<string> rgba32Family = Rgba32FamilySourcePixelTypes.Contains(pixelType) ? Rgba32FamilyPixelTypes : [];
+        IEnumerable<string> rgba64Family = Rgba64FamilySourcePixelTypes.Contains(pixelType) ? Rgba64FamilyPixelTypes : [];
+        return rgba32Family.Concat(rgba64Family).Where(p => p != pixelType);
+    }
+
+    /// <summary>
+    /// Generates the conversion to a destination type whose family base class owns the conversion.
+    /// </summary>
+    /// <param name="pixelType">The source pixel type.</param>
+    /// <param name="destinationType">The destination pixel type.</param>
+    void GenerateOwnedConvertToMethod(string pixelType, string destinationType)
+    {
+        // The destination owns the conversion, so the source calls its From method. Each pair has one implementation.
+#>
+
+        /// <inheritdoc />
+        public override void To<#=destinationType#>(
+            Configuration configuration,
+            ReadOnlySpan<<#=pixelType#>> source,
+            Span<<#=destinationType#>> destination)
+            => PixelOperations<<#=destinationType#>>.Instance.From<#=pixelType#>(configuration, source, destination);
 <#+
     }
 
@@ -333,9 +382,17 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             GenerateOptimized32BitConversionMethods(pixelType, destPixelType);
         }
 
+        string[] ownedDestinationTypes = GetOwnedDestinationTypes(pixelType).ToArray();
+
+        foreach (string destPixelType in ownedDestinationTypes)
+        {
+            GenerateOwnedConvertToMethod(pixelType, destPixelType);
+        }
+
         var otherCommonNon32Types = CommonPixelTypes
             .Where(p => p != pixelType)
-            .Except(matching32BitTypes);
+            .Except(matching32BitTypes)
+            .Except(ownedDestinationTypes);
 
         foreach (string destPixelType in otherCommonNon32Types)
         {

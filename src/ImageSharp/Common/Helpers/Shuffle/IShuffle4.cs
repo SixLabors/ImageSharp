@@ -17,6 +17,28 @@ internal interface IShuffle4 : IComponentShuffle
 }
 
 /// <summary>
+/// Keeps XYZW components in XYZW order.
+/// </summary>
+internal readonly struct XYZWShuffle4 : IShuffle4
+{
+    /// <inheritdoc />
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static uint Invoke(uint source) => source;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source) => source;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source) => source;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source) => source;
+}
+
+/// <summary>
 /// Reorders XYZW components to WXYZ.
 /// </summary>
 internal readonly struct WXYZShuffle4 : IShuffle4

@@ -14,7 +14,7 @@ public partial struct Rgba32P
     /// <summary>
     /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgba32P>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Rgba32P>
     {
         /// <inheritdoc />
         public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination)
@@ -38,7 +38,7 @@ public partial struct Rgba32P
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            RgbaCompatiblePixelOperations<Rgba32P>.UnassociateBytes(MemoryMarshal.AsBytes(source), destination[..source.Length]);
+            Rgba32CompatiblePixelOperations<Rgba32P>.UnassociateBytes(MemoryMarshal.AsBytes(source), destination[..source.Length]);
         }
     }
 }

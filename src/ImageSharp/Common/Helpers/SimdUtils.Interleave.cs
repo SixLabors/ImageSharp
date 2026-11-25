@@ -350,31 +350,6 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Transposes the 128-bit lanes of four interleaved registers into consecutive output blocks.
-    /// </summary>
-    /// <param name="row0">The first packed pixel group from each 128-bit lane.</param>
-    /// <param name="row1">The second packed pixel group from each 128-bit lane.</param>
-    /// <param name="row2">The third packed pixel group from each 128-bit lane.</param>
-    /// <param name="row3">The fourth packed pixel group from each 128-bit lane.</param>
-    /// <param name="destination">The first of 256 destination bytes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void StoreInterleaved4(Vector512<int> row0, Vector512<int> row1, Vector512<int> row2, Vector512<int> row3, ref byte destination)
-    {
-        // Zips keep 128-bit lanes separate. The first two outputs need lane 0 from all four rows, then lane 1.
-        // Pair lanes 0/1 from rows 0/1 and 2/3. The second shuffle selects each complete output block.
-        Vector512<int> lower01 = Vector512_.Shuffle4x128(row0, row1, Shuffle.MMShuffle1010);
-        Vector512<int> lower23 = Vector512_.Shuffle4x128(row2, row3, Shuffle.MMShuffle1010);
-        Vector512_.Shuffle4x128(lower01, lower23, Shuffle.MMShuffle2020).AsByte().StoreUnsafe(ref destination);
-        Vector512_.Shuffle4x128(lower01, lower23, Shuffle.MMShuffle3131).AsByte().StoreUnsafe(ref destination, 64U);
-
-        // Repeat for lanes 2/3. Four unaligned stores cover the exact 256-byte output, with no padding.
-        Vector512<int> upper01 = Vector512_.Shuffle4x128(row0, row1, Shuffle.MMShuffle3232);
-        Vector512<int> upper23 = Vector512_.Shuffle4x128(row2, row3, Shuffle.MMShuffle3232);
-        Vector512_.Shuffle4x128(upper01, upper23, Shuffle.MMShuffle2020).AsByte().StoreUnsafe(ref destination, 128U);
-        Vector512_.Shuffle4x128(upper01, upper23, Shuffle.MMShuffle3131).AsByte().StoreUnsafe(ref destination, 192U);
-    }
-
-    /// <summary>
     /// Interleaves 8 unsigned word triples without changing their stored bits.
     /// </summary>
     /// <param name="x">The x component plane.</param>
@@ -1758,5 +1733,30 @@ internal static partial class SimdUtils
             Unsafe.Add(ref packedRef, packedOffset + 2) = (maxValue - Unsafe.Add(ref zLaneRef, sourceOffset)) * scale;
             Unsafe.Add(ref packedRef, packedOffset + 3) = (maxValue - Unsafe.Add(ref wLaneRef, sourceOffset)) * scale;
         }
+    }
+
+    /// <summary>
+    /// Transposes the 128-bit lanes of four interleaved registers into consecutive output blocks.
+    /// </summary>
+    /// <param name="row0">The first packed pixel group from each 128-bit lane.</param>
+    /// <param name="row1">The second packed pixel group from each 128-bit lane.</param>
+    /// <param name="row2">The third packed pixel group from each 128-bit lane.</param>
+    /// <param name="row3">The fourth packed pixel group from each 128-bit lane.</param>
+    /// <param name="destination">The first of 256 destination bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreInterleaved4(Vector512<int> row0, Vector512<int> row1, Vector512<int> row2, Vector512<int> row3, ref byte destination)
+    {
+        // Zips keep 128-bit lanes separate. The first two outputs need lane 0 from all four rows, then lane 1.
+        // Pair lanes 0/1 from rows 0/1 and 2/3. The second shuffle selects each complete output block.
+        Vector512<int> lower01 = Vector512_.Shuffle4x128(row0, row1, Shuffle.MMShuffle1010);
+        Vector512<int> lower23 = Vector512_.Shuffle4x128(row2, row3, Shuffle.MMShuffle1010);
+        Vector512_.Shuffle4x128(lower01, lower23, Shuffle.MMShuffle2020).AsByte().StoreUnsafe(ref destination);
+        Vector512_.Shuffle4x128(lower01, lower23, Shuffle.MMShuffle3131).AsByte().StoreUnsafe(ref destination, 64U);
+
+        // Repeat for lanes 2/3. Four unaligned stores cover the exact 256-byte output, with no padding.
+        Vector512<int> upper01 = Vector512_.Shuffle4x128(row0, row1, Shuffle.MMShuffle3232);
+        Vector512<int> upper23 = Vector512_.Shuffle4x128(row2, row3, Shuffle.MMShuffle3232);
+        Vector512_.Shuffle4x128(upper01, upper23, Shuffle.MMShuffle2020).AsByte().StoreUnsafe(ref destination, 128U);
+        Vector512_.Shuffle4x128(upper01, upper23, Shuffle.MMShuffle3131).AsByte().StoreUnsafe(ref destination, 192U);
     }
 }

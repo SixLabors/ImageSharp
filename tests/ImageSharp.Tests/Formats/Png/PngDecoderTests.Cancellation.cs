@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -71,97 +69,119 @@ public partial class PngDecoderTests
         Assert.True(cts.IsCancellationRequested);
     }
 
+    /// <summary>
+    /// Cancels a decode at each stream operation in turn, for each integrity mode. The CRC check of image data runs only
+    /// when the mode does not ignore image data errors, so each mode reads a different sequence of stream operations.
+    /// Each run must throw <see cref="OperationCanceledException"/> or complete, and must return each buffer that it
+    /// allocates.
+    /// </summary>
+    /// <param name="integrity">The integrity mode of the decode.</param>
+    /// <param name="identifyOnly">Whether to identify the image instead of decoding it.</param>
+    /// <returns>The task.</returns>
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Decode_DisposesChunkDataBuffer_WhenCancelledDuringChunkCrcRead(bool identifyOnly)
+    [InlineData(SegmentIntegrityHandling.Strict, true)]
+    [InlineData(SegmentIntegrityHandling.Strict, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, false)]
+    public async Task Decode_ReturnsEachBuffer_WhenCancelledAtEachStreamOperation(SegmentIntegrityHandling integrity, bool identifyOnly)
     {
         byte[] pngBytes = CreateMultiPixelPngBytes();
-        int idatCrcOffset = FindFirstChunkCrcOffset(pngBytes, "IDAT");
 
-        using CancellationTokenSource cts = new();
-        using PausedMemoryStream stream = new(pngBytes);
-
-        // BufferedReadStream reads the IDAT data directly from this stream and then seeks this stream to the end of
-        // the data. That seek is the first operation at the CRC offset. Cancel during it, so that the CRC read in
-        // ValidateChunk is the first token check after the chunk data is allocated.
-        stream.OnWaiting(s =>
+        // A run with no cancellation gives the count of stream operations.
+        int operationCount = 0;
+        using (PausedMemoryStream stream = new(pngBytes))
         {
-            if (s.Position == idatCrcOffset)
+            stream.OnWaiting(() =>
             {
-                cts.Cancel();
-                stream.Release();
-            }
-            else
-            {
+                operationCount++;
                 stream.Next();
-            }
-        });
+            });
 
-        await AssertCancelledDecodeDisposesAllAllocationsAsync(stream, cts.Token, identifyOnly);
-        Assert.True(cts.IsCancellationRequested);
+            await DecodeOrIdentifyAsync(stream, CreateOptions(new TestMemoryAllocator(), integrity), identifyOnly, CancellationToken.None);
+        }
+
+        int cancelledCount = 0;
+        for (int cancelAt = 0; cancelAt < operationCount; cancelAt++)
+        {
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+
+            using CancellationTokenSource cts = new();
+            using PausedMemoryStream stream = new(pngBytes);
+            int operation = 0;
+
+            // The operation completes after the cancellation. Thus the next token check of the decoder observes it.
+            stream.OnWaiting(() =>
+            {
+                if (operation++ == cancelAt)
+                {
+                    cts.Cancel();
+                    stream.Release();
+                }
+                else
+                {
+                    stream.Next();
+                }
+            });
+
+            try
+            {
+                await DecodeOrIdentifyAsync(stream, CreateOptions(allocator, integrity), identifyOnly, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                cancelledCount++;
+            }
+
+            Assert.Equal(0, allocator.LiveBufferBytes);
+            Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        }
+
+        // A cancellation before the last token check stops the decode.
+        Assert.True(cancelledCount > 0);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Decode_DisposesChunkDataBuffer_WhenCancelledDuringIdatPositionRestore(bool identifyOnly)
+    /// <summary>
+    /// Creates decoder options that read 4 bytes for each stream buffer fill, so that each chunk field is a separate
+    /// stream operation.
+    /// </summary>
+    /// <param name="allocator">The allocator of the decode.</param>
+    /// <param name="integrity">The integrity mode of the decode.</param>
+    /// <returns>The options.</returns>
+    private static DecoderOptions CreateOptions(TestMemoryAllocator allocator, SegmentIntegrityHandling integrity)
     {
-        byte[] pngBytes = CreateMultiPixelPngBytes();
-        int idatCrcOffset = FindFirstChunkCrcOffset(pngBytes, "IDAT");
-
-        using CancellationTokenSource cts = new();
-        using PausedMemoryStream stream = new(pngBytes);
-        int operationsAtCrcOffset = 0;
-
-        // The first operation at the CRC offset is the seek after the direct IDAT data read. The second is the read
-        // that fills the BufferedReadStream buffer with the CRC. Cancel during that read. The read completes, so
-        // restoring the IDAT position in TryReadChunk is the first token check after it.
-        stream.OnWaiting(s =>
-        {
-            if (s.Position == idatCrcOffset && ++operationsAtCrcOffset == 2)
-            {
-                cts.Cancel();
-                stream.Release();
-            }
-            else
-            {
-                stream.Next();
-            }
-        });
-
-        await AssertCancelledDecodeDisposesAllAllocationsAsync(stream, cts.Token, identifyOnly);
-        Assert.True(cts.IsCancellationRequested);
-    }
-
-    private static async Task AssertCancelledDecodeDisposesAllAllocationsAsync(
-        Stream stream,
-        CancellationToken cancellationToken,
-        bool identifyOnly)
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.CreateDefaultInstance();
         configuration.MemoryAllocator = allocator;
         configuration.StreamProcessingBufferSize = 4;
-        DecoderOptions options = new(configuration);
+        return new DecoderOptions(configuration) { SegmentIntegrityHandling = integrity };
+    }
 
+    /// <summary>
+    /// Decodes or identifies the image, and disposes a decoded image.
+    /// </summary>
+    /// <remarks>
+    /// The call goes to the PNG decoder directly, so format detection does not read the stream.
+    /// </remarks>
+    /// <param name="stream">The image stream.</param>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="identifyOnly">Whether to identify the image instead of decoding it.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The task.</returns>
+    private static async Task DecodeOrIdentifyAsync(
+        Stream stream,
+        DecoderOptions options,
+        bool identifyOnly,
+        CancellationToken cancellationToken)
+    {
         if (identifyOnly)
         {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-                await PngDecoder.Instance.IdentifyAsync(options, stream, cancellationToken));
-        }
-        else
-        {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            {
-                using Image<Rgba32> image =
-                    await PngDecoder.Instance.DecodeAsync<Rgba32>(options, stream, cancellationToken);
-            });
+            await PngDecoder.Instance.IdentifyAsync(options, stream, cancellationToken);
+            return;
         }
 
-        Assert.Equal(0, allocator.LiveBufferBytes);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        using Image<Rgba32> image = await PngDecoder.Instance.DecodeAsync<Rgba32>(options, stream, cancellationToken);
     }
 
     private static byte[] CreateMultiPixelPngBytes()
@@ -170,24 +190,5 @@ public partial class PngDecoderTests
         using MemoryStream encoded = new();
         source.SaveAsPng(encoded);
         return encoded.ToArray();
-    }
-
-    private static int FindFirstChunkCrcOffset(byte[] pngBytes, string chunkType)
-    {
-        int offset = 8;
-        while (offset + 12 <= pngBytes.Length)
-        {
-            int length = BinaryPrimitives.ReadInt32BigEndian(pngBytes.AsSpan(offset));
-            string type = Encoding.ASCII.GetString(pngBytes, offset + 4, 4);
-            int crcOffset = offset + 8 + length;
-            if (type == chunkType)
-            {
-                return crcOffset;
-            }
-
-            offset = crcOffset + 4;
-        }
-
-        throw new InvalidOperationException($"Chunk '{chunkType}' not found.");
     }
 }

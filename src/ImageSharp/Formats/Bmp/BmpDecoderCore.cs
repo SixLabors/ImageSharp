@@ -209,7 +209,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     this.infoHeader.Width,
                     this.infoHeader.Height,
                     inverted,
-                    CreateBitFields<TPixel>(0x00FF0000, 0x0000FF00, 0x000000FF, 0));
+                    new BmpBitFields(0x00FF0000, 0x0000FF00, 0x000000FF, 0));
 
                 break;
 
@@ -435,6 +435,18 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             return;
         }
 
+        // These masks are the 5-6-5 layout of a 16-bit RGB bitmap with no alpha. That is the layout of Bgr565, so the
+        // bulk Bgr565 conversion reads the row with no unpack.
+        if (bitsPerPixel is 16
+            && redMask == BmpConstants.Bgr565Masks.Red
+            && greenMask == BmpConstants.Bgr565Masks.Green
+            && blueMask == BmpConstants.Bgr565Masks.Blue
+            && alphaMask is 0)
+        {
+            this.ReadRgb565(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+            return;
+        }
+
         this.ReadBitFields(
             stream,
             pixels,
@@ -475,7 +487,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         uint alphaMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpBitFields fields = CreateBitFields<TPixel>(redMask, greenMask, blueMask, alphaMask);
+        BmpBitFields fields = new(redMask, greenMask, blueMask, alphaMask);
 
         // A channel with more than 8 bits keeps its precision through Vector4. Each other mask fits a 4-byte pixel.
         if (bitsPerPixel is 16)
@@ -500,24 +512,6 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Creates the bit fields that decode to <typeparamref name="TPixel"/>.
-    /// </summary>
-    /// <remarks>
-    /// For <see cref="Bgra32"/> the fields write B, G, R, A pixels. For each other pixel type they write R, G, B, A
-    /// pixels, the order of <see cref="Rgba32"/>. <see cref="ReadBitFields{TPixel, TSample}"/> uses the same rule to
-    /// write the image row directly for these two pixel types.
-    /// </remarks>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="redMask">The bitmask for the red channel.</param>
-    /// <param name="greenMask">The bitmask for the green channel.</param>
-    /// <param name="blueMask">The bitmask for the blue channel.</param>
-    /// <param name="alphaMask">The bitmask for the alpha channel, or 0 for an opaque bitmap.</param>
-    /// <returns>The bit fields.</returns>
-    private static BmpBitFields CreateBitFields<TPixel>(uint redMask, uint greenMask, uint blueMask, uint alphaMask)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => new(redMask, greenMask, blueMask, alphaMask, typeof(TPixel) == typeof(Bgra32));
-
-    /// <summary>
     /// Decodes a bit-field bitmap whose channels each have 8 bits or fewer.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -527,7 +521,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    /// <param name="fields">The channel masks, from <see cref="CreateBitFields{TPixel}"/>.</param>
+    /// <param name="fields">The channel masks.</param>
     /// <param name="stopOnAlpha">
     /// Whether to stop at the first row with a fourth byte that is not 0. Only <see cref="ReadRgb32Slow{TPixel}"/> sets
     /// it, for 32-bit samples stored as B, G, R and a fourth byte.
@@ -553,11 +547,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(stride);
         Span<byte> rowSpan = row.GetSpan();
 
-        // The fields write Rgba32 pixels, or Bgra32 pixels for a Bgra32 image (see CreateBitFields). For those two
-        // pixel types, the fields write the image row, and no conversion pass follows. For each other pixel type,
-        // the fields write an Rgba32 row, and the bulk conversion writes the image row.
-        bool direct = typeof(TPixel) == typeof(Rgba32) || typeof(TPixel) == typeof(Bgra32);
-        using IMemoryOwner<Rgba32>? rgbaRow = direct ? null : this.memoryAllocator.Allocate<Rgba32>(width);
+        // The fields write an Rgba32 row. The bulk conversion then writes the image row.
+        using IMemoryOwner<Rgba32> rgbaRow = this.memoryAllocator.Allocate<Rgba32>(width);
+        Span<Rgba32> rgbaSpan = rgbaRow.GetSpan();
 
         for (int y = 0; y < height; y++)
         {
@@ -571,18 +563,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 return false;
             }
 
+            fields.Unpack<TSample>(rowSpan, MemoryMarshal.Cast<Rgba32, uint>(rgbaSpan));
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
-
-            if (rgbaRow is null)
-            {
-                fields.Unpack<TSample>(rowSpan, MemoryMarshal.Cast<TPixel, uint>(pixelRow));
-            }
-            else
-            {
-                Span<Rgba32> rgbaSpan = rgbaRow.GetSpan();
-                fields.Unpack<TSample>(rowSpan, MemoryMarshal.Cast<Rgba32, uint>(rgbaSpan));
-                PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, rgbaSpan, pixelRow);
-            }
+            PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, rgbaSpan, pixelRow);
         }
 
         return true;
@@ -826,7 +809,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 break;
             }
 
-            BmpPaletteExpander.Expand<TPixel>(rowSpan, 1, paletteSpan, pixels.DangerousGetRowSpan(Invert(y, height, inverted)));
+            PaletteExpander.Expand<TPixel>(rowSpan, 1, paletteSpan, pixels.DangerousGetRowSpan(Invert(y, height, inverted)));
         }
 
         if (decoder.IsDamaged)
@@ -995,7 +978,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 return;
             }
 
-            BmpPaletteExpander.Expand<TPixel>(rowSpan, bitsPerPixel, paletteSpan, pixels.DangerousGetRowSpan(newY));
+            PaletteExpander.Expand<TPixel>(rowSpan, bitsPerPixel, paletteSpan, pixels.DangerousGetRowSpan(newY));
         }
     }
 
@@ -1113,7 +1096,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             // One pass writes each pixel with its opaque color. Most icon pixels are opaque.
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
-            BmpPaletteExpander.Expand<TPixel>(indexSpan, bitsPerPixel, opaque, pixelRow);
+            PaletteExpander.Expand<TPixel>(indexSpan, bitsPerPixel, opaque, pixelRow);
 
             // Then only the transparent pixels change. A mask byte of 0 has 8 opaque pixels, so the loop skips it.
             for (int maskIndex = 0; maskIndex < maskBytes; maskIndex++)
@@ -1324,6 +1307,47 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Reads a 16-bit bitmap with the 5-6-5 layout: blue in bits 0..4, green in bits 5..10 and red in bits 11..15.
+    /// </summary>
+    /// <remarks>
+    /// This is the <see cref="Bgr565"/> layout, so the row goes to the bulk <see cref="Bgr565"/> conversion. The
+    /// layout has no alpha bit, so each pixel is opaque.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the bitmap.</param>
+    /// <param name="height">The height of the bitmap.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    private void ReadRgb565<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int padding = CalculatePadding(width, 2);
+        using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, padding);
+        Span<byte> rowSpan = row.GetSpan();
+
+        for (int y = 0; y < height; y++)
+        {
+            if (!this.TryReadPixelBytes(stream, rowSpan, width * 2))
+            {
+                return;
+            }
+
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
+            PixelOperations<TPixel>.Instance.FromBgr565Bytes(
+                this.configuration,
+                rowSpan,
+                pixelSpan,
+                width);
+        }
+    }
+
+    /// <summary>
     /// Reads the 32 bit color palette from the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -1383,7 +1407,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         long start = stream.Position;
-        BmpBitFields opaque = CreateBitFields<TPixel>(0x00FF0000, 0x0000FF00, 0x000000FF, 0);
+        BmpBitFields opaque = new(0x00FF0000, 0x0000FF00, 0x000000FF, 0);
 
         if (!this.ReadBitFields<TPixel, BmpBitFields.Sample32Operator>(stream, pixels, width, height, inverted, opaque, true))
         {

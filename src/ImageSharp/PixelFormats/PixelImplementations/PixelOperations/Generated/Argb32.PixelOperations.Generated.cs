@@ -18,7 +18,7 @@ public partial struct Argb32
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Argb32>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Argb32, WXYZShuffle4>
     {
         /// <inheritdoc />
         public override void FromArgb32(Configuration configuration, ReadOnlySpan<Argb32> source, Span<Argb32> destination)
@@ -235,6 +235,20 @@ public partial struct Argb32
         }
 
         /// <inheritdoc />
+        public override void ToRgba64(
+            Configuration configuration,
+            ReadOnlySpan<Argb32> source,
+            Span<Rgba64> destination)
+            => PixelOperations<Rgba64>.Instance.FromArgb32(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToRgb48(
+            Configuration configuration,
+            ReadOnlySpan<Argb32> source,
+            Span<Rgb48> destination)
+            => PixelOperations<Rgb48>.Instance.FromArgb32(configuration, source, destination);
+
+        /// <inheritdoc />
         public override void ToL8(
             Configuration configuration,
             ReadOnlySpan<Argb32> source,
@@ -303,42 +317,6 @@ public partial struct Argb32
             for (nuint i = 0; i < (uint)source.Length; i++)
             {
                 Unsafe.Add(ref destinationBase, i) = La32.FromArgb32(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgb48(
-            Configuration configuration,
-            ReadOnlySpan<Argb32> source,
-            Span<Rgb48> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref Argb32 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgb48 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgb48.FromArgb32(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgba64(
-            Configuration configuration,
-            ReadOnlySpan<Argb32> source,
-            Span<Rgba64> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref Argb32 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgba64 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgba64.FromArgb32(Unsafe.Add(ref sourceBase, i));
             }
         }
 

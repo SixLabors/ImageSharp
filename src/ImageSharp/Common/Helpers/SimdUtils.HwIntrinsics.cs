@@ -35,7 +35,7 @@ internal static partial class SimdUtils
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void ByteToNormalizedFloatReduce(
+        public static void ByteToNormalizedFloatReduce(
             ref ReadOnlySpan<byte> source,
             ref Span<float> destination)
             => ByteToNormalizedFloatReduce<PixelFormats.PixelOperations.NoAlphaOperator>(ref source, ref destination);
@@ -46,7 +46,7 @@ internal static partial class SimdUtils
         /// <typeparam name="TAlpha">The alpha step that the conversion applies before each store.</typeparam>
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
-        internal static void ByteToNormalizedFloatReduce<TAlpha>(
+        public static void ByteToNormalizedFloatReduce<TAlpha>(
             ref ReadOnlySpan<byte> source,
             ref Span<float> destination)
             where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
@@ -90,7 +90,7 @@ internal static partial class SimdUtils
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L80-L182
         /// </remarks>
-        internal static void ByteToNormalizedFloat(
+        public static void ByteToNormalizedFloat(
             ReadOnlySpan<byte> source,
             Span<float> destination)
             => ByteToNormalizedFloat<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
@@ -105,7 +105,7 @@ internal static partial class SimdUtils
         /// <typeparam name="TAlpha">The alpha step that the conversion applies before each store.</typeparam>
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
-        internal static void ByteToNormalizedFloat<TAlpha>(
+        public static void ByteToNormalizedFloat<TAlpha>(
             ReadOnlySpan<byte> source,
             Span<float> destination)
             where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
@@ -246,7 +246,7 @@ internal static partial class SimdUtils
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void NormalizedFloatToByteSaturateReduce(
+        public static void NormalizedFloatToByteSaturateReduce(
             ref ReadOnlySpan<float> source,
             ref Span<byte> destination)
             => FloatToByteSaturateReduce(ref source, ref destination, byte.MaxValue);
@@ -258,7 +258,7 @@ internal static partial class SimdUtils
         /// <param name="destination">The destination buffer.</param>
         /// <param name="scaleFactor">The factor applied before conversion.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void FloatToByteSaturateReduce(
+        public static void FloatToByteSaturateReduce(
             ref ReadOnlySpan<float> source,
             ref Span<byte> destination,
             float scaleFactor)
@@ -272,7 +272,7 @@ internal static partial class SimdUtils
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         /// <param name="scaleFactor">The factor applied before conversion.</param>
-        internal static void FloatToByteSaturateReduce<TAlpha>(
+        public static void FloatToByteSaturateReduce<TAlpha>(
             ref ReadOnlySpan<float> source,
             ref Span<byte> destination,
             float scaleFactor)
@@ -321,7 +321,7 @@ internal static partial class SimdUtils
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L541-L622
         /// </remarks>
-        internal static void NormalizedFloatToByteSaturate(
+        public static void NormalizedFloatToByteSaturate(
             ReadOnlySpan<float> source,
             Span<byte> destination)
             => FloatToByteSaturate(source, destination, byte.MaxValue);
@@ -335,7 +335,7 @@ internal static partial class SimdUtils
         /// </param>
         /// <param name="destination">The destination buffer.</param>
         /// <param name="scaleFactor">The factor applied before conversion.</param>
-        internal static void FloatToByteSaturate(
+        public static void FloatToByteSaturate(
             ReadOnlySpan<float> source,
             Span<byte> destination,
             float scaleFactor)
@@ -355,7 +355,7 @@ internal static partial class SimdUtils
         /// </param>
         /// <param name="destination">The destination buffer.</param>
         /// <param name="scaleFactor">The factor applied before conversion.</param>
-        internal static void FloatToByteSaturate<TAlpha>(
+        public static void FloatToByteSaturate<TAlpha>(
             ReadOnlySpan<float> source,
             Span<byte> destination,
             float scaleFactor)

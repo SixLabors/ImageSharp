@@ -2,75 +2,21 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
 
 /// <summary>
-/// Various extension and utility methods for <see cref="Vector4"/> and <see cref="Vector{T}"/> utilizing SIMD capabilities
+/// Provides SIMD kernels that convert, shuffle, interleave and pack spans of pixel and sample data.
 /// </summary>
 internal static partial class SimdUtils
 {
     /// <summary>
-    /// Gets a value indicating whether <see cref="Vector{T}"/> code is being JIT-ed to AVX2 instructions
-    /// where both float and integer registers are of size 256 byte.
+    /// Checks in debug builds that the spans of a byte to float conversion have the same length, a multiple of
+    /// <paramref name="shouldBeDivisibleBy"/>.
     /// </summary>
-    public static bool HasVector8 { get; } =
-        Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
-
-    /// <summary>
-    /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
-    /// </summary>
-    /// <param name="v">The vector</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector4 PseudoRound(this Vector4 v)
-    {
-        Vector4 sign = ColorNumerics.ClampToFinite(v, new Vector4(-1), new Vector4(1));
-
-        return v + (sign * 0.5f);
-    }
-
-    /// <summary>
-    /// Rounds all values in 'v' to the nearest integer following <see cref="MidpointRounding.ToEven"/> semantics.
-    /// </summary>
-    /// <param name="v">The vector</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector<float> FastRound(this Vector<float> v)
-    {
-        // .NET9+ has a built-in method for this Vector.Round
-        if (Avx2.IsSupported && Vector<float>.Count == Vector256<float>.Count)
-        {
-            ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
-            Vector256<float> vRound = Avx.RoundToNearestInteger(v256);
-            return Unsafe.As<Vector256<float>, Vector<float>>(ref vRound);
-        }
-
-        if (Sse41.IsSupported && Vector<float>.Count == Vector128<float>.Count)
-        {
-            ref Vector128<float> v128 = ref Unsafe.As<Vector<float>, Vector128<float>>(ref v);
-            Vector128<float> vRound = Sse41.RoundToNearestInteger(v128);
-            return Unsafe.As<Vector128<float>, Vector<float>>(ref vRound);
-        }
-
-        if (AdvSimd.IsSupported && Vector<float>.Count == Vector128<float>.Count)
-        {
-            ref Vector128<float> v128 = ref Unsafe.As<Vector<float>, Vector128<float>>(ref v);
-            Vector128<float> vRound = AdvSimd.RoundToNearest(v128);
-            return Unsafe.As<Vector128<float>, Vector<float>>(ref vRound);
-        }
-
-        // https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L11
-        Vector<float> sign = v & new Vector<float>(-0F);
-        Vector<float> val_2p23_f32 = sign | new Vector<float>(8388608F);
-
-        val_2p23_f32 = (v + val_2p23_f32) - val_2p23_f32;
-        return val_2p23_f32 | sign;
-    }
-
+    /// <param name="source">The source bytes.</param>
+    /// <param name="dest">The destination floats.</param>
+    /// <param name="shouldBeDivisibleBy">The element count of one vector step. It is a power of two.</param>
     [Conditional("DEBUG")]
     private static void DebugVerifySpanInput(ReadOnlySpan<byte> source, ReadOnlySpan<float> dest, int shouldBeDivisibleBy)
     {
@@ -81,6 +27,13 @@ internal static partial class SimdUtils
             $"length should be divisible by {shouldBeDivisibleBy}!");
     }
 
+    /// <summary>
+    /// Checks in debug builds that the spans of a float to byte conversion have the same length, a multiple of
+    /// <paramref name="shouldBeDivisibleBy"/>.
+    /// </summary>
+    /// <param name="source">The source floats.</param>
+    /// <param name="destination">The destination bytes.</param>
+    /// <param name="shouldBeDivisibleBy">The element count of one vector step. It is a power of two.</param>
     [Conditional("DEBUG")]
     private static void DebugVerifySpanInput(ReadOnlySpan<float> source, ReadOnlySpan<byte> destination, int shouldBeDivisibleBy)
     {
@@ -91,6 +44,9 @@ internal static partial class SimdUtils
             $"length should be divisible by {shouldBeDivisibleBy}!");
     }
 
+    /// <summary>
+    /// Reads four consecutive bytes of a channel plane as one value.
+    /// </summary>
     private struct ByteTuple4
     {
 #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value

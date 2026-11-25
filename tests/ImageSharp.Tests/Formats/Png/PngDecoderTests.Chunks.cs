@@ -434,6 +434,49 @@ public partial class PngDecoderTests
     }
 
     /// <summary>
+    /// Checks a palette image with indices past its last palette entry. PNG Third Edition, section 11.2.3 "PLTE
+    /// Palette", requires each index to be less than the entry count: https://www.w3.org/TR/png-3/#11PLTE.
+    /// The decoder keeps such an image. Each index past the palette selects the last palette color.
+    /// </summary>
+    /// <param name="bitDepth">The bit depth of one index.</param>
+    [Theory]
+    [InlineData(2)]
+    [InlineData(8)]
+    public void Decode_PaletteIndexPastPalette_SelectsLastPaletteColor(byte bitDepth)
+    {
+        // The image is 4 x 1 with the indices 0, 1, 2 and 3. The palette has 2 entries: red and green.
+        // At 2 bits the indices pack into one byte, first index in the top bits: 0b00_01_10_11.
+        byte[] row = bitDepth == 2 ? [0, 0b00_01_10_11] : [0, 0, 1, 2, 3];
+        using MemoryStream compressed = new();
+        using (ZLibStream deflater = new(compressed, CompressionLevel.Optimal, true))
+        {
+            deflater.Write(row);
+        }
+
+        using MemoryStream png = new();
+        png.Write(PngConstants.HeaderBytes);
+
+        // IHDR: width 4, height 1, the bit depth, color type 3 (palette), and compression, filter and interlace 0.
+        byte[] header = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(header, 4);
+        BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), 1);
+        header[8] = bitDepth;
+        header[9] = 3;
+        WriteChunkWithCrc(png, "IHDR", header);
+        WriteChunkWithCrc(png, "PLTE", [255, 0, 0, 0, 255, 0]);
+        WriteChunkWithCrc(png, "IDAT", compressed.ToArray());
+        WriteChunkWithCrc(png, "IEND", []);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(png.ToArray());
+        Rgba32 red = new(255, 0, 0, 255);
+        Rgba32 green = new(0, 255, 0, 255);
+        Assert.Equal(red, image[0, 0]);
+        Assert.Equal(green, image[1, 0]);
+        Assert.Equal(green, image[2, 0]);
+        Assert.Equal(green, image[3, 0]);
+    }
+
+    /// <summary>
     /// Checks that the stored marker (0x0102, 0x0304, 0x0506) selects that RGB sample, not its byte-swapped sample.
     /// </summary>
     [Fact]

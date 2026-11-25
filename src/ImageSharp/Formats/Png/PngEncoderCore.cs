@@ -459,17 +459,9 @@ internal sealed class PngEncoderCore : IDisposable
             if (this.use16Bit)
             {
                 // 16 bit grayscale
-                using IMemoryOwner<L16> luminanceBuffer = this.memoryAllocator.Allocate<L16>(rowSpan.Length);
-                Span<L16> luminanceSpan = luminanceBuffer.GetSpan();
-                ref L16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
+                Span<L16> luminanceSpan = MemoryMarshal.Cast<byte, L16>(rawScanlineSpan)[..rowSpan.Length];
                 PixelOperations<TPixel>.Instance.ToL16(this.configuration, rowSpan, luminanceSpan);
-
-                // Can't map directly to byte array as it's big-endian.
-                for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
-                {
-                    L16 luminance = Unsafe.Add(ref luminanceRef, (uint)x);
-                    BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
-                }
+                ToBigEndian(MemoryMarshal.Cast<L16, ushort>(luminanceSpan));
             }
             else if (this.bitDepth == 8)
             {
@@ -499,18 +491,9 @@ internal sealed class PngEncoderCore : IDisposable
         else if (this.use16Bit)
         {
             // 16 bit grayscale + alpha
-            using IMemoryOwner<La32> laBuffer = this.memoryAllocator.Allocate<La32>(rowSpan.Length);
-            Span<La32> laSpan = laBuffer.GetSpan();
-            ref La32 laRef = ref MemoryMarshal.GetReference(laSpan);
+            Span<La32> laSpan = MemoryMarshal.Cast<byte, La32>(rawScanlineSpan)[..rowSpan.Length];
             PixelOperations<TPixel>.Instance.ToLa32(this.configuration, rowSpan, laSpan);
-
-            // Can't map directly to byte array as it's big endian.
-            for (int x = 0, o = 0; x < laSpan.Length; x++, o += 4)
-            {
-                La32 la = Unsafe.Add(ref laRef, (uint)x);
-                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), la.L);
-                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), la.A);
-            }
+            ToBigEndian(MemoryMarshal.Cast<La32, ushort>(laSpan));
         }
         else
         {
@@ -558,45 +541,37 @@ internal sealed class PngEncoderCore : IDisposable
             case 8:
 
                 // 16 bit Rgba
-                using (IMemoryOwner<Rgba64> rgbaBuffer = this.memoryAllocator.Allocate<Rgba64>(rowSpan.Length))
-                {
-                    Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
-                    ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                    PixelOperations<TPixel>.Instance.ToRgba64(this.configuration, rowSpan, rgbaSpan);
-
-                    // Can't map directly to byte array as it's big endian.
-                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
-                    {
-                        Rgba64 rgba = Unsafe.Add(ref rgbaRef, (uint)x);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 6, 2), rgba.A);
-                    }
-                }
-
+                Span<Rgba64> rgbaSpan = MemoryMarshal.Cast<byte, Rgba64>(rawScanlineSpan)[..rowSpan.Length];
+                PixelOperations<TPixel>.Instance.ToRgba64(this.configuration, rowSpan, rgbaSpan);
+                ToBigEndian(MemoryMarshal.Cast<Rgba64, ushort>(rgbaSpan));
                 break;
 
             default:
 
                 // 16 bit Rgb
-                using (IMemoryOwner<Rgb48> rgbBuffer = this.memoryAllocator.Allocate<Rgb48>(rowSpan.Length))
-                {
-                    Span<Rgb48> rgbSpan = rgbBuffer.GetSpan();
-                    ref Rgb48 rgbRef = ref MemoryMarshal.GetReference(rgbSpan);
-                    PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, rowSpan, rgbSpan);
-
-                    // Can't map directly to byte array as it's big endian.
-                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
-                    {
-                        Rgb48 rgb = Unsafe.Add(ref rgbRef, (uint)x);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
-                    }
-                }
-
+                Span<Rgb48> rgbSpan = MemoryMarshal.Cast<byte, Rgb48>(rawScanlineSpan)[..rowSpan.Length];
+                PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, rowSpan, rgbSpan);
+                ToBigEndian(MemoryMarshal.Cast<Rgb48, ushort>(rgbSpan));
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Changes native-order 16-bit samples in place to the big-endian order of PNG.
+    /// </summary>
+    /// <remarks>
+    /// See PNG Third Edition, section 7.1 "Integers and byte order": https://www.w3.org/TR/png-3/#7Integers-and-byte-order.
+    /// The pixel conversion writes the samples straight to the scanline buffer, so the row needs no other buffer.
+    /// </remarks>
+    /// <param name="samples">The samples.</param>
+    private static void ToBigEndian(Span<ushort> samples)
+    {
+        // The byte order of the file is always big-endian. The check is for the byte order of the CPU, which the
+        // ushort view of the bytes uses. A little-endian CPU must swap the two bytes of each sample. A big-endian
+        // CPU writes the file order as its native order. The JIT treats the check as a constant.
+        if (BitConverter.IsLittleEndian)
+        {
+            BinaryPrimitives.ReverseEndianness(samples, samples);
         }
     }
 
@@ -631,31 +606,33 @@ internal sealed class PngEncoderCore : IDisposable
     /// Apply the line filter for the raw scanline to enable better compression.
     /// </summary>
     /// <param name="filter">The filtered buffer.</param>
-    /// <param name="attempt">Used for attempting optimized filtering.</param>
-    private void FilterPixelBytes(ref Span<byte> filter, ref Span<byte> attempt)
+    private void FilterPixelBytes(Span<byte> filter)
     {
+        Span<byte> current = this.currentScanline.GetSpan();
+        Span<byte> previous = this.previousScanline.GetSpan();
+
         switch (this.filterMethod)
         {
             case PngFilterMethod.None:
-                NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
+                PngFilterEncoder.EncodeNone(current, filter);
                 break;
             case PngFilterMethod.Sub:
-                SubFilter.Encode(this.currentScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                PngFilterEncoder.Encode<SubFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
                 break;
 
             case PngFilterMethod.Up:
-                UpFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, out int _);
+                PngFilterEncoder.Encode<UpFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
                 break;
 
             case PngFilterMethod.Average:
-                AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, (uint)this.bytesPerPixel, out int _);
+                PngFilterEncoder.Encode<AverageFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
                 break;
 
             case PngFilterMethod.Paeth:
-                PaethFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                PngFilterEncoder.Encode<PaethFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
                 break;
             default:
-                this.ApplyOptimalFilteredScanline(ref filter, ref attempt);
+                this.ApplyOptimalFilteredScanline(filter);
                 break;
         }
     }
@@ -667,19 +644,17 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="rowSpan">The row span.</param>
     /// <param name="filter">The filtered buffer.</param>
-    /// <param name="attempt">Used for attempting optimized filtering.</param>
     /// <param name="quantized">The quantized pixels. Can be <see langword="null"/>.</param>
     /// <param name="row">The row number.</param>
     private void CollectAndFilterPixelRow<TPixel>(
         ReadOnlySpan<TPixel> rowSpan,
-        ref Span<byte> filter,
-        ref Span<byte> attempt,
+        Span<byte> filter,
         IndexedImageFrame<TPixel>? quantized,
         int row)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.CollectPixelBytes(rowSpan, quantized, row);
-        this.FilterPixelBytes(ref filter, ref attempt);
+        this.FilterPixelBytes(filter);
     }
 
     /// <summary>
@@ -687,62 +662,48 @@ internal sealed class PngEncoderCore : IDisposable
     /// </summary>
     /// <param name="row">The row span.</param>
     /// <param name="filter">The filtered buffer.</param>
-    /// <param name="attempt">Used for attempting optimized filtering.</param>
     private void EncodeAdam7IndexedPixelRow(
         ReadOnlySpan<byte> row,
-        ref Span<byte> filter,
-        ref Span<byte> attempt)
+        Span<byte> filter)
     {
         // CollectPixelBytes
         EncodingUtilities.PackIndices(row, this.currentScanline.GetSpan(), this.bitDepth);
-        this.FilterPixelBytes(ref filter, ref attempt);
+        this.FilterPixelBytes(filter);
     }
 
     /// <summary>
-    /// Applies all PNG filters to the given scanline and returns the filtered scanline that is deemed
-    /// to be most compressible, using lowest total variation as proxy for compressibility.
+    /// Writes the scanline with the PNG filter whose residuals are deemed the most compressible. The lowest sum of
+    /// absolute signed residuals is the estimate of compressibility.
     /// </summary>
     /// <param name="filter">The filtered buffer.</param>
-    /// <param name="attempt">Used for attempting optimized filtering.</param>
-    private void ApplyOptimalFilteredScanline(ref Span<byte> filter, ref Span<byte> attempt)
+    private void ApplyOptimalFilteredScanline(Span<byte> filter)
     {
         // Palette images don't compress well with adaptive filtering.
         // Nor do images comprising a single row.
         if (this.colorType == PngColorType.Palette || this.height == 1 || this.bitDepth < 8)
         {
-            NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
+            PngFilterEncoder.EncodeNone(this.currentScanline.GetSpan(), filter);
             return;
         }
 
         Span<byte> current = this.currentScanline.GetSpan();
         Span<byte> previous = this.previousScanline.GetSpan();
 
-        int min = int.MaxValue;
-        SubFilter.Encode(current, attempt, this.bytesPerPixel, out int sum);
-        if (sum < min)
+        // One pass computes the sums of all four filters. Only the chosen filter then writes its residuals.
+        switch (PngFilterEncoder.SelectFilter(current, previous, this.bytesPerPixel))
         {
-            min = sum;
-            RuntimeUtility.Swap(ref filter, ref attempt);
-        }
-
-        UpFilter.Encode(current, previous, attempt, out sum);
-        if (sum < min)
-        {
-            min = sum;
-            RuntimeUtility.Swap(ref filter, ref attempt);
-        }
-
-        AverageFilter.Encode(current, previous, attempt, (uint)this.bytesPerPixel, out sum);
-        if (sum < min)
-        {
-            min = sum;
-            RuntimeUtility.Swap(ref filter, ref attempt);
-        }
-
-        PaethFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
-        if (sum < min)
-        {
-            RuntimeUtility.Swap(ref filter, ref attempt);
+            case FilterType.Sub:
+                PngFilterEncoder.Encode<SubFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
+                break;
+            case FilterType.Up:
+                PngFilterEncoder.Encode<UpFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
+                break;
+            case FilterType.Average:
+                PngFilterEncoder.Encode<AverageFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
+                break;
+            default:
+                PngFilterEncoder.Encode<PaethFilterOperator>(current, previous, filter, this.bytesPerPixel, out _);
+                break;
         }
     }
 
@@ -1409,17 +1370,15 @@ internal sealed class PngEncoderCore : IDisposable
         this.AllocateScanlineBuffers(bytesPerScanline);
 
         using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
-        using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
         Span<byte> filter = filterBuffer.GetSpan();
-        Span<byte> attempt = attemptBuffer.GetSpan();
 
         if (colorProfileConverter is null)
         {
             for (int y = 0; y < pixels.Height; y++)
             {
                 ReadOnlySpan<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
-                this.CollectAndFilterPixelRow(rowSpan, ref filter, ref attempt, quantized, y);
+                this.CollectAndFilterPixelRow(rowSpan, filter, quantized, y);
                 deflateStream.Write(filter);
                 this.SwapScanlineBuffers();
             }
@@ -1438,7 +1397,7 @@ internal sealed class PngEncoderCore : IDisposable
             colorProfileConverter.Convert(this.configuration, rowSpan, vectors);
 
             ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..rowSpan.Length];
-            this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, y);
+            this.CollectAndFilterPixelRow(convertedRow, filter, null, y);
 
             deflateStream.Write(filter);
             this.SwapScanlineBuffers();
@@ -1476,11 +1435,9 @@ internal sealed class PngEncoderCore : IDisposable
 
             using IMemoryOwner<TPixel> blockBuffer = this.memoryAllocator.Allocate<TPixel>(blockWidth);
             using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
-            using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
             Span<TPixel> block = blockBuffer.GetSpan();
             Span<byte> filter = filterBuffer.GetSpan();
-            Span<byte> attempt = attemptBuffer.GetSpan();
 
             if (colorProfileConverter is null)
             {
@@ -1498,7 +1455,7 @@ internal sealed class PngEncoderCore : IDisposable
                     // Note: quantized parameter not used
                     // Note: row parameter not used
                     ReadOnlySpan<TPixel> blockSpan = block;
-                    this.CollectAndFilterPixelRow(blockSpan, ref filter, ref attempt, null, -1);
+                    this.CollectAndFilterPixelRow(blockSpan, filter, null, -1);
 
                     deflateStream.Write(filter);
 
@@ -1530,7 +1487,7 @@ internal sealed class PngEncoderCore : IDisposable
                 colorProfileConverter.Convert(this.configuration, blockSpan, vectors);
 
                 ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..blockSpan.Length];
-                this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, -1);
+                this.CollectAndFilterPixelRow(convertedRow, filter, null, -1);
 
                 deflateStream.Write(filter);
 
@@ -1570,11 +1527,9 @@ internal sealed class PngEncoderCore : IDisposable
 
             using IMemoryOwner<byte> blockBuffer = this.memoryAllocator.Allocate<byte>(blockWidth);
             using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
-            using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
             Span<byte> block = blockBuffer.GetSpan();
             Span<byte> filter = filterBuffer.GetSpan();
-            Span<byte> attempt = attemptBuffer.GetSpan();
 
             for (int row = startRow; row < quantized.Height; row += Adam7.RowIncrement[pass])
             {
@@ -1586,7 +1541,7 @@ internal sealed class PngEncoderCore : IDisposable
                 }
 
                 // Encode data
-                this.EncodeAdam7IndexedPixelRow(block, ref filter, ref attempt);
+                this.EncodeAdam7IndexedPixelRow(block, filter);
                 deflateStream.Write(filter);
 
                 this.SwapScanlineBuffers();

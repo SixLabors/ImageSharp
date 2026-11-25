@@ -12,30 +12,81 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 public abstract partial class PixelConverterTests
 {
     /// <summary>
+    /// The pixel count of the random sources. At each vector width, 1027 pixels fill the vector loop more than once
+    /// and leave a scalar remainder.
+    /// </summary>
+    private const int RandomPixelCount = 1027;
+
+    /// <summary>
+    /// The runs at 512, 256 and 128 bits and without SIMD.
+    /// </summary>
+    private const HwIntrinsics AllWidths =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// Converts packed pixel bytes.
+    /// </summary>
+    /// <param name="source">The source bytes.</param>
+    /// <param name="destination">The destination bytes.</param>
+    private delegate void ConvertBytes(ReadOnlySpan<byte> source, Span<byte> destination);
+
+    /// <summary>
+    /// Converts the source with the kernel and with the scalar conversion, and compares the results.
+    /// </summary>
+    /// <typeparam name="TSource">The source pixel type.</typeparam>
+    /// <typeparam name="TDestination">The destination pixel type.</typeparam>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="convert">The kernel.</param>
+    /// <param name="expected">The scalar conversion of one pixel.</param>
+    private static void AssertConversion<TSource, TDestination>(
+        TSource[] source,
+        ConvertBytes convert,
+        Func<TSource, TDestination> expected)
+        where TSource : unmanaged
+        where TDestination : unmanaged
+    {
+        TDestination[] actual = new TDestination[source.Length];
+        convert(MemoryMarshal.AsBytes(source.AsSpan()), MemoryMarshal.AsBytes(actual.AsSpan()));
+
+        Assert.Equal(source.Select(expected).ToArray(), actual);
+    }
+
+    /// <summary>
+    /// Creates pixels from random bytes. The seed is constant, so each run uses the same pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <returns>The pixels.</returns>
+    private static TPixel[] CreateRandom<TPixel>()
+        where TPixel : unmanaged
+    {
+        byte[] bytes = new byte[RandomPixelCount * Unsafe.SizeOf<TPixel>()];
+        new Random(RandomPixelCount).NextBytes(bytes);
+        return MemoryMarshal.Cast<byte, TPixel>(bytes).ToArray();
+    }
+
+    /// <summary>
+    /// Creates one pixel for each of the 65536 values of a 16-bit pixel type.
+    /// </summary>
+    /// <typeparam name="TPixel">The 16-bit pixel type.</typeparam>
+    /// <returns>The pixels.</returns>
+    private static TPixel[] CreateAllValues<TPixel>()
+        where TPixel : unmanaged
+    {
+        ushort[] values = new ushort[ushort.MaxValue + 1];
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = (ushort)i;
+        }
+
+        return MemoryMarshal.Cast<ushort, TPixel>(values).ToArray();
+    }
+
+    /// <summary>
     /// Tests the SIMD kernels of the 16-bit layouts at each vector width. Each kernel must give the same pixels as the
     /// scalar conversion of the pixel type.
     /// </summary>
     public class Packed16 : PixelConverterTests
     {
-        /// <summary>
-        /// The pixel count of the random sources. At each vector width, 1027 pixels fill the vector loop more than once
-        /// and leave a scalar remainder.
-        /// </summary>
-        private const int RandomPixelCount = 1027;
-
-        /// <summary>
-        /// The runs at 512, 256 and 128 bits and without SIMD.
-        /// </summary>
-        private const HwIntrinsics AllWidths =
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic;
-
-        /// <summary>
-        /// Converts packed pixel bytes.
-        /// </summary>
-        /// <param name="source">The source bytes.</param>
-        /// <param name="destination">The destination bytes.</param>
-        private delegate void ConvertBytes(ReadOnlySpan<byte> source, Span<byte> destination);
-
         /// <summary>
         /// Each SIMD pack from a byte layout to a 16-bit layout gives the values of the scalar conversion of the pixel type.
         /// </summary>
@@ -103,57 +154,6 @@ public abstract partial class PixelConverterTests
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTest, AllWidths);
-        }
-
-        /// <summary>
-        /// Converts the source with the kernel and with the scalar conversion, and compares the results.
-        /// </summary>
-        /// <typeparam name="TSource">The source pixel type.</typeparam>
-        /// <typeparam name="TDestination">The destination pixel type.</typeparam>
-        /// <param name="source">The source pixels.</param>
-        /// <param name="convert">The kernel.</param>
-        /// <param name="expected">The scalar conversion of one pixel.</param>
-        private static void AssertConversion<TSource, TDestination>(
-            TSource[] source,
-            ConvertBytes convert,
-            Func<TSource, TDestination> expected)
-            where TSource : unmanaged
-            where TDestination : unmanaged
-        {
-            TDestination[] actual = new TDestination[source.Length];
-            convert(MemoryMarshal.AsBytes(source.AsSpan()), MemoryMarshal.AsBytes(actual.AsSpan()));
-
-            Assert.Equal(source.Select(expected).ToArray(), actual);
-        }
-
-        /// <summary>
-        /// Creates pixels from random bytes. The seed is constant, so each run uses the same pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <returns>The pixels.</returns>
-        private static TPixel[] CreateRandom<TPixel>()
-            where TPixel : unmanaged
-        {
-            byte[] bytes = new byte[RandomPixelCount * Unsafe.SizeOf<TPixel>()];
-            new Random(RandomPixelCount).NextBytes(bytes);
-            return MemoryMarshal.Cast<byte, TPixel>(bytes).ToArray();
-        }
-
-        /// <summary>
-        /// Creates one pixel for each of the 65536 values of a 16-bit pixel type.
-        /// </summary>
-        /// <typeparam name="TPixel">The 16-bit pixel type.</typeparam>
-        /// <returns>The pixels.</returns>
-        private static TPixel[] CreateAllValues<TPixel>()
-            where TPixel : unmanaged
-        {
-            ushort[] values = new ushort[ushort.MaxValue + 1];
-            for (int i = 0; i < values.Length; i++)
-            {
-                values[i] = (ushort)i;
-            }
-
-            return MemoryMarshal.Cast<ushort, TPixel>(values).ToArray();
         }
     }
 }

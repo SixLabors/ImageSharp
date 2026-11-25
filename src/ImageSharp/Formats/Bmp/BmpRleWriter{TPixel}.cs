@@ -126,7 +126,7 @@ internal ref struct BmpRleWriter<TPixel>
         while (indices.Length > 0 && !this.IsComplete)
         {
             Span<TPixel> span = this.Take(indices.Length);
-            BmpPaletteExpander.Expand<TPixel, BmpPaletteExpander.Index8Operator>(indices[..span.Length], palette, span);
+            PaletteExpander.Expand<TPixel, PaletteExpander.Index8Operator>(indices[..span.Length], palette, span);
             indices = indices[span.Length..];
         }
     }
@@ -160,7 +160,7 @@ internal ref struct BmpRleWriter<TPixel>
             }
 
             // Pixel first + i is even, so it is the high nibble of byte (first + i) / 2.
-            BmpPaletteExpander.Expand<TPixel, BmpPaletteExpander.Index4Operator>(packed[((first + i) >> 1)..], palette, span[i..]);
+            PaletteExpander.Expand<TPixel, PaletteExpander.Index4Operator>(packed[((first + i) >> 1)..], palette, span[i..]);
             first += span.Length;
         }
     }

@@ -66,7 +66,7 @@ public class PngFilterEncode
     /// </summary>
     private int EncodeSub()
     {
-        SubFilter.Encode(this.scanline, this.result, BytesPerPixel, out int sum);
+        PngFilterEncoder.Encode<SubFilterOperator>(this.scanline, this.scanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 
@@ -75,7 +75,7 @@ public class PngFilterEncode
     /// </summary>
     private int EncodeUp()
     {
-        UpFilter.Encode(this.scanline, this.previousScanline, this.result, out int sum);
+        PngFilterEncoder.Encode<UpFilterOperator>(this.scanline, this.previousScanline, this.result, 0, out int sum);
         return sum;
     }
 
@@ -84,7 +84,7 @@ public class PngFilterEncode
     /// </summary>
     private int EncodeAverage()
     {
-        AverageFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
+        PngFilterEncoder.Encode<AverageFilterOperator>(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 
@@ -93,7 +93,7 @@ public class PngFilterEncode
     /// </summary>
     private int EncodePaeth()
     {
-        PaethFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
+        PngFilterEncoder.Encode<PaethFilterOperator>(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 }

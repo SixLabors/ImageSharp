@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -88,6 +89,149 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         Pack(source, destination, true);
+    }
+
+    /// <inheritdoc />
+    public override void FromL16(Configuration configuration, ReadOnlySpan<L16> source, Span<TPixel> destination)
+        => FromRgba64Source<PixelConverter.L16Rgba64Operator, L16>(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromLa32(Configuration configuration, ReadOnlySpan<La32> source, Span<TPixel> destination)
+        => FromRgba64Source<PixelConverter.La32Rgba64Operator, La32>(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromRgb48(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<TPixel> destination)
+        => FromRgba64Source<PixelConverter.Rgb48Rgba64Operator, Rgb48>(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromRgba64(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<TPixel> destination)
+        => FromRgba64Source<PixelConverter.Rgba64Rgba64Operator, Rgba64>(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromRgba32(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<TPixel> destination)
+    {
+        // Rgba32 has the channel order of Rgba64, so an RGBA destination scales the source bytes directly.
+        if (TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount == 4)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            PixelConverter.ScaleUnorm8To16(MemoryMarshal.AsBytes(source), MemoryMarshal.Cast<TPixel, ushort>(destination[..source.Length]));
+            return;
+        }
+
+        FromByteSource(configuration, source, destination);
+    }
+
+    /// <inheritdoc />
+    public override void FromRgb24(Configuration configuration, ReadOnlySpan<Rgb24> source, Span<TPixel> destination)
+    {
+        // Rgb24 has the channel order of Rgb48, so an RGB destination scales the source bytes directly.
+        if (TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount == 3)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            PixelConverter.ScaleUnorm8To16(MemoryMarshal.AsBytes(source), MemoryMarshal.Cast<TPixel, ushort>(destination[..source.Length]));
+            return;
+        }
+
+        FromByteSource(configuration, source, destination);
+    }
+
+    /// <inheritdoc />
+    public override void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromArgb32(Configuration configuration, ReadOnlySpan<Argb32> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromAbgr32(Configuration configuration, ReadOnlySpan<Abgr32> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromBgr24(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromL8(Configuration configuration, ReadOnlySpan<L8> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <inheritdoc />
+    public override void FromLa16(Configuration configuration, ReadOnlySpan<La16> source, Span<TPixel> destination)
+        => FromByteSource(configuration, source, destination);
+
+    /// <summary>
+    /// Converts 16-bit source pixels through the <see cref="Rgba64"/> source operator of their layout.
+    /// </summary>
+    /// <typeparam name="TSource">The source operator.</typeparam>
+    /// <typeparam name="TSourcePixel">The source pixel format.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination pixels.</param>
+    private static void FromRgba64Source<TSource, TSourcePixel>(
+        Configuration configuration,
+        ReadOnlySpan<TSourcePixel> source,
+        Span<TPixel> destination)
+        where TSource : PixelConverter.IRgba64SourceOperator
+        where TSourcePixel : unmanaged
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        ReadOnlySpan<byte> sourceBytes = MemoryMarshal.AsBytes(source);
+        Span<byte> destinationBytes = MemoryMarshal.AsBytes(destination);
+
+        if (TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount == 4)
+        {
+            PixelConverter.Rgba64SourceKernels<TSource>.ToRgba64(sourceBytes, destinationBytes);
+        }
+        else
+        {
+            PixelConverter.Rgba64SourceKernels<TSource>.ToRgb48(sourceBytes, destinationBytes);
+        }
+    }
+
+    /// <summary>
+    /// Converts 8-bit source pixels: the source converts to the 8-bit layout of the destination channel order, then
+    /// each byte scales to 16 bits.
+    /// </summary>
+    /// <remarks>
+    /// An <see cref="Rgba32"/> pixel is half the size of an <see cref="Rgba64"/> pixel, and an <see cref="Rgb24"/> pixel is
+    /// half the size of an <see cref="Rgb48"/> pixel. Thus the source converts to <see cref="Rgba32"/> or
+    /// <see cref="Rgb24"/> in the second half of the destination storage, through the bulk conversion of the source
+    /// type. <see cref="PixelConverter.ScaleUnorm8To16(ReadOnlySpan{byte}, Span{ushort})"/> then scales those bytes
+    /// forward to the full storage. No temporary buffer is necessary.
+    /// </remarks>
+    /// <typeparam name="TSourcePixel">The 8-bit source pixel format.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination pixels.</param>
+    private static void FromByteSource<TSourcePixel>(
+        Configuration configuration,
+        ReadOnlySpan<TSourcePixel> source,
+        Span<TPixel> destination)
+        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        Span<TPixel> pixels = destination[..source.Length];
+        Span<byte> storage = MemoryMarshal.AsBytes(pixels);
+        Span<byte> staging = storage[(storage.Length / 2)..];
+
+        if (TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount == 4)
+        {
+            PixelOperations<TSourcePixel>.Instance.ToRgba32(configuration, source, MemoryMarshal.Cast<byte, Rgba32>(staging));
+        }
+        else
+        {
+            PixelOperations<TSourcePixel>.Instance.ToRgb24(configuration, source, MemoryMarshal.Cast<byte, Rgb24>(staging));
+        }
+
+        PixelConverter.ScaleUnorm8To16(staging, MemoryMarshal.Cast<TPixel, ushort>(pixels));
     }
 
     /// <summary>

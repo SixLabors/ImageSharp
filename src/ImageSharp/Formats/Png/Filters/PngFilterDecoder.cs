@@ -14,8 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters;
 /// <para>
 /// Each reconstructed byte is residual + predictor, modulo 256. The Sub, Average and Paeth predictors read the
 /// reconstructed byte of the pixel to the left, so the pixels reconstruct one after the other. One step handles all
-/// bytes of one pixel. Each byte has a 16-bit lane of a <see cref="Vector128{T}"/>, which gives the shortest dependency
-/// chain. A wider vector holds more pixels. But each pixel must wait for the pixel to its left, so a wider vector does
+/// bytes of one pixel. For the Average and Paeth predictors, each byte has a 16-bit lane of a
+/// <see cref="Vector128{T}"/>, which gives the shortest dependency chain. The Sub predictor is the left pixel, so each
+/// byte keeps a byte lane and the chain is one byte add. A wider vector holds more pixels. But each pixel must wait for the pixel to its left, so a wider vector does
 /// not reduce the step count.
 /// </para>
 /// <para>
@@ -148,6 +149,20 @@ internal static partial class PngFilterDecoder
         ref byte row = ref Unsafe.Add(ref MemoryMarshal.GetReference(scanline), 1);
         ref byte previousRow = ref Unsafe.Add(ref MemoryMarshal.GetReference(previousScanline), 1);
         nuint width = (uint)((scanline.Length - 1) / TPixelOperator.BytesPerPixel);
+
+        // A predictor that does not read the row above is the left pixel itself. Its byte add wraps modulo 256 as
+        // PNG requires, so the byte lanes need no 16-bit widening. The dependency chain is one byte add for each pixel.
+        if (!TOperator.UsesAbove)
+        {
+            Vector128<byte> leftBytes = Vector128<byte>.Zero;
+            for (nuint x = 0; x < width; x++)
+            {
+                leftBytes = TPixelOperator.Load(ref row, x) + TOperator.Predict(leftBytes, default, default);
+                TPixelOperator.Store(ref row, x, leftBytes);
+            }
+
+            return;
+        }
 
         // Lane layout: component i of the pixel is 16-bit lane i, with its byte value in the low byte and 0 in the
         // high byte. A pixel has at most 8 components, so it fits one vector. The predictor uses 16-bit math, which

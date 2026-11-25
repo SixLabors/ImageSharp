@@ -409,7 +409,7 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
 /// Verifies the shared bulk vector conversion used by RGB byte formats.
 /// </summary>
 [Trait("Category", "PixelFormats")]
-public class RgbaCompatiblePixelOperationsTests
+public class Rgba32CompatiblePixelOperationsTests
 {
     [Fact]
     public void BulkConversionsMatchScalarAcrossHardwareWidths() =>

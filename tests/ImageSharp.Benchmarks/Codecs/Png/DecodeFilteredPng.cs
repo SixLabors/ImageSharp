@@ -1,65 +1,81 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
+/// <summary>
+/// Decodes one photo, stored with each PNG filter, to <see cref="Rgba32"/> pixels.
+/// </summary>
+/// <remarks>
+/// The setup encodes the 2048 x 1536 photo with one filter for all rows. Each row of the results decodes the same
+/// pixels, so only the filter and the byte count of one pixel change between rows.
+/// </remarks>
 [Config(typeof(Config.Short))]
 public class DecodeFilteredPng
 {
-    private byte[] filter0;
-    private byte[] filter1;
-    private byte[] filter2;
-    private byte[] filter3;
-    private byte[] averageFilter3bpp;
-    private byte[] averageFilter4bpp;
+    private byte[] pngBytes;
 
+    // The decoder reads from this stream. Each call rewinds it, so the results measure the decoder only.
+    private MemoryStream inputStream;
+
+    /// <summary>
+    /// Gets or sets the filter of all rows.
+    /// </summary>
+    [Params(PngFilterMethod.None, PngFilterMethod.Sub, PngFilterMethod.Up, PngFilterMethod.Average, PngFilterMethod.Paeth)]
+    public PngFilterMethod Filter { get; set; }
+
+    /// <summary>
+    /// Gets or sets the PNG layout: 8-bit RGB has 3 bytes for each pixel, and 8-bit RGBA has 4.
+    /// </summary>
+    [Params("Rgb8", "Rgba8")]
+    public string Layout { get; set; }
+
+    /// <summary>
+    /// Encodes the photo with <see cref="Filter"/> in the layout of <see cref="Layout"/>.
+    /// </summary>
     [GlobalSetup]
-    public void ReadImages()
+    public void EncodeImage()
     {
-        this.filter0 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter0));
-        this.filter1 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.SubFilter3BytesPerPixel));
-        this.filter2 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.UpFilter));
-        this.filter3 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.PaethFilter3BytesPerPixel));
-        this.averageFilter3bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter3BytesPerPixel));
-        this.averageFilter4bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter4BytesPerPixel));
+        string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Exif);
+        using Image<Rgba32> source = Image.Load<Rgba32>(path);
+
+        PngEncoder encoder = new()
+        {
+            ColorType = this.Layout == "Rgb8" ? PngColorType.Rgb : PngColorType.RgbWithAlpha,
+            BitDepth = PngBitDepth.Bit8,
+            FilterMethod = this.Filter,
+        };
+
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, encoder);
+        this.pngBytes = encoded.ToArray();
+        this.inputStream = new MemoryStream(this.pngBytes, false);
     }
 
-    [Benchmark(Baseline = true, Description = "None-filtered PNG file")]
-    public Size PngFilter0()
-        => LoadPng(this.filter0);
-
-    [Benchmark(Description = "Sub-filtered PNG file")]
-    public Size PngFilter1()
-        => LoadPng(this.filter1);
-
-    [Benchmark(Description = "Up-filtered PNG file")]
-    public Size PngFilter2()
-        => LoadPng(this.filter2);
-
-    [Benchmark(Description = "Average-filtered PNG file (3bpp)")]
-    public Size PngAvgFilter1()
-        => LoadPng(this.averageFilter3bpp);
-
-    [Benchmark(Description = "Average-filtered PNG file (4bpp)")]
-    public Size PngAvgFilter2()
-        => LoadPng(this.averageFilter4bpp);
-
-    [Benchmark(Description = "Paeth-filtered PNG file")]
-    public Size PngFilter4()
-        => LoadPng(this.filter3);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Size LoadPng(byte[] bytes)
+    /// <summary>
+    /// Releases the input stream.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
     {
-        using Image<Rgba32> image = Image.Load<Rgba32>(bytes);
+        this.inputStream.Dispose();
+        this.inputStream = null;
+    }
+
+    /// <summary>
+    /// Decodes the image.
+    /// </summary>
+    /// <returns>The image size.</returns>
+    [Benchmark(Description = "ImageSharp Png")]
+    public Size PngImageSharp()
+    {
+        this.inputStream.Position = 0;
+        using Image<Rgba32> image = Image.Load<Rgba32>(this.inputStream);
         return image.Size;
     }
-
-    private static string TestImageFullPath(string path)
-        => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, path);
 }

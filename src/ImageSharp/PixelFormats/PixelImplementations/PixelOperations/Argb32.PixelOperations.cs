@@ -11,5 +11,5 @@ public partial struct Argb32
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Argb32>;
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Argb32, WXYZShuffle4>;
 }

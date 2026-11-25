@@ -78,11 +78,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private int bytesPerPixel;
 
     /// <summary>
-    /// The number of bytes per sample.
-    /// </summary>
-    private int bytesPerSample;
-
-    /// <summary>
     /// The number of bytes per scanline.
     /// </summary>
     private int bytesPerScanline;
@@ -126,6 +121,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// A reusable Crc32 hashing instance.
     /// </summary>
     private readonly Crc32 crc32 = new();
+
+    /// <summary>
+    /// The buffer that the CRC check of image data chunks reads the chunk payload through. Otherwise, <see langword="null"/>.
+    /// </summary>
+    private IMemoryOwner<byte>? dataCrcBuffer;
 
     /// <summary>
     /// The maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
@@ -359,6 +359,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         {
             this.scanline?.Dispose();
             this.previousScanline?.Dispose();
+            this.dataCrcBuffer?.Dispose();
             this.nextChunk?.Data?.Dispose();
         }
     }
@@ -567,6 +568,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         {
             this.scanline?.Dispose();
             this.previousScanline?.Dispose();
+            this.dataCrcBuffer?.Dispose();
         }
     }
 
@@ -579,53 +581,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
         => (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
-
-    /// <summary>
-    /// Unpacks 1, 2, or 4-bit values so that each value uses one byte.
-    /// </summary>
-    /// <param name="source">The packed scanline bytes without the filter type byte. Cannot be empty.</param>
-    /// <param name="bits">The number of bits per value. Less than 8.</param>
-    /// <param name="destination">The buffer for the unpacked values.</param>
-    /// <returns>The unpacked values.</returns>
-    private static ReadOnlySpan<byte> ScaleUpTo8Bit(ReadOnlySpan<byte> source, int bits, Span<byte> destination)
-    {
-        // The slice is bounds-checked, so a destination that is too small throws before the unchecked writes below.
-        Span<byte> result = destination[..(source.Length * 8 / bits)];
-        ref byte sourceRef = ref MemoryMarshal.GetReference(source);
-        ref byte resultRef = ref MemoryMarshal.GetReference(result);
-        int mask = 0xFF >> (8 - bits);
-        int resultOffset = 0;
-
-        for (int i = 0; i < source.Length; i++)
-        {
-            byte b = Unsafe.Add(ref sourceRef, (uint)i);
-            for (int shift = 0; shift < 8; shift += bits)
-            {
-                int colorIndex = (b >> (8 - bits - shift)) & mask;
-                Unsafe.Add(ref resultRef, (uint)resultOffset) = (byte)colorIndex;
-                resultOffset++;
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Allocates the buffer that <see cref="ScaleUpTo8Bit"/> writes to, when the bit depth is less than 8.
-    /// </summary>
-    /// <returns>The buffer, or <see langword="null"/> when the bit depth is 8 or more.</returns>
-    private IMemoryOwner<byte>? AllocateScaledScanlineBuffer()
-    {
-        int bits = this.header.BitDepth;
-        if (bits >= 8)
-        {
-            return null;
-        }
-
-        // A frame row or an Adam7 pass row is never wider than an image row, so one buffer that holds the
-        // unpacked values of a full image row (bytesPerScanline minus the filter type byte) serves every row.
-        return this.memoryAllocator.Allocate<byte>((this.bytesPerScanline - 1) * 8 / bits);
-    }
 
     /// <summary>
     /// Reads the data chunk containing physical dimension data.
@@ -679,11 +634,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
         this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
-        this.bytesPerSample = 1;
-        if (this.header.BitDepth >= 8)
-        {
-            this.bytesPerSample = this.header.BitDepth / 8;
-        }
 
         this.previousScanline?.Dispose();
         this.scanline?.Dispose();
@@ -870,15 +820,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
             : null;
 
-        using IMemoryOwner<byte>? scaledScanlineMemory = this.AllocateScaledScanlineBuffer();
+        using PngScanlineProcessor<TPixel> processor = this.CreateScanlineProcessor<TPixel>(frameControl, pngMetadata);
 
         this.DecodePixelDataCore(
             frameControl,
             compressedStream,
             imageFrame,
-            pngMetadata,
             blendMemory,
-            scaledScanlineMemory,
+            in processor,
             cancellationToken);
     }
 
@@ -889,17 +838,15 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="frameControl">The frame control.</param>
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="imageFrame">The image frame to decode to.</param>
-    /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendMemory">The optional row blending buffer.</param>
-    /// <param name="scaledScanlineMemory">The optional buffer for unpacked 1, 2, or 4-bit values.</param>
+    /// <param name="processor">The scanline processor of the frame.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodePixelDataCore<TPixel>(
         FrameControl frameControl,
         DeflateStream compressedStream,
         ImageFrame<TPixel> imageFrame,
-        PngMetadata pngMetadata,
         IMemoryOwner<TPixel>? blendMemory,
-        IMemoryOwner<byte>? scaledScanlineMemory,
+        in PngScanlineProcessor<TPixel> processor,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -907,7 +854,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         int height = (int)frameControl.YMax;
 
         Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
-        Span<byte> scaledScanlineBuffer = scaledScanlineMemory is null ? [] : scaledScanlineMemory.Memory.Span;
 
         while (currentRow < height)
         {
@@ -929,19 +875,19 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
 
                 case FilterType.Sub:
-                    SubFilter.Decode(scanSpan, this.bytesPerPixel);
+                    PngFilterDecoder.Decode<SubFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Up:
-                    UpFilter.Decode(scanSpan, prevSpan);
+                    PngFilterDecoder.Decode<UpFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Average:
-                    AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
+                    PngFilterDecoder.Decode<AverageFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Paeth:
-                    PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
+                    PngFilterDecoder.Decode<PaethFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 default:
@@ -956,7 +902,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngCgbiProcessor.ApplyTransform(this.configuration, scanSpan[1..], this.pngColorType);
             }
 
-            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer, scaledScanlineBuffer);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, blendRowBuffer, in processor);
             this.SwapScanlineBuffers();
             currentRow++;
         }
@@ -983,15 +929,19 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
             : null;
 
-        using IMemoryOwner<byte>? scaledScanlineMemory = this.AllocateScaledScanlineBuffer();
+        // The bulk conversion writes contiguous pixels. This buffer holds the pixels of one pass scanline before
+        // they go to the columns of the pass. Each pass scanline writes the pixels before it reads them.
+        using IMemoryOwner<TPixel> passMemory = this.memoryAllocator.Allocate<TPixel>((int)frameControl.Width);
+
+        using PngScanlineProcessor<TPixel> processor = this.CreateScanlineProcessor<TPixel>(frameControl, pngMetadata);
 
         this.DecodeInterlacedPixelDataCore(
             frameControl,
             compressedStream,
             imageFrame,
-            pngMetadata,
             blendMemory,
-            scaledScanlineMemory,
+            passMemory,
+            in processor,
             cancellationToken);
     }
 
@@ -1002,17 +952,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="frameControl">The frame control.</param>
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="imageFrame">The current image frame.</param>
-    /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendMemory">The optional row blending buffer.</param>
-    /// <param name="scaledScanlineMemory">The optional buffer for unpacked 1, 2, or 4-bit values.</param>
+    /// <param name="passMemory">The buffer for the pixels of one pass scanline.</param>
+    /// <param name="processor">The scanline processor of the frame.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodeInterlacedPixelDataCore<TPixel>(
         FrameControl frameControl,
         DeflateStream compressedStream,
         ImageFrame<TPixel> imageFrame,
-        PngMetadata pngMetadata,
         IMemoryOwner<TPixel>? blendMemory,
-        IMemoryOwner<byte>? scaledScanlineMemory,
+        IMemoryOwner<TPixel> passMemory,
+        in PngScanlineProcessor<TPixel> processor,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1024,7 +974,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
         Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
-        Span<byte> scaledScanlineBuffer = scaledScanlineMemory is null ? [] : scaledScanlineMemory.Memory.Span;
+        Span<TPixel> passRowBuffer = passMemory.Memory.Span;
 
         while (true)
         {
@@ -1061,19 +1011,19 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         break;
 
                     case FilterType.Sub:
-                        SubFilter.Decode(scanSpan, this.bytesPerPixel);
+                        PngFilterDecoder.Decode<SubFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
-                        UpFilter.Decode(scanSpan, prevSpan);
+                        PngFilterDecoder.Decode<UpFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                         break;
 
                     case FilterType.Average:
-                        AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
+                        PngFilterDecoder.Decode<AverageFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
-                        PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
+                        PngFilterDecoder.Decode<PaethFilterOperator>(scanSpan, prevSpan, this.bytesPerPixel);
                         break;
 
                     default:
@@ -1094,12 +1044,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 this.ProcessInterlacedDefilteredScanline(
                     frameControl,
                     scanSpan,
+                    numColumns,
+                    passRowBuffer,
                     rowSpan,
-                    pngMetadata,
                     blendRowBuffer,
-                    scaledScanlineBuffer,
-                    pixelOffset: Adam7.FirstColumn[pass],
-                    increment: Adam7.ColumnIncrement[pass]);
+                    in processor,
+                    Adam7.FirstColumn[pass],
+                    Adam7.ColumnIncrement[pass]);
 
                 blendRowBuffer.Clear();
                 this.SwapScanlineBuffers();
@@ -1224,17 +1175,15 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="currentRow">The index of the current scanline being processed.</param>
     /// <param name="scanline">The de-filtered scanline</param>
     /// <param name="pixels">The image</param>
-    /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
-    /// <param name="scaledScanlineBuffer">The buffer for unpacked 1, 2, or 4-bit values. Empty when the bit depth is 8 or more.</param>
+    /// <param name="processor">The scanline processor of the frame.</param>
     private void ProcessDefilteredScanline<TPixel>(
         in FrameControl frameControl,
         int currentRow,
         ReadOnlySpan<byte> scanline,
         ImageFrame<TPixel> pixels,
-        PngMetadata pngMetadata,
         Span<TPixel> blendRowBuffer,
-        Span<byte> scaledScanlineBuffer)
+        in PngScanlineProcessor<TPixel> processor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
@@ -1244,71 +1193,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             ? blendRowBuffer
             : destination;
 
-        // Trim the first marker byte from the buffer
-        ReadOnlySpan<byte> trimmed = scanline[1..];
-
-        // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        ReadOnlySpan<byte> scanlineSpan = this.header.BitDepth < 8
-            ? ScaleUpTo8Bit(trimmed, this.header.BitDepth, scaledScanlineBuffer)
-            : trimmed;
-
-        switch (this.pngColorType)
-        {
-            case PngColorType.Grayscale:
-                PngScanlineProcessor.ProcessGrayscaleScanline(
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    pngMetadata.TransparentColor);
-
-                break;
-
-            case PngColorType.GrayscaleWithAlpha:
-                PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)this.bytesPerPixel,
-                    (uint)this.bytesPerSample);
-
-                break;
-
-            case PngColorType.Palette:
-                PngScanlineProcessor.ProcessPaletteScanline(
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    pngMetadata.ColorTable);
-
-                break;
-
-            case PngColorType.Rgb:
-                PngScanlineProcessor.ProcessRgbScanline(
-                    this.configuration,
-                    this.header.BitDepth,
-                    frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    this.bytesPerPixel,
-                    this.bytesPerSample,
-                    pngMetadata.TransparentColor);
-
-                break;
-
-            case PngColorType.RgbWithAlpha:
-                PngScanlineProcessor.ProcessRgbaScanline(
-                    this.configuration,
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    this.bytesPerPixel,
-                    this.bytesPerSample);
-
-                break;
-        }
+        // The first byte is the filter type. The frame pixels start at the frame x offset.
+        processor.ProcessScanline(scanline[1..], rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width));
 
         if (blend)
         {
@@ -1324,21 +1210,23 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frameControl">The frame control</param>
     /// <param name="scanline">The de-filtered scanline</param>
+    /// <param name="columns">The pixel count of the pass scanline.</param>
+    /// <param name="passRowBuffer">The buffer for the pixels of the pass scanline.</param>
     /// <param name="destination">The current image row.</param>
-    /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
-    /// <param name="scaledScanlineBuffer">The buffer for unpacked 1, 2, or 4-bit values. Empty when the bit depth is 8 or more.</param>
-    /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
-    /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
+    /// <param name="processor">The scanline processor of the frame.</param>
+    /// <param name="firstColumn">The first column of the pass.</param>
+    /// <param name="columnIncrement">The column step of the pass.</param>
     private void ProcessInterlacedDefilteredScanline<TPixel>(
         in FrameControl frameControl,
         ReadOnlySpan<byte> scanline,
+        int columns,
+        Span<TPixel> passRowBuffer,
         Span<TPixel> destination,
-        PngMetadata pngMetadata,
         Span<TPixel> blendRowBuffer,
-        Span<byte> scaledScanlineBuffer,
-        int pixelOffset = 0,
-        int increment = 1)
+        in PngScanlineProcessor<TPixel> processor,
+        int firstColumn,
+        int columnIncrement)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool blend = frameControl.BlendMode == FrameBlendMode.Over;
@@ -1346,81 +1234,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             ? blendRowBuffer
             : destination;
 
-        // Trim the first marker byte from the buffer
-        ReadOnlySpan<byte> trimmed = scanline[1..];
-
-        // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        ReadOnlySpan<byte> scanlineSpan = this.header.BitDepth < 8
-            ? ScaleUpTo8Bit(trimmed, this.header.BitDepth, scaledScanlineBuffer)
-            : trimmed;
-
-        switch (this.pngColorType)
-        {
-            case PngColorType.Grayscale:
-                PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)pixelOffset,
-                    (uint)increment,
-                    pngMetadata.TransparentColor);
-
-                break;
-
-            case PngColorType.GrayscaleWithAlpha:
-                PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)pixelOffset,
-                    (uint)increment,
-                    (uint)this.bytesPerPixel,
-                    (uint)this.bytesPerSample);
-
-                break;
-
-            case PngColorType.Palette:
-                PngScanlineProcessor.ProcessInterlacedPaletteScanline(
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)pixelOffset,
-                    (uint)increment,
-                    pngMetadata.ColorTable);
-
-                break;
-
-            case PngColorType.Rgb:
-                PngScanlineProcessor.ProcessInterlacedRgbScanline(
-                    this.configuration,
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)pixelOffset,
-                    (uint)increment,
-                    this.bytesPerPixel,
-                    this.bytesPerSample,
-                    pngMetadata.TransparentColor);
-
-                break;
-
-            case PngColorType.RgbWithAlpha:
-                PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                    this.configuration,
-                    this.header.BitDepth,
-                    in frameControl,
-                    scanlineSpan,
-                    rowSpan,
-                    (uint)pixelOffset,
-                    (uint)increment,
-                    this.bytesPerPixel,
-                    this.bytesPerSample);
-
-                break;
-        }
+        // The first byte is the filter type. The pass columns count from the frame x offset.
+        processor.ProcessInterlacedScanline(
+            scanline[1..],
+            columns,
+            passRowBuffer,
+            rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width),
+            firstColumn,
+            columnIncrement);
 
         if (blend)
         {
@@ -1429,6 +1250,23 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
         }
     }
+
+    /// <summary>
+    /// Creates the scanline processor of one frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control.</param>
+    /// <param name="pngMetadata">The png metadata with the palette and the tRNS color.</param>
+    /// <returns>The processor. The caller disposes it.</returns>
+    private PngScanlineProcessor<TPixel> CreateScanlineProcessor<TPixel>(in FrameControl frameControl, PngMetadata pngMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => new(
+            this.configuration,
+            this.pngColorType,
+            this.header.BitDepth,
+            (int)frameControl.Width,
+            pngMetadata.ColorTable,
+            pngMetadata.TransparentColor);
 
     /// <summary>
     /// Assigns the palette to metadata and rejects indexed images without a complete palette entry.
@@ -2288,6 +2126,15 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return false;
         }
 
+        // The inflater reads the payload of an image data chunk from the stream later. The CRC check reads it in
+        // blocks only, so the chunk needs no buffer of its own.
+        if (type is PngChunkType.Data or PngChunkType.FrameData)
+        {
+            chunk = new PngChunk((int)Math.Min(length, available), type);
+            this.ValidateImageDataChunk(chunk, buffer, position);
+            return true;
+        }
+
         chunk = new PngChunk(
             length: (int)Math.Min(length, available),
             type: type,
@@ -2296,18 +2143,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         try
         {
             this.ValidateChunk(chunk, buffer);
-
-            // Restore the stream position for IDAT and fdAT chunks, because it will be decoded later and
-            // was only read to verifying the CRC is correct.
-            if (type is PngChunkType.Data or PngChunkType.FrameData)
-            {
-                this.currentStream.Position = position;
-            }
         }
         catch
         {
-            // The caller owns the chunk data only after this method returns. The CRC read and the position restore
-            // can throw first, for example when the stream observes a cancellation request, so dispose the data here.
+            // The caller owns the chunk data only after this method returns. The CRC read can throw first, for example
+            // when the stream observes a cancellation request, so dispose the data here.
             chunk.Data?.Dispose();
             throw;
         }
@@ -2364,6 +2204,51 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
             }
         }
+    }
+
+    /// <summary>
+    /// Validates the CRC of an image data chunk, then restores the stream position to the start of the payload.
+    /// </summary>
+    /// <remarks>
+    /// The payload goes through <see cref="dataCrcBuffer"/> in blocks of the stream buffer size, so each block is one
+    /// copy from the stream buffer. When the integrity handling ignores image data errors, the check reads nothing.
+    /// </remarks>
+    /// <param name="chunk">The image data chunk.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="payloadStart">The stream position of the first payload byte.</param>
+    private void ValidateImageDataChunk(in PngChunk chunk, Span<byte> buffer, long payloadStart)
+    {
+        if (chunk.IsCritical(this.segmentIntegrityHandling))
+        {
+            Span<byte> chunkType = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
+
+            this.crc32.Reset();
+            this.crc32.Append(chunkType);
+
+            this.dataCrcBuffer ??= this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
+            Span<byte> block = this.dataCrcBuffer.GetSpan();
+            int remaining = chunk.Length;
+            while (remaining > 0)
+            {
+                int read = this.currentStream.Read(block[..Math.Min(remaining, block.Length)]);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                this.crc32.Append(block[..read]);
+                remaining -= read;
+            }
+
+            if (this.crc32.GetCurrentHashAsUInt32() != this.ReadChunkCrc(buffer))
+            {
+                PngThrowHelper.ThrowInvalidChunkCrc(Encoding.ASCII.GetString(chunkType));
+            }
+        }
+
+        // The inflater reads the payload from its start.
+        this.currentStream.Position = payloadStart;
     }
 
     /// <summary>

@@ -11,7 +11,7 @@ public partial struct Argb32P
     /// <summary>
     /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Argb32P>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Argb32P>
     {
     }
 }

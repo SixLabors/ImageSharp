@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Expansion stages packed bytes in the unwritten end of the vector destination, so it needs no separate allocation.
 /// </remarks>
 /// <typeparam name="TPixel">The compatible RGB or RGBA byte pixel format.</typeparam>
-internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<TPixel>
+internal abstract class Rgba32CompatiblePixelOperations<TPixel> : PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>

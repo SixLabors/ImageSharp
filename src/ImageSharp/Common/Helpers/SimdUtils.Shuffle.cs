@@ -12,34 +12,6 @@ namespace SixLabors.ImageSharp;
 internal static partial class SimdUtils
 {
     /// <summary>
-    /// Gets the byte shuffle that spreads four 3-byte pixels to four 32-bit lanes. Index 0x80 sets byte 3 of each lane to 0.
-    /// </summary>
-    private static Vector128<byte> Spread3To4Mask
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector128.Create((byte)0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
-    }
-
-    /// <summary>
-    /// Gets the byte shuffle that joins bytes 0 to 2 of four 32-bit lanes to 12 bytes. Index 0x80 sets the last 4 bytes to 0.
-    /// </summary>
-    private static Vector128<byte> Join4To3Mask
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector128.Create((byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
-    }
-
-    /// <summary>
-    /// Gets the join byte shuffle moved four bytes up: it joins bytes 0 to 2 of four 32-bit lanes to bytes 4 to 15.
-    /// Index 0x80 sets the first 4 bytes to 0.
-    /// </summary>
-    private static Vector128<byte> Join4To3EndMask
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector128.Create((byte)0x80, 0x80, 0x80, 0x80, 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14);
-    }
-
-    /// <summary>
     /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
     /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
@@ -175,10 +147,10 @@ internal static partial class SimdUtils
         int length = source.Length;
         int i = 0;
 
-        // Each iteration loads three full registers of 3-byte pixels, spreads them to four registers of 4-byte
-        // pixels, runs the operator, and joins them back to three full registers. Loads and stores are full
-        // registers at multiples of the register size from the row start. All loads come before the stores, and
-        // the stores cover exactly the loaded bytes, so an in-place shuffle is safe.
+        // Each iteration loads three full registers of 3-byte pixels and pads them to four registers of 4-byte
+        // pixels. It runs the operator, then slices the pixels back to three full registers. Loads and stores are
+        // full registers at multiples of the register size from the row start. All loads come before the stores.
+        // The stores cover exactly the loaded bytes, so an in-place shuffle is safe.
         if (Vector512.IsHardwareAccelerated)
         {
             int threeVectorsFromEnd = length - (Vector512<byte>.Count * 3);
@@ -186,7 +158,7 @@ internal static partial class SimdUtils
             for (; i <= threeVectorsFromEnd; i += Vector512<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)i);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector512.LoadUnsafe(ref source0),
                     Vector512.LoadUnsafe(ref source0, 64),
                     Vector512.LoadUnsafe(ref source0, 128),
@@ -195,7 +167,7 @@ internal static partial class SimdUtils
                     out Vector512<byte> v2,
                     out Vector512<byte> v3);
 
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(v0),
                     TShuffle.Invoke(v1),
                     TShuffle.Invoke(v2),
@@ -218,7 +190,7 @@ internal static partial class SimdUtils
             for (; i <= threeVectorsFromEnd; i += Vector256<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)i);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector256.LoadUnsafe(ref source0),
                     Vector256.LoadUnsafe(ref source0, 32),
                     Vector256.LoadUnsafe(ref source0, 64),
@@ -227,7 +199,7 @@ internal static partial class SimdUtils
                     out Vector256<byte> v2,
                     out Vector256<byte> v3);
 
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(v0),
                     TShuffle.Invoke(v1),
                     TShuffle.Invoke(v2),
@@ -250,7 +222,7 @@ internal static partial class SimdUtils
             for (; i <= threeVectorsFromEnd; i += Vector128<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)i);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector128.LoadUnsafe(ref source0),
                     Vector128.LoadUnsafe(ref source0, 16),
                     Vector128.LoadUnsafe(ref source0, 32),
@@ -259,7 +231,7 @@ internal static partial class SimdUtils
                     out Vector128<byte> v2,
                     out Vector128<byte> v3);
 
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(v0),
                     TShuffle.Invoke(v1),
                     TShuffle.Invoke(v2),
@@ -279,9 +251,9 @@ internal static partial class SimdUtils
             for (; i <= oneTailVectorFromEnd; i += 12)
             {
                 // A single readable register contains four complete triplets plus four bytes from the following
-                // pixels. The spread ignores those extra bytes, and the join writes only the four results.
-                Vector128<byte> pixels = TShuffle.Invoke(Spread3To4(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)));
-                Join4To3(pixels, ref Unsafe.Add(ref destinationBase, (nuint)i));
+                // pixels. Pad3 ignores those extra bytes, and Slice3 writes only the four results.
+                Vector128<byte> pixels = TShuffle.Invoke(Pad3(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)));
+                Slice3(pixels, ref Unsafe.Add(ref destinationBase, (nuint)i));
             }
         }
 
@@ -335,7 +307,7 @@ internal static partial class SimdUtils
         int destinationOffset = 0;
 
         // Each iteration loads three full registers of 3-byte pixels and stores four full registers of 4-byte
-        // pixels, at multiples of the register size from each row start. The spread sets byte 3 of each 32-bit
+        // pixels, at multiples of the register size from each row start. Pad3 sets byte 3 of each 32-bit
         // lane to zero, and ORing 0xFF000000 into each lane fills W with opaque alpha before the operator runs.
         if (Vector512.IsHardwareAccelerated)
         {
@@ -345,7 +317,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= threeVectorsFromEnd; sourceOffset += Vector512<byte>.Count * 3, destinationOffset += Vector512<byte>.Count * 4)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector512.LoadUnsafe(ref source0),
                     Vector512.LoadUnsafe(ref source0, 64),
                     Vector512.LoadUnsafe(ref source0, 128),
@@ -370,7 +342,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= threeVectorsFromEnd; sourceOffset += Vector256<byte>.Count * 3, destinationOffset += Vector256<byte>.Count * 4)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector256.LoadUnsafe(ref source0),
                     Vector256.LoadUnsafe(ref source0, 32),
                     Vector256.LoadUnsafe(ref source0, 64),
@@ -395,7 +367,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= threeVectorsFromEnd; sourceOffset += Vector128<byte>.Count * 3, destinationOffset += Vector128<byte>.Count * 4)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Spread3To4(
+                Pad3<Pad3x8Layout>(
                     Vector128.LoadUnsafe(ref source0),
                     Vector128.LoadUnsafe(ref source0, 16),
                     Vector128.LoadUnsafe(ref source0, 32),
@@ -416,8 +388,8 @@ internal static partial class SimdUtils
             for (; sourceOffset <= oneTailVectorFromEnd; sourceOffset += 12, destinationOffset += Vector128<byte>.Count)
             {
                 // A single readable register contains four complete triplets plus four bytes from the following
-                // pixels. The spread ignores those extra bytes.
-                Vector128<byte> pixels = Spread3To4(Vector128.LoadUnsafe(ref sourceBase, (nuint)sourceOffset)) | opaqueAlpha;
+                // pixels. Pad3 ignores those extra bytes.
+                Vector128<byte> pixels = Pad3(Vector128.LoadUnsafe(ref sourceBase, (nuint)sourceOffset)) | opaqueAlpha;
                 TShuffle.Invoke(pixels).StoreUnsafe(ref destinationBase, (nuint)destinationOffset);
             }
         }
@@ -470,7 +442,7 @@ internal static partial class SimdUtils
         int sourceOffset = 0;
         int destinationOffset = 0;
 
-        // Each iteration loads four full registers of 4-byte pixels, runs the operator, joins them to three full
+        // Each iteration loads four full registers of 4-byte pixels, runs the operator, slices them to three full
         // registers of 3-byte pixels, and stores those, at multiples of the register size from each row start. All
         // loads come before the stores, and a store ends at 3/4 of the loaded source span, so an in-place shrink
         // never overwrites a pixel that a later iteration reads.
@@ -481,7 +453,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= fourVectorsFromEnd; sourceOffset += Vector512<byte>.Count * 4, destinationOffset += Vector512<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(Vector512.LoadUnsafe(ref source0)),
                     TShuffle.Invoke(Vector512.LoadUnsafe(ref source0, 64)),
                     TShuffle.Invoke(Vector512.LoadUnsafe(ref source0, 128)),
@@ -504,7 +476,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= fourVectorsFromEnd; sourceOffset += Vector256<byte>.Count * 4, destinationOffset += Vector256<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(Vector256.LoadUnsafe(ref source0)),
                     TShuffle.Invoke(Vector256.LoadUnsafe(ref source0, 32)),
                     TShuffle.Invoke(Vector256.LoadUnsafe(ref source0, 64)),
@@ -527,7 +499,7 @@ internal static partial class SimdUtils
             for (; sourceOffset <= fourVectorsFromEnd; sourceOffset += Vector128<byte>.Count * 4, destinationOffset += Vector128<byte>.Count * 3)
             {
                 ref byte source0 = ref Unsafe.Add(ref sourceBase, (nuint)sourceOffset);
-                Join4To3(
+                Slice3<Pad3x8Layout>(
                     TShuffle.Invoke(Vector128.LoadUnsafe(ref source0)),
                     TShuffle.Invoke(Vector128.LoadUnsafe(ref source0, 16)),
                     TShuffle.Invoke(Vector128.LoadUnsafe(ref source0, 32)),
@@ -546,9 +518,9 @@ internal static partial class SimdUtils
 
             for (; sourceOffset <= oneTailVectorFromEnd; sourceOffset += Vector128<byte>.Count, destinationOffset += 12)
             {
-                // The join writes the four triplets as exactly twelve bytes.
+                // Slice3 writes the four triplets as exactly twelve bytes.
                 Vector128<byte> pixels = TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)sourceOffset));
-                Join4To3(pixels, ref Unsafe.Add(ref destinationBase, (nuint)destinationOffset));
+                Slice3(pixels, ref Unsafe.Add(ref destinationBase, (nuint)destinationOffset));
             }
         }
 
@@ -577,26 +549,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Spreads four packed 3-byte pixels to four 32-bit lanes.
+    /// Pads three registers of packed pixels to four registers of lanes, as <typeparamref name="TLayout"/> defines.
     /// </summary>
-    /// <param name="source">The pixels in bytes 0 to 11. Bytes 12 to 15 are not used.</param>
-    /// <returns>The pixels, one in each 32-bit lane, with byte 3 of each lane set to 0.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<byte> Spread3To4(Vector128<byte> source)
-        => Vector128.ShuffleNative(source, Spread3To4Mask);
-
-    /// <summary>
-    /// Spreads sixteen packed 3-byte pixels in three registers to four registers of 32-bit lanes.
-    /// </summary>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
     /// <param name="source0">Source bytes 0 to 15.</param>
     /// <param name="source1">Source bytes 16 to 31.</param>
     /// <param name="source2">Source bytes 32 to 47.</param>
-    /// <param name="pixels0">Pixels 0 to 3, one in each 32-bit lane, with byte 3 of each lane set to 0.</param>
-    /// <param name="pixels1">Pixels 4 to 7, in the same layout.</param>
-    /// <param name="pixels2">Pixels 8 to 11, in the same layout.</param>
-    /// <param name="pixels3">Pixels 12 to 15, in the same layout.</param>
+    /// <param name="pixels0">The padded source bytes 0 to 11.</param>
+    /// <param name="pixels1">The padded source bytes 12 to 23.</param>
+    /// <param name="pixels2">The padded source bytes 24 to 35.</param>
+    /// <param name="pixels3">The padded source bytes 36 to 47.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Spread3To4(
+    public static void Pad3<TLayout>(
         Vector128<byte> source0,
         Vector128<byte> source1,
         Vector128<byte> source2,
@@ -604,10 +568,11 @@ internal static partial class SimdUtils
         out Vector128<byte> pixels1,
         out Vector128<byte> pixels2,
         out Vector128<byte> pixels3)
+        where TLayout : struct, IPad3Layout
     {
-        // Pixel group k (pixels 4k to 4k + 3) starts at byte 12k. AlignRight and a byte shift move each group to
-        // bytes 0 to 11 of its own register, and the spread mask then puts each pixel in a 32-bit lane.
-        Vector128<byte> mask = Spread3To4Mask;
+        // Group k starts at byte 12k. AlignRight and a byte shift move each group to bytes 0 to 11 of its own
+        // register, and the pad mask then pads the group.
+        Vector128<byte> mask = TLayout.PadMask;
         pixels0 = Vector128.ShuffleNative(source0, mask);
         pixels1 = Vector128.ShuffleNative(Vector128_.AlignRight(source1, source0, 12), mask);
         pixels2 = Vector128.ShuffleNative(Vector128_.AlignRight(source2, source1, 8), mask);
@@ -615,17 +580,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Spreads 32 packed 3-byte pixels in three registers to four registers of 32-bit lanes.
+    /// Pads three registers of packed pixels to four registers of lanes, as <typeparamref name="TLayout"/> defines.
     /// </summary>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
     /// <param name="source0">Source bytes 0 to 31.</param>
     /// <param name="source1">Source bytes 32 to 63.</param>
     /// <param name="source2">Source bytes 64 to 95.</param>
-    /// <param name="pixels0">Pixels 0 to 7, one in each 32-bit lane, with byte 3 of each lane set to 0.</param>
-    /// <param name="pixels1">Pixels 8 to 15, in the same layout.</param>
-    /// <param name="pixels2">Pixels 16 to 23, in the same layout.</param>
-    /// <param name="pixels3">Pixels 24 to 31, in the same layout.</param>
+    /// <param name="pixels0">The padded source bytes 0 to 23.</param>
+    /// <param name="pixels1">The padded source bytes 24 to 47.</param>
+    /// <param name="pixels2">The padded source bytes 48 to 71.</param>
+    /// <param name="pixels3">The padded source bytes 72 to 95.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Spread3To4(
+    public static void Pad3<TLayout>(
         Vector256<byte> source0,
         Vector256<byte> source1,
         Vector256<byte> source2,
@@ -633,12 +599,13 @@ internal static partial class SimdUtils
         out Vector256<byte> pixels1,
         out Vector256<byte> pixels2,
         out Vector256<byte> pixels3)
+        where TLayout : struct, IPad3Layout
     {
-        // The three sources hold 32-bit elements 0 to 23. Pixel group k (pixels 8k to 8k + 7) is in elements 6k to
-        // 6k + 5. A two-source permute copies elements 6k to 6k + 2 to lane 0 and 6k + 3 to 6k + 5 to lane 1, at
-        // elements 0 to 2 of each lane. Element 3 of each lane repeats element 2, and the spread mask ignores it.
-        // Each permute index addresses the 16 elements of its two sources: the first source is 0 to 7.
-        Vector128<byte> mask = Spread3To4Mask;
+        // The three sources hold 32-bit elements 0 to 23. Result k comes from elements 6k to 6k + 5. A two-source
+        // permute copies elements 6k to 6k + 2 to elements 0 to 2 of lane 0. It copies elements 6k + 3 to 6k + 5
+        // to elements 0 to 2 of lane 1. Element 3 of each lane repeats element 2, and the pad mask ignores it. Each permute index addresses
+        // the 16 elements of its two sources: the first source is 0 to 7.
+        Vector128<byte> mask = TLayout.PadMask;
         Vector256<int> s0 = source0.AsInt32();
         Vector256<int> s1 = source1.AsInt32();
         Vector256<int> s2 = source2.AsInt32();
@@ -650,17 +617,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Spreads 64 packed 3-byte pixels in three registers to four registers of 32-bit lanes.
+    /// Pads three registers of packed pixels to four registers of lanes, as <typeparamref name="TLayout"/> defines.
     /// </summary>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
     /// <param name="source0">Source bytes 0 to 63.</param>
     /// <param name="source1">Source bytes 64 to 127.</param>
     /// <param name="source2">Source bytes 128 to 191.</param>
-    /// <param name="pixels0">Pixels 0 to 15, one in each 32-bit lane, with byte 3 of each lane set to 0.</param>
-    /// <param name="pixels1">Pixels 16 to 31, in the same layout.</param>
-    /// <param name="pixels2">Pixels 32 to 47, in the same layout.</param>
-    /// <param name="pixels3">Pixels 48 to 63, in the same layout.</param>
+    /// <param name="pixels0">The padded source bytes 0 to 47.</param>
+    /// <param name="pixels1">The padded source bytes 48 to 95.</param>
+    /// <param name="pixels2">The padded source bytes 96 to 143.</param>
+    /// <param name="pixels3">The padded source bytes 144 to 191.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Spread3To4(
+    public static void Pad3<TLayout>(
         Vector512<byte> source0,
         Vector512<byte> source1,
         Vector512<byte> source2,
@@ -668,12 +636,13 @@ internal static partial class SimdUtils
         out Vector512<byte> pixels1,
         out Vector512<byte> pixels2,
         out Vector512<byte> pixels3)
+        where TLayout : struct, IPad3Layout
     {
-        // The three sources hold 32-bit elements 0 to 47. Pixel group k (pixels 16k to 16k + 15) is in elements
-        // 12k to 12k + 11. A two-source permute copies elements 12k + 3j to 12k + 3j + 2 to elements 0 to 2 of
-        // lane j. Element 3 of each lane repeats element 2, and the spread mask ignores it. Each permute index
-        // addresses the 32 elements of its two sources: the first source is 0 to 15.
-        Vector128<byte> mask = Spread3To4Mask;
+        // The three sources hold 32-bit elements 0 to 47. Result k comes from elements 12k to 12k + 11. A two-source
+        // permute copies elements 12k + 3j to 12k + 3j + 2 to elements 0 to 2 of lane j. Element 3 of each lane repeats
+        // element 2, and the pad mask ignores it. Each permute index addresses the 32 elements of its two sources:
+        // the first source is 0 to 15.
+        Vector128<byte> mask = TLayout.PadMask;
         Vector512<int> s0 = source0.AsInt32();
         Vector512<int> s1 = source1.AsInt32();
         Vector512<int> s2 = source2.AsInt32();
@@ -690,31 +659,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Joins bytes 0 to 2 of four 32-bit lanes and writes them as four packed 3-byte pixels.
+    /// Slices four registers of lanes to three registers of packed pixels, as <typeparamref name="TLayout"/> defines.
     /// </summary>
-    /// <param name="source">The pixels, one in each 32-bit lane. Byte 3 of each lane is not used.</param>
-    /// <param name="destination">The first destination byte. Exactly 12 bytes are written.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Join4To3(Vector128<byte> source, ref byte destination)
-    {
-        // The join puts the twelve bytes at the start of the register. One 64-bit and one 32-bit store write them.
-        Vector128<byte> joined = Vector128.ShuffleNative(source, Join4To3Mask);
-        Unsafe.As<byte, ulong>(ref destination) = joined.AsUInt64().ToScalar();
-        Unsafe.As<byte, uint>(ref Unsafe.Add(ref destination, 8)) = joined.AsUInt32().GetElement(2);
-    }
-
-    /// <summary>
-    /// Joins four registers of 32-bit lanes to sixteen packed 3-byte pixels in three registers.
-    /// </summary>
-    /// <param name="pixels0">Pixels 0 to 3, one in each 32-bit lane. Byte 3 of each lane is not used.</param>
-    /// <param name="pixels1">Pixels 4 to 7, in the same layout.</param>
-    /// <param name="pixels2">Pixels 8 to 11, in the same layout.</param>
-    /// <param name="pixels3">Pixels 12 to 15, in the same layout.</param>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
+    /// <param name="pixels0">The first register of lanes.</param>
+    /// <param name="pixels1">The second register of lanes.</param>
+    /// <param name="pixels2">The third register of lanes.</param>
+    /// <param name="pixels3">The fourth register of lanes.</param>
     /// <param name="destination0">Destination bytes 0 to 15.</param>
     /// <param name="destination1">Destination bytes 16 to 31.</param>
     /// <param name="destination2">Destination bytes 32 to 47.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Join4To3(
+    public static void Slice3<TLayout>(
         Vector128<byte> pixels0,
         Vector128<byte> pixels1,
         Vector128<byte> pixels2,
@@ -722,11 +678,12 @@ internal static partial class SimdUtils
         out Vector128<byte> destination0,
         out Vector128<byte> destination1,
         out Vector128<byte> destination2)
+        where TLayout : struct, IPad3Layout
     {
-        // The join mask packs four pixels into bytes 0 to 11, and the end mask packs them into bytes 4 to 15.
-        // Alternating the two alignments lets AlignRight stitch the four 12-byte results into three full registers.
-        Vector128<byte> mask = Join4To3Mask;
-        Vector128<byte> endMask = Join4To3EndMask;
+        // The slice mask packs a register into bytes 0 to 11, and the end mask packs it into bytes 4 to 15. Alternating
+        // the two alignments lets AlignRight stitch the four 12-byte results into three full registers.
+        Vector128<byte> mask = TLayout.SliceMask;
+        Vector128<byte> endMask = TLayout.SliceEndMask;
         Vector128<byte> v0 = Vector128.ShuffleNative(pixels0, endMask);
         Vector128<byte> v1 = Vector128.ShuffleNative(pixels1, mask);
         Vector128<byte> v2 = Vector128.ShuffleNative(pixels2, endMask);
@@ -738,17 +695,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Joins four registers of 32-bit lanes to 32 packed 3-byte pixels in three registers.
+    /// Slices four registers of lanes to three registers of packed pixels, as <typeparamref name="TLayout"/> defines.
     /// </summary>
-    /// <param name="pixels0">Pixels 0 to 7, one in each 32-bit lane. Byte 3 of each lane is not used.</param>
-    /// <param name="pixels1">Pixels 8 to 15, in the same layout.</param>
-    /// <param name="pixels2">Pixels 16 to 23, in the same layout.</param>
-    /// <param name="pixels3">Pixels 24 to 31, in the same layout.</param>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
+    /// <param name="pixels0">The first register of lanes.</param>
+    /// <param name="pixels1">The second register of lanes.</param>
+    /// <param name="pixels2">The third register of lanes.</param>
+    /// <param name="pixels3">The fourth register of lanes.</param>
     /// <param name="destination0">Destination bytes 0 to 31.</param>
     /// <param name="destination1">Destination bytes 32 to 63.</param>
     /// <param name="destination2">Destination bytes 64 to 95.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Join4To3(
+    public static void Slice3<TLayout>(
         Vector256<byte> pixels0,
         Vector256<byte> pixels1,
         Vector256<byte> pixels2,
@@ -756,12 +714,13 @@ internal static partial class SimdUtils
         out Vector256<byte> destination0,
         out Vector256<byte> destination1,
         out Vector256<byte> destination2)
+        where TLayout : struct, IPad3Layout
     {
-        // The join mask packs the four pixels of each 128-bit lane into elements 0 to 2 of that lane, so each
-        // register holds its 24 bytes in elements 0, 1, 2, 4, 5 and 6. Two-source permutes then copy those
-        // elements, in order, to three full registers. Each permute index addresses the 16 elements of its two
-        // sources: the first source is 0 to 7.
-        Vector128<byte> mask = Join4To3Mask;
+        // The slice mask packs the kept bytes of each 128-bit lane into elements 0 to 2 of that lane. Thus each
+        // register holds its 24 bytes in elements 0, 1, 2, 4, 5 and 6. Two-source permutes then copy those elements, in order, to
+        // three full registers. Each permute index addresses the 16 elements of its two sources: the first source is
+        // 0 to 7.
+        Vector128<byte> mask = TLayout.SliceMask;
         Vector256<int> v0 = Vector256_.ShufflePerLane(pixels0, mask).AsInt32();
         Vector256<int> v1 = Vector256_.ShufflePerLane(pixels1, mask).AsInt32();
         Vector256<int> v2 = Vector256_.ShufflePerLane(pixels2, mask).AsInt32();
@@ -773,17 +732,18 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Joins four registers of 32-bit lanes to 64 packed 3-byte pixels in three registers.
+    /// Slices four registers of lanes to three registers of packed pixels, as <typeparamref name="TLayout"/> defines.
     /// </summary>
-    /// <param name="pixels0">Pixels 0 to 15, one in each 32-bit lane. Byte 3 of each lane is not used.</param>
-    /// <param name="pixels1">Pixels 16 to 31, in the same layout.</param>
-    /// <param name="pixels2">Pixels 32 to 47, in the same layout.</param>
-    /// <param name="pixels3">Pixels 48 to 63, in the same layout.</param>
+    /// <typeparam name="TLayout">The packed lane layout.</typeparam>
+    /// <param name="pixels0">The first register of lanes.</param>
+    /// <param name="pixels1">The second register of lanes.</param>
+    /// <param name="pixels2">The third register of lanes.</param>
+    /// <param name="pixels3">The fourth register of lanes.</param>
     /// <param name="destination0">Destination bytes 0 to 63.</param>
     /// <param name="destination1">Destination bytes 64 to 127.</param>
     /// <param name="destination2">Destination bytes 128 to 191.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Join4To3(
+    public static void Slice3<TLayout>(
         Vector512<byte> pixels0,
         Vector512<byte> pixels1,
         Vector512<byte> pixels2,
@@ -791,12 +751,13 @@ internal static partial class SimdUtils
         out Vector512<byte> destination0,
         out Vector512<byte> destination1,
         out Vector512<byte> destination2)
+        where TLayout : struct, IPad3Layout
     {
-        // The join mask packs the four pixels of each 128-bit lane into elements 0 to 2 of that lane, so each
-        // register holds its 48 bytes in elements 0-2, 4-6, 8-10 and 12-14. Two-source permutes then copy those
-        // elements, in order, to three full registers. Each permute index addresses the 32 elements of its two
-        // sources: the first source is 0 to 15.
-        Vector128<byte> mask = Join4To3Mask;
+        // The slice mask packs the kept bytes of each 128-bit lane into elements 0 to 2 of that lane. Thus each
+        // register holds its 48 bytes in elements 0-2, 4-6, 8-10 and 12-14. Two-source permutes then copy those elements, in
+        // order, to three full registers. Each permute index addresses the 32 elements of its two sources: the first
+        // source is 0 to 15.
+        Vector128<byte> mask = TLayout.SliceMask;
         Vector512<int> v0 = Vector512_.ShufflePerLane(pixels0, mask).AsInt32();
         Vector512<int> v1 = Vector512_.ShufflePerLane(pixels1, mask).AsInt32();
         Vector512<int> v2 = Vector512_.ShufflePerLane(pixels2, mask).AsInt32();
@@ -809,6 +770,29 @@ internal static partial class SimdUtils
         destination0 = Vector512_.PermuteVar16x32x2(v0, order0, v1).AsByte();
         destination1 = Vector512_.PermuteVar16x32x2(v1, order1, v2).AsByte();
         destination2 = Vector512_.PermuteVar16x32x2(v2, order2, v3).AsByte();
+    }
+
+    /// <summary>
+    /// Pads four packed 3-byte pixels to four 32-bit lanes.
+    /// </summary>
+    /// <param name="source">The pixels in bytes 0 to 11. Bytes 12 to 15 are not used.</param>
+    /// <returns>The pixels, one in each 32-bit lane, with byte 3 of each lane set to 0.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> Pad3(Vector128<byte> source)
+        => Vector128.ShuffleNative(source, Pad3x8Layout.PadMask);
+
+    /// <summary>
+    /// Slices bytes 0 to 2 of four 32-bit lanes and writes them as four packed 3-byte pixels.
+    /// </summary>
+    /// <param name="source">The pixels, one in each 32-bit lane. Byte 3 of each lane is not used.</param>
+    /// <param name="destination">The first destination byte. Exactly 12 bytes are written.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Slice3(Vector128<byte> source, ref byte destination)
+    {
+        // Slice3 puts the twelve bytes at the start of the register. One 64-bit and one 32-bit store write them.
+        Vector128<byte> sliced = Vector128.ShuffleNative(source, Pad3x8Layout.SliceMask);
+        Unsafe.As<byte, ulong>(ref destination) = sliced.AsUInt64().ToScalar();
+        Unsafe.As<byte, uint>(ref Unsafe.Add(ref destination, (nuint)8)) = sliced.AsUInt32().GetElement(2);
     }
 
     /// <summary>
@@ -827,8 +811,14 @@ internal static partial class SimdUtils
         Unsafe.Add(ref destination, 2) = (byte)(value >> 16);
     }
 
+    /// <summary>
+    /// Checks in debug builds that the spans of a 4-component shuffle have the same length, a multiple of 4.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source span.</param>
+    /// <param name="destination">The destination span.</param>
     [Conditional("DEBUG")]
-    internal static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
+    private static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : struct
     {
         DebugGuard.IsTrue(
@@ -842,6 +832,12 @@ internal static partial class SimdUtils
             "Input spans must be divisible by 4!");
     }
 
+    /// <summary>
+    /// Checks in debug builds that the source of a 3-component shuffle fits the destination and is a multiple of 3.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source span.</param>
+    /// <param name="destination">The destination span.</param>
     [Conditional("DEBUG")]
     private static void VerifyShuffle3SpanInput<T>(ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : struct
@@ -857,6 +853,11 @@ internal static partial class SimdUtils
             "Input spans must be divisible by 3!");
     }
 
+    /// <summary>
+    /// Checks in debug builds that 3-byte source pixels and 4-byte destination pixels have the same pixel count.
+    /// </summary>
+    /// <param name="source">The source span.</param>
+    /// <param name="destination">The destination span.</param>
     [Conditional("DEBUG")]
     private static void VerifyPad3Shuffle4SpanInput(ReadOnlySpan<byte> source, Span<byte> destination)
     {
@@ -876,6 +877,11 @@ internal static partial class SimdUtils
             "Input span must be 3/4 the length of the output span!");
     }
 
+    /// <summary>
+    /// Checks in debug builds that 4-byte source pixels fit the 3-byte destination pixels.
+    /// </summary>
+    /// <param name="source">The source span.</param>
+    /// <param name="destination">The destination span.</param>
     [Conditional("DEBUG")]
     private static void VerifyShuffle4Slice3SpanInput(ReadOnlySpan<byte> source, Span<byte> destination)
     {
@@ -1154,10 +1160,26 @@ internal static partial class SimdUtils
         public const byte MMShuffle3332 = 0b11111110;
         public const byte MMShuffle3333 = 0b11111111;
 
+        /// <summary>
+        /// Makes the control byte of an x86 shuffle from four 2-bit element indices, as the <c>_MM_SHUFFLE</c> macro does.
+        /// </summary>
+        /// <param name="p3">The source index of element 3.</param>
+        /// <param name="p2">The source index of element 2.</param>
+        /// <param name="p1">The source index of element 1.</param>
+        /// <param name="p0">The source index of element 0.</param>
+        /// <returns>The control byte. Bits 6 and 7 hold p3, bits 4 and 5 hold p2, bits 2 and 3 hold p1, and bits 0 and 1 hold p0.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static byte MMShuffle(byte p3, byte p2, byte p1, byte p0)
             => (byte)((p3 << 6) | (p2 << 4) | (p1 << 2) | p0);
 
+        /// <summary>
+        /// Gets the four 2-bit element indices of an x86 shuffle control byte. This is the inverse of <see cref="MMShuffle"/>.
+        /// </summary>
+        /// <param name="control">The control byte.</param>
+        /// <param name="p3">The source index of element 3, from bits 6 and 7.</param>
+        /// <param name="p2">The source index of element 2, from bits 4 and 5.</param>
+        /// <param name="p1">The source index of element 1, from bits 2 and 3.</param>
+        /// <param name="p0">The source index of element 0, from bits 0 and 1.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void InverseMMShuffle(
             byte control,

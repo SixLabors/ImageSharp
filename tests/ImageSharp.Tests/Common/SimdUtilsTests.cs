@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -87,98 +86,6 @@ public partial class SimdUtilsTests
             byte expected = (mask.GetElement(lane) & 0x80) != 0 ? right.GetElement(lane) : left.GetElement(lane);
             Assert.Equal(expected, actual.GetElement(lane));
         }
-    }
-
-    private static int R(float f) => (int)Math.Round(f, MidpointRounding.AwayFromZero);
-
-    private static int Re(float f) => (int)Math.Round(f, MidpointRounding.ToEven);
-
-    // TODO: Move this to a proper test class!
-    [Theory]
-    [InlineData(0.32, 54.5, -3.5, -4.1)]
-    [InlineData(5.3, 536.4, 4.5, 8.1)]
-    public void PseudoRound(float x, float y, float z, float w)
-    {
-        Vector4 v = new(x, y, z, w);
-
-        Vector4 actual = v.PseudoRound();
-
-        Assert.Equal(R(v.X), (int)actual.X);
-        Assert.Equal(R(v.Y), (int)actual.Y);
-        Assert.Equal(R(v.Z), (int)actual.Z);
-        Assert.Equal(R(v.W), (int)actual.W);
-    }
-
-    private static Vector<float> CreateExactTestVector1()
-    {
-        float[] data = new float[Vector<float>.Count];
-
-        data[0] = 0.1f;
-        data[1] = 0.4f;
-        data[2] = 0.5f;
-        data[3] = 0.9f;
-
-        for (int i = 4; i < Vector<float>.Count; i++)
-        {
-            data[i] = data[i - 4] + 100f;
-        }
-
-        return new Vector<float>(data);
-    }
-
-    private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
-    {
-        float[] data = new float[Vector<float>.Count];
-
-        Random rnd = new(seed);
-
-        for (int i = 0; i < Vector<float>.Count; i++)
-        {
-            float v = ((float)rnd.NextDouble() * (max - min)) + min;
-            data[i] = v;
-        }
-
-        return new Vector<float>(data);
-    }
-
-    [Fact]
-    public void FastRound()
-    {
-        Vector<float> v = CreateExactTestVector1();
-        Vector<float> r = v.FastRound();
-
-        this.Output.WriteLine(r.ToString());
-
-        AssertEvenRoundIsCorrect(r, v);
-    }
-
-    [Theory]
-    [InlineData(1, 1f)]
-    [InlineData(1, 10f)]
-    [InlineData(1, 1000f)]
-    [InlineData(42, 1f)]
-    [InlineData(42, 10f)]
-    [InlineData(42, 1000f)]
-    public void FastRound_RandomValues(int seed, float scale)
-    {
-        Vector<float> v = CreateRandomTestVector(seed, -scale * 0.5f, scale * 0.5f);
-        Vector<float> r = v.FastRound();
-
-        this.Output.WriteLine(v.ToString());
-        this.Output.WriteLine(r.ToString());
-
-        AssertEvenRoundIsCorrect(r, v);
-    }
-
-    private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
-    {
-        if (!SimdUtils.HasVector8)
-        {
-            this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
-            return true;
-        }
-
-        return false;
     }
 
     public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new() { 0, 8, 16, 1024 };
@@ -554,15 +461,4 @@ public partial class SimdUtilsTests
     }
 
     private static byte NormalizedFloatToByte(float f) => float.IsNaN(f) ? (byte)0 : (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
-
-    private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)
-    {
-        for (int i = 0; i < Vector<float>.Count; i++)
-        {
-            int actual = (int)r[i];
-            int expected = Re(v[i]);
-
-            Assert.Equal(expected, actual);
-        }
-    }
 }

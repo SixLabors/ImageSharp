@@ -25,6 +25,54 @@ public class PngEncoderFilterTests : MeasureFixture
 
     public const int Size = 64;
 
+    /// <summary>
+    /// Checks that the adaptive filter selection picks the filter with the smallest residual sum of
+    /// <see cref="SubFilterOperator"/>, <see cref="UpFilterOperator"/>, <see cref="AverageFilterOperator"/> and <see cref="PaethFilterOperator"/>.
+    /// Equal sums select the first of these, in this order.
+    /// </summary>
+    [Fact]
+    public void SelectFilter_PicksTheSmallestSum()
+    {
+        static void RunTest()
+        {
+            foreach (int bytesPerPixel in new[] { 1, 2, 3, 4, 6, 8 })
+            {
+                // 1000 bytes reach the 512-bit, 256-bit and 128-bit loops and the scalar remainder.
+                // Rows of one value give equal sums, so they also check the order of equal sums.
+                Random random = new(bytesPerPixel);
+                for (int row = 0; row < 32; row++)
+                {
+                    byte[] scanline = new byte[1000];
+                    byte[] previousScanline = new byte[1000];
+                    if (row % 8 == 0)
+                    {
+                        scanline.AsSpan().Fill((byte)row);
+                        previousScanline.AsSpan().Fill((byte)row);
+                    }
+                    else
+                    {
+                        random.NextBytes(scanline);
+                        random.NextBytes(previousScanline);
+                    }
+
+                    byte[] result = new byte[1001];
+                    PngFilterEncoder.Encode<SubFilterOperator>(scanline, scanline, result, bytesPerPixel, out int sub);
+                    PngFilterEncoder.Encode<UpFilterOperator>(scanline, previousScanline, result, 0, out int up);
+                    PngFilterEncoder.Encode<AverageFilterOperator>(scanline, previousScanline, result, bytesPerPixel, out int average);
+                    PngFilterEncoder.Encode<PaethFilterOperator>(scanline, previousScanline, result, bytesPerPixel, out int paeth);
+
+                    int min = Math.Min(Math.Min(sub, up), Math.Min(average, paeth));
+                    FilterType expected = sub == min ? FilterType.Sub : up == min ? FilterType.Up : average == min ? FilterType.Average : FilterType.Paeth;
+                    Assert.Equal(expected, PngFilterEncoder.SelectFilter(scanline, previousScanline, bytesPerPixel));
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     [Fact]
     public void Average()
     {
@@ -266,25 +314,25 @@ public class PngEncoderFilterTests : MeasureFixture
         {
             case PngFilterMethod.Sub:
                 ReferenceImplementations.EncodeSubFilter(scanline, expected, bytesPerPixel, out expectedSum);
-                SubFilter.Encode(scanline, actual, bytesPerPixel, out actualSum);
+                PngFilterEncoder.Encode<SubFilterOperator>(scanline, scanline, actual, bytesPerPixel, out actualSum);
                 break;
 
             case PngFilterMethod.Up:
                 ReferenceImplementations.EncodeUpFilter(scanline, previousScanline, expected, out expectedSum);
-                UpFilter.Encode(scanline, previousScanline, actual, out actualSum);
+                PngFilterEncoder.Encode<UpFilterOperator>(scanline, previousScanline, actual, 0, out actualSum);
                 break;
 
             case PngFilterMethod.Average:
                 ReferenceImplementations.EncodeAverageFilter(scanline, previousScanline, expected, bytesPerPixel, out expectedSum);
 
-                AverageFilter.Encode(scanline, previousScanline, actual, (uint)bytesPerPixel, out actualSum);
+                PngFilterEncoder.Encode<AverageFilterOperator>(scanline, previousScanline, actual, bytesPerPixel, out actualSum);
 
                 break;
 
             case PngFilterMethod.Paeth:
                 ReferenceImplementations.EncodePaethFilter(scanline, previousScanline, expected, bytesPerPixel, out expectedSum);
 
-                PaethFilter.Encode(scanline, previousScanline, actual, bytesPerPixel, out actualSum);
+                PngFilterEncoder.Encode<PaethFilterOperator>(scanline, previousScanline, actual, bytesPerPixel, out actualSum);
 
                 break;
 
@@ -367,19 +415,19 @@ public class PngEncoderFilterTests : MeasureFixture
             switch (this.filter)
             {
                 case PngFilterMethod.Sub:
-                    SubFilter.Encode(this.scanline, this.resultBuffer, this.bpp, out sum);
+                    PngFilterEncoder.Encode<SubFilterOperator>(this.scanline, this.scanline, this.resultBuffer, this.bpp, out sum);
                     break;
 
                 case PngFilterMethod.Up:
-                    UpFilter.Encode(this.previousScanline, this.scanline, this.resultBuffer, out sum);
+                    PngFilterEncoder.Encode<UpFilterOperator>(this.previousScanline, this.scanline, this.resultBuffer, 0, out sum);
                     break;
 
                 case PngFilterMethod.Average:
-                    AverageFilter.Encode(this.previousScanline, this.scanline, this.resultBuffer, (uint)this.bpp, out sum);
+                    PngFilterEncoder.Encode<AverageFilterOperator>(this.previousScanline, this.scanline, this.resultBuffer, this.bpp, out sum);
                     break;
 
                 case PngFilterMethod.Paeth:
-                    PaethFilter.Encode(this.previousScanline, this.scanline, this.resultBuffer, this.bpp, out sum);
+                    PngFilterEncoder.Encode<PaethFilterOperator>(this.previousScanline, this.scanline, this.resultBuffer, this.bpp, out sum);
                     break;
 
                 case PngFilterMethod.None:

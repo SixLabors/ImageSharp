@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -42,10 +43,15 @@ public class PngDecoderFilterTests
         ];
 
         // act
-        AverageFilter.Decode(scanline, previousScanline, 4);
+        // A row holds whole pixels: the filter type byte and 32 pixels of 4 bytes. The fixture has 3 more bytes.
+        // Each decoded byte depends only on the bytes before it, so the expected bytes of the row stay valid.
+        const int length = 1 + (32 * 4);
+        byte[] tail = scanline[length..];
+        PngFilterDecoder.Decode<AverageFilterOperator>(scanline.AsSpan(0, length), previousScanline.AsSpan(0, length), 4);
 
         // assert
-        Assert.Equal(expected, scanline);
+        Assert.Equal(expected[..length], scanline[..length]);
+        Assert.Equal(tail, scanline[length..]);
     }
 
     private static void RunUpFilterTest()
@@ -73,7 +79,7 @@ public class PngDecoderFilterTests
         ];
 
         // act
-        UpFilter.Decode(scanline, previousScanline);
+        PngFilterDecoder.Decode<UpFilterOperator>(scanline, previousScanline, 4);
 
         // assert
         Assert.Equal(expected, scanline);
@@ -97,10 +103,15 @@ public class PngDecoderFilterTests
         ];
 
         // act
-        SubFilter.Decode(scanline, 4);
+        // A row holds whole pixels: the filter type byte and 15 pixels of 4 bytes. The fixture has 3 more bytes.
+        // Each decoded byte depends only on the bytes before it, so the expected bytes of the row stay valid.
+        const int length = 1 + (15 * 4);
+        byte[] tail = scanline[length..];
+        PngFilterDecoder.Decode<SubFilterOperator>(scanline.AsSpan(0, length), scanline.AsSpan(0, length), 4);
 
         // assert
-        Assert.Equal(expected, scanline);
+        Assert.Equal(expected[..length], scanline[..length]);
+        Assert.Equal(tail, scanline[length..]);
     }
 
     private static void RunPaethFilterTest()
@@ -128,11 +139,80 @@ public class PngDecoderFilterTests
         ];
 
         // act
-        PaethFilter.Decode(scanline, previousScanline, 4);
+        // A row holds whole pixels: the filter type byte and 15 pixels of 4 bytes. The fixture has 3 more bytes.
+        // Each decoded byte depends only on the bytes before it, so the expected bytes of the row stay valid.
+        const int length = 1 + (15 * 4);
+        byte[] tail = scanline[length..];
+        PngFilterDecoder.Decode<PaethFilterOperator>(scanline.AsSpan(0, length), previousScanline.AsSpan(0, length), 4);
 
         // assert
-        Assert.Equal(expected, scanline);
+        Assert.Equal(expected[..length], scanline[..length]);
+        Assert.Equal(tail, scanline[length..]);
     }
+
+    /// <summary>
+    /// Filters a random row with the reference encoders, then decodes it. The reference encoders implement PNG Third
+    /// Edition, section 9.2 "Filter types for filter method 0": https://www.w3.org/TR/png-3/#9Filter-types.
+    /// The decode must give the original row for each filter that reads the left pixel.
+    /// </summary>
+    /// <param name="serializedBytesPerPixel">The byte count of one pixel, serialized for <see cref="FeatureTestRunner"/>.</param>
+    private static void RunRoundTripTest(string serializedBytesPerPixel)
+    {
+        int bytesPerPixel = FeatureTestRunner.Deserialize<int>(serializedBytesPerPixel);
+
+        // 37 pixels is not a multiple of any vector width. The fixed seed gives the same row on each run.
+        int length = 37 * bytesPerPixel;
+        Random random = new(bytesPerPixel);
+        byte[] original = new byte[length];
+        byte[] previous = new byte[length];
+        random.NextBytes(original);
+        random.NextBytes(previous);
+
+        // The decoders take each row with the filter type byte first, so the preceding row gets a leading byte too.
+        byte[] decodePrevious = [0, .. previous];
+
+        for (int filter = 0; filter < 3; filter++)
+        {
+            byte[] scanline = new byte[length + 1];
+            switch (filter)
+            {
+                case 0:
+                    ReferenceImplementations.EncodeSubFilter(original, scanline, bytesPerPixel, out _);
+                    PngFilterDecoder.Decode<SubFilterOperator>(scanline, decodePrevious, bytesPerPixel);
+                    break;
+                case 1:
+                    ReferenceImplementations.EncodeAverageFilter(original, previous, scanline, bytesPerPixel, out _);
+                    PngFilterDecoder.Decode<AverageFilterOperator>(scanline, decodePrevious, bytesPerPixel);
+                    break;
+                default:
+                    ReferenceImplementations.EncodePaethFilter(original, previous, scanline, bytesPerPixel, out _);
+                    PngFilterDecoder.Decode<PaethFilterOperator>(scanline, decodePrevious, bytesPerPixel);
+                    break;
+            }
+
+            Assert.Equal(original, scanline[1..]);
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(6)]
+    [InlineData(8)]
+    public void Filters_DecodeReversesReferenceEncode(int bytesPerPixel)
+        => RunRoundTripTest(bytesPerPixel.ToString(CultureInfo.InvariantCulture));
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(6)]
+    [InlineData(8)]
+    public void Filters_DecodeReversesReferenceEncode_WithoutHardwareIntrinsics(int bytesPerPixel)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunRoundTripTest, bytesPerPixel, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void AverageFilter_Works() => RunAverageFilterTest();

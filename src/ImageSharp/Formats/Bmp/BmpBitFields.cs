@@ -18,10 +18,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// green, blue and alpha bits of the sample. A channel with no mask gives 0. A bitmap with no alpha mask is opaque.
 /// </para>
 /// <para>
-/// When each channel has 8 bits or fewer, <see cref="Unpack{TSample}"/> writes 4-byte pixels. The byte order is
-/// R, G, B, A (<see cref="Rgba32"/>) or B, G, R, A (<see cref="Bgra32"/>). Each channel widens to the nearest 8-bit
-/// value by the Direct3D UNORM rules. The shift, mask and widen values are the same for all pixels. Thus each SIMD
-/// lane does the same scalar operations on one sample, and all register widths give the same result as the scalar form.
+/// When each channel has 8 bits or fewer, <see cref="Unpack{TSample}"/> writes <see cref="Rgba32"/> pixels. Each
+/// channel widens to the nearest 8-bit value by the Direct3D UNORM rules. The shift, mask and widen values are the
+/// same for all pixels. Thus each SIMD lane does the same scalar operations on one sample, and all register widths
+/// give the same result as the scalar form.
 /// </para>
 /// <para>
 /// When a channel has more than 8 bits, a 4-byte pixel cannot hold its precision. Then
@@ -45,17 +45,13 @@ internal readonly partial struct BmpBitFields
     /// <param name="greenMask">The mask of the green bits.</param>
     /// <param name="blueMask">The mask of the blue bits.</param>
     /// <param name="alphaMask">The mask of the alpha bits, or 0 for an opaque bitmap.</param>
-    /// <param name="bgraOrder">
-    /// <see langword="true"/> to write B, G, R, A pixels (<see cref="Bgra32"/>). <see langword="false"/> to write R, G,
-    /// B, A pixels (<see cref="Rgba32"/>).
-    /// </param>
-    public BmpBitFields(uint redMask, uint greenMask, uint blueMask, uint alphaMask, bool bgraOrder)
+    public BmpBitFields(uint redMask, uint greenMask, uint blueMask, uint alphaMask)
     {
-        // A 4-byte pixel as a little-endian uint has its first byte at bits 0..7 and its last byte at bits 24..31.
-        // R, G, B, A order puts red first. B, G, R, A order puts blue first. Alpha is last in both orders.
-        this.red = new Channel(redMask, bgraOrder ? 16 : 0);
+        // An Rgba32 pixel as a little-endian uint has red at bits 0..7, green at bits 8..15, blue at bits 16..23 and
+        // alpha at bits 24..31.
+        this.red = new Channel(redMask, 0);
         this.green = new Channel(greenMask, 8);
-        this.blue = new Channel(blueMask, bgraOrder ? 0 : 16);
+        this.blue = new Channel(blueMask, 16);
         this.alpha = new Channel(alphaMask, 24);
         this.opaque = alphaMask == 0 ? 0xFF000000U : 0U;
         this.IsByteRange = this.red.Bits <= 8 && this.green.Bits <= 8 && this.blue.Bits <= 8 && this.alpha.Bits <= 8;
@@ -71,11 +67,11 @@ internal readonly partial struct BmpBitFields
     public bool IsByteRange { get; }
 
     /// <summary>
-    /// Unpacks one row of stored samples to 4-byte pixels in the byte order of the constructor.
+    /// Unpacks one row of stored samples to <see cref="Rgba32"/> pixels.
     /// </summary>
     /// <typeparam name="TSample">The stored sample width.</typeparam>
     /// <param name="source">The stored row. It holds at least one sample for each destination pixel.</param>
-    /// <param name="destination">The destination pixels, one little-endian uint for each pixel.</param>
+    /// <param name="destination">The destination pixels, one little-endian uint in <see cref="Rgba32"/> order for each pixel.</param>
     public void Unpack<TSample>(ReadOnlySpan<byte> source, Span<uint> destination)
         where TSample : struct, ISampleOperator
     {

@@ -11,7 +11,7 @@ public partial struct Rgb24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgb24>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Rgb24, XYZWShuffle4>
     {
         /// <inheritdoc />
         internal override void PackFromRgbPlanes(

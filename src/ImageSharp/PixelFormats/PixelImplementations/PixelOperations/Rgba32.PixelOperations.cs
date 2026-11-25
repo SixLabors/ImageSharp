@@ -14,7 +14,7 @@ public partial struct Rgba32
     /// <summary>
     /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgba32>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Rgba32, XYZWShuffle4>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination)

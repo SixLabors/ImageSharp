@@ -10,7 +10,7 @@ public partial struct Rgba32P
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgba32P>
+    internal partial class PixelOperations : Rgba32CompatiblePixelOperations<Rgba32P>
     {
         <# GenerateAllAssociatedConversionMethods("Rgba32P"); #>
     }

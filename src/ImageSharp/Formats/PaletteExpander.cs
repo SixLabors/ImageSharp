@@ -4,16 +4,16 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Bmp;
+namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
 /// Expands rows of palette indices to pixels through a palette that is already converted to the pixel type.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A palette bitmap packs 1, 2, 4 or 8 bits of index for each pixel. The first pixel is in the most significant
-/// bits of a byte. Each pixel is one palette entry, so the decoder converts the palette to <c>TPixel</c> one time.
-/// Then each pixel is one table load and one store, with no color conversion.
+/// BMP and PNG pack 1, 2, 4 or 8 bits of index for each pixel. The first pixel is in the most significant bits of
+/// a byte. Each pixel is one palette entry, so the decoder converts the palette to <c>TPixel</c> one time. Then each
+/// pixel is one table load and one store, with no color conversion.
 /// </para>
 /// <para>
 /// A table load at a per-pixel index is a gather, so the expansion is scalar. Each index operator unpacks one
@@ -25,12 +25,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// bounds checks.
 /// </para>
 /// </remarks>
-internal static class BmpPaletteExpander
+internal static class PaletteExpander
 {
     /// <summary>
     /// Unpacks the indices of one source byte to pixels.
     /// </summary>
-    internal interface IIndexOperator
+    public interface IIndexOperator
     {
         /// <summary>
         /// Gets the bit count of one index.
@@ -134,7 +134,7 @@ internal static class BmpPaletteExpander
     /// <summary>
     /// Unpacks 8 indices of 1 bit from one byte.
     /// </summary>
-    internal readonly struct Index1Operator : IIndexOperator
+    public readonly struct Index1Operator : IIndexOperator
     {
         /// <inheritdoc/>
         public static int BitsPerIndex => 1;
@@ -164,7 +164,7 @@ internal static class BmpPaletteExpander
     /// <summary>
     /// Unpacks 4 indices of 2 bits from one byte.
     /// </summary>
-    internal readonly struct Index2Operator : IIndexOperator
+    public readonly struct Index2Operator : IIndexOperator
     {
         /// <inheritdoc/>
         public static int BitsPerIndex => 2;
@@ -190,7 +190,7 @@ internal static class BmpPaletteExpander
     /// <summary>
     /// Unpacks 2 indices of 4 bits from one byte.
     /// </summary>
-    internal readonly struct Index4Operator : IIndexOperator
+    public readonly struct Index4Operator : IIndexOperator
     {
         /// <inheritdoc/>
         public static int BitsPerIndex => 4;
@@ -213,7 +213,7 @@ internal static class BmpPaletteExpander
     /// <summary>
     /// Takes one index of 8 bits from one byte.
     /// </summary>
-    internal readonly struct Index8Operator : IIndexOperator
+    public readonly struct Index8Operator : IIndexOperator
     {
         /// <inheritdoc/>
         public static int BitsPerIndex => 8;

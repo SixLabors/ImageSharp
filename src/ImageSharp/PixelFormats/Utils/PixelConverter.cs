@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils;
 /// and ROTR (Rotate Right) emitting efficient CPU instructions:
 /// https://github.com/dotnet/coreclr/pull/1830
 /// </remarks>
-internal static class PixelConverter
+internal static partial class PixelConverter
 {
     // The kernels divide by the constant 31, 63 or 255 with one multiply and one shift: (x * ceil(2^23 / d)) >> 23.
     // A vector integer division does more work. On x86, the JIT checks the divisor for zero, converts the lanes to
@@ -96,7 +96,7 @@ internal static class PixelConverter
     /// </summary>
     /// <remarks>
     /// Each position is a constant, so the JIT encodes each shift of a kernel loop as an immediate operand. A 3-byte pixel
-    /// uses the order of its first three bytes. The kernels spread it to a 4-byte lane with alpha in the fourth byte.
+    /// uses the order of its first three bytes. The kernels pad it to a 4-byte lane with alpha in the fourth byte.
     /// The name of each order gives the channel at each byte, from byte 0 to byte 3. X, Y, Z and W are red, green, blue
     /// and alpha.
     /// </remarks>
@@ -1126,8 +1126,9 @@ internal static class PixelConverter
         /// <see cref="IPacked16Layout.Pack(Rgba32)"/>.
         /// </summary>
         /// <remarks>
-        /// Each iteration loads three full registers of pixels. <c>SimdUtils.Spread3To4</c> spreads them to four
-        /// registers of 32-bit lanes, and the 4-byte lane arithmetic packs them.
+        /// Each iteration loads three full registers of pixels. <c>SimdUtils.Pad3</c> with
+        /// <see cref="Pad3x8Layout"/> pads them to four registers of 32-bit lanes, and the 4-byte lane arithmetic
+        /// packs them.
         /// </remarks>
         /// <typeparam name="TOrder">The channel order of the 3-byte pixels.</typeparam>
         /// <param name="source">The source pixels, 3 bytes each.</param>
@@ -1144,12 +1145,12 @@ internal static class PixelConverter
             {
                 Vector512<uint> opaque = Vector512.Create(0xFFU << TOrder.AlphaShift);
 
-                // Three full loads take 64 pixels. The spread gives four registers of 16 pixels in 32-bit lanes,
+                // Three full loads take 64 pixels. Pad3 gives four registers of 16 pixels in 32-bit lanes,
                 // and each narrow joins two packed registers to one register of 32 pixels.
                 for (; (x * 3) + 192 <= (uint)source.Length; x += 64)
                 {
                     ref byte source0 = ref Unsafe.Add(ref sourceBase, x * 3);
-                    SimdUtils.Spread3To4(
+                    SimdUtils.Pad3<Pad3x8Layout>(
                         Vector512.LoadUnsafe(ref source0),
                         Vector512.LoadUnsafe(ref source0, 64),
                         Vector512.LoadUnsafe(ref source0, 128),
@@ -1171,12 +1172,12 @@ internal static class PixelConverter
             {
                 Vector256<uint> opaque = Vector256.Create(0xFFU << TOrder.AlphaShift);
 
-                // Three full loads take 32 pixels. The spread gives four registers of 8 pixels in 32-bit lanes,
+                // Three full loads take 32 pixels. Pad3 gives four registers of 8 pixels in 32-bit lanes,
                 // and each narrow joins two packed registers to one register of 16 pixels.
                 for (; (x * 3) + 96 <= (uint)source.Length; x += 32)
                 {
                     ref byte source0 = ref Unsafe.Add(ref sourceBase, x * 3);
-                    SimdUtils.Spread3To4(
+                    SimdUtils.Pad3<Pad3x8Layout>(
                         Vector256.LoadUnsafe(ref source0),
                         Vector256.LoadUnsafe(ref source0, 32),
                         Vector256.LoadUnsafe(ref source0, 64),
@@ -1198,12 +1199,12 @@ internal static class PixelConverter
             {
                 Vector128<uint> opaque = Vector128.Create(0xFFU << TOrder.AlphaShift);
 
-                // Three full loads take 16 pixels. The spread gives four registers of 4 pixels in 32-bit lanes,
+                // Three full loads take 16 pixels. Pad3 gives four registers of 4 pixels in 32-bit lanes,
                 // and each narrow joins two packed registers to one register of 8 pixels.
                 for (; (x * 3) + 48 <= (uint)source.Length; x += 16)
                 {
                     ref byte source0 = ref Unsafe.Add(ref sourceBase, x * 3);
-                    SimdUtils.Spread3To4(
+                    SimdUtils.Pad3<Pad3x8Layout>(
                         Vector128.LoadUnsafe(ref source0),
                         Vector128.LoadUnsafe(ref source0, 16),
                         Vector128.LoadUnsafe(ref source0, 32),
@@ -1298,8 +1299,8 @@ internal static class PixelConverter
         /// The conversion drops alpha.
         /// </summary>
         /// <remarks>
-        /// The 4-byte lane arithmetic unpacks the pixels to four registers of 32-bit lanes. <c>SimdUtils.Join4To3</c>
-        /// joins them to three full registers of 3-byte pixels.
+        /// The 4-byte lane arithmetic unpacks the pixels to four registers of 32-bit lanes. <c>SimdUtils.Slice3</c> with
+        /// <see cref="Pad3x8Layout"/> slices them to three full registers of 3-byte pixels.
         /// </remarks>
         /// <typeparam name="TOrder">The channel order of the 3-byte pixels.</typeparam>
         /// <param name="source">The source pixels, 2 bytes each.</param>
@@ -1314,13 +1315,13 @@ internal static class PixelConverter
 
             if (Vector512.IsHardwareAccelerated)
             {
-                // Two loads take 64 pixels. Each widens to two registers of 16 pixels in 32-bit lanes, and the join
+                // Two loads take 64 pixels. Each widens to two registers of 16 pixels in 32-bit lanes, and Slice3
                 // gives three full registers of 3-byte pixels.
                 for (; x + 64 <= length; x += 64)
                 {
                     Vector512<ushort> packed0 = Vector512.LoadUnsafe(ref sourceBase, x);
                     Vector512<ushort> packed1 = Vector512.LoadUnsafe(ref sourceBase, x + 32);
-                    SimdUtils.Join4To3(
+                    SimdUtils.Slice3<Pad3x8Layout>(
                         TLayout.Unpack<TOrder>(Vector512.WidenLower(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector512.WidenUpper(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector512.WidenLower(packed1)).AsByte(),
@@ -1338,13 +1339,13 @@ internal static class PixelConverter
 
             if (Vector256.IsHardwareAccelerated)
             {
-                // Two loads take 32 pixels. Each widens to two registers of 8 pixels in 32-bit lanes, and the join
+                // Two loads take 32 pixels. Each widens to two registers of 8 pixels in 32-bit lanes, and Slice3
                 // gives three full registers of 3-byte pixels.
                 for (; x + 32 <= length; x += 32)
                 {
                     Vector256<ushort> packed0 = Vector256.LoadUnsafe(ref sourceBase, x);
                     Vector256<ushort> packed1 = Vector256.LoadUnsafe(ref sourceBase, x + 16);
-                    SimdUtils.Join4To3(
+                    SimdUtils.Slice3<Pad3x8Layout>(
                         TLayout.Unpack<TOrder>(Vector256.WidenLower(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector256.WidenUpper(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector256.WidenLower(packed1)).AsByte(),
@@ -1362,13 +1363,13 @@ internal static class PixelConverter
 
             if (Vector128.IsHardwareAccelerated)
             {
-                // Two loads take 16 pixels. Each widens to two registers of 4 pixels in 32-bit lanes, and the join
+                // Two loads take 16 pixels. Each widens to two registers of 4 pixels in 32-bit lanes, and Slice3
                 // gives three full registers of 3-byte pixels.
                 for (; x + 16 <= length; x += 16)
                 {
                     Vector128<ushort> packed0 = Vector128.LoadUnsafe(ref sourceBase, x);
                     Vector128<ushort> packed1 = Vector128.LoadUnsafe(ref sourceBase, x + 8);
-                    SimdUtils.Join4To3(
+                    SimdUtils.Slice3<Pad3x8Layout>(
                         TLayout.Unpack<TOrder>(Vector128.WidenLower(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector128.WidenUpper(packed0)).AsByte(),
                         TLayout.Unpack<TOrder>(Vector128.WidenLower(packed1)).AsByte(),

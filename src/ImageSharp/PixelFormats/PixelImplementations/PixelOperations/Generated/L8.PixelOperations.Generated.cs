@@ -39,76 +39,60 @@ public partial struct L8
         }
 
         /// <inheritdoc />
+        public override void ToRgba32(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Rgba32> destination)
+            => PixelOperations<Rgba32>.Instance.FromL8(configuration, source, destination);
+
+        /// <inheritdoc />
         public override void ToArgb32(
             Configuration configuration,
             ReadOnlySpan<L8> source,
             Span<Argb32> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Argb32 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Argb32.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
+            => PixelOperations<Argb32>.Instance.FromL8(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToAbgr32(
             Configuration configuration,
             ReadOnlySpan<L8> source,
             Span<Abgr32> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Abgr32 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Abgr32.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToBgr24(
-            Configuration configuration,
-            ReadOnlySpan<L8> source,
-            Span<Bgr24> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Bgr24 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Bgr24.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
+            => PixelOperations<Abgr32>.Instance.FromL8(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToBgra32(
             Configuration configuration,
             ReadOnlySpan<L8> source,
             Span<Bgra32> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            => PixelOperations<Bgra32>.Instance.FromL8(configuration, source, destination);
 
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Bgra32 destinationBase = ref MemoryMarshal.GetReference(destination);
+        /// <inheritdoc />
+        public override void ToRgb24(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Rgb24> destination)
+            => PixelOperations<Rgb24>.Instance.FromL8(configuration, source, destination);
 
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Bgra32.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
+        /// <inheritdoc />
+        public override void ToBgr24(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Bgr24> destination)
+            => PixelOperations<Bgr24>.Instance.FromL8(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToRgba64(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Rgba64> destination)
+            => PixelOperations<Rgba64>.Instance.FromL8(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToRgb48(
+            Configuration configuration,
+            ReadOnlySpan<L8> source,
+            Span<Rgb48> destination)
+            => PixelOperations<Rgb48>.Instance.FromL8(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToL16(
@@ -161,78 +145,6 @@ public partial struct L8
             for (nuint i = 0; i < (uint)source.Length; i++)
             {
                 Unsafe.Add(ref destinationBase, i) = La32.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgb24(
-            Configuration configuration,
-            ReadOnlySpan<L8> source,
-            Span<Rgb24> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgb24 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgb24.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgba32(
-            Configuration configuration,
-            ReadOnlySpan<L8> source,
-            Span<Rgba32> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgba32 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgba32.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgb48(
-            Configuration configuration,
-            ReadOnlySpan<L8> source,
-            Span<Rgb48> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgb48 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgb48.FromL8(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToRgba64(
-            Configuration configuration,
-            ReadOnlySpan<L8> source,
-            Span<Rgba64> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Rgba64 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Rgba64.FromL8(Unsafe.Add(ref sourceBase, i));
             }
         }
 

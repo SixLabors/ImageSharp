@@ -12,8 +12,15 @@ namespace SixLabors.ImageSharp;
 
 internal static partial class SimdUtils
 {
+    /// <summary>
+    /// Packs three planes of 8-bit red, green and blue samples to <see cref="Rgb24"/> pixels.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="blueChannel">The blue samples. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="destination">The destination pixels. It holds at least one pixel for each red sample.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void PackFromRgbPlanes(
+    public static void PackFromRgbPlanes(
         ReadOnlySpan<byte> redChannel,
         ReadOnlySpan<byte> greenChannel,
         ReadOnlySpan<byte> blueChannel,
@@ -40,8 +47,15 @@ internal static partial class SimdUtils
         PackFromRgbPlanesRemainder(redChannel, greenChannel, blueChannel, destination);
     }
 
+    /// <summary>
+    /// Packs three planes of 8-bit red, green and blue samples to opaque <see cref="Rgba32"/> pixels.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="blueChannel">The blue samples. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="destination">The destination pixels. It holds at least one pixel for each red sample.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void PackFromRgbPlanes(
+    public static void PackFromRgbPlanes(
         ReadOnlySpan<byte> redChannel,
         ReadOnlySpan<byte> greenChannel,
         ReadOnlySpan<byte> blueChannel,
@@ -97,8 +111,15 @@ internal static partial class SimdUtils
         PackFromRgbPlanesRemainder(redChannel, greenChannel, blueChannel, destination);
     }
 
+    /// <summary>
+    /// Unpacks <see cref="Rgb24"/> pixels to three planes of red, green and blue values from 0 to 255.
+    /// </summary>
+    /// <param name="redChannel">The red values.</param>
+    /// <param name="greenChannel">The green values. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="blueChannel">The blue values. The length is the length of <paramref name="redChannel"/>.</param>
+    /// <param name="source">The source pixels. It holds at most one pixel for each red value.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void UnpackToRgbPlanes(
+    public static void UnpackToRgbPlanes(
         Span<float> redChannel,
         Span<float> greenChannel,
         Span<float> blueChannel,
@@ -280,6 +301,13 @@ internal static partial class SimdUtils
         Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, 8), value.AsUInt32().GetElement(2));
     }
 
+    /// <summary>
+    /// Packs groups of 4 samples to <see cref="Rgb24"/> pixels, then moves each span past the packed samples.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples.</param>
+    /// <param name="blueChannel">The blue samples.</param>
+    /// <param name="destination">The destination pixels.</param>
     private static void PackFromRgbPlanesScalarBatchedReduce(
         ref ReadOnlySpan<byte> redChannel,
         ref ReadOnlySpan<byte> greenChannel,
@@ -327,6 +355,13 @@ internal static partial class SimdUtils
         destination = destination[convertedCount..];
     }
 
+    /// <summary>
+    /// Packs groups of 4 samples to opaque <see cref="Rgba32"/> pixels, then moves each span past the packed samples.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples.</param>
+    /// <param name="blueChannel">The blue samples.</param>
+    /// <param name="destination">The destination pixels.</param>
     private static void PackFromRgbPlanesScalarBatchedReduce(
         ref ReadOnlySpan<byte> redChannel,
         ref ReadOnlySpan<byte> greenChannel,
@@ -375,6 +410,13 @@ internal static partial class SimdUtils
         destination = destination[convertedCount..];
     }
 
+    /// <summary>
+    /// Packs the samples that the vector paths leave to <see cref="Rgb24"/> pixels, one pixel at a time.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples.</param>
+    /// <param name="blueChannel">The blue samples.</param>
+    /// <param name="destination">The destination pixels.</param>
     private static void PackFromRgbPlanesRemainder(
         ReadOnlySpan<byte> redChannel,
         ReadOnlySpan<byte> greenChannel,
@@ -396,6 +438,13 @@ internal static partial class SimdUtils
         }
     }
 
+    /// <summary>
+    /// Packs the samples that the vector paths leave to opaque <see cref="Rgba32"/> pixels, one pixel at a time.
+    /// </summary>
+    /// <param name="redChannel">The red samples.</param>
+    /// <param name="greenChannel">The green samples.</param>
+    /// <param name="blueChannel">The blue samples.</param>
+    /// <param name="destination">The destination pixels.</param>
     private static void PackFromRgbPlanesRemainder(
         ReadOnlySpan<byte> redChannel,
         ReadOnlySpan<byte> greenChannel,
@@ -418,6 +467,13 @@ internal static partial class SimdUtils
         }
     }
 
+    /// <summary>
+    /// Unpacks <see cref="Rgb24"/> pixels to three planes of values from 0 to 255, one pixel at a time.
+    /// </summary>
+    /// <param name="redChannel">The red values.</param>
+    /// <param name="greenChannel">The green values.</param>
+    /// <param name="blueChannel">The blue values.</param>
+    /// <param name="source">The source pixels.</param>
     private static void UnpackToRgbPlanesScalar(
         Span<float> redChannel,
         Span<float> greenChannel,
@@ -461,7 +517,7 @@ internal static partial class SimdUtils
         /// <param name="greenChannel">The green source span.</param>
         /// <param name="blueChannel">The blue source span.</param>
         /// <param name="destination">The destination pixel span.</param>
-        internal static void PackFromRgbPlanesReduce(
+        public static void PackFromRgbPlanesReduce(
             ref ReadOnlySpan<byte> redChannel,
             ref ReadOnlySpan<byte> greenChannel,
             ref ReadOnlySpan<byte> blueChannel,
@@ -562,7 +618,7 @@ internal static partial class SimdUtils
         /// <param name="greenChannel">The green source span.</param>
         /// <param name="blueChannel">The blue source span.</param>
         /// <param name="destination">The destination pixel span.</param>
-        internal static void PackFromRgbPlanesReduce(
+        public static void PackFromRgbPlanesReduce(
             ref ReadOnlySpan<byte> redChannel,
             ref ReadOnlySpan<byte> greenChannel,
             ref ReadOnlySpan<byte> blueChannel,
@@ -610,7 +666,7 @@ internal static partial class SimdUtils
         /// <param name="greenChannel">The green destination span.</param>
         /// <param name="blueChannel">The blue destination span.</param>
         /// <param name="source">The source pixel span.</param>
-        internal static void UnpackToRgbPlanesReduce(
+        public static void UnpackToRgbPlanesReduce(
             ref Span<float> redChannel,
             ref Span<float> greenChannel,
             ref Span<float> blueChannel,

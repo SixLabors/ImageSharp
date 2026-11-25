@@ -308,7 +308,7 @@ internal static partial class PixelConverter
         public static uint Load(ref byte row, nuint x)
         {
             ref byte pixel = ref Unsafe.Add(ref row, x * 2);
-            return LuminanceToRgba32(pixel, Unsafe.Add(ref pixel, 1));
+            return LuminanceToRgba32(pixel, Unsafe.Add(ref pixel, (nuint)1));
         }
 
         /// <inheritdoc/>
@@ -477,7 +477,7 @@ internal static partial class PixelConverter
         public static uint Load(ref byte row, nuint x)
         {
             ref ushort pixel = ref Unsafe.As<byte, ushort>(ref Unsafe.Add(ref row, x * 4));
-            return LuminanceToRgba32(ColorNumerics.From16BitTo8Bit(pixel), ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 1)));
+            return LuminanceToRgba32(ColorNumerics.From16BitTo8Bit(pixel), ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)1)));
         }
 
         /// <inheritdoc/>
@@ -586,8 +586,8 @@ internal static partial class PixelConverter
         {
             ref ushort pixel = ref Unsafe.As<byte, ushort>(ref Unsafe.Add(ref row, x * 6));
             return ColorNumerics.From16BitTo8Bit(pixel)
-                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 1)) << 8)
-                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 2)) << 16)
+                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)1)) << 8)
+                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)2)) << 16)
                 | ((uint)byte.MaxValue << 24);
         }
 
@@ -695,9 +695,9 @@ internal static partial class PixelConverter
         {
             ref ushort pixel = ref Unsafe.As<byte, ushort>(ref Unsafe.Add(ref row, x * 8));
             return ColorNumerics.From16BitTo8Bit(pixel)
-                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 1)) << 8)
-                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 2)) << 16)
-                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, 3)) << 24);
+                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)1)) << 8)
+                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)2)) << 16)
+                | ((uint)ColorNumerics.From16BitTo8Bit(Unsafe.Add(ref pixel, (nuint)3)) << 24);
         }
 
         /// <inheritdoc/>
@@ -959,7 +959,7 @@ internal static partial class PixelConverter
                 uint pixel = TShuffle.Invoke(TSource.Load(ref sourceBase, x));
                 ref byte pixelBase = ref Unsafe.Add(ref destinationBase, x * 3);
                 Unsafe.WriteUnaligned(ref pixelBase, (ushort)pixel);
-                Unsafe.Add(ref pixelBase, 2) = (byte)(pixel >> 16);
+                Unsafe.Add(ref pixelBase, (nuint)2) = (byte)(pixel >> 16);
             }
         }
     }

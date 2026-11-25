@@ -792,7 +792,7 @@ internal static partial class SimdUtils
         // Slice3 puts the twelve bytes at the start of the register. One 64-bit and one 32-bit store write them.
         Vector128<byte> sliced = Vector128.ShuffleNative(source, Pad3x8Layout.SliceMask);
         Unsafe.As<byte, ulong>(ref destination) = sliced.AsUInt64().ToScalar();
-        Unsafe.As<byte, uint>(ref Unsafe.Add(ref destination, 8)) = sliced.AsUInt32().GetElement(2);
+        Unsafe.As<byte, uint>(ref Unsafe.Add(ref destination, (nuint)8)) = sliced.AsUInt32().GetElement(2);
     }
 
     /// <summary>

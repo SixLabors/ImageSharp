@@ -308,7 +308,7 @@ internal static partial class PixelConverter
         {
             ref ushort pixel = ref Unsafe.As<byte, ushort>(ref Unsafe.Add(ref row, x * 4));
             ulong luminance = pixel;
-            ulong alpha = Unsafe.Add(ref pixel, 1);
+            ulong alpha = Unsafe.Add(ref pixel, (nuint)1);
             return luminance | (luminance << 16) | (luminance << 32) | (alpha << 48);
         }
 
@@ -392,7 +392,7 @@ internal static partial class PixelConverter
         {
             ref byte pixel = ref Unsafe.Add(ref row, x * 6);
             ulong redGreen = Unsafe.ReadUnaligned<uint>(ref pixel);
-            ulong blue = Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref pixel, 4));
+            ulong blue = Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref pixel, (nuint)4));
             return redGreen | (blue << 32) | ((ulong)ushort.MaxValue << 48);
         }
 
@@ -745,7 +745,7 @@ internal static partial class PixelConverter
                 ulong pixel = TSource.Load(ref sourceBase, x);
                 ref byte pixelBase = ref Unsafe.Add(ref destinationBase, x * 6);
                 Unsafe.WriteUnaligned(ref pixelBase, (uint)pixel);
-                Unsafe.WriteUnaligned(ref Unsafe.Add(ref pixelBase, 4), (ushort)(pixel >> 32));
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref pixelBase, (nuint)4), (ushort)(pixel >> 32));
             }
         }
     }

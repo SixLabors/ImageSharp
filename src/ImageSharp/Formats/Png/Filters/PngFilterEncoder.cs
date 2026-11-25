@@ -32,7 +32,10 @@ internal static class PngFilterEncoder
     /// <param name="scanline">The scanline to encode.</param>
     /// <param name="previousScanline">The preceding scanline.</param>
     /// <param name="result">The destination including its leading filter byte.</param>
-    /// <param name="bytesPerPixel">The distance to the corresponding component in the preceding pixel.</param>
+    /// <param name="bytesPerPixel">
+    /// The distance to the corresponding component in the preceding pixel. Not read when the operator does not read
+    /// the left pixel.
+    /// </param>
     /// <param name="sum">The sum of the absolute signed residuals.</param>
     // Inlining closes every static interface call over TOperator. The JIT can then remove
     // source loads ignored by simpler predictors and specialize the active register widths.
@@ -51,7 +54,9 @@ internal static class PngFilterEncoder
         sum = 0;
 
         // The loops index with nuint. The pixel byte count is never negative, so the conversion keeps its value.
-        nuint pixelBytes = (uint)bytesPerPixel;
+        // A predictor that does not read the left pixel has no first-pixel boundary. Thus its offset is 0, and the
+        // vector loops start at the first byte with no scalar bytes before them.
+        nuint pixelBytes = TOperator.UsesLeft ? (uint)bytesPerPixel : 0;
         nuint x = 0;
 
         // Components in the first pixel have no left or upper-left neighbor. Supplying

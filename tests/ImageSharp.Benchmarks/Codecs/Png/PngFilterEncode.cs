@@ -75,7 +75,7 @@ public class PngFilterEncode
     /// </summary>
     private int EncodeUp()
     {
-        PngFilterEncoder.Encode<UpFilterOperator>(this.scanline, this.previousScanline, this.result, 0, out int sum);
+        PngFilterEncoder.Encode<UpFilterOperator>(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 

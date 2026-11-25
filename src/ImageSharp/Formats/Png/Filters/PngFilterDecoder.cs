@@ -16,8 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters;
 /// reconstructed byte of the pixel to the left, so the pixels reconstruct one after the other. One step handles all
 /// bytes of one pixel. For the Average and Paeth predictors, each byte has a 16-bit lane of a
 /// <see cref="Vector128{T}"/>, which gives the shortest dependency chain. The Sub predictor is the left pixel, so each
-/// byte keeps a byte lane and the chain is one byte add. A wider vector holds more pixels. But each pixel must wait for the pixel to its left, so a wider vector does
-/// not reduce the step count.
+/// byte keeps a byte lane and the chain is one byte add. A wider vector holds more pixels. But each pixel must wait
+/// for the pixel to its left, so a wider vector does not reduce the step count.
 /// </para>
 /// <para>
 /// A pixel of 1 byte uses one lane. The vector step keeps the left byte in a register and uses the branchless
@@ -146,19 +146,22 @@ internal static partial class PngFilterDecoder
         // The bytes after the filter type byte are a whole number of pixels.
         DebugGuard.IsTrue((scanline.Length - 1) % TPixelOperator.BytesPerPixel == 0, "The scanline must hold whole pixels.");
 
-        ref byte row = ref Unsafe.Add(ref MemoryMarshal.GetReference(scanline), 1);
-        ref byte previousRow = ref Unsafe.Add(ref MemoryMarshal.GetReference(previousScanline), 1);
-        nuint width = (uint)((scanline.Length - 1) / TPixelOperator.BytesPerPixel);
+        // The loops advance a reference to the current pixel. Each load and store then addresses one register with no
+        // scaled index, the same form as a pointer loop.
+        ref byte pixel = ref Unsafe.Add(ref MemoryMarshal.GetReference(scanline), (nuint)1);
+        ref byte abovePixel = ref Unsafe.Add(ref MemoryMarshal.GetReference(previousScanline), (nuint)1);
+        ref byte end = ref Unsafe.Add(ref MemoryMarshal.GetReference(scanline), (uint)scanline.Length);
 
         // A predictor that does not read the row above is the left pixel itself. Its byte add wraps modulo 256 as
         // PNG requires, so the byte lanes need no 16-bit widening. The dependency chain is one byte add for each pixel.
         if (!TOperator.UsesAbove)
         {
             Vector128<byte> leftBytes = Vector128<byte>.Zero;
-            for (nuint x = 0; x < width; x++)
+            while (Unsafe.IsAddressLessThan(ref pixel, ref end))
             {
-                leftBytes = TPixelOperator.Load(ref row, x) + TOperator.Predict(leftBytes, default, default);
-                TPixelOperator.Store(ref row, x, leftBytes);
+                leftBytes = TPixelOperator.Load(ref pixel) + TOperator.Predict(leftBytes, default, default);
+                TPixelOperator.Store(ref pixel, leftBytes);
+                pixel = ref Unsafe.Add(ref pixel, (uint)TPixelOperator.BytesPerPixel);
             }
 
             return;
@@ -171,22 +174,22 @@ internal static partial class PngFilterDecoder
         // After each pixel, its reconstructed bytes become the left neighbor, and its above bytes the upper-left neighbor.
         Vector128<short> left = Vector128<short>.Zero;
         Vector128<short> upperLeft = Vector128<short>.Zero;
-        for (nuint x = 0; x < width; x++)
+        while (Unsafe.IsAddressLessThan(ref pixel, ref end))
         {
-            // The operator flags are constants after specialization, so a filter that does not use the preceding
-            // scanline does not load it.
-            Vector128<short> residual = Widen(TPixelOperator.Load(ref row, x));
-            Vector128<short> above = TOperator.UsesAbove ? Widen(TPixelOperator.Load(ref previousRow, x)) : default;
+            Vector128<short> residual = Widen(TPixelOperator.Load(ref pixel));
+            Vector128<short> above = Widen(TPixelOperator.Load(ref abovePixel));
 
             // A byte add wraps each low byte modulo 256, as PNG requires. Each high byte stays 0 + 0 = 0.
             Vector128<short> value = (residual.AsByte() + TOperator.Predict(left, above, upperLeft).AsByte()).AsInt16();
 
             // Narrow keeps the low byte of each lane. It is not on the dependency chain, because the next pixel reads
             // the widened value.
-            TPixelOperator.Store(ref row, x, Vector128.Narrow(value.AsUInt16(), value.AsUInt16()));
+            TPixelOperator.Store(ref pixel, Vector128.Narrow(value.AsUInt16(), value.AsUInt16()));
 
             left = value;
             upperLeft = above;
+            pixel = ref Unsafe.Add(ref pixel, (uint)TPixelOperator.BytesPerPixel);
+            abovePixel = ref Unsafe.Add(ref abovePixel, (uint)TPixelOperator.BytesPerPixel);
         }
     }
 

@@ -125,7 +125,7 @@ public abstract partial class Image
     {
         Guard.NotNull(configuration, nameof(configuration));
 
-        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, rowStrideInBytes, nameof(rowStrideInBytes));
+        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, height, rowStrideInBytes, nameof(rowStrideInBytes));
         return LoadPixelData(configuration, MemoryMarshal.Cast<byte, TPixel>(data), width, height, rowStride);
     }
 

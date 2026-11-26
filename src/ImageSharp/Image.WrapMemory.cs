@@ -347,7 +347,7 @@ public abstract partial class Image
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
 
-        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, rowStrideInBytes, nameof(rowStrideInBytes));
+        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, height, rowStrideInBytes, nameof(rowStrideInBytes));
         long requiredLength = GetRequiredLength(width, height, rowStride);
 
         ByteMemoryManager<TPixel> memoryManager = new(byteMemory);
@@ -468,7 +468,7 @@ public abstract partial class Image
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
 
-        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, rowStrideInBytes, nameof(rowStrideInBytes));
+        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, height, rowStrideInBytes, nameof(rowStrideInBytes));
 
         ByteMemoryOwner<TPixel> pixelMemoryOwner = new(byteMemoryOwner);
         long requiredLength = GetRequiredLength(width, height, rowStride);
@@ -613,7 +613,7 @@ public abstract partial class Image
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
 
-        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, rowStrideInBytes, nameof(rowStrideInBytes));
+        int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, height, rowStrideInBytes, nameof(rowStrideInBytes));
         long requiredLength = GetRequiredLength(width, height, rowStride);
 
         Guard.MustBeLessThanOrEqualTo(requiredLength, int.MaxValue, nameof(requiredLength));
@@ -671,12 +671,14 @@ public abstract partial class Image
         Guard.MustBeGreaterThanOrEqualTo(rowStride, width, rowStrideParamName);
     }
 
-    private static int GetPixelRowStrideFromByteStride<TPixel>(int width, int rowStrideInBytes, string rowStrideParamName)
+    private static int GetPixelRowStrideFromByteStride<TPixel>(int width, int height, int rowStrideInBytes, string rowStrideParamName)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int pixelSizeInBytes = Unsafe.SizeOf<TPixel>();
 
+        // The callers compute the required length from height - 1, so a height that is not positive must stop here.
         Guard.MustBeGreaterThan(width, 0, nameof(width));
+        Guard.MustBeGreaterThan(height, 0, nameof(height));
         Guard.MustBeGreaterThan(rowStrideInBytes, 0, rowStrideParamName);
         Guard.IsTrue(
             rowStrideInBytes % pixelSizeInBytes == 0,

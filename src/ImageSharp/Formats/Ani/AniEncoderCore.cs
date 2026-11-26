@@ -446,7 +446,14 @@ internal sealed class AniEncoderCore
         long endPosition = stream.Position;
 
         // sizePosition addresses the size DWORD itself; subtracting its four bytes yields payload length.
-        uint dataSize = checked((uint)(endPosition - sizePosition - sizeof(uint)));
+        // The RIFF chunk size field is 32 bits. Thus the writer cannot write a larger chunk with a correct size.
+        long dataLength = endPosition - sizePosition - sizeof(uint);
+        if (dataLength > uint.MaxValue)
+        {
+            throw new ImageFormatException($"The RIFF chunk size {dataLength} is larger than the 32-bit size field allows.");
+        }
+
+        uint dataSize = (uint)dataLength;
 
         // RIFF chunk sizes exclude the optional padding byte used to align the next chunk to a WORD boundary.
         if ((dataSize & 1) is 1)

@@ -179,6 +179,14 @@ internal sealed class PngEncoderCore : IDisposable
         PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
+        // The encoder holds a scanline and its filter type byte in one buffer, so their length must fit in an int.
+        // An Adam7 pass is not wider than the image, so this check bounds each pass too.
+        long scanlineLength = this.CalculateScanlineLength(this.width);
+        if (scanlineLength >= int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)scanlineLength + 1, int.MaxValue);
+        }
+
         stream.Write(PngConstants.HeaderBytes);
 
         ImageFrame<TPixel>? clonedFrame = null;
@@ -968,12 +976,19 @@ internal sealed class PngEncoderCore : IDisposable
         // Use 64 bytes per line (128 hex chars) to keep the chunk readable.
         const int bytesPerLine = 64;
 
-        int hexChars = payload.Length * 2;
-        int lineCount = (payload.Length + (bytesPerLine - 1)) / bytesPerLine;
-        int newlineCount = 2 + lineCount; // header line + length line + hex lines
-        int capacity = header.Length + 32 + hexChars + newlineCount;
+        // The text has 2 hex characters for each byte and one line break for each line. .NET limits a string to 0x3FFFFFDF
+        // characters, so a large payload is rejected before the text is built.
+        const int maxStringLength = 0x3FFFFFDF;
+        long hexChars = (long)payload.Length * 2;
+        long lineCount = (payload.Length + (bytesPerLine - 1L)) / bytesPerLine;
+        long newlineCount = 2 + lineCount; // header line + length line + hex lines
+        long capacity = header.Length + 32 + hexChars + newlineCount;
+        if (capacity > maxStringLength)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)capacity, maxStringLength);
+        }
 
-        StringBuilder sb = new(capacity);
+        StringBuilder sb = new((int)capacity);
         sb.Append(header).Append('\n');
         sb.Append(payload.Length).Append('\n');
 
@@ -1365,7 +1380,7 @@ internal sealed class PngEncoderCore : IDisposable
     private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
+        int bytesPerScanline = (int)this.CalculateScanlineLength(pixels.Width);
         int filterLength = bytesPerScanline + 1;
         this.AllocateScanlineBuffers(bytesPerScanline);
 
@@ -1398,9 +1413,7 @@ internal sealed class PngEncoderCore : IDisposable
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(pixels.Width, pass);
 
-            int bytesPerScanline = this.bytesPerPixel <= 1
-                ? ((blockWidth * this.bitDepth) + 7) / 8
-                : blockWidth * this.bytesPerPixel;
+            int bytesPerScanline = (int)this.CalculateScanlineLength(blockWidth);
 
             int filterLength = bytesPerScanline + 1;
             this.AllocateScanlineBuffers(bytesPerScanline);
@@ -1449,9 +1462,7 @@ internal sealed class PngEncoderCore : IDisposable
             int startCol = Adam7.FirstColumn[pass];
             int blockWidth = Adam7.ComputeBlockWidth(quantized.Width, pass);
 
-            int bytesPerScanline = this.bytesPerPixel <= 1
-                ? ((blockWidth * this.bitDepth) + 7) / 8
-                : blockWidth * this.bytesPerPixel;
+            int bytesPerScanline = (int)this.CalculateScanlineLength(blockWidth);
 
             int filterLength = bytesPerScanline + 1;
 
@@ -1568,14 +1579,14 @@ internal sealed class PngEncoderCore : IDisposable
     /// </summary>
     /// <param name="width">The width of the row.</param>
     /// <returns>
-    /// The <see cref="int"/> representing the length.
+    /// The length in bytes. The calculation uses 64-bit values, so a large width cannot wrap.
     /// </returns>
-    private int CalculateScanlineLength(int width)
+    private long CalculateScanlineLength(int width)
     {
         int mod = this.bitDepth is 16 ? 16 : 8;
-        int scanlineLength = width * this.bitDepth * this.bytesPerPixel;
+        long scanlineLength = (long)width * this.bitDepth * this.bytesPerPixel;
 
-        int amount = scanlineLength % mod;
+        long amount = scanlineLength % mod;
         if (amount != 0)
         {
             scanlineLength += mod - amount;

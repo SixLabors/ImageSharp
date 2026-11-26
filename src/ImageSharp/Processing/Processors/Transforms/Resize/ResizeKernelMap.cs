@@ -134,7 +134,16 @@ internal partial class ResizeKernelMap : IDisposable
             scale = 1;
         }
 
-        int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
+        // The radius grows with the reduction ratio. A kernel buffer row holds the diameter, or 4 times the diameter with
+        // hardware acceleration, in one int length. Thus the row length is checked in double before the int conversions.
+        double radiusValue = TolerantMath.Ceiling(scale * sampler.Radius);
+        double rowLength = ((radiusValue * 2) + 1) * (ResizeKernel.IsHardwareAccelerated ? 4 : 1);
+        if (rowLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)rowLength, int.MaxValue);
+        }
+
+        int radius = (int)radiusValue;
 
         // 'ratio' is a rational number.
         // Multiplying it by destSize/GCD(sourceSize, destinationSize) yields an integer, so every `period` rows

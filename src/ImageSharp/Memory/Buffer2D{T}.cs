@@ -200,8 +200,8 @@ public sealed class Buffer2D<T> : IDisposable
         bool sameDimensions = this.Width == destination.Width && this.Height == destination.Height;
         int destinationStride = sameDimensions ? destination.RowStride : this.RowStride;
 
-        // Different dimensions use source logical layout. This supports SwapOrCopyContent,
-        // where metadata is swapped after data copy.
+        // Different dimensions use the source logical layout. This supports SwapOrCopyContent,
+        // where the destination takes the source size and stride after the copy.
         this.FastMemoryGroup.CopyTo(
             this.RowStride,
             destination.FastMemoryGroup,
@@ -381,40 +381,44 @@ public sealed class Buffer2D<T> : IDisposable
 
     /// <summary>
     /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
-    /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
+    /// copies the contents of 'source' to 'destination' otherwise (2). In case 2 'source' keeps its own size and stride.
     /// </summary>
     /// <param name="destination">The destination buffer.</param>
     /// <param name="source">The source buffer.</param>
     /// <exception cref="InvalidMemoryOperationException">Attempt to copy/swap incompatible buffers.</exception>
     internal static bool SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
     {
-        bool swapped = false;
         if (MemoryGroup<T>.CanSwapContent(destination.FastMemoryGroup, source.FastMemoryGroup))
         {
             (destination.FastMemoryGroup, source.FastMemoryGroup) = (source.FastMemoryGroup, destination.FastMemoryGroup);
             destination.FastMemoryGroup.RecreateViewAfterSwap();
             source.FastMemoryGroup.RecreateViewAfterSwap();
-            swapped = true;
+            (destination.Size, source.Size) = (source.Size, destination.Size);
+            (destination.RowStride, source.RowStride) = (source.RowStride, destination.RowStride);
+            return true;
         }
-        else
+
+        // CopyTo keeps the destination stride when the dimensions are equal. Otherwise it writes the source layout.
+        // Only the destination takes a new layout. The source keeps its own memory, so it keeps its own size and stride.
+        // A size change needs a destination that can hold the source layout. The check on the source length keeps the
+        // existing behavior: a resize of wrapped memory that cannot hold the old layout throws.
+        bool sameDimensions = source.Width == destination.Width && source.Height == destination.Height;
+        if (!sameDimensions
+            && (destination.FastMemoryGroup.TotalLength < GetRequiredLength(source.Width, source.Height, source.RowStride)
+            || source.FastMemoryGroup.TotalLength < GetRequiredLength(destination.Width, destination.Height, destination.RowStride)))
         {
-            long sourceLayoutLength = GetRequiredLength(source.Width, source.Height, source.RowStride);
-            long destinationLayoutLength = GetRequiredLength(destination.Width, destination.Height, destination.RowStride);
-
-            bool destinationCanRepresentSource = destination.FastMemoryGroup.TotalLength >= sourceLayoutLength;
-            bool sourceCanRepresentDestination = source.FastMemoryGroup.TotalLength >= destinationLayoutLength;
-            if (!destinationCanRepresentSource || !sourceCanRepresentDestination)
-            {
-                throw new InvalidMemoryOperationException(
-                    "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
-            }
-
-            source.CopyTo(destination);
+            throw new InvalidMemoryOperationException(
+                "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
         }
 
-        (destination.Size, source.Size) = (source.Size, destination.Size);
-        (destination.RowStride, source.RowStride) = (source.RowStride, destination.RowStride);
-        return swapped;
+        source.CopyTo(destination);
+        if (!sameDimensions)
+        {
+            destination.Size = source.Size;
+            destination.RowStride = source.RowStride;
+        }
+
+        return false;
     }
 
     [MethodImpl(InliningOptions.ColdPath)]

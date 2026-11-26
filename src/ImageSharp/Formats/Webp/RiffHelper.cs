@@ -23,32 +23,9 @@ internal static class RiffHelper
 
     public static void WriteChunk(Stream stream, uint fourCc, Action<Stream> func)
     {
-        Span<byte> buffer = stackalloc byte[4];
-
-        // write the fourCC
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
-        stream.Write(buffer);
-
-        long sizePosition = stream.Position;
-        stream.Position += 4;
-
+        long sizePosition = BeginWriteChunk(stream, fourCc);
         func(stream);
-
-        long position = stream.Position;
-
-        uint dataSize = (uint)(position - sizePosition - 4);
-
-        // padding
-        if (dataSize % 2 == 1)
-        {
-            stream.WriteByte(0);
-            position++;
-        }
-
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
-        stream.Position = sizePosition;
-        stream.Write(buffer);
-        stream.Position = position;
+        EndWriteChunk(stream, sizePosition);
     }
 
     public static void WriteChunk(Stream stream, uint fourCc, ReadOnlySpan<byte> data)
@@ -99,7 +76,14 @@ internal static class RiffHelper
 
         long position = stream.Position;
 
-        uint dataSize = (uint)(position - sizePosition - 4);
+        // The RIFF chunk size field is 32 bits. Thus the writer cannot write a larger chunk with a correct size.
+        long size = position - sizePosition - 4;
+        if (size > uint.MaxValue)
+        {
+            WebpThrowHelper.ThrowChunkTooLarge(size);
+        }
+
+        uint dataSize = (uint)size;
 
         // padding
         if (dataSize % 2 is 1)
@@ -124,6 +108,14 @@ internal static class RiffHelper
 
     public static void EndWriteRiffFile(Stream stream, in WebpVp8X vp8x, bool updateVp8x, long sizePosition)
     {
+        // The WebP Container Specification, section "RIFF Header", limits the File Size field to 2^32 - 10.
+        // This limit is less than the generic RIFF limit of EndWriteChunk.
+        long fileSize = stream.Position - sizePosition - 8;
+        if (fileSize > uint.MaxValue - 9)
+        {
+            WebpThrowHelper.ThrowFileTooLarge(fileSize);
+        }
+
         EndWriteChunk(stream, sizePosition + 4);
 
         // Write the VP8X chunk if necessary.

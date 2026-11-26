@@ -288,7 +288,18 @@ internal sealed class ExifWriter
     /// </summary>
     /// <param name="value">The value to encode.</param>
     /// <returns>The byte count for the value.</returns>
-    internal static uint GetLength(IExifValue value) => checked(GetNumberOfComponents(value) * ExifDataTypes.GetSize(value.DataType));
+    internal static uint GetLength(IExifValue value)
+    {
+        // An array value can have up to Array.MaxLength components of up to 8 bytes. Multiply in 64 bits, then reject a length
+        // that the four-byte directory offset cannot address.
+        ulong length = (ulong)GetNumberOfComponents(value) * ExifDataTypes.GetSize(value.DataType);
+        if (length > uint.MaxValue)
+        {
+            throw new ImageFormatException("An EXIF value exceeds the supported size.");
+        }
+
+        return (uint)length;
+    }
 
     internal static uint GetNumberOfComponents(IExifValue exifValue)
     {

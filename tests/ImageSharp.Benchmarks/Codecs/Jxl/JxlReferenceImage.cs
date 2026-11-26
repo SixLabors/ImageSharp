@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JxlNet;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,21 +12,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jxl;
 /// <summary>
 /// Owns one reference decoder's contiguous float pixels until the benchmark or its validation releases them.
 /// </summary>
-internal sealed unsafe partial class JxlReferenceImage : SafeHandle
+internal sealed unsafe class JxlReferenceImage : SafeHandle
 {
-    private readonly bool rust;
     private DecodeResult result;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlReferenceImage"/> class and applies the shared pixel range in place.
     /// </summary>
     /// <param name="result">The completed native allocation and dimensions.</param>
-    /// <param name="rust">Whether Rust owns the allocation and must release its original vector capacity.</param>
-    private JxlReferenceImage(DecodeResult result, bool rust)
+    private JxlReferenceImage(DecodeResult result)
         : base(IntPtr.Zero, true)
     {
         this.result = result;
-        this.rust = rust;
 
         // Reference float output retains negative or greater-than-one alpha. RgbaVector has the library's
         // finite RGB and normalized alpha contract. Apply that same contract directly to the native allocation.
@@ -131,7 +127,7 @@ internal sealed unsafe partial class JxlReferenceImage : SafeHandle
                             break;
 
                         case JxlDecoderStatus.JXL_DEC_SUCCESS when complete:
-                            return new JxlReferenceImage(result, false);
+                            return new JxlReferenceImage(result);
 
                         default:
                             throw new InvalidOperationException($"libjxl did not complete the benchmark image: {status}.");
@@ -150,48 +146,11 @@ internal sealed unsafe partial class JxlReferenceImage : SafeHandle
         }
     }
 
-    /// <summary>
-    /// Decodes one still image with the original Rust API's sequential runner and high-precision reconstruction.
-    /// </summary>
-    /// <param name="source">The complete stored JPEG XL input.</param>
-    /// <returns>The original Rust pixel allocation, with shared final pixel bounds and no image copy.</returns>
-    public static JxlReferenceImage DecodeRust(ReadOnlySpan<byte> source)
-    {
-        DecodeResult result = default;
-        fixed (byte* input = source)
-        {
-            int status = DecodeRust(input, (nuint)source.Length, ref result);
-            if (status != 0)
-            {
-                throw new InvalidOperationException($"jxl-rs did not complete the benchmark image. Bridge status: {status}.");
-            }
-        }
-
-        try
-        {
-            return new JxlReferenceImage(result, true);
-        }
-        catch
-        {
-            ReleaseRust(ref result);
-            throw;
-        }
-    }
-
     /// <inheritdoc/>
     protected override bool ReleaseHandle()
     {
-        // The two native allocators are not interchangeable. Rust reconstructs its Vec with the original
-        // length/capacity; the libjxl adapter releases its caller-allocated NativeMemory buffer here.
-        if (this.rust)
-        {
-            ReleaseRust(ref this.result);
-        }
-        else
-        {
-            NativeMemory.Free(this.result.Pixels);
-        }
-
+        // The libjxl adapter allocates the output buffer with NativeMemory, so this owner releases it here.
+        NativeMemory.Free(this.result.Pixels);
         return true;
     }
 
@@ -208,33 +167,12 @@ internal sealed unsafe partial class JxlReferenceImage : SafeHandle
     }
 
     /// <summary>
-    /// Creates a complete native Rust result. Its pixel samples remain Rust-owned until ReleaseRust.
+    /// Holds the native output buffer and the image dimensions. Length counts floats.
     /// </summary>
-    /// <param name="source">The pinned encoded bytes.</param>
-    /// <param name="length">The number of input bytes.</param>
-    /// <param name="result">The output pointer, float counts and dimensions, or all zeros on failure.</param>
-    /// <returns>Zero on success, or the documented bridge error status.</returns>
-    [LibraryImport("imagesharp_jxl_rs_benchmark", EntryPoint = "jxlrs_decode_rgba_f32")]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial int DecodeRust(byte* source, nuint length, ref DecodeResult result);
-
-    /// <summary>
-    /// Releases the original Rust vector allocation and clears its result fields.
-    /// </summary>
-    /// <param name="result">An unchanged successful Rust result, or a cleared result.</param>
-    [LibraryImport("imagesharp_jxl_rs_benchmark", EntryPoint = "jxlrs_release_rgba_f32")]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial void ReleaseRust(ref DecodeResult result);
-
-    /// <summary>
-    /// Matches the Rust C ABI. Counts and dimensions use the native pointer width; Length and Capacity count floats.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
     private struct DecodeResult
     {
         public float* Pixels;
         public nuint Length;
-        public nuint Capacity;
         public nuint Width;
         public nuint Height;
     }

@@ -85,7 +85,18 @@ internal static class RiffHelper
 
         // write the fourCC
         BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
-        stream.Write(buffer);
+        return BeginWriteChunk(stream, buffer);
+    }
+
+    /// <summary>
+    /// Starts a RIFF chunk. <see cref="EndWriteChunk(Stream, long)"/> writes its size after the payload.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="fourCc">The four bytes of the chunk identifier, in stream order.</param>
+    /// <returns>The stream position of the chunk-size field.</returns>
+    public static long BeginWriteChunk(Stream stream, ReadOnlySpan<byte> fourCc)
+    {
+        stream.Write(fourCc);
 
         long sizePosition = stream.Position;
         stream.Position += 4;

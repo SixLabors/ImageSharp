@@ -19,11 +19,6 @@ internal static class AniConstants
     public const int ChunkHeaderSize = 8;
 
     /// <summary>
-    /// The number of bytes required to identify an embedded ICO or CUR resource.
-    /// </summary>
-    public const int IconDirHeaderSize = 6;
-
-    /// <summary>
     /// The maximum number of bytes retained from an ancillary chunk.
     /// </summary>
     /// <remarks>

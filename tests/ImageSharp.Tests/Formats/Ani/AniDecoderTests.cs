@@ -98,9 +98,8 @@ public class AniDecoderTests
     }
 
     /// <summary>
-    /// Verifies that a file without AF_ICON decodes its raw frames as icon bitmaps: the color data, then the AND mask. The
-    /// height covers both. ReactOS reads raw frames in this layout (CURSORICON_GetCursorDataFromANI). The
-    /// decoder reports each raw frame as a CUR frame that holds a bitmap of the same depth.
+    /// Verifies that a file without AF_ICON decodes its raw frames as icon bitmaps: the color data, then the AND mask. The height covers both.
+    /// The decoder reports each raw frame as a CUR frame that holds a bitmap of the same depth.
     /// </summary>
     [Fact]
     public void AniDecoder_RawBitmapFrame_DecodesIconBitmap()
@@ -240,6 +239,64 @@ public class AniDecoderTests
             data.Length - bitmapStart);
 
         using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that a frame resource that extends past its frame list is damaged image data. In the Strict and IgnoreAncillary modes, the decoder throws. In the
+    /// IgnoreImageData mode, the decoder keeps the steps that play the resources before the damaged resource.
+    /// </summary>
+    [Fact]
+    public void AniDecoder_ResourcePastFrameListEnd_KeepsEarlierSteps()
+    {
+        byte[] full = TestFile.Create(Work).Bytes;
+
+        // Bytes after the RIFF container make sure that the frame list does not end at the end of the stream. Thus the decoder cannot read the damaged chunk as
+        // a truncated resource.
+        byte[] data = [.. full, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        // The frame list starts with its 'fram' list type. The list size is at 8 bytes before the list type.
+        int listTypeOffset = data.AsSpan().IndexOf("fram"u8);
+        Assert.True(listTypeOffset > sizeof(uint));
+        int listEnd = listTypeOffset + (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(listTypeOffset - sizeof(uint)));
+
+        // Walk the resources of the list to the third resource. Then set its size so that it ends 2 bytes past the list end.
+        const int damagedResource = 2;
+        int chunkOffset = listTypeOffset + sizeof(uint);
+        for (int i = 0; i < damagedResource; i++)
+        {
+            int size = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(chunkOffset + sizeof(uint)));
+            chunkOffset += AniConstants.ChunkHeaderSize + size + (size & 1);
+        }
+
+        Assert.True(data.AsSpan(chunkOffset, 4).SequenceEqual("icon"u8));
+        int damagedSize = listEnd - (chunkOffset + AniConstants.ChunkHeaderSize) + 2;
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(chunkOffset + sizeof(uint)), (uint)damagedSize);
+
+        foreach (SegmentIntegrityHandling handling in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            using MemoryStream stream = new(data, false);
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(options, stream));
+        }
+
+        // The sequence number of each step is the 1-based index of its resource. The steps that play the resources before the damaged resource keep their
+        // pixels. The decoder drops the other steps.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(full);
+        for (int i = expected.Frames.Count - 1; i >= 0; i--)
+        {
+            if (expected.Frames[i].Metadata.GetAniMetadata().SequenceNumber > damagedResource)
+            {
+                expected.Frames.RemoveFrame(i);
+            }
+        }
+
+        Assert.True(expected.Frames.Count > 0);
+
+        using MemoryStream ignoreStream = new(data, false);
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> actual = AniDecoder.Instance.Decode<Rgba32>(ignore, ignoreStream);
+        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
         ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 

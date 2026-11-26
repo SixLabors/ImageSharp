@@ -29,16 +29,6 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [InlineData(2)]
-    [InlineData(5)]
-    public void DeduceJpegColorSpaceAdobeMarker_ShouldThrowOnUnsupportedComponentCount(byte componentCount)
-    {
-        AdobeMarker adobeMarker = default;
-
-        Assert.Throws<NotSupportedException>(() => JpegDecoderCore.DeduceJpegColorSpace(componentCount, ref adobeMarker));
-    }
-
-    [Theory]
     [InlineData(1, JpegColorSpace.Luminance)]
     [InlineData(3, JpegColorSpace.YCbCr)]
     [InlineData(4, JpegColorSpace.Cmyk)]
@@ -48,10 +38,4 @@ public partial class JpegDecoderTests
 
         Assert.Equal(expectedColorSpace, actualColorSpace);
     }
-
-    [Theory]
-    [InlineData(2)]
-    [InlineData(5)]
-    public void DeduceJpegColorSpace_ShouldThrowOnUnsupportedComponentCount(byte componentCount)
-        => Assert.Throws<NotSupportedException>(() => JpegDecoderCore.DeduceJpegColorSpace(componentCount));
 }

@@ -102,10 +102,7 @@ internal struct HuffmanTable
             // but it must still fit in 'si' bits since no huffman code can be equal to all 1s
             // if last code is all ones, e.g. 1111(1), then incrementing it by 1 would yield
             // a new code which occupies one extra bit, e.g. 1111(1) +1 => (1)1111(0)
-            if (code >= (1 << si))
-            {
-                JpegThrowHelper.ThrowInvalidImageContentException("Bad huffman table.");
-            }
+            DebugGuard.IsTrue(code < (1 << si), "The DHT parse checks the code lengths with HasValidCodes.");
 
             code <<= 1;
             si++;
@@ -194,5 +191,31 @@ internal struct HuffmanTable
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Checks if the code lengths give a valid canonical Huffman code.
+    /// </summary>
+    /// <remarks>
+    /// The codes of each length follow the codes of the length before them (ITU T.81, Annex C). After the codes of length si, the next code must fit in si
+    /// bits, because no code can be all 1 bits.
+    /// </remarks>
+    /// <param name="codeLengths">The code length counts, at indexes 1 to 16.</param>
+    /// <returns><see langword="true"/> if the code is valid. Otherwise <see langword="false"/>.</returns>
+    public static bool HasValidCodes(ReadOnlySpan<byte> codeLengths)
+    {
+        uint code = 0;
+        for (int si = 1; si <= 16; si++)
+        {
+            code += codeLengths[si];
+            if (code >= (1u << si))
+            {
+                return false;
+            }
+
+            code <<= 1;
+        }
+
+        return true;
     }
 }

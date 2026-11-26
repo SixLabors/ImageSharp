@@ -18,7 +18,6 @@ public class JpegFileMarkerTests
 
         Assert.Equal(app1, marker.Marker);
         Assert.Equal(position, marker.Position);
-        Assert.False(marker.Invalid);
         Assert.Equal(app1.ToString("X"), marker.ToString());
     }
 }

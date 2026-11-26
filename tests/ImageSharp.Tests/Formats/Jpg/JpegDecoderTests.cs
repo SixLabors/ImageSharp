@@ -439,6 +439,56 @@ public partial class JpegDecoderTests
     }
 
     /// <summary>
+    /// Keeps the decoded scans by default when a marker segment after the first scan is damaged. Throws when the integrity mode does not ignore image data
+    /// errors.
+    /// </summary>
+    /// <param name="damage">The damage to the input.</param>
+    /// <param name="markerOffset">The offset of the damaged marker. The decoder decodes each scan before it.</param>
+    [Theory]
+    [InlineData("HuffmanTableClass", 273)]
+    [InlineData("RestartIntervalLength", 273)]
+    [InlineData("MarkerLengthEndsEarly", 273)]
+    [InlineData("SpectralSelectionEnd", 296)]
+    public void Decode_DamagedMarkerAfterScan_KeepsDecodedScans(string damage, int markerOffset)
+    {
+        // The first scan starts with its SOS marker at byte 234. A DHT segment with length 21 follows it at byte 273. The second scan starts with its SOS
+        // marker at byte 296. See ITU T.81, sections B.2.4.2 "Huffman table specification syntax", B.2.4.4 "Restart interval definition syntax" and B.2.3 "Scan
+        // header syntax".
+        byte[] complete = TestFile.Create(MarkerDirectory + "progressive.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.SOS, complete[235]);
+        Assert.Equal(JpegConstants.Markers.DHT, complete[274]);
+        Assert.Equal(JpegConstants.Markers.SOS, complete[297]);
+
+        byte[] data = (byte[])complete.Clone();
+        switch (damage)
+        {
+            case "HuffmanTableClass":
+                // The high 4 bits of the first byte after the length give the table class. Class 2 is not valid.
+                data[277] = 0x20;
+                break;
+            case "RestartIntervalLength":
+                // A DRI segment has a length of 4. The DHT segment length is 21.
+                data[274] = JpegConstants.Markers.DRI;
+                break;
+            case "MarkerLengthEndsEarly":
+                // The input ends after the first byte of the 2-byte segment length.
+                data = complete.AsSpan(0, 276).ToArray();
+                break;
+            default:
+                // The SOS segment holds Ns at byte 300, one component selector pair, then Ss at byte 303 and Se at byte 304. Se must not be more than 63.
+                data[304] = 64;
+                break;
+        }
+
+        // The reference has the scans before the damaged marker and then the EOI marker.
+        byte[] reference = [.. complete.AsSpan(0, markerOffset), 0xFF, JpegConstants.Markers.EOI];
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(strict, reference);
+        using Image<Rgba32> actual = DecodeDamagedImageData(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Keeps the decoded MCU by default when a marker that is not a restart marker ends a restart interval.
     /// Throws when the integrity mode does not ignore image data errors.
     /// </summary>
@@ -463,6 +513,206 @@ public partial class JpegDecoderTests
         // The first MCU covers 16 x 16 pixels. Chroma upsampling at the right and bottom edges of the MCU uses the
         // next MCU. Thus, these 8 x 8 pixels use only the blocks of the first MCU.
         AssertRegionsEqual(expected, actual, new Rectangle(0, 0, 8, 8));
+    }
+
+    /// <summary>
+    /// Rejects a DHT segment whose last table has values after the end of the segment.
+    /// </summary>
+    [Fact]
+    public void Decode_HuffmanTableValuesPastSegmentEnd_Throws()
+    {
+        // The first DHT segment is at byte 177. It holds the luminance DC table. The class and index byte is at 181, and the 16 code length counts are at bytes
+        // 182 to 197. The 12 values are at bytes 198 to 209. The next DHT segment is at 210. See ITU T.81, section B.2.4.2 "Huffman table-specification
+        // syntax".
+        byte[] complete = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.DHT, complete[178]);
+        Assert.Equal(31, complete[180]);
+        Assert.Equal(JpegConstants.Markers.DHT, complete[211]);
+
+        // The new segment holds the table and then the class, index and code length counts of a second table. Its length of 48 does not include the 12 values
+        // of the second table. A COM segment of 12 bytes follows. Thus a parse that reads the values past the segment end finds the next DHT segment at the
+        // correct position.
+        byte[] data =
+        [
+            .. complete.AsSpan(0, 177),
+            0xFF, JpegConstants.Markers.DHT, 0x00, 48,
+            .. complete.AsSpan(181, 29),
+            0x01,
+            .. complete.AsSpan(182, 16),
+            0xFF, JpegConstants.Markers.COM, 0x00, 10, 0, 0, 0, 0, 0, 0, 0, 0,
+            .. complete.AsSpan(210)
+        ];
+
+        // The segment comes before the image, so each integrity mode throws.
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+    }
+
+    /// <summary>
+    /// Throws <see cref="InvalidImageContentException"/> from Identify when the input has no frame or no scan.
+    /// </summary>
+    /// <param name="damage">The damage to the input.</param>
+    [Theory]
+    [InlineData("NoFrameNoScan")]
+    [InlineData("ScanWithoutFrame")]
+    public void Identify_MissingFrameOrScan_ThrowsInvalidImageContentException(string damage)
+    {
+        byte[] data;
+        if (damage == "NoFrameNoScan")
+        {
+            // SOI and then EOI. The zero bytes after EOI give the length that format detection reads.
+            data = [0xFF, JpegConstants.Markers.SOI, 0xFF, JpegConstants.Markers.EOI, 0, 0, 0, 0, 0, 0, 0];
+        }
+        else
+        {
+            // The input does not have the SOF0 segment at bytes 158 to 176. The SOS segment then comes before a frame header, and ITU T.81, section B.2.1 does
+            // not permit this order.
+            byte[] complete = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+            Assert.Equal(JpegConstants.Markers.SOF0, complete[159]);
+            Assert.Equal(JpegConstants.Markers.DHT, complete[178]);
+            data = [.. complete.AsSpan(0, 158), .. complete.AsSpan(177)];
+        }
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    /// <summary>
+    /// Rejects the differential arithmetic frames SOF13 and SOF14 as not supported.
+    /// </summary>
+    /// <param name="marker">The SOF marker code.</param>
+    [Theory]
+    [InlineData(JpegConstants.Markers.SOF13)]
+    [InlineData(JpegConstants.Markers.SOF14)]
+    public void Decode_DifferentialArithmeticFrame_ThrowsNotSupported(byte marker)
+    {
+        // The SOF9 marker code is at byte 159. A differential frame is a frame of the hierarchical mode (ITU T.81, Annex J).
+        byte[] data = (byte[])TestFile.Create(MarkerDirectory + "arithmetic.jpg").Bytes.Clone();
+        Assert.Equal(JpegConstants.Markers.SOF9, data[159]);
+        data[159] = marker;
+
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+    }
+
+    /// <summary>
+    /// Keeps the first scan by default when a second scan follows a sequential scan with all components. Throws when the integrity mode does not ignore image
+    /// data errors.
+    /// </summary>
+    [Fact]
+    public void Decode_ScanAfterOnlyScanOfFrame_KeepsFirstScan()
+    {
+        // The SOS segment at byte 615 has all 3 components, so it is the only scan of the sequential frame. Its entropy-coded data ends at the EOI marker at
+        // byte 767. The input repeats the scan before the EOI marker.
+        byte[] complete = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.SOS, complete[616]);
+        Assert.Equal(3, complete[619]);
+        Assert.Equal(JpegConstants.Markers.EOI, complete[768]);
+
+        byte[] data = [.. complete.AsSpan(0, 767), .. complete.AsSpan(615)];
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+        using Image<Rgba32> actual = DecodeDamagedImageData(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Rejects a DAC segment with a bad table class, a bad DC conditioning value, or an odd length.
+    /// </summary>
+    /// <param name="offset">The offset of the damaged byte.</param>
+    /// <param name="value">The new value of the byte.</param>
+    [Theory]
+    [InlineData(181, 0x20)]
+    [InlineData(182, 0x01)]
+    [InlineData(180, 9)]
+    public void Decode_InvalidArithmeticConditioningTable_Throws(int offset, byte value)
+    {
+        // The DAC segment at byte 177 has a length of 10 at bytes 179 and 180. Its first entry is the class and identifier byte 0x00 at byte 181 and the DC
+        // value 0x10 at byte 182. Class 2 is not valid. The value 0x01 has the lower bound L = 1 and the upper bound U = 0. A length of 9 ends inside the
+        // fourth entry. See ITU T.81, section B.2.4.3 "Arithmetic conditioning table-specification syntax".
+        byte[] data = (byte[])TestFile.Create(MarkerDirectory + "arithmetic.jpg").Bytes.Clone();
+        Assert.Equal(JpegConstants.Markers.DAC, data[178]);
+        Assert.Equal(10, data[180]);
+        Assert.Equal(0x00, data[181]);
+        Assert.Equal(0x10, data[182]);
+        data[offset] = value;
+
+        // The segment comes before the image, so each integrity mode throws.
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+    }
+
+    /// <summary>
+    /// Decodes an arithmetic-coded image whose component uses a table identifier that is not less than the component count.
+    /// </summary>
+    [Fact]
+    public void Decode_ArithmeticTableIdentifierAboveComponentCount_DecodesImage()
+    {
+        // The DAC segment at byte 177 defines DC table 0 at byte 181 and AC table 0 at byte 183. The SOS segment at byte 195 gives the first of its 3
+        // components the DC and AC table selectors 0 and 0 at byte 201. The test moves both tables and both selectors to identifier 3. The DAC values do not
+        // change, so the pixels do not change. See ITU T.81, sections B.2.3 "Scan header syntax" and B.2.4.3.
+        byte[] complete = TestFile.Create(MarkerDirectory + "arithmetic.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.DAC, complete[178]);
+        Assert.Equal(0x00, complete[181]);
+        Assert.Equal(0x10, complete[183]);
+        Assert.Equal(JpegConstants.Markers.SOS, complete[196]);
+        Assert.Equal(3, complete[199]);
+        Assert.Equal(0x00, complete[201]);
+
+        byte[] data = (byte[])complete.Clone();
+        data[181] = 0x03;
+        data[183] = 0x13;
+        data[201] = 0x33;
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Accepts a DHT segment in an arithmetic-coded image. The decoder does not use the table.
+    /// </summary>
+    [Fact]
+    public void Decode_HuffmanTableInArithmeticImage_IsIgnored()
+    {
+        // The test puts the luminance DC table segment of the Huffman-coded image (bytes 177 to 209) after the SOF9 segment of the arithmetic-coded image, at
+        // byte 177. ITU T.81, section B.2.4 permits a DHT segment in each frame.
+        byte[] arithmetic = TestFile.Create(MarkerDirectory + "arithmetic.jpg").Bytes;
+        byte[] baseline = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.SOF9, arithmetic[159]);
+        Assert.Equal(JpegConstants.Markers.DAC, arithmetic[178]);
+        Assert.Equal(JpegConstants.Markers.DHT, baseline[178]);
+        Assert.Equal(JpegConstants.Markers.DHT, baseline[211]);
+
+        byte[] data = [.. arithmetic.AsSpan(0, 177), .. baseline.AsSpan(177, 33), .. arithmetic.AsSpan(177)];
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(arithmetic);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Decodes a sequential image without DHT segments with the standard Huffman tables.
+    /// </summary>
+    [Fact]
+    public void Decode_MissingHuffmanTables_UsesStandardTables()
+    {
+        // The image uses the standard tables of ITU T.81, section K.3. Its four DHT segments are at bytes 177 to 608. The DRI segment follows at byte 609.
+        byte[] complete = TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes;
+        Assert.Equal(JpegConstants.Markers.DHT, complete[178]);
+        Assert.Equal(JpegConstants.Markers.DRI, complete[610]);
+
+        byte[] data = [.. complete.AsSpan(0, 177), .. complete.AsSpan(609)];
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(complete);
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> actual = Image.Load<Rgba32>(strict, data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 
     /// <summary>

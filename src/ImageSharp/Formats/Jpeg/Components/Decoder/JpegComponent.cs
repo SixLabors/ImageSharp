@@ -118,12 +118,9 @@ internal class JpegComponent : IDisposable, IJpegComponent
         int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
         this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
+        // The SOF parse checks that each sampling factor is 1 to 4. The maximum factors are at least as large as the factors of the component, so each divisor
+        // is at least 1.
         this.SubSamplingDivisors = new Size(maxSubFactorH, maxSubFactorV).DivideBy(this.SamplingFactors);
-
-        if (this.SubSamplingDivisors.Width == 0 || this.SubSamplingDivisors.Height == 0)
-        {
-            JpegThrowHelper.ThrowBadSampling();
-        }
     }
 
     /// <inheritdoc/>

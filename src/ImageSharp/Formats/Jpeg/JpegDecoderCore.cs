@@ -4,7 +4,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -21,8 +20,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 
 /// <summary>
 /// Performs the jpeg decoding operation.
-/// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
-/// with additional fixes for both performance and common encoding errors.
 /// </summary>
 internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 {
@@ -52,7 +49,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     private bool hasAdobeMarker;
 
     /// <summary>
-    /// Whether the image has a SOS marker.
+    /// A value that tells if the image has a SOS marker. Identify sets the flag at the first SOS marker. A decode sets it after the first scan. Before the
+    /// first scan, the image has no data to keep, so a marker error is a structural error in each mode.
     /// </summary>
     private bool hasSOSMarker;
 
@@ -186,12 +184,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
 
         this.ParseStream(stream, spectralConverter, cancellationToken);
-
-        if (!this.hasSOSMarker)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
-        }
-
         this.InitializeMetadataProfiles();
 
         _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
@@ -206,12 +198,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ParseStream(stream, spectralConverter: null, cancellationToken);
-
-        if (!this.hasSOSMarker)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
-        }
-
         this.InitializeMetadataProfiles();
 
         Size pixelSize = this.Frame.PixelSize;
@@ -229,71 +215,12 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.Metadata ??= new ImageMetadata();
         this.QuantizationTables = new Block8x8F[4];
         this.scanDecoder = scanDecoder;
-        if (tableBytes.Length < 4)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
-        }
 
         using MemoryStream ms = new(tableBytes);
         using BufferedReadStream stream = new(this.configuration, ms);
 
-        Span<byte> markerBuffer = stackalloc byte[2];
-
-        // Check for the Start Of Image marker.
-        int bytesRead = stream.Read(markerBuffer);
-        JpegFileMarker fileMarker = new(markerBuffer[1], 0);
-        if (fileMarker.Marker != JpegConstants.Markers.SOI)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
-        }
-
-        // Read next marker.
-        bytesRead = stream.Read(markerBuffer);
-        fileMarker = new JpegFileMarker(markerBuffer[1], (int)stream.Position - 2);
-
-        while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
-        {
-            if (!fileMarker.Invalid)
-            {
-                // Get the marker length.
-                int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
-
-                // Validate the entire segment before parsing it. Casting directly
-                // to ulong also rejects lengths smaller than the two-byte length field.
-                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
-                {
-                    JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
-                }
-
-                switch (fileMarker.Marker)
-                {
-                    case JpegConstants.Markers.SOI:
-                    case JpegConstants.Markers.RST0:
-                    case JpegConstants.Markers.RST7:
-                        break;
-                    case JpegConstants.Markers.DHT:
-                        this.ProcessDefineHuffmanTablesMarker(stream, markerContentByteSize);
-                        break;
-                    case JpegConstants.Markers.DQT:
-                        this.ProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
-                        break;
-                    case JpegConstants.Markers.DRI:
-                        this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize, markerBuffer);
-                        break;
-                    case JpegConstants.Markers.EOI:
-                        return;
-                }
-            }
-
-            // Read next marker.
-            bytesRead = stream.Read(markerBuffer);
-            if (bytesRead != 2)
-            {
-                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
-            }
-
-            fileMarker = new JpegFileMarker(markerBuffer[1], 0);
-        }
+        // The tables use the segment parse of the image. They come before the image, so each error throws.
+        this.ParseMarkers(stream, null, true, CancellationToken.None);
     }
 
     /// <summary>
@@ -302,232 +229,24 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="stream">The input stream.</param>
     /// <param name="spectralConverter">The spectral converter to use.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    /// <exception cref="InvalidImageContentException">The stream has no scan.</exception>
     internal void ParseStream(BufferedReadStream stream, SpectralConverter spectralConverter, CancellationToken cancellationToken)
     {
-        bool metadataOnly = spectralConverter == null;
-
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken);
 
         // Apply the image-data policy to the active decoder, including one supplied by TIFF.
         this.scanDecoder.SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling;
 
         this.Metadata ??= new ImageMetadata();
-
-        Span<byte> markerBuffer = stackalloc byte[2];
-
-        // Check for the Start Of Image marker.
-        stream.Read(markerBuffer);
-        JpegFileMarker fileMarker = new(markerBuffer[1], 0);
-        if (fileMarker.Marker != JpegConstants.Markers.SOI)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
-        }
-
-        fileMarker = FindNextFileMarker(stream);
         this.QuantizationTables ??= new Block8x8F[4];
 
-        // Break only when we discover a valid EOI marker.
-        // https://github.com/SixLabors/ImageSharp/issues/695
-        while (fileMarker.Marker != JpegConstants.Markers.EOI)
+        this.ParseMarkers(stream, spectralConverter, false, cancellationToken);
+
+        // The SOS case makes sure that the frame comes before the first scan. Thus this one check finds an image without a frame or without a scan, for
+        // Decode and for Identify.
+        if (!this.hasSOSMarker)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!fileMarker.Invalid)
-            {
-                // Get the marker length.
-                int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
-
-                // Validate the entire segment before parsing it. Casting directly
-                // to ulong also rejects lengths smaller than the two-byte length field.
-                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
-                {
-                    if (metadataOnly && this.Metadata != null && this.Frame != null)
-                    {
-                        // We have enough data to decode the image, so we can stop parsing.
-                        return;
-                    }
-
-                    if (this.Metadata != null && this.Frame != null && this.hasSOSMarker)
-                    {
-                        // The stream ends inside a segment after at least one scan. The decoder keeps the decoded scans.
-                        // An APPn or COM segment holds only metadata, so the ancillary policy applies to it.
-                        // The other segments are part of the image data, so the image data policy applies to them.
-                        byte marker = fileMarker.Marker;
-                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15) || marker == JpegConstants.Markers.COM)
-                        {
-                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
-                                $"Input stream does not have enough bytes to parse declared contents of the {marker:X2} marker.");
-                        }
-                        else
-                        {
-                            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG data ends before the image is complete.");
-                        }
-
-                        return;
-                    }
-
-                    JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
-                }
-
-                switch (fileMarker.Marker)
-                {
-                    case JpegConstants.Markers.SOF0:
-                    case JpegConstants.Markers.SOF1:
-                    case JpegConstants.Markers.SOF2:
-
-                        if (!this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Huffman, metadataOnly))
-                        {
-                            return;
-                        }
-
-                        break;
-
-                    case JpegConstants.Markers.SOF9:
-                    case JpegConstants.Markers.SOF10:
-                    case JpegConstants.Markers.SOF13:
-                    case JpegConstants.Markers.SOF14:
-                        // ParseStream makes a Huffman decoder. That decoder can hold pooled tables from a DHT marker.
-                        this.scanDecoder?.Dispose();
-                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken)
-                        {
-                            SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling
-                        };
-
-                        if (this.resetInterval.HasValue)
-                        {
-                            this.scanDecoder.ResetInterval = this.resetInterval.Value;
-                        }
-
-                        if (!this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Arithmetic, metadataOnly))
-                        {
-                            return;
-                        }
-
-                        break;
-
-                    case JpegConstants.Markers.SOF5:
-                        JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential sequential DCT is not supported.");
-                        break;
-
-                    case JpegConstants.Markers.SOF6:
-                        JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential progressive DCT is not supported.");
-                        break;
-
-                    case JpegConstants.Markers.SOF3:
-                    case JpegConstants.Markers.SOF7:
-                        JpegThrowHelper.ThrowNotSupportedException("Decoding lossless jpeg files is not supported.");
-                        break;
-
-                    case JpegConstants.Markers.SOF11:
-                    case JpegConstants.Markers.SOF15:
-                        JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with lossless arithmetic coding is not supported.");
-                        break;
-
-                    case JpegConstants.Markers.SOS:
-
-                        this.hasSOSMarker = true;
-                        if (!metadataOnly)
-                        {
-                            this.ProcessStartOfScanMarker(stream, markerContentByteSize);
-                            break;
-                        }
-
-                        // It's highly unlikely that APPn related data will be found after the SOS marker
-                        // So we can stop parsing here and return the metadata we have parsed so far, instead
-                        // of trying to parse any APPn markers after the SOS marker and risking running out of
-                        // memory or other exceptions.
-                        return;
-
-                    case JpegConstants.Markers.DHT:
-
-                        if (metadataOnly)
-                        {
-                            stream.Skip(markerContentByteSize);
-                        }
-                        else
-                        {
-                            this.ProcessDefineHuffmanTablesMarker(stream, markerContentByteSize);
-                        }
-
-                        break;
-
-                    case JpegConstants.Markers.DQT:
-                        this.ProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.DRI:
-                        if (metadataOnly)
-                        {
-                            stream.Skip(markerContentByteSize);
-                        }
-                        else
-                        {
-                            this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize, markerBuffer);
-                        }
-
-                        break;
-
-                    case JpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeaderMarker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP2:
-                        this.ProcessApp2Marker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP3:
-                    case JpegConstants.Markers.APP4:
-                    case JpegConstants.Markers.APP5:
-                    case JpegConstants.Markers.APP6:
-                    case JpegConstants.Markers.APP7:
-                    case JpegConstants.Markers.APP8:
-                    case JpegConstants.Markers.APP9:
-                    case JpegConstants.Markers.APP10:
-                    case JpegConstants.Markers.APP11:
-                    case JpegConstants.Markers.APP12:
-                        stream.Skip(markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP13:
-                        this.ProcessApp13Marker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP14:
-                        this.ProcessApp14Marker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.APP15:
-                        stream.Skip(markerContentByteSize);
-                        break;
-                    case JpegConstants.Markers.COM:
-                        this.ProcessComMarker(stream, markerContentByteSize);
-                        break;
-
-                    case JpegConstants.Markers.DAC:
-                        if (metadataOnly)
-                        {
-                            stream.Skip(markerContentByteSize);
-                        }
-                        else
-                        {
-                            this.ProcessArithmeticTable(stream, markerContentByteSize);
-                        }
-
-                        break;
-                }
-            }
-
-            // Read on.
-            fileMarker = FindNextFileMarker(stream);
-        }
-
-        if (!metadataOnly && this.Frame is null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
         }
 
         this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
@@ -539,10 +258,234 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.Frame?.Dispose();
         this.scanDecoder?.Dispose();
 
-        // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
         this.iccReader = null;
+    }
+
+    /// <summary>
+    /// Reads the SOI marker, and then reads each marker segment until the EOI marker or the end of the stream.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="spectralConverter">The spectral converter to use. Identify and the tables have none.</param>
+    /// <param name="tablesOnly">
+    /// A value that tells if the stream holds only tables. A TIFF image stores the shared tables of its strips in this form (ITU T.81, B.5). The stream cannot
+    /// have a frame.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    private void ParseMarkers(BufferedReadStream stream, SpectralConverter spectralConverter, bool tablesOnly, CancellationToken cancellationToken)
+    {
+        // Identify has no spectral converter, and it needs only the metadata. The tables also have no spectral converter, but their parse must read each table.
+        bool metadataOnly = spectralConverter == null && !tablesOnly;
+
+        Span<byte> markerBuffer = stackalloc byte[2];
+
+        // Check for the Start Of Image marker.
+        stream.Read(markerBuffer);
+        if (markerBuffer[1] != JpegConstants.Markers.SOI)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
+        }
+
+        // Break only when we discover a valid EOI marker.
+        // https://github.com/SixLabors/ImageSharp/issues/695
+        JpegFileMarker fileMarker = FindNextFileMarker(stream);
+        while (fileMarker.Marker != JpegConstants.Markers.EOI)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (stream.Read(markerBuffer, 0, 2) != 2)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(
+                    this.hasSOSMarker,
+                    "jpeg stream does not contain enough data, could not read ushort.");
+
+                break;
+            }
+
+            int markerContentByteSize = BinaryPrimitives.ReadUInt16BigEndian(markerBuffer) - 2;
+
+            // The method checks the complete segment before it parses the segment. A length that is less than the 2-byte length field gives a negative value.
+            // The cast to ulong makes this value very large, so the check also rejects it.
+            if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
+            {
+                // The stream ends inside the segment. After a decoded scan, the decoder keeps the decoded scans. An APPn or COM segment holds only metadata, so
+                // the ancillary policy applies to it. The parse then stops, and the scan check of ParseStream applies. The other segments are part of the image
+                // data, so the image data policy applies to them.
+                byte marker = fileMarker.Marker;
+                if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15) || marker == JpegConstants.Markers.COM)
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(
+                        $"Input stream does not have enough bytes to parse declared contents of the {marker:X2} marker.");
+                }
+                else
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, "The JPEG data ends before the image is complete.");
+                }
+
+                break;
+            }
+
+            // A check after a decoded scan sets the flag when the mode ignores the error. The decoder then keeps the decoded scans. The position of the next
+            // marker is not known, so the parse stops.
+            bool stop = false;
+            switch (fileMarker.Marker)
+            {
+                case JpegConstants.Markers.SOF0:
+                case JpegConstants.Markers.SOF1:
+                case JpegConstants.Markers.SOF2:
+                    stop = !this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Huffman, metadataOnly, tablesOnly);
+                    break;
+
+                case JpegConstants.Markers.SOF9:
+                case JpegConstants.Markers.SOF10:
+                    // A later SOF marker ends the parse or throws in ProcessStartOfFrameMarker. The scan decoder of the first frame holds its tables and
+                    // decoded scans, so only the first SOF marker replaces the decoder.
+                    if (this.Frame is null)
+                    {
+                        // ParseStream makes a Huffman decoder. That decoder can hold pooled tables from a DHT marker.
+                        this.scanDecoder?.Dispose();
+                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken)
+                        {
+                            SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling
+                        };
+
+                        if (this.resetInterval.HasValue)
+                        {
+                            this.scanDecoder.ResetInterval = this.resetInterval.Value;
+                        }
+                    }
+
+                    stop = !this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Arithmetic, metadataOnly, tablesOnly);
+                    break;
+
+                case JpegConstants.Markers.SOF3:
+                case JpegConstants.Markers.SOF5:
+                case JpegConstants.Markers.SOF6:
+                case JpegConstants.Markers.SOF7:
+                case JpegConstants.Markers.SOF11:
+                case JpegConstants.Markers.SOF13:
+                case JpegConstants.Markers.SOF14:
+                case JpegConstants.Markers.SOF15:
+                    // The decoder supports only sequential and progressive DCT frames. SOF3, SOF7, SOF11 and SOF15 are lossless. SOF5 to SOF7 and SOF13 to
+                    // SOF15 are differential frames of the hierarchical mode.
+                    JpegThrowHelper.ThrowNotSupportedException(
+                        $"Decoding JPEG files with the SOF{fileMarker.Marker - JpegConstants.Markers.SOF0} marker is not supported.");
+                    break;
+
+                case JpegConstants.Markers.SOS:
+                    // A scan needs the frame header. The frame comes before the first scan, so this error is structural in each mode.
+                    if (this.Frame is null)
+                    {
+                        JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
+                    }
+
+                    if (metadataOnly)
+                    {
+                        this.hasSOSMarker = true;
+
+                        // It's highly unlikely that APPn related data will be found after the SOS marker
+                        // So we can stop parsing here and return the metadata we have parsed so far, instead
+                        // of trying to parse any APPn markers after the SOS marker and risking running out of
+                        // memory or other exceptions.
+                        stop = true;
+                        break;
+                    }
+
+                    stop = !this.TryProcessStartOfScanMarker(stream, markerContentByteSize);
+                    this.hasSOSMarker = true;
+                    break;
+
+                case JpegConstants.Markers.DHT:
+
+                    if (metadataOnly)
+                    {
+                        stream.Skip(markerContentByteSize);
+                    }
+                    else
+                    {
+                        stop = !this.TryProcessDefineHuffmanTablesMarker(stream, markerContentByteSize);
+                    }
+
+                    break;
+
+                case JpegConstants.Markers.DQT:
+                    stop = !this.TryProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.DRI:
+                    if (metadataOnly)
+                    {
+                        stream.Skip(markerContentByteSize);
+                    }
+                    else
+                    {
+                        stop = !this.TryProcessDefineRestartIntervalMarker(stream, markerContentByteSize);
+                    }
+
+                    break;
+
+                case JpegConstants.Markers.APP0:
+                    this.ProcessApplicationHeaderMarker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP1:
+                    this.ProcessApp1Marker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP2:
+                    this.ProcessApp2Marker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP3:
+                case JpegConstants.Markers.APP4:
+                case JpegConstants.Markers.APP5:
+                case JpegConstants.Markers.APP6:
+                case JpegConstants.Markers.APP7:
+                case JpegConstants.Markers.APP8:
+                case JpegConstants.Markers.APP9:
+                case JpegConstants.Markers.APP10:
+                case JpegConstants.Markers.APP11:
+                case JpegConstants.Markers.APP12:
+                    stream.Skip(markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP13:
+                    this.ProcessApp13Marker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP14:
+                    this.ProcessApp14Marker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.APP15:
+                    stream.Skip(markerContentByteSize);
+                    break;
+                case JpegConstants.Markers.COM:
+                    this.ProcessComMarker(stream, markerContentByteSize);
+                    break;
+
+                case JpegConstants.Markers.DAC:
+                    if (metadataOnly)
+                    {
+                        stream.Skip(markerContentByteSize);
+                    }
+                    else
+                    {
+                        stop = !this.TryProcessArithmeticTable(stream, markerContentByteSize);
+                    }
+
+                    break;
+            }
+
+            if (stop)
+            {
+                break;
+            }
+
+            // Read on.
+            fileMarker = FindNextFileMarker(stream);
+        }
     }
 
     /// <summary>
@@ -587,18 +530,13 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             return JpegColorSpace.YCbCr;
         }
 
-        if (componentCount == 4)
+        // The SOF parse accepts only 1, 3 and 4 components, so the count is 4 here.
+        if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
         {
-            if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
-            {
-                return JpegColorSpace.Ycck;
-            }
-
-            return JpegColorSpace.Cmyk;
+            return JpegColorSpace.Ycck;
         }
 
-        JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
-        return default;
+        return JpegColorSpace.Cmyk;
     }
 
     /// <summary>
@@ -618,13 +556,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             return JpegColorSpace.YCbCr;
         }
 
-        if (componentCount == 4)
-        {
-            return JpegColorSpace.Cmyk;
-        }
-
-        JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
-        return default;
+        // The SOF parse accepts only 1, 3 and 4 components, so the count is 4 here.
+        return JpegColorSpace.Cmyk;
     }
 
     /// <summary>
@@ -695,15 +628,30 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     }
 
     /// <summary>
-    /// Initializes the ICC profile.
+    /// Initializes the ICC profile from the APP2 segments. The decoder calls this method at the first scan and at the end of the parse. The method builds the
+    /// profile one time only, because it then releases the reader.
     /// </summary>
     private void InitIccProfile()
     {
-        // A profile supplied by the TIFF container takes precedence over JPEG APP2 metadata.
-        if (this.iccReader is not null && this.Metadata.IccProfile == null)
+        if (this.iccReader is null)
         {
-            this.Metadata.IccProfile = this.iccReader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
+            return;
         }
+
+        // A profile supplied by the TIFF container takes precedence over JPEG APP2 metadata.
+        if (this.Metadata.IccProfile == null)
+        {
+            try
+            {
+                this.Metadata.IccProfile = this.iccReader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
+            }
+            catch (InvalidIccProfileException ex)
+            {
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid JPEG ICC profile.", ex);
+            }
+        }
+
+        this.iccReader = null;
     }
 
     private void SetIccMetadata(IccProfile profile)
@@ -771,11 +719,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitializeMetadataProfiles()
     {
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitExifProfile);
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIccProfile);
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIptcProfile);
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitXmpProfile);
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitDerivedMetadataProperties);
+        this.InitExifProfile();
+        this.InitIccProfile();
+        this.InitIptcProfile();
+        this.InitXmpProfile();
+        this.InitDerivedMetadataProperties();
     }
 
     /// <summary>
@@ -817,13 +765,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // TODO: thumbnail
         if (remaining > 0)
         {
-            if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
-            {
-                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App0 Marker length.");
-                stream.Skip(remaining);
-                return;
-            }
-
             stream.Skip(remaining);
         }
     }
@@ -849,13 +790,6 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         if (this.skipMetadata)
         {
             // Skip the application header length.
-            stream.Skip(remaining);
-            return;
-        }
-
-        if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
-        {
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Bad App1 Marker length.");
             stream.Skip(remaining);
             return;
         }
@@ -935,31 +869,24 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
         {
             // APP2 may split one ICC profile across several markers; retain managed segments until final validation.
-            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(() =>
-            {
-                this.iccReader ??= new IccReader();
+            this.iccReader ??= new IccReader();
 
-                try
-                {
-                    if (!this.iccReader.TryReadSegment(stream, remaining))
-                    {
-                        this.iccReader = null;
-                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read JPEG ICC profile.");
-                    }
-                }
-                catch (InvalidIccProfileException)
-                {
-                    // An oversized segment was rejected before its payload was consumed.
-                    this.iccReader = null;
-                    stream.Skip(remaining);
-                    throw;
-                }
-                catch
+            try
+            {
+                if (!this.iccReader.TryReadSegment(stream, remaining))
                 {
                     this.iccReader = null;
-                    throw;
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read JPEG ICC profile.");
                 }
-            });
+            }
+            catch (InvalidIccProfileException ex)
+            {
+                // The reader rejects an oversized segment before it reads the payload. The decoder skips the payload, so the parse continues at the next
+                // marker.
+                this.iccReader = null;
+                stream.Skip(remaining);
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid JPEG ICC profile.", ex);
+            }
         }
         else
         {
@@ -988,19 +915,33 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    private void ProcessArithmeticTable(BufferedReadStream stream, int remaining)
+    /// <returns><see langword="true"/> if the tables are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryProcessArithmeticTable(BufferedReadStream stream, int remaining)
     {
+        // Each table entry has 2 bytes (ITU T.81, B.2.4.3). An odd length ends inside an entry.
+        if ((remaining & 1) != 0)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, $"Marker DAC has bad length {remaining}.");
+            return false;
+        }
+
         this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
 
-        while (remaining > 0)
+        for (; remaining > 0; remaining -= 2)
         {
             int tableClassAndIdentifier = stream.ReadByte();
-            remaining--;
             byte tableClass = (byte)(tableClassAndIdentifier >> 4);
             byte identifier = (byte)(tableClassAndIdentifier & 0xF);
-
             byte conditioningTableValue = (byte)stream.ReadByte();
-            remaining--;
+
+            // The table class is 0 for DC and 1 for AC. The decoder accepts each 4-bit identifier from 0 to 15, as libjpeg-turbo does. A DC value holds
+            // the lower bound L in bits 0 to 3 and the upper bound U in bits 4 to 7. L must not be more than U.
+            if (tableClass > 1 || (tableClass == 0 && (conditioningTableValue & 0xF) > (conditioningTableValue >> 4)))
+            {
+                string message = $"Bad arithmetic conditioning table: class {tableClass}, identifier {identifier}, value {conditioningTableValue}.";
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+                return false;
+            }
 
             ArithmeticDecodingTable arithmeticTable = new(tableClass, identifier);
             arithmeticTable.Configure(conditioningTableValue);
@@ -1022,6 +963,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 this.arithmeticDecodingTables.Add(arithmeticTable);
             }
         }
+
+        return true;
     }
 
     /// <summary>
@@ -1067,10 +1010,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if the tables do not match the header.
-    /// </exception>
-    private void ProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
+    /// <returns><see langword="true"/> if the tables are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
     {
         JpegMetadata jpegMetadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
@@ -1084,60 +1025,42 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             int tableIndex = quantizationTableSpec & 15;
             int tablePrecision = quantizationTableSpec >> 4;
 
-            // Validate:
-            if (tableIndex > 3)
+            // The index must be 0 to 3. The precision must be 0 for 8-bit values or 1 for 16-bit values.
+            if (tableIndex > 3 || tablePrecision > 1)
             {
-                JpegThrowHelper.ThrowBadQuantizationTableIndex(tableIndex);
+                string message = $"Bad Quantization Table index {tableIndex} or precision {tablePrecision}.";
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+                return false;
             }
 
             remaining--;
 
-            // Decoding single 8x8 table
-            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-            switch (tablePrecision)
+            // An 8-bit table needs 64 bytes, and a 16-bit table needs 128 bytes.
+            int tableByteSize = 64 << tablePrecision;
+            if (remaining < tableByteSize)
             {
-                // 8 bit values
-                case 0:
-                    // Validate: 8 bit table needs exactly 64 bytes
-                    if (remaining < 64)
-                    {
-                        JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
-                    }
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, $"Marker DQT has bad length {remaining}.");
+                return false;
+            }
 
-                    stream.Read(temp, 0, 64);
-                    remaining -= 64;
+            stream.Read(temp, 0, tableByteSize);
+            remaining -= tableByteSize;
 
-                    // Parsing quantization table & saving it in natural order
-                    for (int j = 0; j < 64; j++)
-                    {
-                        table[ZigZag.ZigZagOrder[j]] = temp[j];
-                    }
-
-                    break;
-
-                // 16 bit values
-                case 1:
-                    // Validate: 16 bit table needs exactly 128 bytes
-                    if (remaining < 128)
-                    {
-                        JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
-                    }
-
-                    stream.Read(temp, 0, 128);
-                    remaining -= 128;
-
-                    // Parsing quantization table & saving it in natural order
-                    for (int j = 0; j < 64; j++)
-                    {
-                        table[ZigZag.ZigZagOrder[j]] = (temp[2 * j] << 8) | temp[(2 * j) + 1];
-                    }
-
-                    break;
-
-                // Unknown precision - error
-                default:
-                    JpegThrowHelper.ThrowBadQuantizationTablePrecision(tablePrecision);
-                    break;
+            // The decoder parses the quantization table and stores it in natural order.
+            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+            if (tablePrecision == 0)
+            {
+                for (int j = 0; j < 64; j++)
+                {
+                    table[ZigZag.ZigZagOrder[j]] = temp[j];
+                }
+            }
+            else
+            {
+                for (int j = 0; j < 64; j++)
+                {
+                    table[ZigZag.ZigZagOrder[j]] = (temp[2 * j] << 8) | temp[(2 * j) + 1];
+                }
             }
 
             // Estimating quality
@@ -1154,6 +1077,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     break;
             }
         }
+
+        return true;
     }
 
     /// <summary>
@@ -1164,13 +1089,22 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="frameMarker">The current frame marker.</param>
     /// <param name="decodingComponentType">The jpeg decoding component type.</param>
     /// <param name="metadataOnly">Whether to parse metadata only.</param>
+    /// <param name="tablesOnly">A value that tells if the stream holds only tables. A stream of this type cannot have a frame.</param>
+    /// <returns><see langword="true"/> if the decoder read the frame. <see langword="false"/> if the parse stops.</returns>
     private bool ProcessStartOfFrameMarker(
         BufferedReadStream stream,
         int remaining,
         in JpegFileMarker frameMarker,
         ComponentType decodingComponentType,
-        bool metadataOnly)
+        bool metadataOnly,
+        bool tablesOnly)
     {
+        // Tables-only data has no frame header.
+        if (tablesOnly)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("The JPEG tables contain a frame header.");
+        }
+
         if (this.Frame != null)
         {
             // If we have found the SOS marker, we can stop parsing as we have all
@@ -1187,15 +1121,18 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
         }
 
+        // The segment holds 6 bytes, then 3 bytes for each component (ITU T.81, B.2.2). The method checks the length before each read, so the reads stay in the
+        // segment.
+        const int length = 6;
+        if (remaining < length)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException($"Marker SOFn has bad length {remaining}.");
+        }
+
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
 
-        // Read initial marker definitions.
-        const int length = 6;
-        int bytesRead = stream.Read(temp, 0, length);
-        if (bytesRead != length)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("SOF marker does not contain enough data.");
-        }
+        // The first 6 bytes hold the precision, the height, the width and the component count.
+        stream.Read(temp, 0, length);
 
         // 1 byte: Bits/sample precision.
         byte precision = temp[0];
@@ -1221,10 +1158,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // 1 byte: Number of components.
         byte componentCount = temp[5];
 
-        // Validate: componentCount more than 4 can lead to a buffer overflow during stream
-        // reading so we must limit it to 4.
-        // We do not support jpeg images with more than 4 components anyway.
-        if (componentCount > 4)
+        // The decoder supports 1, 3 and 4 components. If the count is more than 4, the next component read also overflows the buffer.
+        if (componentCount is not (1 or 3 or 4))
         {
             JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
         }
@@ -1239,7 +1174,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         const int componentBytes = 3;
         if (remaining != componentCount * componentBytes)
         {
-            JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
+            JpegThrowHelper.ThrowInvalidImageContentException($"Marker SOFn has bad length {remaining}.");
         }
 
         // components*3 bytes: component data
@@ -1264,15 +1199,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             int v = hv & 15;
 
             // Validate: 1-4 range
-            if (Numerics.IsOutOfRange(h, 1, 4))
+            if (Numerics.IsOutOfRange(h, 1, 4) || Numerics.IsOutOfRange(v, 1, 4))
             {
-                JpegThrowHelper.ThrowBadSampling(h);
-            }
-
-            // Validate: 1-4 range
-            if (Numerics.IsOutOfRange(v, 1, 4))
-            {
-                JpegThrowHelper.ThrowBadSampling(v);
+                JpegThrowHelper.ThrowBadSampling();
             }
 
             if (maxH < h)
@@ -1291,7 +1220,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             // Validate: 0-3 range
             if (quantTableIndex > 3)
             {
-                JpegThrowHelper.ThrowBadQuantizationTableIndex(quantTableIndex);
+                JpegThrowHelper.ThrowInvalidImageContentException($"Bad Quantization Table index {quantTableIndex}.");
             }
 
             IJpegComponent component = decodingComponentType is ComponentType.Huffman ?
@@ -1324,19 +1253,17 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    private void ProcessDefineHuffmanTablesMarker(BufferedReadStream stream, int remaining)
+    /// <returns><see langword="true"/> if the tables are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryProcessDefineHuffmanTablesMarker(BufferedReadStream stream, int remaining)
     {
         const int codeLengthsByteSize = 17;
         const int codeValuesMaxByteSize = 256;
         const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + HuffmanTable.WorkspaceByteSize;
 
+        // An arithmetic decoder does not use Huffman tables. libjpeg-turbo stores the tables of a DHT marker in each file, so the parse checks them and then
+        // discards them.
         HuffmanScanDecoder huffmanScanDecoder = this.scanDecoder as HuffmanScanDecoder;
-        if (huffmanScanDecoder is null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("missing huffman table data");
-        }
 
-        int length = remaining;
         using (IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
         {
             Span<byte> bufferSpan = buffer.GetSpan();
@@ -1344,22 +1271,20 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             Span<byte> huffmanValuesSpan = bufferSpan.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
             Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(bufferSpan[(codeLengthsByteSize + codeValuesMaxByteSize)..]);
 
-            for (int i = 2; i < remaining;)
+            // Each table has 1 byte for the class and index, 16 bytes for the code length counts, and then the values. One counter holds the bytes left in the
+            // segment, so a table cannot read past the segment.
+            while (remaining > 16)
             {
                 byte huffmanTableSpec = (byte)stream.ReadByte();
                 int tableType = huffmanTableSpec >> 4;
                 int tableIndex = huffmanTableSpec & 15;
 
-                // Types 0..1 DC..AC
-                if (tableType > 1)
+                // The type must be 0 for DC or 1 for AC. The index must be 0 to 3.
+                if (tableType > 1 || tableIndex > 3)
                 {
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table type: {tableType}.");
-                }
-
-                // Max tables of each type
-                if (tableIndex > 3)
-                {
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}.");
+                    string message = $"Bad huffman table type {tableType} or index {tableIndex}.";
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+                    return false;
                 }
 
                 stream.Read(huffmanLengthsSpan, 1, 16);
@@ -1370,25 +1295,35 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     codeLengthSum += huffmanLengthsSpan[j];
                 }
 
-                length -= 17;
+                remaining -= 17;
 
-                if (codeLengthSum > 256 || codeLengthSum > length)
+                if (codeLengthSum > 256 || codeLengthSum > remaining)
                 {
-                    JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, "Huffman table has excessive length.");
+                    return false;
+                }
+
+                if (!HuffmanTable.HasValidCodes(huffmanLengthsSpan))
+                {
+                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, "Bad huffman table.");
+                    return false;
                 }
 
                 stream.Read(huffmanValuesSpan, 0, codeLengthSum);
+                remaining -= codeLengthSum;
 
-                i += 17 + codeLengthSum;
-
-                huffmanScanDecoder!.BuildHuffmanTable(
-                    tableType,
-                    tableIndex,
-                    huffmanLengthsSpan,
-                    huffmanValuesSpan[..codeLengthSum],
-                    tableWorkspace);
+                huffmanScanDecoder?.BuildHuffmanTable(tableType, tableIndex, huffmanLengthsSpan, huffmanValuesSpan[..codeLengthSum], tableWorkspace);
             }
         }
+
+        // Bytes after the last complete table are not a table.
+        if (remaining != 0)
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, $"Marker DHT has bad length {remaining}.");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1397,22 +1332,27 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    /// <param name="markerBuffer">Scratch buffer.</param>
-    private void ProcessDefineRestartIntervalMarker(BufferedReadStream stream, int remaining, Span<byte> markerBuffer)
+    /// <returns><see langword="true"/> if the marker is valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryProcessDefineRestartIntervalMarker(BufferedReadStream stream, int remaining)
     {
         if (remaining != 2)
         {
-            JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, $"Marker DRI has bad length {remaining}.");
+            return false;
         }
 
-        // Save the reset interval, because it can come before or after the SOF marker.
-        // If the reset interval comes after the SOF marker, the scanDecoder has not been created.
-        this.resetInterval = ReadUint16(stream, markerBuffer);
-
+        // The method saves the reset interval, because the DRI marker can come before or after the SOF marker. A SOF9 or SOF10 marker after the DRI marker
+        // makes a new scan decoder, and that decoder gets the saved interval. The segment check of ParseMarkers proves that the stream holds the 2 bytes.
+        Span<byte> temp = stackalloc byte[2];
+        stream.Read(temp);
+        int resetInterval = BinaryPrimitives.ReadUInt16BigEndian(temp);
+        this.resetInterval = resetInterval;
         if (this.scanDecoder != null)
         {
-            this.scanDecoder.ResetInterval = this.resetInterval.Value;
+            this.scanDecoder.ResetInterval = resetInterval;
         }
+
+        return true;
     }
 
     /// <summary>
@@ -1420,28 +1360,29 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining)
+    /// <returns><see langword="true"/> if the scan header is valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryProcessStartOfScanMarker(BufferedReadStream stream, int remaining)
     {
-        if (this.Frame is null)
+        // The decoder decides at the first scan if the frame has more than one scan, as libjpeg-turbo does. A sequential scan with all components is the only
+        // scan of its frame, and the decoder allocated the coefficient buffers for one MCU row only. Thus a later scan is an error.
+        // Interleaved is true here only after such a decoded scan, so the image exists.
+        if (this.Frame.Interleaved && !this.Frame.Progressive)
         {
-            JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG data has a scan after the only scan of the frame.");
+            return false;
         }
 
-        // 1 byte: Number of components in scan.
-        int selectorsCount = stream.ReadByte();
+        // The segment holds the component count, 2 bytes for each component, and 3 bytes for the progressive parameters (ITU T.81, B.2.3). The method checks
+        // the length before the read, so the read stays in the segment. An empty segment gives a count of 0, so the next check also rejects it.
+        int selectorsCount = remaining > 0 ? stream.ReadByte() : 0;
 
-        // Validate: 0 < count <= totalComponents
-        if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
-        {
-            // TODO: extract as separate method?
-            JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}.");
-        }
-
-        // Validate: Marker must contain exactly (4 + selectorsCount*2) bytes
+        // The count must be 1 to the component count of the frame. The segment must hold exactly (4 + selectorsCount*2) bytes.
         int selectorsBytes = selectorsCount * 2;
-        if (remaining != 4 + selectorsBytes)
+        if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount || remaining != 4 + selectorsBytes)
         {
-            JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.SOS), remaining);
+            string message = $"Marker SOS has bad length {remaining} or component count {selectorsCount}.";
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+            return false;
         }
 
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
@@ -1469,8 +1410,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             // Validate: Must be found among registered components.
             if (componentIndex == -1)
             {
-                // TODO: extract as separate method?
-                JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component id in scan: {componentSelectorId}.");
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, $"Unknown component id in scan: {componentSelectorId}.");
+                return false;
             }
 
             this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
@@ -1487,29 +1428,33 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             // Validate: both must be < 4
             if (dcTableIndex >= 4 || acTableIndex >= 4)
             {
-                // TODO: extract as separate method?
-                JpegThrowHelper.ThrowInvalidImageContentException(
-                    $"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
+                string message = $"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}";
+                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+                return false;
             }
 
             component.DcTableId = dcTableIndex;
             component.AcTableId = acTableIndex;
         }
 
-        // 3 bytes: Progressive scan decoding data.
-        int bytesRead = stream.Read(temp, 0, 3);
-        if (bytesRead != 3)
+        // The last 3 bytes hold the progressive scan parameters. The length check proves that the segment holds them.
+        stream.Read(temp, 0, 3);
+
+        int spectralStart = temp[0];
+        int spectralEnd = temp[1];
+        int successiveHigh = temp[2] >> 4;
+        int successiveLow = temp[2] & 15;
+        if (this.Frame.Progressive && !IsValidProgressiveScan(spectralStart, spectralEnd, successiveHigh, successiveLow, selectorsCount))
         {
-            JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read progressive scan decoding data");
+            string message = $"Invalid progressive parameters Ss={spectralStart} Se={spectralEnd} Ah={successiveHigh} Al={successiveLow}.";
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, message);
+            return false;
         }
 
-        this.scanDecoder.SpectralStart = temp[0];
-
-        this.scanDecoder.SpectralEnd = temp[1];
-
-        int successiveApproximation = temp[2];
-        this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
-        this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
+        this.scanDecoder.SpectralStart = spectralStart;
+        this.scanDecoder.SpectralEnd = spectralEnd;
+        this.scanDecoder.SuccessiveHigh = successiveHigh;
+        this.scanDecoder.SuccessiveLow = successiveLow;
 
         if (this.scanDecoder is ArithmeticScanDecoder arithmeticScanDecoder)
         {
@@ -1517,27 +1462,37 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
+        else if (!((HuffmanScanDecoder)this.scanDecoder).TryInitDecodingTables(selectorsCount))
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.hasSOSMarker, "A Huffman table of the scan is not defined.");
+            return false;
+        }
 
-        this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(this.InitIccProfile);
+        // The decoder converts the colors during the scans, so the method builds the profile before the first scan.
+        this.InitIccProfile();
         _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
         this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
+        return true;
     }
 
     /// <summary>
-    /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes.
+    /// Checks if the parameters of a progressive scan are valid.
     /// </summary>
-    /// <param name="stream">The input stream.</param>
-    /// <param name="markerBuffer">The scratch buffer used for reading from the stream.</param>
-    /// <returns>The <see cref="ushort"/></returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static ushort ReadUint16(BufferedReadStream stream, Span<byte> markerBuffer)
+    /// <remarks>
+    /// The rules are from ITU T.81, Table B.3 "Scan header parameter size and values", as libjpeg applies them. A scan with AC coefficients can have only one
+    /// component. A refinement scan must have Al = Ah - 1.
+    /// </remarks>
+    /// <param name="spectralStart">The start of the spectral selection (Ss).</param>
+    /// <param name="spectralEnd">The end of the spectral selection (Se).</param>
+    /// <param name="successiveHigh">The successive approximation bit position high (Ah).</param>
+    /// <param name="successiveLow">The successive approximation bit position low (Al).</param>
+    /// <param name="scanComponentCount">The number of components in the scan.</param>
+    /// <returns><see langword="true"/> if the parameters are valid. Otherwise <see langword="false"/>.</returns>
+    private static bool IsValidProgressiveScan(int spectralStart, int spectralEnd, int successiveHigh, int successiveLow, int scanComponentCount)
     {
-        int bytesRead = stream.Read(markerBuffer, 0, 2);
-        if (bytesRead != 2)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("jpeg stream does not contain enough data, could not read ushort.");
-        }
+        // Ss and Se come from unsigned bytes, so they are never negative.
+        bool validSpectral = spectralStart == 0 ? spectralEnd == 0 : spectralEnd >= spectralStart && spectralEnd <= 63 && scanComponentCount == 1;
 
-        return BinaryPrimitives.ReadUInt16BigEndian(markerBuffer);
+        return validSpectral && (successiveHigh == 0 || successiveHigh - 1 == successiveLow) && successiveLow <= 13;
     }
 }

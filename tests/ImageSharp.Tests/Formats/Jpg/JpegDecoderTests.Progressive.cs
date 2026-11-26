@@ -41,6 +41,23 @@ public partial class JpegDecoderTests
         image.CompareToOriginal(provider, ImageComparer.Tolerant(0.004f), ReferenceDecoder);
     }
 
+    /// <summary>
+    /// Verifies that the arithmetic decoder starts the restart count again at the start of each scan, as libjpeg-turbo does.
+    /// </summary>
+    [Fact]
+    public void DecodeProgressiveJpeg_WithArithmeticCodingAndRestartInterval_ResetsRestartCountForEachScan()
+    {
+        // The 200 x 200 image has 169 MCUs in an interleaved scan, and 625 blocks in a scan of the first component. A DRI segment with the interval 700
+        // (0x02BC) comes after the SOI marker. No scan has 700 MCUs, so no scan has a restart marker. A count that continues through the scans reaches 700
+        // in the second scan, and the decoder then looks for a restart marker that the scan does not have.
+        byte[] original = TestFile.Create(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive01).Bytes;
+        byte[] data = [.. original.AsSpan(0, 2), 0xFF, 0xDD, 0x00, 0x04, 0x02, 0xBC, .. original.AsSpan(2)];
+
+        using Image<Rgb24> expected = Image.Load<Rgb24>(original);
+        using Image<Rgb24> actual = Image.Load<Rgb24>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
     [Theory]
     [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgb24)]
     public void DecodeProgressiveJpeg_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgb24> provider)

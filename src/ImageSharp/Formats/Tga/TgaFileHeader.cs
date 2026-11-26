@@ -27,8 +27,8 @@ internal readonly struct TgaFileHeader
         byte cMapDepth,
         short xOffset,
         short yOffset,
-        short width,
-        short height,
+        ushort width,
+        ushort height,
         byte pixelDepth,
         byte imageDescriptor)
     {
@@ -103,14 +103,14 @@ internal readonly struct TgaFileHeader
     public short YOffset { get; }
 
     /// <summary>
-    /// Gets the width of the image in pixels.
+    /// Gets the width of the image in pixels. TGA 2.0, field 5.3, stores it as an unsigned 16-bit value.
     /// </summary>
-    public short Width { get; }
+    public ushort Width { get; }
 
     /// <summary>
-    /// Gets the height of the image in pixels.
+    /// Gets the height of the image in pixels. TGA 2.0, field 5.4, stores it as an unsigned 16-bit value.
     /// </summary>
-    public short Height { get; }
+    public ushort Height { get; }
 
     /// <summary>
     /// Gets the number of bits per pixel. This number includes

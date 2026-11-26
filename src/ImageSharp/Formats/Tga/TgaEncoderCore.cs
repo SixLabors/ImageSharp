@@ -57,6 +57,12 @@ internal sealed class TgaEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        // The header stores the width and the height as unsigned 16-bit values. See TGA 2.0, fields 5.3 and 5.4.
+        if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue)
+        {
+            throw new ImageFormatException("Image is too large to encode in TGA format.");
+        }
+
         ImageMetadata metadata = image.Metadata;
         TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
         this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
@@ -98,8 +104,8 @@ internal sealed class TgaEncoderCore
 
             // When run length encoding is used, the origin should be top left instead of the default bottom left.
             yOffset: this.compression is TgaCompression.RunLength ? (short)image.Height : (short)0,
-            width: (short)image.Width,
-            height: (short)image.Height,
+            width: (ushort)image.Width,
+            height: (ushort)image.Height,
             pixelDepth: (byte)this.bitsPerPixel.Value,
             imageDescriptor: imageDescriptor);
 

@@ -19,7 +19,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="cancellationToken">The token checked between DC rows.</param>
     public void SmoothDc(MemoryAllocator allocator, CancellationToken cancellationToken)
     {
-        // The native AdaptiveDCSmoothing boundary uses the sampling-padded DC dimensions. A dimension of two or less has no interior.
+        // The smoothing boundary uses the sampling-padded DC dimensions. A dimension of two or less has no interior.
         // The caller has already selected VarDCT frames without SkipAdaptiveDCSmoothing or UseDcFrame.
         if (this.dcSize.Width <= 2 || this.dcSize.Height <= 2)
         {
@@ -277,7 +277,7 @@ internal sealed partial class JxlVarDctDecoder
     /// </summary>
     private readonly struct DcSmoothingOperator
     {
-        // libjxl compressed_dc.cc, AdaptiveDCSmoothing, defines these axial and diagonal weights.
+        // These are the axial and diagonal weights of adaptive DC smoothing.
         // Four neighbors use each weight. The remaining center weight makes a constant field unchanged.
         private const float SideWeight = 0.20345139757231578F;
         private const float CornerWeight = 0.0334829185968739F;

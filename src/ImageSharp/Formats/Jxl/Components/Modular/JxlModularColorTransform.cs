@@ -342,7 +342,7 @@ internal static class JxlModularColorTransform
             third += first;
             if (typeof(TSample) == typeof(short))
             {
-                // Rust rct_impl_i16 wraps the updated third component before avg_i16 reads it.
+                // Short storage wraps the updated third component to 16 bits before the average reads it.
                 // The widened sum used for that average then preserves its mathematical signed half-sum.
                 third = (short)third;
             }

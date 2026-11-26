@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// Applies one JPEG XL blend equation to native color or extra-channel samples.
 /// </summary>
 /// <remarks>
-/// Patch reconstruction and original-device frame composition share the equations from libjxl alpha.cc and blending.cc.
+/// Patch reconstruction and original-device frame composition share the same blend equations.
 /// The caller owns traversal and distinct input, output and scratch spans. This value owns no sample storage.
 /// Codec weights retain their encoded meaning. Pixel alpha bounds and destination packing apply separately at the pixel boundary.
 /// </remarks>
@@ -145,7 +145,7 @@ internal readonly struct JxlBlending
             return;
         }
 
-        // libjxl alpha.cc combines weights as 1 - (1 - top) * (1 - bottom).
+        // Combine the weights as 1 - (1 - top) * (1 - bottom).
         // Keep these separate operations so every component uses the same rounding order.
         TensorPrimitives.Subtract(1F, topWeight, complement);
         TensorPrimitives.Subtract(1F, bottomWeight, alpha);
@@ -217,8 +217,7 @@ internal readonly struct JxlBlending
             case BlendMode.AlphaWeightedAddBelow:
                 if (selectedWeight)
                 {
-                    // The weight is not weighted a second time. Above keeps the destination
-                    // weight; below takes the foreground weight, matching alpha.cc's alias rule.
+                    // The weight is not weighted a second time. Above keeps the destination weight; below takes the foreground weight.
                     (this.Mode == BlendMode.AlphaWeightedAddAbove ? background : foreground).CopyTo(destination);
                     return;
                 }
@@ -309,8 +308,8 @@ internal readonly struct JxlBlending
             PixelBlenders.Blend<AssociatedAlphaPixelBlenderOperators.NormalSrcOver>(background, foreground, background, 1F);
         }
 
-        // W is deliberately not published. libjxl alpha.cc computes the combined weight as
-        // 1 - (1 - topWeight) * (1 - bottomWeight), which can round differently from pixel source-over.
+        // W is deliberately not published. The combined weight is 1 - (1 - topWeight) * (1 - bottomWeight).
+        // This value can round differently from pixel source-over.
         // The caller retains that prepared result and, for straight output, its positive reciprocal.
         // Keeping these values separate also preserves JXL's zero multiplier for nonpositive weights.
     }

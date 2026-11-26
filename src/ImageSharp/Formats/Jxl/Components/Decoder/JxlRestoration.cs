@@ -17,7 +17,7 @@ internal static partial class JxlRestoration
     public const float InverseSigmaNumerator = -1.1715728752538099024F;
 
     /// <summary>
-    /// The maximum three-pixel EPF radius. Native stage_epf.cc EPF0 combines a five-by-five cross with three-by-three cross SADs.
+    /// The maximum three-pixel EPF radius. EPF0 combines a five-by-five cross with three-by-three cross SADs.
     /// </summary>
     private const int RestorationRadius = 3;
 
@@ -29,7 +29,7 @@ internal static partial class JxlRestoration
     // Inverse magnitudes beyond this boundary correspond to physical sigma below 0.3 and skip EPF.
     private const float MinimumInverseSigma = -3.90524291751269967465540850526868F;
 
-    // Native EPF stages multiply inverse sigma by this SAD distance factor and the pass/border scales.
+    // EPF passes multiply inverse sigma by this SAD distance factor and the pass/border scales.
     private const float EpfDistanceScale = 1.65F;
 
     /// <summary>
@@ -441,7 +441,7 @@ internal static partial class JxlRestoration
         {
             this.BlockColumns = ((width - 1) / BlockSize) + 1;
 
-            // libjxl dec_frame.cc ProcessDCGroup and jxl-rs features/epf.rs prepare this constant directly.
+            // Modular frames prepare this constant directly from sigma.
             // The VarDCT quantizer-dependent minimum and reciprocal sequence do not apply to modular samples.
             this.inverseSigma = InverseSigmaNumerator / sigma;
         }

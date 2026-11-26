@@ -35,6 +35,11 @@ internal struct JxlBitReader
     private long remainingSectionBits;
 
     /// <summary>
+    /// Indicates whether a read passed the section end or the codestream end. The flag stays set. Each later read past the end also returns zeros.
+    /// </summary>
+    private bool overrun;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlBitReader"/> struct.
     /// </summary>
     /// <param name="source">The logical codestream, positioned at the first field to read.</param>
@@ -44,6 +49,7 @@ internal struct JxlBitReader
         this.buffer = 0;
         this.availableBits = 0;
         this.remainingSectionBits = long.MaxValue - (source.Position * 8);
+        this.overrun = false;
     }
 
     /// <summary>
@@ -57,10 +63,12 @@ internal struct JxlBitReader
     public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
 
     /// <summary>
-    /// Gets a value indicating whether a consuming operation failed because physical codestream bytes are missing.
-    /// Section overreads, invalid syntax and malformed container boxes do not set this value.
+    /// Gets a value indicating whether every read so far stayed inside its section and the available codestream.
     /// </summary>
-    public bool IsTruncatedInput { get; private set; }
+    /// <remarks>
+    /// Reads past the end return zeros and clear this value. Each parser checks this value once, at the end of its header, table or section.
+    /// </remarks>
+    public readonly bool AllReadsWithinBounds => !this.overrun;
 
     /// <summary>
     /// Positions the codestream at a byte offset and discards lookahead and the preceding section bound.
@@ -76,7 +84,6 @@ internal struct JxlBitReader
         {
             if (!this.source.TrySeek(position))
             {
-                this.IsTruncatedInput = true;
                 ThrowBoundaryExceeded();
             }
         }
@@ -106,10 +113,14 @@ internal struct JxlBitReader
     /// <summary>
     /// Skips the unused part of the current section and restores unrestricted codestream reads.
     /// </summary>
-    /// <remarks>The caller must first select a section with <see cref="BeginSection"/>.</remarks>
-    /// <exception cref="InvalidImageContentException">The declared section extends past the available codestream.</exception>
+    /// <remarks>
+    /// The caller must first select a complete section with <see cref="BeginSection"/>. This method is the checkpoint of the section.
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">A read passed the end of the complete section.</exception>
     public void EndSection()
     {
+        this.ThrowIfReadPastSectionEnd();
+
         // Native section readers permit unused bytes and do not validate their padding values.
         // Skip only the declared remainder. Cached bytes after that boundary remain available to the next section.
         this.SkipBits((ulong)this.remainingSectionBits);
@@ -117,52 +128,69 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Rejects a bit count that cannot fit in the remaining input, including prefetched bits.
-    /// Container headers can make this upper bound larger than the actual remaining codestream.
+    /// Throws if a read passed the end of the current complete section. This method is the one owner of that error.
     /// </summary>
-    /// <param name="count">The minimum bit count required by the consuming syntax.</param>
-    public void CheckBitBudget(ulong count)
+    /// <remarks>
+    /// The decoder selects only complete sections, so a read past the end is damaged section data, not missing input.
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">A read passed the end of the complete section.</exception>
+    public readonly void ThrowIfReadPastSectionEnd()
+    {
+        if (this.overrun)
+        {
+            ThrowReadPastSectionEnd();
+        }
+    }
+
+    /// <summary>
+    /// Checks that a bit count fits in the remaining section and codestream, with the prefetched bits included. If the count does not fit, the method marks the
+    /// reader as out of bounds, and the next checkpoint reports it.
+    /// </summary>
+    /// <param name="count">The minimum bit count that the syntax of the caller needs.</param>
+    /// <returns>Whether the count fits.</returns>
+    public bool CheckBitBudget(ulong count)
     {
         if (count > (ulong)this.remainingSectionBits)
         {
-            throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining section.");
+            this.overrun = true;
+            return false;
         }
 
         // Count cached bits first, including an incomplete byte. Round only the uncached part up to whole bytes.
         // Divide before rounding so neither an arbitrary file length nor a declared bit count is multiplied by eight.
         ulong uncached = count - Math.Min(count, (ulong)this.availableBits);
         ulong requiredBytes = (uncached >> 3) + ((uncached & 7) != 0 ? 1UL : 0UL);
-        if (requiredBytes > (ulong)(this.source.MaximumLength - this.source.Position))
+        if (requiredBytes > (ulong)(this.source.Length - this.source.Position))
         {
-            this.IsTruncatedInput = true;
-            throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining codestream.");
+            this.overrun = true;
+            return false;
         }
+
+        return true;
     }
 
     /// <summary>
     /// Reads an unsigned field of zero to 32 bits. The first encoded bit becomes the least significant result bit.
     /// </summary>
-    /// <param name="count">The field width selected by the codec syntax.</param>
-    /// <returns>The unsigned field value.</returns>
-    /// <exception cref="InvalidImageContentException">The field exceeds the available codestream.</exception>
+    /// <param name="count">The field width that the codec syntax selects.</param>
+    /// <returns>The unsigned field value. Bits past the section end or the codestream end are zero.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadBits(int count)
     {
-        // A field wider than its declared section is malformed, even when the physical file also ends here.
-        // Keep that check separate from physical EOF so image-data recovery cannot cross section boundaries.
-        if (count > this.remainingSectionBits)
-        {
-            ThrowBoundaryExceeded();
-        }
-
+        // The reservoir check runs again only after a refill, so a read without a refill does two comparisons.
         if (this.availableBits < count)
         {
             this.Refill(count);
             if (this.availableBits < count)
             {
-                this.IsTruncatedInput = true;
-                ThrowBoundaryExceeded();
+                return this.ReadPastEnd(count);
             }
+        }
+
+        // A field that is wider than its declared section is malformed, also if the reservoir holds the bytes that follow.
+        if (count > this.remainingSectionBits)
+        {
+            return this.ReadPastEnd(count);
         }
 
         // Retain the result before consumption shifts the reservoir. A 64-bit mask handles both zero and 32 bits.
@@ -191,21 +219,17 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Consumes bits already exposed by lookahead and rejects consumption of its zero padding.
+    /// Consumes bits that a lookahead exposed before this call. If the method consumes the zero padding of the lookahead, it marks the reader as out of bounds.
     /// </summary>
     /// <param name="count">The encoded field or prefix-code length.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ConsumeBits(int count)
     {
-        if (count > this.remainingSectionBits)
+        // PeekBits refilled the reservoir before this call. The cold path consumes the real bits and records the zero padding.
+        if (count > this.availableBits || count > this.remainingSectionBits)
         {
-            ThrowBoundaryExceeded();
-        }
-
-        if (count > this.availableBits)
-        {
-            this.IsTruncatedInput = true;
-            ThrowBoundaryExceeded();
+            this.ReadPastEnd(count);
+            return;
         }
 
         this.AdvanceBits(count);
@@ -318,14 +342,11 @@ internal struct JxlBitReader
     /// <param name="destination">The span receiving the encoded byte fields.</param>
     public void ReadBytes(Span<byte> destination)
     {
-        // The aligned copy below bypasses ReadBits. Prove that its complete byte field stays inside
-        // the current section before either draining lookahead or reading directly from the codestream.
-        this.CheckBitBudget((ulong)destination.Length * 8);
-
-        if ((this.availableBits & 7) != 0)
+        if ((this.availableBits & 7) != 0 || (ulong)destination.Length * 8 > (ulong)this.remainingSectionBits)
         {
-            // Names and other byte-valued fields can begin between physical bytes. Their bits must pass through
-            // the reservoir; copying physical bytes directly would shift every character.
+            // Names and other byte-valued fields can start between physical bytes. Thus their bits must go through the reservoir. A direct copy of the physical
+            // bytes shifts each character. A field that passes the section end also uses ReadBits. ReadBits returns zeros past that end and records the
+            // overrun.
             for (int i = 0; i < destination.Length; i++)
             {
                 destination[i] = (byte)this.ReadBits(8);
@@ -350,8 +371,10 @@ internal struct JxlBitReader
 
             if (read == 0)
             {
-                this.IsTruncatedInput = true;
-                throw new InvalidImageContentException("The JPEG XL byte field exceeds its codestream boundary.");
+                // The codestream ends inside the field. This method returns zeros for the missing bytes, as ReadBits does.
+                destination[written..].Clear();
+                this.overrun = true;
+                return;
             }
 
             written += read;
@@ -359,14 +382,16 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Skips an unsigned bit count while preserving prefetched data and container boundaries.
+    /// Skips an unsigned bit count. The skip keeps the prefetched data and the container boundaries. If the count passes the section end or the codestream end,
+    /// the skip stops at that end and marks the reader as out of bounds.
     /// </summary>
-    /// <param name="count">The bit count declared by the header.</param>
+    /// <param name="count">The bit count that the header declares.</param>
     public void SkipBits(ulong count)
     {
         if (count > (ulong)this.remainingSectionBits)
         {
-            throw new InvalidImageContentException("The JPEG XL field exceeds its section boundary.");
+            this.overrun = true;
+            count = (ulong)this.remainingSectionBits;
         }
 
         int cached = (int)Math.Min(count, (ulong)this.availableBits);
@@ -381,8 +406,8 @@ internal struct JxlBitReader
             // issuing one buffered read for every machine word of an unknown extension.
             if (!this.TrySkipSourceBytes((long)(count >> 3)))
             {
-                this.IsTruncatedInput = true;
-                throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
+                this.overrun = true;
+                return;
             }
 
             this.ReadBits((int)(count & 7));
@@ -412,15 +437,10 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Consumes zero padding through the next byte boundary.
+    /// Consumes the padding through the next byte boundary.
     /// </summary>
-    public void AlignToByte()
-    {
-        if (this.ReadBits(this.availableBits & 7) != 0)
-        {
-            throw new InvalidImageContentException("The JPEG XL byte-alignment padding is not zero.");
-        }
-    }
+    /// <returns>Whether the padding bits are zero.</returns>
+    public bool AlignToByte() => this.ReadBits(this.availableBits & 7) == 0;
 
     /// <summary>
     /// Reads a bounded UTF-8 frame or extra-channel name.
@@ -512,16 +532,47 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Throws the shared error for a field that exceeds the codestream or section boundary.
+    /// Throws the shared error for a seek that passes the codestream boundary.
     /// </summary>
     /// <remarks>
-    /// Keeps exception construction outside the inlined field-read and consumption paths.
+    /// This method keeps the construction of the exception out of the seek path.
     /// </remarks>
-    /// <exception cref="InvalidImageContentException">The complete field cannot be consumed.</exception>
+    /// <exception cref="InvalidImageContentException">The position is past the codestream end.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [DoesNotReturn]
     private static void ThrowBoundaryExceeded()
         => throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");
+
+    /// <summary>
+    /// Throws the error for a read past the end of a complete section.
+    /// </summary>
+    /// <remarks>
+    /// This method keeps the construction of the exception out of the checkpoint callers.
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">A read passed the end of the complete section.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn]
+    private static void ThrowReadPastSectionEnd()
+        => throw new InvalidImageContentException("The JPEG XL section data exceeds its section size.");
+
+    /// <summary>
+    /// Reads a field that passes the section end or the codestream end. The caller refilled the reservoir before this call.
+    /// </summary>
+    /// <remarks>
+    /// Reads past the end return zeros, and the next checkpoint reports the overread. This method consumes the real bits inside the bounds,
+    /// returns zeros for the other bits and records the overrun.
+    /// </remarks>
+    /// <param name="count">The field width, from zero through 32.</param>
+    /// <returns>The real bits of the field, with zeros for the bits past the end.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private uint ReadPastEnd(int count)
+    {
+        this.overrun = true;
+        int readable = (int)Math.Min(this.availableBits, Math.Min(count, this.remainingSectionBits));
+        uint result = (uint)(this.buffer & ((1UL << readable) - 1));
+        this.AdvanceBits(readable);
+        return result;
+    }
 
     /// <summary>
     /// Consumes a field whose complete width has been validated against the reservoir and current section.

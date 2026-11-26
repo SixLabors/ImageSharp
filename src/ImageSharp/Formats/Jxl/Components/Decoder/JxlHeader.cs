@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -16,7 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// Reads and retains the image-wide fields needed by JPEG XL frame decoding.
 /// </summary>
 /// <remarks>
-/// Field order and default groups follow libjxl's image_metadata.cc, headers.cc and color_encoding_internal.cc.
 /// The decoder owns this header. Color coordinates, transfer identifiers and sample layouts use the shared types.
 /// </remarks>
 internal sealed class JxlHeader
@@ -180,6 +180,30 @@ internal sealed class JxlHeader
         }
 
         header.Metadata.IntensityTarget = header.IntensityTarget;
+        if (!header.UsesXybTransform && header.IccProfile?.Header.DataColorSpace == IccColorSpaceType.Cmyk)
+        {
+            bool hasBlack = false;
+            foreach (JxlExtraChannelMetadata channel in header.Metadata.ExtraChannels)
+            {
+                hasBlack |= channel.Type == JxlExtraChannelType.Black;
+            }
+
+            // Black is an ICC device component. An alpha extra channel cannot replace a missing black channel. Each image has at least one displayed frame, and
+            // each displayed frame needs this channel. The check runs here, before the decoder allocates pixels.
+            if (!hasBlack)
+            {
+                throw new InvalidImageContentException("The JPEG XL CMYK profile requires a black extra channel.");
+            }
+        }
+
+        if (header.UsesXybTransform && !header.HasIccProfile && header.ProfileColorType == JxlColorType.Rgb
+            && !Xyb.InverseOperator.TryGetD50ToTargetMatrix(JxlColorConverterBase.GetWorkingSpace(header), out _))
+        {
+            // XYB reconstruction into the original compact RGB primaries needs the inverse of their matrix. Primaries without an inverse are not a valid color
+            // encoding. The check runs here, before the decoder allocates pixels.
+            throw new InvalidImageContentException("The JPEG XL original RGB primaries do not produce an invertible conversion matrix.");
+        }
+
         if (!header.HasIccProfile && header.ProfileColorType is JxlColorType.Rgb or JxlColorType.Luminance)
         {
             // Pixels use working sRGB after decoding. Retain the original compact description separately
@@ -193,7 +217,20 @@ internal sealed class JxlHeader
 
         // Frame syntax starts on the next byte. The padding belongs to this header and must be zero,
         // including when a compact color description omits the compressed ICC section.
-        reader.AlignToByte();
+        bool zeroPadding = reader.AlignToByte();
+
+        // Reads past the codestream end return zeros. This method checks the bounds once for the complete header.
+        // The image does not exist yet, so a truncated header is a structural error.
+        if (!reader.AllReadsWithinBounds)
+        {
+            throw new InvalidImageContentException("The JPEG XL image header is truncated.");
+        }
+
+        if (!zeroPadding)
+        {
+            throw new InvalidImageContentException("The JPEG XL byte-alignment padding is not zero.");
+        }
+
         return header;
     }
 

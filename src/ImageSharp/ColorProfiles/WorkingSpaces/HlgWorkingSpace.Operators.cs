@@ -206,7 +206,7 @@ public sealed partial class HlgWorkingSpace
             this.power = new(exponent);
             this.luminance = luminance;
 
-            // The shared contract retains the identity tolerance and scale limit used by libjxl HlgOOTF_Base.
+            // The shared contract retains the identity tolerance and scale limit used by libjxl.
             // Prepare this decision once; every RGB layout then applies the same luminance policy.
             this.apply = MathF.Abs(exponent) > IdentityGammaTolerance;
         }

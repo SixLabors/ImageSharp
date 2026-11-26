@@ -33,10 +33,9 @@ public partial class JxlHeaderTests
     /// The combined files contain little-endian IEEE 754 float samples, one row-major component per case, without headers or padding.
     /// Case order is 2x default/custom 33x5, 4x default/custom 33x5, 8x default/custom 33x5, 8x default 1x1, then 4x default 3x3.
     /// Each output dimension is factor times the corresponding input dimension, minus one, to exercise clipped final phases.
-    /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 supplies UpsamplingStage::ProcessRow,
-    /// lib/jxl/render_pipeline/stage_upsampling.cc, with the defaults from CustomTransformData::VisitFields in lib/jxl/image_metadata.cc.
-    /// Original jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f supplies Upsample::new and the native-size SIMD dispatches
-    /// in jxl/src/render/stages/upsample.rs. Neither reference uses ImageSharp conversion or pixel packing.
+    /// libjxl revision 91837342b24034078780b687f57f670a7def8153 supplies one reference, with its default upsampling weights.
+    /// jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f supplies the other reference through its SIMD paths.
+    /// Neither reference uses ImageSharp conversion or pixel packing.
     /// Custom compact weight i is ((i modulo 17) - 8) / 64. Input samples follow UpsamplingInputSample.
     /// </remarks>
     private static void ValidateUpsampling()
@@ -70,7 +69,7 @@ public partial class JxlHeaderTests
             using BufferedReadStream buffered = new(Configuration.Default, stream);
             JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
             JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-            JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+            JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
             Assert.Equal(framePositions[index], reader.Position);
             Assert.Equal(factors[index], frame.Upsampling);
             Vector3 dcFactors = JxlDecoderCore.ReadDcQuantization(ref reader);
@@ -79,7 +78,7 @@ public partial class JxlHeaderTests
             Assert.Equal(globalPositions[index], reader.Position);
             varDct.ReadDcGroup(ref reader, modular, 0, default);
             Assert.Equal(dcPositions[index], reader.Position);
-            varDct.ReadAcMetadata(ref reader, modular, 0, default);
+            varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
             Assert.Equal(metadataPositions[index], reader.Position);
             Assert.Equal(1U, varDct.UsedStrategies);
             varDct.PrepareReconstruction(allocator, header, frame);
@@ -218,7 +217,7 @@ public partial class JxlHeaderTests
         => size.Width == 1 && size.Height == 1 ? 1.25F : ((((3 * x) + (5 * y)) % 23) - 11) / 8F;
 
     /// <summary>
-    /// Applies the original native Mirror rule, including repeated border samples in one- and two-sample axes.
+    /// Applies the libjxl mirror rule, including repeated border samples in one- and two-sample axes.
     /// </summary>
     /// <param name="position">A source position within two samples of the image.</param>
     /// <param name="length">The positive source axis length.</param>

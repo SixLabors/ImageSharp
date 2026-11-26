@@ -71,50 +71,56 @@ internal sealed class JxlFrameSections : IDisposable
     public long TotalLength { get; }
 
     /// <summary>
-    /// Reads a frame's section table and retains the sizes and order required for reconstruction.
+    /// Reads the section table of a frame and keeps the sizes and the order that the reconstruction needs.
     /// </summary>
-    /// <param name="reader">The bit reader positioned after the frame header.</param>
-    /// <param name="allocator">The decoder's memory allocator.</param>
-    /// <param name="sectionCount">The positive entry count computed from the validated frame header.</param>
-    /// <param name="cancellationToken">The token used to cancel table processing.</param>
-    /// <returns>The table owner. The reader remains at the beginning of the section payloads.</returns>
-    public static JxlFrameSections Read(ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, CancellationToken cancellationToken)
+    /// <param name="reader">The bit reader, at the position after the frame header.</param>
+    /// <param name="allocator">The memory allocator of the decoder.</param>
+    /// <param name="sectionCount">The positive entry count from the checked frame header.</param>
+    /// <param name="handling">The policy for a damaged or truncated table after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame. Before that, each table error throws.</param>
+    /// <param name="cancellationToken">The token that cancels the table processing.</param>
+    /// <returns>
+    /// The table owner, or null if the mode ignores a table error. The reader stays at the start of the section payloads.
+    /// </returns>
+    public static JxlFrameSections? Read(
+        ref JxlBitReader reader,
+        MemoryAllocator allocator,
+        int sectionCount,
+        SegmentIntegrityHandling handling,
+        bool imageExists,
+        CancellationToken cancellationToken)
     {
-        // Check the minimum table size before renting memory from an image-derived entry count.
-        // One permutation flag precedes the sizes; padding and permutation tokens can only increase this minimum.
-        reader.CheckBitBudget(((ulong)sectionCount * MinimumBitsPerEntry) + 1);
-        IMemoryOwner<uint> sizes = allocator.Allocate<uint>(sectionCount);
-        IMemoryOwner<uint>? order = null;
-        try
-        {
-            (IMemoryOwner<uint>? tableOrder, long length) = ReadTable(ref reader, allocator, sectionCount, sizes.Memory.Span, cancellationToken);
-            order = tableOrder;
+        long length = ReadTable(
+            ref reader, allocator, sectionCount, true, handling, imageExists, cancellationToken, out IMemoryOwner<uint>? sizes, out IMemoryOwner<uint>? order);
 
-            return new JxlFrameSections(sizes, order, reader.BytePosition, length);
-        }
-        catch
-        {
-            // The returned object owns both arrays only after construction succeeds.
-            order?.Dispose();
-            sizes.Dispose();
-            throw;
-        }
+        // ReadTable returns the owners only for a complete table. The new object owns both arrays.
+        return length < 0 ? null : new JxlFrameSections(sizes!, order, reader.BytePosition, length);
     }
 
     /// <summary>
-    /// Validates a frame's section table and skips its payloads without retaining sizes or constructing a permutation.
-    /// Only a short final image payload can follow the image-data recovery policy.
+    /// Checks the section table of a frame and skips its payloads. The method does not keep the sizes or construct a permutation.
     /// </summary>
-    /// <param name="reader">The bit reader positioned after the frame header.</param>
-    /// <param name="allocator">The decoder's allocator for entropy tables and optional LZ77 history.</param>
-    /// <param name="sectionCount">The positive entry count computed from the validated frame header.</param>
-    /// <param name="handling">The policy for an incomplete final payload. Table and container errors remain fatal.</param>
-    /// <param name="cancellationToken">The token used to cancel table processing.</param>
-    /// <returns>Whether all payload bytes were skipped. False is possible only with IgnoreImageData.</returns>
+    /// <param name="reader">The bit reader, at the position after the frame header.</param>
+    /// <param name="allocator">The allocator of the decoder for the entropy tables and the optional LZ77 history.</param>
+    /// <param name="sectionCount">The positive entry count from the checked frame header.</param>
+    /// <param name="handling">The policy for an incomplete payload, and for a table error after the first displayed frame.</param>
+    /// <param name="imageExists">Whether a displayed frame comes before this frame. Before that, each table error throws.</param>
+    /// <param name="cancellationToken">The token that cancels the table processing.</param>
+    /// <returns>Whether the method skipped all payload bytes. False occurs only in the IgnoreImageData mode.</returns>
     public static bool Skip(
-        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, SegmentIntegrityHandling handling, CancellationToken cancellationToken)
+        ref JxlBitReader reader,
+        MemoryAllocator allocator,
+        int sectionCount,
+        SegmentIntegrityHandling handling,
+        bool imageExists,
+        CancellationToken cancellationToken)
     {
-        long length = ReadTable(ref reader, allocator, sectionCount, [], cancellationToken).Length;
+        long length = ReadTable(ref reader, allocator, sectionCount, false, handling, imageExists, cancellationToken, out _, out _);
+        if (length < 0)
+        {
+            return false;
+        }
+
         bool complete = reader.TrySkipBytes(length);
         if (!complete)
         {
@@ -139,25 +145,52 @@ internal sealed class JxlFrameSections : IDisposable
     }
 
     /// <summary>
-    /// Parses the shared table syntax, optionally writing sizes and using their storage as permutation workspace.
+    /// Parses the shared table syntax. If <paramref name="retain"/> is <see langword="true"/>, the method keeps the sizes and uses their storage as the
+    /// permutation workspace.
     /// </summary>
-    /// <param name="reader">The bit reader positioned after the frame header.</param>
-    /// <param name="allocator">The decoder's allocator.</param>
+    /// <param name="reader">The bit reader, at the position after the frame header.</param>
+    /// <param name="allocator">The allocator of the decoder.</param>
     /// <param name="sectionCount">The positive number of entries.</param>
-    /// <param name="sizes">The retained size storage, or an empty span for Identify.</param>
+    /// <param name="retain">Whether to keep the sizes and the order for the reconstruction. Identify keeps neither.</param>
+    /// <param name="handling">The policy for a damaged or truncated table after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The optional order owner and combined section payload length.</returns>
-    private static (IMemoryOwner<uint>? Order, long Length) ReadTable(
-        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, Span<uint> sizes, CancellationToken cancellationToken)
+    /// <param name="sizes">The retained size owner, or null if the method does not keep the sizes or the table is not complete.</param>
+    /// <param name="order">The optional order owner, or null for identity order or a table that is not complete.</param>
+    /// <returns>The combined section payload length in bytes, or -1 if the mode ignores a table error.</returns>
+    private static long ReadTable(
+        ref JxlBitReader reader,
+        MemoryAllocator allocator,
+        int sectionCount,
+        bool retain,
+        SegmentIntegrityHandling handling,
+        bool imageExists,
+        CancellationToken cancellationToken,
+        out IMemoryOwner<uint>? sizes,
+        out IMemoryOwner<uint>? order)
     {
-        bool permuted = reader.ReadBoolean();
-        reader.CheckBitBudget((ulong)sectionCount * MinimumBitsPerEntry);
-        IMemoryOwner<uint>? order = permuted ? ReadPermutation(ref reader, allocator, sectionCount, sizes, cancellationToken) : null;
+        sizes = null;
+        order = null;
+
+        // Each entry needs at least twelve bits: the two-bit U32 selector and its shortest ten-bit payload. One permutation flag comes before the sizes.
+        // The method checks this minimum once, before an allocation from the image-derived entry count.
+        // This check also limits the size loop below to the actual input.
+        if (!reader.CheckBitBudget(((ulong)sectionCount * MinimumBitsPerEntry) + 1))
+        {
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL section table is truncated.");
+            return -1;
+        }
+
         try
         {
-            reader.AlignToByte();
-            reader.CheckBitBudget((ulong)sectionCount * MinimumBitsPerEntry);
+            sizes = retain ? allocator.Allocate<uint>(sectionCount) : null;
+            Span<uint> sizeValues = sizes is null ? [] : sizes.Memory.Span;
+            if (reader.ReadBoolean())
+            {
+                order = ReadPermutation(ref reader, allocator, sectionCount, sizeValues, cancellationToken);
+            }
 
+            bool zeroPadding = reader.AlignToByte();
             long total = 0;
             for (int i = 0; i < sectionCount; i++)
             {
@@ -167,9 +200,9 @@ internal sealed class JxlFrameSections : IDisposable
                 }
 
                 uint size = reader.ReadU32((10, 0), (14, 1024), (22, 17408), (30, 4211712));
-                if (!sizes.IsEmpty)
+                if (!sizeValues.IsEmpty)
                 {
-                    sizes[i] = size;
+                    sizeValues[i] = size;
                 }
 
                 // Each U32 choice is at most 4211712 + (2^30-1). Even int.MaxValue such entries fit in a long.
@@ -177,15 +210,28 @@ internal sealed class JxlFrameSections : IDisposable
                 total += size;
             }
 
-            reader.AlignToByte();
+            zeroPadding &= reader.AlignToByte();
 
-            // A complete table remains usable when image payload bytes are missing. The payload owner
-            // decides whether recovery is allowed; syntax, permutation and padding errors above always remain fatal.
-            return (order, total);
+            // Reads past the end return zeros. The method checks the bounds and both paddings once for the complete table. A complete table stays usable when
+            // image payload bytes are missing. The payload owner decides if recovery is permitted.
+            if (!reader.AllReadsWithinBounds || !zeroPadding)
+            {
+                string message = reader.AllReadsWithinBounds ? "The JPEG XL section table padding is not zero." : "The JPEG XL section table is truncated.";
+
+                order?.Dispose();
+                sizes?.Dispose();
+                order = null;
+                sizes = null;
+                handling.ThrowOrIgnoreImageDataError(imageExists, message);
+                return -1;
+            }
+
+            return total;
         }
         catch
         {
             order?.Dispose();
+            sizes?.Dispose();
             throw;
         }
     }

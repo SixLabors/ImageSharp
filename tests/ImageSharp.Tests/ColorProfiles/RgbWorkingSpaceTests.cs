@@ -23,7 +23,7 @@ public class RgbWorkingSpaceTests
     private static readonly ApproximateFloatComparer RoundTripComparer = new(2F * 5E-4F);
 
     // Original libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153.
-    // Decoder GetToLinearStage/GetFromLinearStage supply primary-weighted HLG RGB values at the recorded display peaks.
+    // Its decoder transfer stages supply primary-weighted HLG RGB values at the recorded display peaks.
     // Keep the existing measured power bound. Values are normalized by max(1, abs(expected)) before comparison.
     private static readonly ApproximateFloatComparer NativeTransferComparer = new(5E-4F);
 

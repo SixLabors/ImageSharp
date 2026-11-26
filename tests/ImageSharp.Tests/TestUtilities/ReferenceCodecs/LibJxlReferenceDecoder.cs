@@ -114,8 +114,8 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
 
                         case JxlDecoderStatus.JXL_DEC_COLOR_ENCODING:
                         {
-                            // decode.h requires the CMS before this event and the output profile before
-                            // pixel decoding. Keep grayscale as grayscale; libjxl expands it to the RGBA buffer.
+                            // The libjxl decoder API requires the CMS before this event and the output profile before pixel decoding.
+                            // Keep grayscale as grayscale; libjxl expands it to the RGBA buffer.
                             JxlColorEncoding srgb;
                             NativeJxl.JxlColorEncodingSetToSRGB(&srgb, grayscale ? 1 : 0);
                             JxlColorEncoding originalEncoding;

@@ -10,8 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
 internal abstract partial class JxlColorConverterBase
 {
-    // libjxl cms/opsin_params.h defines these device units. ScaleXYBRow stores
-    // (X + offsetX) * scaleX, Y * scaleY and (B - Y + offsetB) * scaleB.
+    // These constants define the scaled XYB device units. The device encoding stores (X + offsetX) * scaleX, Y * scaleY and (B - Y + offsetB) * scaleB.
     // Both encoding and decoding use this one set of constants, independently of the coding matrix.
     private const float XybDeviceXOffset = 0.015386134F;
     private const float XybDeviceBOffset = 0.27770459F;
@@ -23,8 +22,8 @@ internal abstract partial class JxlColorConverterBase
     /// Maps coding XYB to the original scaled XYB device samples before composition or reference saving.
     /// </summary>
     /// <remarks>
-    /// This is the XYB-output branch of libjxl render_pipeline/stage_xyb.cc. It changes sample units,
-    /// not color coordinates. No opsin inverse, transfer curve, intensity scaling or pixel clipping applies.
+    /// This is the XYB output path. It changes sample units, not color coordinates.
+    /// No opsin inverse, transfer curve, intensity scaling or pixel clipping applies.
     /// </remarks>
     internal readonly struct XybEncodingOperator : IJxlColorConverterOperator
     {
@@ -83,8 +82,6 @@ internal abstract partial class JxlColorConverterBase
     /// </summary>
     /// <remarks>
     /// These samples differ from coding XYB. The device encoding scales X and Y separately and stores B minus Y.
-    /// The fixed mapping follows libjxl lib/jxl/enc_xyb.cc, ScaleXYBRow, and lib/jxl/cms/opsin_params.h.
-    /// The cube-root domain cutoff follows CreateICCLutAtoBTagForXYB in lib/jxl/cms/jxl_cms_internal.h.
     /// Conversion uses the standard 255-nit transform, independently of the image's custom coding transform.
     /// </remarks>
     /// <typeparam name="TComponentOperator">The existing RGB or YCbCr component restoration selected for this frame.</typeparam>

@@ -28,12 +28,12 @@ internal sealed partial class JxlSplines
 
     /// <summary>
     /// The native high-precision Gaussian tail cutoff exponent: retain intensities at least 10^-5.
-    /// libjxl splines.cc ComputeSegments uses this threshold to bound the painted support.
+    /// This threshold bounds the painted support.
     /// </summary>
     private const float GaussianCutoffExponent = 5F;
 
     /// <summary>
-    /// The square-root-of-two normalization in libjxl splines.cc ContinuousIDCT.
+    /// The square-root-of-two normalization of the continuous IDCT.
     /// It also supplies the first angle-doubling offset in the reference cosine approximation.
     /// </summary>
     private const float RootTwo = 1.4142135623730950488F;
@@ -44,7 +44,7 @@ internal sealed partial class JxlSplines
     private const float InverseRootTwo = .7071067811865475244F;
 
     /// <summary>
-    /// The continuous 32-point DCT frequency spacing, pi/32 radians, from libjxl ContinuousIDCT.
+    /// The continuous 32-point DCT frequency spacing, pi/32 radians.
     /// </summary>
     private const float CosineStep = MathF.PI / CoefficientsPerChannel;
 
@@ -54,7 +54,7 @@ internal sealed partial class JxlSplines
     private static readonly float LogGaussianCutoff = MathF.Log(.1F) * GaussianCutoffExponent;
 
     /// <summary>
-    /// Gets the libjxl splines.cc kChannelWeight values in X, Y, B and Gaussian-width order.
+    /// Gets the channel weights in X, Y, B and Gaussian-width order.
     /// These factors convert quantized fields to native color components and coding-pixel width.
     /// </summary>
     private static ReadOnlySpan<float> ChannelWeights => [.0042F, .075F, .07F, .3333F];
@@ -275,7 +275,7 @@ internal sealed partial class JxlSplines
     /// <returns>The clipped start and exclusive end.</returns>
     private static Range GetRasterBounds(float center, float distance, int length)
     {
-        // Native llround uses halfway-away-from-zero. Saturating conversion and a widened end+1
+        // Round halfway values away from zero. Saturating conversion and a widened end+1
         // keep clipping defined even when a finite Gaussian extends far beyond the int-sized image.
         int first = Math.Clamp(int.CreateSaturating(MathF.Round(center - distance, MidpointRounding.AwayFromZero)), 0, length);
         long end = (long)int.CreateSaturating(MathF.Round(center + distance, MidpointRounding.AwayFromZero)) + 1;
@@ -404,8 +404,7 @@ internal sealed partial class JxlSplines
         (int firstY, int rows) = GetRasterBounds(center.Y, maximumDistance, this.codingSize.Height).GetOffsetAndLength(this.codingSize.Height);
         if (count == 0 || rows == 0)
         {
-            // A valid curve can lie outside the visible image. Discard an empty clipped support
-            // before visiting rows, as native ComputeSegments and DrawSegment do.
+            // A valid curve can lie outside the visible image. Discard an empty clipped support before visiting rows.
             return;
         }
 

@@ -1217,7 +1217,7 @@ public class JxlEncoderTests
         using BufferedReadStream buffered = new(configuration, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
 
         Assert.Equal(distance == 0, frame.Modular);
         Assert.Equal(progressive ? distance > 0 ? 3 : 2 : 1, frame.PassCount);

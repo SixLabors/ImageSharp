@@ -92,12 +92,11 @@ internal static class JxlHuffmanDecoder
             throw new InvalidImageContentException("The JPEG XL code-length alphabet is incomplete or oversubscribed.");
         }
 
+        // The space check above accepts only a complete code or a one-symbol code, so the build cannot fail.
         Span<HuffmanCode> table = stackalloc HuffmanCode[32];
         Span<int> sorted = stackalloc int[18];
-        if (HuffmanTableBuilder.Build(table, 5, lengthCode, sorted) == 0)
-        {
-            throw new InvalidImageContentException("The JPEG XL code-length alphabet is invalid.");
-        }
+        int tableSize = HuffmanTableBuilder.Build(table, 5, lengthCode, sorted);
+        DebugGuard.MustBeGreaterThan(tableSize, 0, nameof(tableSize));
 
         int position = 0;
         int previous = 8;

@@ -63,12 +63,12 @@ internal sealed class JxlModularTree : IDisposable
     private const int InitialCapacity = 64;
 
     /// <summary>
-    /// The interval lookup's first representable property value, as defined by jxl-rs LUT_MIN_SPLITVAL.
+    /// The interval lookup's first representable property value.
     /// </summary>
     private const int MinimumLookupValue = -1024;
 
     /// <summary>
-    /// The interval lookup's last representable property value, as defined by jxl-rs LUT_MAX_SPLITVAL.
+    /// The interval lookup's last representable property value.
     /// </summary>
     private const int MaximumLookupValue = 1023;
 
@@ -193,6 +193,9 @@ internal sealed class JxlModularTree : IDisposable
                 // Every split appends two adjacent children to that queue; each leaf receives the next sample context.
                 while (pending != 0)
                 {
+                    // Reads past the section end return zeros. The decoder checks the bounds before each node, so a tree read past
+                    // its complete section cannot grow from zero symbols.
+                    reader.ThrowIfReadPastSectionEnd();
                     if (count == nodes.Length)
                     {
                         int capacity = Math.Min(maximumNodes, nodes.Length * 2);
@@ -291,8 +294,7 @@ internal sealed class JxlModularTree : IDisposable
     /// <param name="workspace">The frame-owned table storage and temporary metadata scratch.</param>
     /// <returns>A borrowed lookup whose tables remain valid until the next channel is prepared, or an empty view.</returns>
     /// <remarks>
-    /// Eligibility follows jxl-rs specialized_trees/mod.rs and bitset_tree.rs at revision
-    /// d7a831fae15b903f1b56a76668030c19ac07bb6f. Small channels retain the ordinary walk to avoid table setup cost.
+    /// Small channels retain the ordinary walk to avoid table setup cost.
     /// At most 256 leaves, eight properties below 64 and thresholds from -1024 through 1022 can use this representation.
     /// Other trees retain their full property and threshold ranges through the existing walk.
     /// </remarks>
@@ -499,7 +501,6 @@ internal sealed class JxlModularTree : IDisposable
     /// <param name="workspace">The frame-owned storage reused between channels.</param>
     /// <returns>The completed flat tree, borrowed until the next channel is prepared.</returns>
     /// <remarks>
-    /// This follows jxl-rs flat_tree.rs at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
     /// Leaves retain their complete entropy and prediction fields inside the flat storage, without a second source-node lookup.
     /// </remarks>
     public static ReadOnlySpan<FlatNode> PrepareFlatTree(ReadOnlySpan<Node> nodes, JxlModularWorkspace workspace)
@@ -1063,7 +1064,7 @@ internal sealed class JxlModularTree : IDisposable
     private struct ValidationFrame
     {
         /// <summary>
-        /// The node examined by this traversal frame.
+        /// The node that this traversal frame checks.
         /// </summary>
         public int NodeIndex;
 

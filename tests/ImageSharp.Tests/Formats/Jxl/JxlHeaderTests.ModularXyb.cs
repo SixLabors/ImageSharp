@@ -29,11 +29,11 @@ public partial class JxlHeaderTests
     /// Checks component overloads and mixed planar traversal against independently recorded native RGB and XYB pairs.
     /// </summary>
     /// <remarks>
-    /// The native pairs are recorded in RgbAndXybConversionTest.VerifyNativeLinearForward. Original libjxl revision
-    /// 91837342b24034078780b687f57f670a7def8153, lib/jxl/enc_xyb.cc, ToXYB, produced the XYB values at 255 nits.
-    /// ScaleXYBRow in the same source converts those values to the fixed device samples below.
-    /// Device-to-RGB expectations are the original linear RGB inputs. Coding-to-device expectations are the
-    /// independently recorded ScaleXYBRow results. Neither direction derives expectations from production operators.
+    /// The native pairs are recorded in RgbAndXybConversionTest.VerifyNativeLinearForward.
+    /// libjxl revision 91837342b24034078780b687f57f670a7def8153 produced the XYB values at 255 nits.
+    /// The same libjxl revision converted those values to the fixed device samples below.
+    /// Device-to-RGB expectations are the original linear RGB inputs. Coding-to-device expectations are the independently recorded libjxl results.
+    /// Neither direction derives expectations from production operators.
     /// Two additional device inputs reuse the native black and red expectations after the native ICC CLUT bounds their coordinates.
     /// </remarks>
     private static void ValidateDeclaredXybDeviceConversion()
@@ -63,7 +63,7 @@ public partial class JxlHeaderTests
             new(1F, 0F, 0F)
         ];
 
-        // These are the matching native ToXYB values from VerifyNativeLinearForward at 255 nits.
+        // These are the matching libjxl XYB values from VerifyNativeLinearForward at 255 nits.
         // Keeping the literal coding and device samples checks the fixed encoding without using an inverse round trip.
         ReadOnlySpan<Vector3> coding =
         [
@@ -184,8 +184,8 @@ public partial class JxlHeaderTests
     /// <param name="file">The stored native modular XYB owner prefix, with thirty-one coded columns and one row.</param>
     /// <param name="precision">The original metadata precision, which selects native X/Y conversion accuracy.</param>
     /// <remarks>
-    /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153, lib/jxl/dec_modular.cc, supplies MultiplySum,
-    /// SingleFromSingle and SingleFromSingleAccurate. Highway x86_128-inl.h uses _mm_add_epi32 for MultiplySum's signed wrapping sum.
+    /// libjxl revision 91837342b24034078780b687f57f670a7def8153 supplies the expected results.
+    /// Its x86 SIMD path adds Y and B-minus-Y with a signed wrapping sum.
     /// Each stored prefix ends after its global modular stream. It declares 32-bit modular buffers even at metadata precision eight.
     /// X is 16777217 throughout; Y and B-minus-Y repeat the four integer pairs below. DC factors are 3/256, 1/8192 and 1/4096.
     /// Expected literals are IEEE 754 float bit patterns before color conversion or pixel packing.
@@ -197,7 +197,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Assert.True(header.UsesXybTransform);
         Assert.False(header.Modular16BitBufferSufficient);
         Assert.Equal(precision, header.Metadata.BitDepth.BitsPerSample);

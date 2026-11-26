@@ -788,8 +788,8 @@ public readonly struct Xyb : IColorProfile<Xyb, CieXyz>
             RgbWorkingSpace source = KnownRgbWorkingSpaces.SRgb;
             if (grayscale)
             {
-                // libjxl dec_xyb.cc uses the BT.709 luminance row for D65 gray output. Repeat its
-                // column so the existing three-component inverse produces the same gray in X, Y and Z.
+                // D65 gray output uses the BT.709 luminance row, as in libjxl.
+                // Repeat its column so the existing three-component inverse produces the same gray in X, Y and Z.
                 Vector4 luminance = ColorNumerics.Bt709;
                 Matrix4x4 gray = new(
                     luminance.X,
@@ -813,14 +813,13 @@ public readonly struct Xyb : IColorProfile<Xyb, CieXyz>
             }
             else if (!target.WhitePoint.Equals(source.WhitePoint) || !target.ChromaticityCoordinates.Equals(source.ChromaticityCoordinates))
             {
-                // Both RGB spaces connect through D50-adapted XYZ, as in libjxl dec_xyb.cc.
+                // Both RGB spaces connect through D50-adapted XYZ, as in libjxl.
                 // Row vectors therefore use absorbance * sRGB-to-XYZ-D50 * XYZ-D50-to-target.
                 // Keep the default sRGB path above free of matrix products that would change its rounding.
                 Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
                 _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverseAdaptation);
                 Matrix4x4 sourceToD50 = AdaptToD50(source, adaptation, inverseAdaptation);
-                Matrix4x4 targetToD50 = AdaptToD50(target, adaptation, inverseAdaptation);
-                if (!Matrix4x4.Invert(targetToD50, out Matrix4x4 d50ToTarget))
+                if (!TryGetD50ToTargetMatrix(target, out Matrix4x4 d50ToTarget))
                 {
                     throw new ArgumentException("The target RGB primaries must produce an invertible matrix.", nameof(target));
                 }
@@ -833,6 +832,23 @@ public readonly struct Xyb : IColorProfile<Xyb, CieXyz>
             this.matrix = inverse * (XybTransform.ReferenceIntensity / transform.IntensityTarget);
             this.biases = transform.Biases;
             this.cubeRootBiases = transform.CubeRootBiases;
+        }
+
+        /// <summary>
+        /// Gets the matrix from D50-adapted XYZ to the target RGB coordinates.
+        /// </summary>
+        /// <remarks>
+        /// The constructor for the selected linear RGB coordinates uses this matrix. A decoder can call this method first to find target primaries that do not
+        /// produce an invertible matrix, with the same arithmetic.
+        /// </remarks>
+        /// <param name="target">The target RGB working space.</param>
+        /// <param name="d50ToTarget">The matrix in row-vector order.</param>
+        /// <returns><see langword="true"/> if the target primaries produce an invertible matrix. Otherwise <see langword="false"/>.</returns>
+        public static bool TryGetD50ToTargetMatrix(RgbWorkingSpace target, out Matrix4x4 d50ToTarget)
+        {
+            Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
+            _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverseAdaptation);
+            return Matrix4x4.Invert(AdaptToD50(target, adaptation, inverseAdaptation), out d50ToTarget);
         }
 
         /// <summary>

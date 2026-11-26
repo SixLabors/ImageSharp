@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 /// </summary>
 /// <remarks>
 /// The decoder owns the error storage and reuses it between channels. Prediction and error updates follow sample order on one thread.
-/// Arithmetic follows the weighted predictor in ISO/IEC 18181-1, as implemented by libjxl's context_predict.h.
+/// Arithmetic follows the weighted predictor in ISO/IEC 18181-1.
 /// </remarks>
 internal struct JxlWeightedPredictor : JxlModularPredictor.IWeightedPredictor
 {
@@ -320,8 +320,8 @@ internal struct JxlWeightedPredictor : JxlModularPredictor.IWeightedPredictor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint GetWeight(uint error, uint maximumWeight)
     {
-        // All four predictor weights use this equation for every sample. Keep it in the caller, as in
-        // jxl-rs predict.rs, so the four local error lanes do not cross separate call boundaries.
+        // All four predictor weights use this equation for every sample. Keep it in the caller,
+        // so the four local error lanes do not cross separate call boundaries.
         // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
         // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
         int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
@@ -367,8 +367,8 @@ internal struct JxlWeightedPredictor : JxlModularPredictor.IWeightedPredictor
         int northWest = isInterior || x != 0 ? north - 1 : north;
 
         // Fixed lanes identify the four predictors for this one sample, not four image columns.
-        // Each wrapped sum combines the previous row's N, NE and NW errors exactly as libjxl and
-        // jxl-rs predict.rs do. Each load contains all four predictors at one neighboring column.
+        // Each wrapped sum combines the N, NE and NW errors of the previous row.
+        // Each load contains all four predictors at one neighboring column.
         ref int firstError = ref MemoryMarshal.GetReference(errors);
         ref uint errorWords = ref Unsafe.As<int, uint>(ref firstError);
         int predictorBase = this.combinedErrorLength;

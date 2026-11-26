@@ -321,54 +321,36 @@ internal sealed class JxlFrameHeader
     }
 
     /// <summary>
-    /// Gets the section-table entry count without overflowing large dimension products.
+    /// Gets the section-table entry count. <see cref="Read"/> checks that the count fits in a signed 32-bit value.
     /// </summary>
-    public int SectionCount
-    {
-        get
-        {
-            // A coding group spans 128 << shift pixels. An LF group spans eight coding groups per dimension.
-            // Chroma padding cannot cross these power-of-two group boundaries, so unpadded coding sizes suffice here.
-            Size size = this.CodingSize;
-            uint groupSize = (uint)this.GroupSize;
-            ulong groups = (((uint)size.Width + groupSize - 1) / groupSize) * (ulong)(((uint)size.Height + groupSize - 1) / groupSize);
-            uint dcGroupSize = groupSize * 8;
-            ulong dcGroups = (((uint)size.Width + dcGroupSize - 1) / dcGroupSize) * (ulong)(((uint)size.Height + dcGroupSize - 1) / dcGroupSize);
-
-            // A single group with one pass combines all sections. Otherwise the table has LF-global,
-            // LF-group, HF-global and one section per group and pass. Widen before multiplying untrusted dimensions.
-            ulong count = groups == 1 && this.PassCount == 1 ? 1 : 2 + dcGroups + (groups * this.PassCount);
-            if (count > int.MaxValue)
-            {
-                throw new InvalidImageContentException("The JPEG XL frame has too many coding sections.");
-            }
-
-            return (int)count;
-        }
-    }
+    public int SectionCount { get; private set; }
 
     /// <summary>
-    /// Reads a frame header from its byte-aligned start using libjxl's field order and defaults.
+    /// Reads a frame header from its byte-aligned start. The method uses the field order and the defaults of libjxl.
     /// </summary>
     /// <param name="reader">The bit reader at the frame boundary.</param>
     /// <param name="image">The image-wide header.</param>
-    /// <param name="preview">Whether this is the optional preview frame.</param>
-    /// <param name="handling">The policy for an invalid optional frame label.</param>
-    /// <returns>The frame's retained parsing and reconstruction state.</returns>
-    public static JxlFrameHeader Read(ref JxlBitReader reader, JxlHeader image, bool preview, SegmentIntegrityHandling handling)
+    /// <param name="preview">Whether this frame is the optional preview frame.</param>
+    /// <param name="handling">The policy for an invalid optional frame label and for a damaged header after the image exists.</param>
+    /// <param name="imageExists">
+    /// Whether the decoder created the image before this frame. Before that, each damaged or truncated header throws.
+    /// </param>
+    /// <returns>The retained parse and reconstruction state of the frame, or null if the mode ignores a damaged header.</returns>
+    public static JxlFrameHeader? Read(ref JxlBitReader reader, JxlHeader image, bool preview, SegmentIntegrityHandling handling, bool imageExists)
     {
         JxlFrameHeader frame = new(image, preview);
         if (reader.ReadBoolean())
         {
             // One flag replaces the complete serialized header with its defaults. The TOC permutation flag
             // follows immediately; the section-table parser consumes padding after that flag, not here.
-            return frame;
+            return frame.Complete(ref reader, handling, imageExists) ? frame : null;
         }
 
         frame.Type = (FrameType)reader.ReadBits(2);
         if (preview && frame.Type != FrameType.Regular)
         {
-            throw new InvalidImageContentException("The JPEG XL preview must use a regular frame.");
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL preview must use a regular frame.");
+            return null;
         }
 
         frame.Modular = reader.ReadBoolean();
@@ -410,7 +392,8 @@ internal sealed class JxlFrameHeader
                 int scale = (1 << (int)reader.ReadBits(2)) << image.Metadata.ExtraChannels[i].DimensionShift;
                 if (scale < frame.Upsampling || scale > 8)
                 {
-                    throw new InvalidImageContentException("The JPEG XL extra-channel upsampling factor is invalid.");
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL extra-channel upsampling factor is invalid.");
+                    return null;
                 }
 
                 frame.ExtraChannelUpsampling[i] = (byte)scale;
@@ -419,15 +402,15 @@ internal sealed class JxlFrameHeader
 
         // Patches address color and extras on one coding grid. If color is reduced, all extras
         // must use that same factor so common upsampling follows patch reconstruction.
-        // Compare the effective factors, including DimensionShift, as libjxl dec_frame.cc and
-        // jxl-rs frame_header.rs do. Early extra upsampling would otherwise mix sample grids.
+        // Compare the effective factors, including DimensionShift. Early extra upsampling would otherwise mix sample grids.
         if ((frame.Flags & Patches) != 0 && frame.Upsampling != 1)
         {
             foreach (byte factor in frame.ExtraChannelUpsampling)
             {
                 if (factor != frame.Upsampling)
                 {
-                    throw new InvalidImageContentException("The JPEG XL patch color and extra channels use different sample grids.");
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL patch color and extra channels use different sample grids.");
+                    return null;
                 }
             }
         }
@@ -446,10 +429,10 @@ internal sealed class JxlFrameHeader
             frame.BQuantizationScale = (byte)reader.ReadBits(3);
         }
 
-        if (frame.Type != FrameType.ReferenceOnly)
+        // Reference-only frames omit the progressive pass header and keep its one-pass defaults.
+        if (frame.Type != FrameType.ReferenceOnly && !frame.ReadPasses(ref reader, handling, imageExists))
         {
-            // Reference-only frames omit the progressive pass header and retain its one-pass defaults.
-            frame.ReadPasses(ref reader);
+            return null;
         }
 
         if (frame.Type == FrameType.LowFrequency)
@@ -474,7 +457,8 @@ internal sealed class JxlFrameHeader
                 uint height = ReadCropField(ref reader);
                 if (width == 0 || height == 0)
                 {
-                    throw new InvalidImageContentException("The JPEG XL crop dimensions cannot be zero.");
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL crop dimensions cannot be zero.");
+                    return null;
                 }
 
                 frame.Size = new Size((int)width, (int)height);
@@ -493,18 +477,27 @@ internal sealed class JxlFrameHeader
             // Only display-capable frames carry blending, duration and the final-frame flag.
             // Every extra channel has its own blending instruction, independent of the color instruction.
             int extraCount = image.Metadata.ExtraChannels.Count;
-            frame.Blending = BlendingInfo.Read(ref reader, extraCount, frame.CoversImage);
-            bool replaceAll = frame.Blending.Mode == 0;
+            if (!BlendingInfo.TryRead(ref reader, extraCount, frame.CoversImage, handling, imageExists, out BlendingInfo blending))
+            {
+                return null;
+            }
 
+            frame.Blending = blending;
+            bool replaceAll = blending.Mode == 0;
             for (int i = 0; i < frame.ExtraChannelBlending.Length; i++)
             {
-                frame.ExtraChannelBlending[i] = BlendingInfo.Read(ref reader, extraCount, frame.CoversImage);
+                if (!BlendingInfo.TryRead(ref reader, extraCount, frame.CoversImage, handling, imageExists, out frame.ExtraChannelBlending[i]))
+                {
+                    return null;
+                }
+
                 replaceAll &= frame.ExtraChannelBlending[i].Mode == 0;
             }
 
             if (preview && (!replaceAll || frame.HasCrop))
             {
-                throw new InvalidImageContentException("The JPEG XL preview cannot crop or blend with a reference.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL preview cannot crop or blend with a reference.");
+                return null;
             }
 
             if (image.TicksPerSecond.HasValue)
@@ -540,18 +533,62 @@ internal sealed class JxlFrameHeader
             if (frame.Type == FrameType.ReferenceOnly && !frame.SaveBeforeColorTransform
                 && (frame.Size.Width < image.Size.Width || frame.Size.Height < image.Size.Height))
             {
-                throw new InvalidImageContentException("The JPEG XL post-transform reference does not cover the image.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL post-transform reference does not cover the image.");
+                return null;
             }
         }
 
         frame.Name = reader.ReadName(handling);
-        frame.RestorationFilter = JxlRestorationFilter.Read(ref reader, frame.Modular);
+        JxlRestorationFilter? restorationFilter = JxlRestorationFilter.Read(ref reader, frame.Modular, handling, imageExists);
+        if (restorationFilter is null)
+        {
+            return null;
+        }
+
+        frame.RestorationFilter = restorationFilter;
 
         // Extensions belong to the frame header. The section table begins at the next bit;
         // its permutation flag must be read before the section-table parser consumes byte padding.
         reader.SkipExtensions();
 
-        return frame;
+        return frame.Complete(ref reader, handling, imageExists) ? frame : null;
+    }
+
+    /// <summary>
+    /// Computes the section count and checks the bounds of the complete header once.
+    /// </summary>
+    /// <param name="reader">The frame bit reader after the last header field.</param>
+    /// <param name="handling">The policy for a damaged header after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame.</param>
+    /// <returns>Whether the header is complete and valid. False means that the mode ignored the error.</returns>
+    private bool Complete(ref JxlBitReader reader, SegmentIntegrityHandling handling, bool imageExists)
+    {
+        // Reads past the codestream end return zeros. Thus this method checks the bounds of the complete header before a later stage uses its values.
+        if (!reader.AllReadsWithinBounds)
+        {
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL frame header is truncated.");
+            return false;
+        }
+
+        // A coding group covers 128 << shift pixels. An LF group covers eight coding groups in each dimension. Chroma padding cannot cross these power-of-two
+        // group boundaries, so the unpadded coding sizes are sufficient here.
+        Size size = this.CodingSize;
+        uint groupSize = (uint)this.GroupSize;
+        ulong groups = (((uint)size.Width + groupSize - 1) / groupSize) * (ulong)(((uint)size.Height + groupSize - 1) / groupSize);
+        uint dcGroupSize = groupSize * 8;
+        ulong dcGroups = (((uint)size.Width + dcGroupSize - 1) / dcGroupSize) * (ulong)(((uint)size.Height + dcGroupSize - 1) / dcGroupSize);
+
+        // If the frame has one group and one pass, one section holds all the data. Otherwise, the table has the LF-global section, the LF-group sections, the
+        // HF-global section and one section for each group and pass. The code widens the untrusted dimensions before it multiplies them.
+        ulong count = groups == 1 && this.PassCount == 1 ? 1 : 2 + dcGroups + (groups * this.PassCount);
+        if (count > int.MaxValue)
+        {
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL frame has too many coding sections.");
+            return false;
+        }
+
+        this.SectionCount = (int)count;
+        return true;
     }
 
     /// <summary>
@@ -562,21 +599,25 @@ internal sealed class JxlFrameHeader
     private static uint ReadCropField(ref JxlBitReader reader) => reader.ReadU32((8, 0), (11, 256), (14, 2304), (30, 18688));
 
     /// <summary>
-    /// Reads progressive pass controls and validates their ordering before later section indexing uses them.
+    /// Reads the progressive pass controls and checks their order before the later section indices use them.
     /// </summary>
     /// <param name="reader">The frame bit reader.</param>
-    private void ReadPasses(ref JxlBitReader reader)
+    /// <param name="handling">The policy for a damaged header after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame.</param>
+    /// <returns>Whether the pass controls are valid. False means that the mode ignored the error.</returns>
+    private bool ReadPasses(ref JxlBitReader reader, SegmentIntegrityHandling handling, bool imageExists)
     {
         this.PassCount = (byte)reader.ReadU32((0, 1), (0, 2), (0, 3), (3, 4));
         if (this.PassCount == 1)
         {
-            return;
+            return true;
         }
 
         this.downsamplingCount = (byte)reader.ReadU32((0, 0), (0, 1), (0, 2), (1, 3));
         if (this.downsamplingCount > this.PassCount)
         {
-            throw new InvalidImageContentException("The JPEG XL downsampling stage count exceeds its pass count.");
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL downsampling stage count exceeds its pass count.");
+            return false;
         }
 
         // The last pass has no shift field: the zero-initialized final entry gives full coefficient precision.
@@ -591,7 +632,8 @@ internal sealed class JxlFrameHeader
             byte factor = (byte)(1 << (int)reader.ReadBits(2));
             if (i != 0 && factor >= this.downsampling[i - 1])
             {
-                throw new InvalidImageContentException("The JPEG XL progressive downsampling factors are not decreasing.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL progressive downsampling factors are not decreasing.");
+                return false;
             }
 
             this.downsampling[i] = factor;
@@ -603,11 +645,14 @@ internal sealed class JxlFrameHeader
             byte pass = (byte)reader.ReadU32((0, 0), (0, 1), (0, 2), (3, 0));
             if (pass >= this.PassCount || (i != 0 && pass <= this.lastDownsamplingPass[i - 1]))
             {
-                throw new InvalidImageContentException("The JPEG XL progressive pass boundaries are invalid.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL progressive pass boundaries are invalid.");
+                return false;
             }
 
             this.lastDownsamplingPass[i] = pass;
         }
+
+        return true;
     }
 
     /// <summary>
@@ -651,18 +696,24 @@ internal sealed class JxlFrameHeader
         public byte Source { get; }
 
         /// <summary>
-        /// Reads one blending instruction and validates references to extra channels.
+        /// Reads one blending instruction and checks its references to extra channels.
         /// </summary>
         /// <param name="reader">The frame bit reader.</param>
-        /// <param name="extraChannels">The image's extra-channel count.</param>
+        /// <param name="extraChannels">The extra-channel count of the image.</param>
         /// <param name="fullFrame">Whether this frame covers the image.</param>
-        /// <returns>The parsed instruction.</returns>
-        public static BlendingInfo Read(ref JxlBitReader reader, int extraChannels, bool fullFrame)
+        /// <param name="handling">The policy for a damaged header after the image exists.</param>
+        /// <param name="imageExists">Whether the decoder created the image before this frame.</param>
+        /// <param name="info">The parsed instruction.</param>
+        /// <returns>Whether the instruction is valid. False means that the mode ignored the error.</returns>
+        public static bool TryRead(
+            ref JxlBitReader reader, int extraChannels, bool fullFrame, SegmentIntegrityHandling handling, bool imageExists, out BlendingInfo info)
         {
+            info = default;
             uint mode = reader.ReadU32((0, 0), (0, 1), (0, 2), (2, 3));
             if (mode > 4)
             {
-                throw new InvalidImageContentException("The JPEG XL blending mode is invalid.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL blending mode is invalid.");
+                return false;
             }
 
             uint alpha = 0;
@@ -675,7 +726,8 @@ internal sealed class JxlFrameHeader
                 alpha = reader.ReadU32((0, 0), (0, 1), (0, 2), (3, 3));
                 if (alpha >= extraChannels)
                 {
-                    throw new InvalidImageContentException("The JPEG XL blending weight refers to a missing extra channel.");
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL blending weight refers to a missing extra channel.");
+                    return false;
                 }
             }
 
@@ -683,7 +735,8 @@ internal sealed class JxlFrameHeader
             // A full-frame replacement needs no background source, so its reference-slot field is absent.
             bool clamp = (weighted || mode == 4) && reader.ReadBoolean();
             byte source = !fullFrame || mode != 0 ? (byte)reader.ReadBits(2) : (byte)0;
-            return new BlendingInfo((byte)mode, (byte)alpha, clamp, source);
+            info = new BlendingInfo((byte)mode, (byte)alpha, clamp, source);
+            return true;
         }
     }
 }

@@ -109,8 +109,8 @@ internal static class JxlSampleConverter
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         if (bitDepth.ExponentBits == 0)
         {
-            // dec_modular.cc selects normalization from the main image precision, including for extra
-            // channels with a different depth. The channel depth still determines its normalization factor.
+            // The main image precision selects the normalization arithmetic, also for extra channels with a different depth.
+            // The channel depth still determines its normalization factor.
             // From 23 main-image bits onward, multiply by the double factor before rounding once to float.
             if (imageBitDepth.BitsPerSample < 23)
             {

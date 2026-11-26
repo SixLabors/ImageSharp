@@ -10,28 +10,28 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 internal sealed partial class JxlSplines
 {
     /// <summary>
-    /// The reference 1/(2*sqrt(2)) integration offset from libjxl splines.cc DrawSegment.
+    /// The reference 1/(2*sqrt(2)) integration offset.
     /// It sets the two pixel-integration endpoints before division by Gaussian width.
     /// </summary>
     private const float GaussianIntegralOffset = .353553391F;
 
     /// <summary>
-    /// The leading quartic coefficient of libjxl base/fast_math-inl.h FastErff's reciprocal polynomial.
+    /// The leading quartic coefficient of the error-function reciprocal polynomial.
     /// </summary>
     private const float ErfCoefficient0 = .0777394369F;
 
     /// <summary>
-    /// The cubic coefficient of the FastErff denominator polynomial in the absolute integration endpoint.
+    /// The cubic coefficient of the error-function denominator polynomial in the absolute integration endpoint.
     /// </summary>
     private const float ErfCoefficient1 = .000205260015F;
 
     /// <summary>
-    /// The quadratic coefficient of the FastErff denominator polynomial in the absolute integration endpoint.
+    /// The quadratic coefficient of the error-function denominator polynomial in the absolute integration endpoint.
     /// </summary>
     private const float ErfCoefficient2 = .232120216F;
 
     /// <summary>
-    /// The linear coefficient of the FastErff denominator polynomial. Its constant term is one.
+    /// The linear coefficient of the error-function denominator polynomial. Its constant term is one.
     /// </summary>
     private const float ErfCoefficient3 = .277820801F;
 
@@ -41,7 +41,7 @@ internal sealed partial class JxlSplines
     /// <param name="value">The signed normalized integration endpoint.</param>
     /// <returns>The approximate error function with the input sign.</returns>
     /// <remarks>
-    /// The four coefficients are the fitted FastErff values from libjxl base/fast_math-inl.h.
+    /// The four coefficients are fitted values.
     /// The reference documents an L1 approximation error of 7e-4. No pixel or alpha bounds apply here.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -101,14 +101,13 @@ internal sealed partial class JxlSplines
     /// Evaluates the reference float cosine for the bounded continuous spline DCT arguments.
     /// </summary>
     /// <remarks>
-    /// Arguments range from zero through (31 * pi / 32) * 31.5 radians. This is the float-only
-    /// FastCosf algorithm in libjxl base/fast_math-inl.h and jxl-rs util/fast_math.rs.
+    /// Arguments range from zero through (31 * pi / 32) * 31.5 radians. The algorithm uses only float arithmetic.
     /// The runtime cosine widens float lanes to double; this kernel retains the reference float arithmetic.
     /// </remarks>
     private readonly struct CosineOperator : TensorPrimitives_.IUnaryOperator
     {
         /// <summary>
-        /// The 2*pi-radian period used by libjxl base/fast_math-inl.h FastCosf range reduction.
+        /// The 2*pi-radian period used by the range reduction.
         /// </summary>
         private const float Period = 2F * MathF.PI;
 
@@ -123,22 +122,22 @@ internal sealed partial class JxlSplines
         private const float HalfPi = MathF.PI / 2F;
 
         /// <summary>
-        /// The one-quarter angle scale used by FastCosf before its two angle-doubling steps.
+        /// The one-quarter angle scale used before the two angle-doubling steps.
         /// </summary>
         private const float QuarterAngle = .25F;
 
         /// <summary>
-        /// The reference fourth-degree coefficient of FastCosf's fitted polynomial on [0, pi/8].
+        /// The reference fourth-degree coefficient of the fitted cosine polynomial on [0, pi/8].
         /// </summary>
         private const float QuarticCoefficient = .06960438F;
 
         /// <summary>
-        /// The reference second-degree coefficient of FastCosf's fitted polynomial on [0, pi/8].
+        /// The reference second-degree coefficient of the fitted cosine polynomial on [0, pi/8].
         /// </summary>
         private const float QuadraticCoefficient = -.84087373F;
 
         /// <summary>
-        /// The reference constant term of FastCosf's fitted polynomial, scaled by 2^(3/4) for angle doubling.
+        /// The reference constant term of the fitted cosine polynomial, scaled by 2^(3/4) for angle doubling.
         /// </summary>
         private const float ConstantCoefficient = 1.68179268F;
 

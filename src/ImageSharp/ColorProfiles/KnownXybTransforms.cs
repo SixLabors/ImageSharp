@@ -10,8 +10,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// </summary>
 /// <remarks>
 /// The standard coefficients are fixed. A JPEG XL image header can supply custom inverse coefficients and biases.
-/// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see> and the
-/// <see href="https://raw.githubusercontent.com/libjxl/libjxl/main/lib/jxl/cms/opsin_params.h">reference coefficients</see>.
+/// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see>.
 /// </remarks>
 public static class KnownXybTransforms
 {

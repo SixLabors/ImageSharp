@@ -71,7 +71,6 @@ internal sealed class JxlCodestreamReader
         this.integrityHandling = integrityHandling;
         long start = stream.Position;
         this.codestreamOrigin = start;
-        this.MaximumLength = stream.Length - start;
 
         // Inspect the same leading bytes for both file forms. A raw codestream must be rewound so
         // the bit reader, rather than this container reader, consumes and validates its complete image header.
@@ -81,7 +80,8 @@ internal sealed class JxlCodestreamReader
 
         if (header[..2].SequenceEqual(JxlConstants.CodestreamSignature))
         {
-            this.fragmentRemaining = stream.Length - start;
+            this.Length = stream.Length - start;
+            this.fragmentRemaining = this.Length;
             this.lastFragment = true;
             this.hasCodestream = true;
             stream.Position = start;
@@ -127,7 +127,10 @@ internal sealed class JxlCodestreamReader
             throw new InvalidImageContentException("The JPEG XL container contains fragments after its final fragment.");
         }
 
-        this.SelectFragment(this.fragments!, 0, 0);
+        // Discovery found each fragment, so the last range is the end of the available logical codestream.
+        (long LogicalOffset, long PhysicalOffset, long Length) last = this.fragments![^1];
+        this.Length = last.LogicalOffset + last.Length;
+        this.SelectFragment(this.fragments, 0, 0);
     }
 
     /// <summary>
@@ -136,10 +139,10 @@ internal sealed class JxlCodestreamReader
     public long Position { get; private set; }
 
     /// <summary>
-    /// Gets an upper bound on logical codestream bytes, excluding bytes before this image's signature.
-    /// Container headers and metadata can make the actual codestream shorter.
+    /// Gets the number of logical codestream bytes that the input holds, but not the bytes before the signature of this image. A truncated container holds only
+    /// the bytes of its fragments that the file contains.
     /// </summary>
-    public long MaximumLength { get; }
+    public long Length { get; }
 
     /// <summary>
     /// Gets the non-codestream boxes encountered so far. Their ranges remain bounded by the physical input.
@@ -154,14 +157,13 @@ internal sealed class JxlCodestreamReader
     /// <exception cref="InvalidImageContentException">The offset is negative or crosses an invalid container boundary.</exception>
     public bool TrySeek(long position)
     {
-        // TOC offsets come from untrusted lengths. The physical file length is the first bound. The fragments that
-        // the constructor found give the actual logical end.
+        // TOC offsets come from untrusted lengths. The fragments that the constructor found give the logical end.
         if (position < 0)
         {
             throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
         }
 
-        if (position > this.MaximumLength)
+        if (position > this.Length)
         {
             return false;
         }
@@ -170,28 +172,13 @@ internal sealed class JxlCodestreamReader
         {
             this.stream.Position = this.codestreamOrigin + position;
             this.Position = position;
-            this.fragmentRemaining = this.MaximumLength - position;
-            return true;
-        }
-
-        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments!;
-        (long LogicalOffset, long PhysicalOffset, long Length) last = ranges[^1];
-        long frontier = last.LogicalOffset + last.Length;
-        if (position > frontier)
-        {
-            // Discovery state belongs to the furthest opened fragment. Resume there rather than
-            // reparsing boxes after a backward seek, which would duplicate metadata and sequence indices.
-            this.SelectFragment(ranges, ranges.Count - 1, frontier);
-            if (!this.TrySkip(position - frontier))
-            {
-                return false;
-            }
-
+            this.fragmentRemaining = this.Length - position;
             return true;
         }
 
         // Find the first range whose exclusive end follows the requested byte. Empty fragments have
         // no bytes to select. The logical frontier instead uses the last range's exhausted position.
+        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments!;
         int lower = 0;
         int upper = ranges.Count;
         while (lower < upper)
@@ -493,8 +480,23 @@ internal sealed class JxlCodestreamReader
             return;
         }
 
-        // Validate lazy EXIF entries under the box's ancillary error policy.
-        _ = exifProfile.Values;
+        try
+        {
+            // This code checks the lazy EXIF entries with the ancillary error policy of the box. The shared EXIF parser reports damaged entries with
+            // exceptions, so this typed catch is the boundary to that parser.
+            _ = exifProfile.Values;
+        }
+        catch (ImageFormatException ex)
+        {
+            this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL EXIF box payload is invalid.", ex);
+            return;
+        }
+        catch (NotSupportedException ex)
+        {
+            this.integrityHandling.ThrowOrIgnoreAncillaryError("The JPEG XL EXIF box payload is invalid.", ex);
+            return;
+        }
+
         metadata.TrySetExifProfile(exifProfile);
     }
 

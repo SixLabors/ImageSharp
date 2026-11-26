@@ -16,13 +16,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// Reconstructs embedded ICC bytes from JPEG XL's entropy-coded prediction commands.
 /// </summary>
 /// <remarks>
-/// The two stages follow libjxl's icc_codec.cc and icc_codec_common.cc.
 /// Scratch storage uses the decoder allocator. The final array belongs to the shared ICC profile.
 /// </remarks>
 internal static class JxlIccReader
 {
     /// <summary>
-    /// The fixed ICC header length, in bytes, used by libjxl icc_codec_common.h kICCHeaderSize.
+    /// The fixed ICC header length, in bytes.
     /// </summary>
     private const int HeaderSize = JxlIccPrediction.HeaderSize;
 
@@ -31,13 +30,28 @@ internal static class JxlIccReader
     /// </summary>
     private const int ContextCount = 41;
 
-    // libjxl's CheckPreamble rejects a prediction stream more than 65536 bytes larger than its
-    // reconstructed profile. Combine that bound with the shared profile-size limit before allocating scratch.
+    // libjxl rejects a prediction stream more than 65536 bytes larger than its reconstructed profile, so this decoder rejects it too.
+    // Combine that bound with the shared profile-size limit before allocating scratch.
     private const int MaximumPredictionOverhead = 65536;
 
     // JPEG XL's prediction dictionary includes kXYZ and gbd keywords even though the shared ICC enums do not name them.
     private const uint BlackMatrixColumnSignature = 0x6B58595A;
     private const uint GamutBoundaryDescriptionSignature = 0x67626420;
+
+    /// <summary>
+    /// The number of entropy-decoded bytes between two bounds checks. It is a power of two, so a mask selects each check.
+    /// </summary>
+    private const int CheckpointInterval = 1024;
+
+    /// <summary>
+    /// The error for a command or a literal range that passes the end of its prediction stream.
+    /// </summary>
+    private const string StreamExceeded = "The JPEG XL ICC command exceeds its prediction stream.";
+
+    /// <summary>
+    /// The error for a base-128 integer that is wider than 64 bits, has no terminator, or passes the end of its stream.
+    /// </summary>
+    private const string InvalidInteger = "The JPEG XL ICC integer is invalid.";
 
     /// <summary>
     /// Reads and reconstructs one embedded profile without changing its sample tables or numeric precision.
@@ -66,63 +80,88 @@ internal static class JxlIccReader
         Span<byte> encoded = storage.Memory.Span;
         for (int i = 0; i < encoded.Length; i++)
         {
+            // Reads past the end return zeros. The loop stops at the first checkpoint after an overread.
+            // Thus a truncated stream does not decode the complete declared size from zeros.
+            if ((i & (CheckpointInterval - 1)) == 0 && !reader.AllReadsWithinBounds)
+            {
+                break;
+            }
+
             // The first 129 bytes use context zero. Later contexts classify the two preceding bytes;
             // the stored output also supplies LZ77 history, without an additional one-megavalue buffer.
             int context = i <= HeaderSize ? 0 : 1 + ByteKind1(encoded[i - 1]) + (8 * ByteKind2(encoded[i - 2]));
             encoded[i] = symbols.ReadByte(ref reader, context, encoded[..i]);
         }
 
+        // A truncated ICC stream is a truncated image header, not a damaged optional profile. It throws in each mode.
+        if (!reader.AllReadsWithinBounds)
+        {
+            throw new InvalidImageContentException("The JPEG XL ICC stream is truncated.");
+        }
+
         symbols.CheckFinalState();
         cancellationToken.ThrowIfCancellationRequested();
 
+        // At this point, the next header field is reachable without the predicted ICC contents. The method checks the sizes before it allocates the final
+        // profile. The entropy errors above stay fatal in each mode. The prediction checks below return their error to this one report site, which applies the
+        // ancillary policy. The header permits that policy only for the suggested output profile of XYB. A required native component profile uses Strict, also
+        // if the mode ignores other ancillary metadata errors.
+        ReadOnlySpan<byte> preamble = encoded;
+        string? error;
+        byte[] profile = [];
+        if (!TryReadVarUInt(ref preamble, out ulong outputLength) || !TryReadVarUInt(ref preamble, out ulong commandLength))
+        {
+            error = InvalidInteger;
+        }
+        else if (outputLength < HeaderSize || outputLength >= IccProfile.MaxProfileSize
+            || commandLength > size - (uint)(encoded.Length - preamble.Length) || outputLength + MaximumPredictionOverhead < size)
+        {
+            error = "The JPEG XL ICC prediction preamble is invalid.";
+        }
+        else
+        {
+            error = Reconstruct(encoded, (int)outputLength, (int)commandLength, encoded.Length - preamble.Length, out profile, cancellationToken);
+        }
+
+        if (error is not null)
+        {
+            handling.ThrowOrIgnoreAncillaryError(error);
+            return null;
+        }
+
         try
         {
-            // Only now is the next header field reachable independently of the predicted ICC contents.
-            // Validate sizes before allocating the final profile. Entropy errors above remain fatal in every mode.
-            ReadOnlySpan<byte> preamble = encoded;
-            ulong outputLength = ReadVarUInt(ref preamble);
-            ulong commandLength = ReadVarUInt(ref preamble);
-            int preambleSize = encoded.Length - preamble.Length;
-            if (outputLength < HeaderSize || outputLength >= IccProfile.MaxProfileSize || commandLength > size - (uint)preambleSize
-                || outputLength + MaximumPredictionOverhead < size)
-            {
-                throw new InvalidImageContentException("The JPEG XL ICC prediction preamble is invalid.");
-            }
-
-            return IccReader.ToProfile(
-                Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize, cancellationToken),
-                handling.IgnoresAncillaryErrors());
+            return IccReader.ToProfile(profile, handling.IgnoresAncillaryErrors());
         }
         catch (InvalidIccProfileException ex)
         {
+            // The shared ICC parser reports an invalid profile with this exception. This typed catch is the boundary to that parser.
             handling.ThrowOrIgnoreAncillaryError("Invalid JPEG XL ICC profile.", ex);
-            return null;
-        }
-        catch (Exception ex) when (handling.ShouldIgnoreAncillaryError(ex))
-        {
-            // The header permits this policy only for XYB's suggested output profile. Required native
-            // component profiles use Strict, even when other ancillary metadata errors can be ignored.
             return null;
         }
     }
 
     /// <summary>
-    /// Reconstructs the profile into one final array. Prediction and byte shuffles write directly to that array.
+    /// Reconstructs the profile into one final array. The prediction and the byte shuffles write directly to that array.
     /// </summary>
     /// <param name="encoded">The complete entropy-decoded prediction stream.</param>
-    /// <param name="outputLength">The validated profile size.</param>
-    /// <param name="commandLength">The validated command-stream size.</param>
-    /// <param name="preambleSize">The number of bytes occupied by both size fields.</param>
-    /// <param name="cancellationToken">The token checked between complete reconstruction commands.</param>
-    /// <returns>The owned profile bytes.</returns>
-    private static byte[] Reconstruct(
-        ReadOnlySpan<byte> encoded, int outputLength, int commandLength, int preambleSize, CancellationToken cancellationToken)
+    /// <param name="outputLength">The checked profile size.</param>
+    /// <param name="commandLength">The checked command-stream size.</param>
+    /// <param name="preambleSize">The number of bytes that the two size fields use.</param>
+    /// <param name="profile">The owned profile bytes. Use them only if the method returns null.</param>
+    /// <param name="cancellationToken">The token that the method checks between complete reconstruction commands.</param>
+    /// <returns>Null for a valid prediction stream, or the error message for the one ancillary report site.</returns>
+    private static string? Reconstruct(
+        ReadOnlySpan<byte> encoded, int outputLength, int commandLength, int preambleSize, out byte[] profile, CancellationToken cancellationToken)
     {
         ReadOnlySpan<byte> commands = encoded.Slice(preambleSize, commandLength);
         ReadOnlySpan<byte> data = encoded[(preambleSize + commandLength)..];
-        byte[] result = new byte[outputLength];
-        Span<byte> output = result;
-        ReadOnlySpan<byte> headerData = Take(ref data, HeaderSize);
+        profile = new byte[outputLength];
+        Span<byte> output = profile;
+        if (!TryTake(ref data, HeaderSize, out ReadOnlySpan<byte> headerData))
+        {
+            return StreamExceeded;
+        }
 
         // Predict common ICC header bytes in file order. Some predictions depend on earlier reconstructed
         // bytes, such as the platform signature. Residual addition is modulo 256 for each byte independently.
@@ -135,7 +174,11 @@ internal static class JxlIccReader
         int written = HeaderSize;
         if (written < output.Length)
         {
-            ReadTags(ref commands, ref data, output, ref written, cancellationToken);
+            string? tagError = ReadTags(ref commands, ref data, output, ref written, cancellationToken);
+            if (tagError is not null)
+            {
+                return tagError;
+            }
         }
 
         ReadOnlySpan<uint> types =
@@ -148,7 +191,8 @@ internal static class JxlIccReader
         while (!commands.IsEmpty)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            byte command = Take(ref commands, 1)[0];
+            byte command = commands[0];
+            commands = commands[1..];
             if (command is >= 1 and <= 4)
             {
                 // Insert and shuffle commands have no predictor. Predict commands additionally encode
@@ -158,26 +202,43 @@ internal static class JxlIccReader
                 int stride = width;
                 if (command == 4)
                 {
-                    byte flags = Take(ref commands, 1)[0];
+                    if (!TryTake(ref commands, 1, out ReadOnlySpan<byte> flagBytes))
+                    {
+                        return StreamExceeded;
+                    }
+
+                    byte flags = flagBytes[0];
                     width = (flags & 3) + 1;
                     order = (flags >> 2) & 3;
-                    ulong encodedStride = (flags & 16) != 0 ? ReadVarUInt(ref commands) : (uint)width;
+                    ulong encodedStride = (uint)width;
+                    if ((flags & 16) != 0 && !TryReadVarUInt(ref commands, out encodedStride))
+                    {
+                        return InvalidInteger;
+                    }
+
                     if (width == 3 || order == 3 || encodedStride < (uint)width || encodedStride > (uint)((written - 1) / 4))
                     {
-                        throw new InvalidImageContentException("The JPEG XL ICC predictor parameters are invalid.");
+                        return "The JPEG XL ICC predictor parameters are invalid.";
                     }
 
                     stride = (int)encodedStride;
                 }
 
-                ulong count = ReadVarUInt(ref commands);
+                if (!TryReadVarUInt(ref commands, out ulong count))
+                {
+                    return InvalidInteger;
+                }
+
                 if (count > (ulong)(output.Length - written))
                 {
-                    throw new InvalidImageContentException("The JPEG XL ICC command exceeds the declared profile size.");
+                    return "The JPEG XL ICC command exceeds the declared profile size.";
                 }
 
                 Span<byte> destination = output.Slice(written, (int)count);
-                ReadOnlySpan<byte> residuals = Take(ref data, (int)count);
+                if (!TryTake(ref data, (int)count, out ReadOnlySpan<byte> residuals))
+                {
+                    return StreamExceeded;
+                }
 
                 // Restore residual byte order directly in the final profile array. Prediction then reads
                 // earlier reconstructed samples from that same array; no intermediate shuffle buffer is needed.
@@ -194,7 +255,7 @@ internal static class JxlIccReader
                 int count = command == 10 ? 20 : 8;
                 if (count > output.Length - written)
                 {
-                    throw new InvalidImageContentException("The JPEG XL ICC type command exceeds the profile size.");
+                    return "The JPEG XL ICC type command exceeds the profile size.";
                 }
 
                 uint signature = command == 10 ? (uint)IccTypeSignature.Xyz : types[command - 16];
@@ -202,48 +263,58 @@ internal static class JxlIccReader
                 output.Slice(written + 4, 4).Clear();
                 if (command == 10)
                 {
-                    Take(ref data, 12).CopyTo(output[(written + 8)..]);
+                    if (!TryTake(ref data, 12, out ReadOnlySpan<byte> xyz))
+                    {
+                        return StreamExceeded;
+                    }
+
+                    xyz.CopyTo(output[(written + 8)..]);
                 }
 
                 written += count;
             }
             else
             {
-                throw new InvalidImageContentException("The JPEG XL ICC prediction command is invalid.");
+                return "The JPEG XL ICC prediction command is invalid.";
             }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         if (written != output.Length || !data.IsEmpty)
         {
-            throw new InvalidImageContentException("The JPEG XL ICC prediction stream does not match its declared size.");
+            return "The JPEG XL ICC prediction stream does not match its declared size.";
         }
 
-        return result;
+        return null;
     }
 
     /// <summary>
-    /// Reconstructs the ICC tag directory, including commands that describe all three matrix or curve tags at once.
+    /// Reconstructs the ICC tag directory, with the commands that describe all three matrix or curve tags at one time.
     /// </summary>
     /// <param name="commands">The remaining command bytes.</param>
     /// <param name="data">The remaining literal bytes.</param>
     /// <param name="output">The complete destination profile.</param>
     /// <param name="written">The current output position.</param>
-    /// <param name="cancellationToken">The token checked before expanding each tag command.</param>
-    private static void ReadTags(
+    /// <param name="cancellationToken">The token that the method checks before it expands each tag command.</param>
+    /// <returns>Null for a valid tag directory, or the error message for the one ancillary report site.</returns>
+    private static string? ReadTags(
         ref ReadOnlySpan<byte> commands, ref ReadOnlySpan<byte> data, Span<byte> output, ref int written, CancellationToken cancellationToken)
     {
-        ulong count = ReadVarUInt(ref commands);
+        if (!TryReadVarUInt(ref commands, out ulong count))
+        {
+            return InvalidInteger;
+        }
+
         if (count == 0)
         {
             // Zero omits directory prediction. Later insert commands then reconstruct those bytes literally.
-            return;
+            return null;
         }
 
         count--;
         if (count > (ulong)((output.Length - HeaderSize) / 12) || output.Length - written < 4)
         {
-            throw new InvalidImageContentException("The JPEG XL ICC tag directory exceeds the profile size.");
+            return "The JPEG XL ICC tag directory exceeds the profile size.";
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(output[written..], (uint)count);
@@ -266,7 +337,8 @@ internal static class JxlIccReader
         while (!commands.IsEmpty)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            byte command = Take(ref commands, 1)[0];
+            byte command = commands[0];
+            commands = commands[1..];
             int code = command & 63;
             if (code == 0)
             {
@@ -275,27 +347,49 @@ internal static class JxlIccReader
 
             if (code >= tags.Length + 4)
             {
-                throw new InvalidImageContentException("The JPEG XL ICC tag command is invalid.");
+                return "The JPEG XL ICC tag command is invalid.";
             }
 
-            uint tag = code switch
+            uint tag;
+            if (code == 1)
             {
-                1 => BinaryPrimitives.ReadUInt32BigEndian(Take(ref data, 4)),
-                2 => (uint)IccProfileTag.RedTrc,
-                3 => (uint)IccProfileTag.RedMatrixColumn,
-                _ => tags[code - 4]
-            };
+                if (!TryTake(ref data, 4, out ReadOnlySpan<byte> tagBytes))
+                {
+                    return StreamExceeded;
+                }
 
-            ulong offset = (command & 64) != 0 ? ReadVarUInt(ref commands) : previousOffset + previousSize;
+                tag = BinaryPrimitives.ReadUInt32BigEndian(tagBytes);
+            }
+            else
+            {
+                tag = code switch
+                {
+                    2 => (uint)IccProfileTag.RedTrc,
+                    3 => (uint)IccProfileTag.RedMatrixColumn,
+                    _ => tags[code - 4]
+                };
+            }
+
+            ulong offset = previousOffset + previousSize;
+            if ((command & 64) != 0 && !TryReadVarUInt(ref commands, out offset))
+            {
+                return InvalidInteger;
+            }
+
             bool xyz = tag is (uint)IccProfileTag.RedMatrixColumn or (uint)IccProfileTag.GreenMatrixColumn or (uint)IccProfileTag.BlueMatrixColumn
                 or BlackMatrixColumnSignature or (uint)IccProfileTag.MediaWhitePoint or (uint)IccProfileTag.MediaBlackPoint or (uint)IccProfileTag.Luminance;
 
-            ulong size = (command & 128) != 0 ? ReadVarUInt(ref commands) : xyz ? 20UL : previousSize;
+            ulong size = xyz ? 20UL : previousSize;
+            if ((command & 128) != 0 && !TryReadVarUInt(ref commands, out size))
+            {
+                return InvalidInteger;
+            }
+
             int entries = code is 2 or 3 ? 3 : 1;
             if (offset > uint.MaxValue || size > uint.MaxValue || (code == 3 && size > (uint.MaxValue - offset) / 2)
                 || (12 * entries) > output.Length - written)
             {
-                throw new InvalidImageContentException("The JPEG XL ICC tag entry is out of range.");
+                return "The JPEG XL ICC tag entry is out of range.";
             }
 
             WriteTag(output.Slice(written, 12), tag, (uint)offset, (uint)size);
@@ -314,6 +408,8 @@ internal static class JxlIccReader
             previousOffset = offset;
             previousSize = size;
         }
+
+        return null;
     }
 
     /// <summary>
@@ -483,44 +579,50 @@ internal static class JxlIccReader
     /// Reads one base-128 unsigned integer with an exact ten-byte limit.
     /// </summary>
     /// <param name="source">The remaining command or preamble bytes.</param>
-    /// <returns>The decoded value.</returns>
-    private static ulong ReadVarUInt(ref ReadOnlySpan<byte> source)
+    /// <param name="value">The decoded value.</param>
+    /// <returns>
+    /// Whether the integer is valid. False means that the integer is wider than 64 bits, has no terminator in ten bytes, or passes the end of its stream.
+    /// </returns>
+    private static bool TryReadVarUInt(ref ReadOnlySpan<byte> source, out ulong value)
     {
-        ulong value = 0;
-        for (int i = 0; i < 10; i++)
+        value = 0;
+        for (int i = 0; i < 10 && i < source.Length; i++)
         {
-            byte next = Take(ref source, 1)[0];
+            byte next = source[i];
             if (i == 9 && next > 1)
             {
-                throw new InvalidImageContentException("The JPEG XL ICC integer exceeds 64 bits.");
+                return false;
             }
 
             value |= (ulong)(next & 127) << (i * 7);
             if ((next & 128) == 0)
             {
-                return value;
+                source = source[(i + 1)..];
+                return true;
             }
         }
 
-        throw new InvalidImageContentException("The JPEG XL ICC integer is not terminated.");
+        return false;
     }
 
     /// <summary>
-    /// Takes a bounded range from one prediction stream and advances it without copying.
+    /// Takes a bounded range from one prediction stream and moves the stream past that range. The method does not copy the bytes.
     /// </summary>
     /// <param name="source">The remaining bytes.</param>
-    /// <param name="count">The validated requested length.</param>
-    /// <returns>The borrowed range.</returns>
-    private static ReadOnlySpan<byte> Take(ref ReadOnlySpan<byte> source, int count)
+    /// <param name="count">The nonnegative requested length.</param>
+    /// <param name="result">The borrowed range, or an empty range if the stream is too short.</param>
+    /// <returns>Whether the stream holds the complete range.</returns>
+    private static bool TryTake(ref ReadOnlySpan<byte> source, int count, out ReadOnlySpan<byte> result)
     {
         if (count > source.Length)
         {
-            throw new InvalidImageContentException("The JPEG XL ICC command exceeds its prediction stream.");
+            result = [];
+            return false;
         }
 
-        ReadOnlySpan<byte> result = source[..count];
+        result = source[..count];
         source = source[count..];
-        return result;
+        return true;
     }
 
     /// <summary>

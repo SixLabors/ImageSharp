@@ -4,12 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 /// <content>
-/// Contains the fixed AFV basis, DCT butterfly multipliers and DC resampling scales used by libjxl.
+/// Contains the fixed AFV basis, DCT butterfly multipliers and DC resampling scales.
 /// </content>
 internal static partial class JxlDct
 {
     /// <summary>
-    /// The square-root-of-two coefficient in libjxl dct-inl.h B and BTranspose.
+    /// The square-root-of-two coefficient of the DCT butterfly stages.
     /// It normalizes the first odd term in each recursive DCT butterfly. Keep one float value for every fixed and recursive axis.
     /// </summary>
     private const float RootTwo = 1.4142135623730951F;
@@ -18,8 +18,7 @@ internal static partial class JxlDct
     /// Gets the AFV basis. Each coefficient has sixteen consecutive spatial weights.
     /// </summary>
     /// <remarks>
-    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/dec_transforms-inl.h, AFVIDCT4x4, k4x4AFVBasis[16][16].
+    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153.
     /// These are the original float coefficients in the original coefficient-major order.
     /// Each group of 16 values maps one frequency coefficient to a row-major 4-by-4 spatial block.
     /// The inverse worker reads this fixed basis directly; it does not fit or regenerate the coefficients.
@@ -112,7 +111,7 @@ internal static partial class JxlDct
     /// Gets the 16-point butterfly multipliers shared by fixed inverse and general forward transforms.
     /// </summary>
     /// <remarks>
-    /// These are the existing <c>WcMultipliers&lt;16&gt;</c> float values from libjxl dct_scales.h.
+    /// These are the fixed float multipliers of the 16-point axis.
     /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
     /// </remarks>
     private static ReadOnlySpan<float> Multipliers16 =>
@@ -125,7 +124,7 @@ internal static partial class JxlDct
     /// Gets the 32-point butterfly multipliers shared by fixed inverse and general forward transforms.
     /// </summary>
     /// <remarks>
-    /// These are the existing <c>WcMultipliers&lt;32&gt;</c> float values from libjxl dct_scales.h.
+    /// These are the fixed float multipliers of the 32-point axis.
     /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
     /// </remarks>
     private static ReadOnlySpan<float> Multipliers32 =>
@@ -139,7 +138,7 @@ internal static partial class JxlDct
     /// Gets the 64-point butterfly multipliers shared by fixed inverse and general forward transforms.
     /// </summary>
     /// <remarks>
-    /// These are the existing <c>WcMultipliers&lt;64&gt;</c> float values from libjxl dct_scales.h.
+    /// These are the fixed float multipliers of the 64-point axis.
     /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
     /// </remarks>
     private static ReadOnlySpan<float> Multipliers64 =>
@@ -158,8 +157,7 @@ internal static partial class JxlDct
     /// <param name="length">The transform axis length.</param>
     /// <returns>The fixed multipliers in frequency order.</returns>
     /// <remarks>
-    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/dct_scales.h, WcMultipliers specializations for axis lengths 4 through 256.
+    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153, for axis lengths 4 through 256.
     /// Entry i is 1 / (2 * cos((i + 0.5) * pi / length)). Retaining the source float constants
     /// preserves its butterfly coefficients and avoids trigonometric work during block reconstruction.
     /// </remarks>
@@ -218,8 +216,7 @@ internal static partial class JxlDct
     /// <param name="length">The DC-grid axis length.</param>
     /// <returns>The fixed multipliers in frequency order.</returns>
     /// <remarks>
-    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/dct_scales.h, DCTResampleScales specializations from length to 8 * length.
+    /// Source: libjxl revision 91837342b24034078780b687f57f670a7def8153, for the resampling from length to 8 * length.
     /// These inverse downsampling factors restore the low frequencies obtained from the separate DC grid.
     /// The worker applies one factor on each axis after the normalized forward transform of that grid.
     /// </remarks>

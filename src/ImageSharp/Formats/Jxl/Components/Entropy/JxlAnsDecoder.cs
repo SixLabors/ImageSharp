@@ -21,15 +21,22 @@ internal static class JxlAnsDecoder
     public const int ProbabilityTotal = 1 << ProbabilityBits;
 
     /// <summary>
+    /// The largest alphabet that a distribution can declare. The complex form adds three to an eight-bit value.
+    /// </summary>
+    private const int MaximumDeclaredAlphabetSize = 255 + 3;
+
+    /// <summary>
     /// Reads one distribution and builds its alias table without allocating a 4096-entry symbol table.
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="buckets">The caller-owned table, with 32, 64, 128 or 256 entries.</param>
     public static void ReadDistribution(ref JxlBitReader reader, Span<Bucket> buckets)
     {
-        Span<int> frequencies = stackalloc int[256];
-        frequencies = frequencies[..buckets.Length];
+        // Each form declares its own alphabet size. The method reads into storage for the largest declared size. Then it compares that size with the table
+        // once, after it reads all frequencies.
+        Span<int> frequencies = stackalloc int[MaximumDeclaredAlphabetSize];
         frequencies.Clear();
+        int alphabetSize;
 
         // The first two flags select a one/two-symbol distribution, a flat alphabet, or the general form.
         // Every form produces exactly 4096 units of probability before the shared alias construction below.
@@ -38,7 +45,7 @@ internal static class JxlAnsDecoder
             bool twoSymbols = reader.ReadBoolean();
             int first = ReadVarUInt8(ref reader);
             int second = twoSymbols ? ReadVarUInt8(ref reader) : first;
-            if (first >= buckets.Length || second >= buckets.Length || (twoSymbols && first == second))
+            if (twoSymbols && first == second)
             {
                 throw new InvalidImageContentException("The JPEG XL ANS distribution contains an invalid symbol.");
             }
@@ -46,15 +53,11 @@ internal static class JxlAnsDecoder
             int frequency = twoSymbols ? (int)reader.ReadBits(ProbabilityBits) : ProbabilityTotal;
             frequencies[second] = ProbabilityTotal - frequency;
             frequencies[first] = frequency;
+            alphabetSize = Math.Max(first, second) + 1;
         }
         else if (reader.ReadBoolean())
         {
-            int alphabetSize = ReadVarUInt8(ref reader) + 1;
-            if (alphabetSize > frequencies.Length)
-            {
-                throw new InvalidImageContentException("The JPEG XL ANS alphabet exceeds its table.");
-            }
-
+            alphabetSize = ReadVarUInt8(ref reader) + 1;
             int quotient = ProbabilityTotal / alphabetSize;
             int remainder = ProbabilityTotal % alphabetSize;
 
@@ -65,9 +68,15 @@ internal static class JxlAnsDecoder
         }
         else
         {
-            ReadComplexDistribution(ref reader, frequencies);
+            alphabetSize = ReadComplexDistribution(ref reader, frequencies);
         }
 
+        if (alphabetSize > buckets.Length)
+        {
+            throw new InvalidImageContentException("The JPEG XL ANS alphabet exceeds its table.");
+        }
+
+        frequencies = frequencies[..buckets.Length];
         int bucketSize = ProbabilityTotal / buckets.Length;
         int singleSymbol = frequencies.IndexOf(ProbabilityTotal);
         if (singleSymbol >= 0)
@@ -167,11 +176,12 @@ internal static class JxlAnsDecoder
     }
 
     /// <summary>
-    /// Reads logarithmic frequencies, repeated frequencies and the omitted remainder frequency.
+    /// Reads the logarithmic frequencies, the repeated frequencies and the omitted remainder frequency.
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
-    /// <param name="frequencies">The zero-initialized distribution storage.</param>
-    private static void ReadComplexDistribution(ref JxlBitReader reader, Span<int> frequencies)
+    /// <param name="frequencies">The zero-initialized distribution storage, with space for the largest declared alphabet.</param>
+    /// <returns>The declared alphabet size. The caller compares it with its table.</returns>
+    private static int ReadComplexDistribution(ref JxlBitReader reader, Span<int> frequencies)
     {
         int bits = 0;
         while (bits < 3 && reader.ReadBoolean())
@@ -181,19 +191,19 @@ internal static class JxlAnsDecoder
 
         int shift = (int)reader.ReadBits(bits) + (1 << bits) - 1;
         int alphabetSize = ReadVarUInt8(ref reader) + 3;
-        if (shift > 13 || alphabetSize > frequencies.Length)
+        if (shift > 13)
         {
             throw new InvalidImageContentException("The JPEG XL ANS distribution parameters are invalid.");
         }
 
-        Span<int> codes = stackalloc int[256];
-        Span<int> repeats = stackalloc int[256];
+        Span<int> codes = stackalloc int[MaximumDeclaredAlphabetSize];
+        Span<int> repeats = stackalloc int[MaximumDeclaredAlphabetSize];
         codes.Clear();
         repeats.Clear();
         int omitted = -1;
 
         // Zero denotes an absent frequency, so it cannot identify the omitted positive frequency.
-        // libjxl rejects a complex distribution containing only zero codes and repeat markers.
+        // A complex distribution that contains only zero codes and repeat markers is invalid.
         int maximumCode = 0;
         for (int i = 0; i < alphabetSize; i++)
         {
@@ -264,6 +274,7 @@ internal static class JxlAnsDecoder
         }
 
         frequencies[omitted] = ProbabilityTotal - total;
+        return alphabetSize;
     }
 
     /// <summary>

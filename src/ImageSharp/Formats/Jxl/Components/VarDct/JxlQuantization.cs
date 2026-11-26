@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal static partial class JxlQuantization
 {
     /// <summary>
-    /// The seventeen decoder quantization families in libjxl quant_weights.h QuantTable. Transposed strategies can share a family.
+    /// The seventeen decoder quantization families. Transposed strategies can share a family.
     /// </summary>
     public const int QuantizationFamilyCount = 17;
 
@@ -27,7 +27,7 @@ internal static partial class JxlQuantization
     public const int MatrixComponentCount = 3;
 
     /// <summary>
-    /// The sixteen radial bands permitted by the four-bit count-minus-one field in native DecodeDctParams.
+    /// The sixteen radial bands permitted by the four-bit count-minus-one field.
     /// </summary>
     public const int MaximumDistanceBands = 16;
 
@@ -47,18 +47,18 @@ internal static partial class JxlQuantization
     public const int SpecialWeightStride = 9;
 
     /// <summary>
-    /// The inclusive positive weight limit, 1e-8, from native quant_weights.cc kAlmostZero.
+    /// The inclusive positive weight limit, 1e-8.
     /// It also bounds encoded nonzero denominators and multipliers before table generation.
     /// </summary>
     public const float MinimumQuantizationWeight = 1e-8F;
 
     /// <summary>
-    /// The exclusive 1e8 generated-weight limit from native ComputeQuantTable. Reciprocal decoder factors are prepared only after validation.
+    /// The exclusive 1e8 generated-weight limit. Reciprocal decoder factors are prepared only after validation.
     /// </summary>
     public const float MaximumQuantizationWeight = 1e8F;
 
     /// <summary>
-    /// The serialized identity description from native QuantEncoding::Mode. It stores three special weights per component.
+    /// The serialized mode of the identity description. It stores three special weights per component.
     /// </summary>
     public const byte IdentityMatrixMode = 1;
 

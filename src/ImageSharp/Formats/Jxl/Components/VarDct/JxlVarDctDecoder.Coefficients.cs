@@ -34,7 +34,7 @@ internal sealed partial class JxlVarDctDecoder
     private static ReadOnlySpan<byte> CoefficientFrequencyContexts =>
     [
 
-        // libjxl ac_context.h defines these buckets. Index zero is unused: AC scanning starts after the LLF prefix.
+        // These are the coefficient-frequency context buckets. Index zero is unused: AC scanning starts after the LLF prefix.
         0, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28,
         30, 30, 32, 32, 34, 34, 36, 36, 38, 38, 40, 40, 42, 42, 44, 44,
         46, 46, 46, 46, 48, 48, 48, 48, 50, 50, 50, 50, 52, 52, 52, 52,
@@ -267,7 +267,7 @@ internal sealed partial class JxlVarDctDecoder
         ReadOnlySpan<byte> blockContexts = this.BlockContextMap;
         ReadOnlySpan<uint> quantizerThresholds = this.QuantizationThresholds;
 
-        // Native and Rust select the entropy mode before decoding coefficients. The constrained operator
+        // The entropy mode is known before coefficient decoding starts. The constrained operator
         // removes unused coding and history paths from this loop while retaining one shared traversal.
         Span<uint> history = TOperator.UsesLz77 ? this.coefficientHistoryMemory.Span : [];
         ReadOnlySpan<byte> widths = JxlCoefficientOrder.StrategyWidths;
@@ -353,7 +353,7 @@ internal sealed partial class JxlVarDctDecoder
                             : (nonzeros[predictorOffset - rowWidth] + nonzeros[predictorOffset - 1] + 1) / 2;
 
                     // Encoded block contexts use full-grid DC classification but component-scaled horizontal QF coordinates.
-                    // libjxl's enc_entropy_coder.cc writes that combination; reconstruction selects its spatial quantizer separately.
+                    // libjxl writes that combination. Reconstruction selects its spatial quantizer separately.
                     int quantizerBucket = 0;
                     foreach (uint threshold in quantizerThresholds)
                     {

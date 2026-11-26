@@ -243,7 +243,7 @@ internal readonly partial struct JxlNoise
     /// </summary>
     private readonly struct NoiseOperator
     {
-        // These are the format's intensity coordinates and correlated-noise coefficients from stage_noise.cc.
+        // These are the format's intensity coordinates and correlated-noise coefficients.
         private const float IntensityScale = StrengthCount - 2;
         private const float LastIntensity = StrengthCount - 1;
         private const float NoiseNormalization = 0.22F;
@@ -410,8 +410,7 @@ internal readonly partial struct JxlNoise
         /// <returns>The format's amplitude strength between zero and one.</returns>
         private float Strength(float value)
         {
-            // Bound only the sampled LUT coordinate. Native IndexAndFrac maps NaN to zero through
-            // std::max(0,x*6). Its upper plateau uses index six and fraction one. The shared finite clamp
+            // Bound only the sampled LUT coordinate. NaN maps to zero. The upper plateau uses index six and fraction one. The shared finite clamp
             // supplies the same domain for scalar and SIMD without clipping the original X, Y or B values.
             float scaled = ColorNumerics.ClampToFinite(value * IntensityScale, 0F, LastIntensity);
             float floor = MathF.Min(MathF.Floor(scaled), IntensityScale);
@@ -512,7 +511,7 @@ internal readonly partial struct JxlNoise
     private struct Xorshift128Plus
     {
         /// <summary>
-        /// The eight independent 64-bit generator lanes in libjxl xorshift128plus-inl.h Xorshift128Plus::N.
+        /// The eight independent 64-bit generator lanes.
         /// </summary>
         private const int GeneratorCount = 8;
 
@@ -522,12 +521,12 @@ internal readonly partial struct JxlNoise
         private const ulong SeedIncrement = 0x9E3779B97F4A7C15UL;
 
         /// <summary>
-        /// The first fixed SplitMix64 multiplier from native Xorshift128Plus::SplitMix64. Products wrap to 64 bits.
+        /// The first fixed SplitMix64 multiplier. Products wrap to 64 bits.
         /// </summary>
         private const ulong FirstMixMultiplier = 0xBF58476D1CE4E5B9UL;
 
         /// <summary>
-        /// The second fixed SplitMix64 multiplier from native Xorshift128Plus::SplitMix64. Products wrap to 64 bits.
+        /// The second fixed SplitMix64 multiplier. Products wrap to 64 bits.
         /// </summary>
         private const ulong SecondMixMultiplier = 0x94D049BB133111EBUL;
 
@@ -580,7 +579,7 @@ internal readonly partial struct JxlNoise
             ref float output = ref MemoryMarshal.GetReference(destination);
 
             // Each 64-bit generator contributes its low and high 32-bit words in that order. Keep their top
-            // 23 bits as a float mantissa with the exponent bits of 1.0: [1,2), exactly as native BitsToFloat.
+            // 23 bits as a float mantissa with the exponent bits of 1.0: [1,2).
             if (Vector512.IsHardwareAccelerated)
             {
                 for (nuint i = 0; i < GeneratorCount; i += (nuint)Vector512<ulong>.Count)

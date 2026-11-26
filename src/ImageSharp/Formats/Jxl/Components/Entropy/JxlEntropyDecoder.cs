@@ -105,12 +105,12 @@ internal sealed class JxlEntropyDecoder : IDisposable
         static abstract uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int clusterIndex, out JxlHybridUint integer);
 
         /// <summary>
-        /// Expands a token with the integer arithmetic selected for the complete traversal.
+        /// Expands a token with the integer arithmetic that applies to the complete traversal.
         /// </summary>
-        /// <param name="reader">The bounded reader for literal middle bits.</param>
+        /// <param name="reader">The bounded reader for the literal middle bits.</param>
         /// <param name="token">The entropy-coded token.</param>
-        /// <param name="integer">The cluster's validated hybrid widths, unused when the operator fixes those widths.</param>
-        /// <returns>The expanded unsigned value, with its reconstructed width validated.</returns>
+        /// <param name="integer">The checked hybrid widths of the cluster. The method does not use them if the operator fixes those widths.</param>
+        /// <returns>The expanded unsigned value.</returns>
         static abstract uint Expand(ref JxlBitReader reader, uint token, in JxlHybridUint integer);
     }
 
@@ -185,22 +185,16 @@ internal sealed class JxlEntropyDecoder : IDisposable
         try
         {
             Span<byte> map = mapOwner.Memory.Span;
+            int clusterCount = 1;
             if (contextCount > 1)
             {
-                ReadContextMap(ref reader, allocator, map);
+                clusterCount = ReadContextMap(ref reader, allocator, map);
             }
             else
             {
                 // A one-context stream omits its map. Allocator memory is not zero-initialized,
                 // so write the implicit cluster zero before any reader can borrow this span.
                 map[0] = 0;
-            }
-
-            int clusterCount = 1;
-            foreach (byte cluster in map)
-            {
-                // Cluster 255 represents a 256th table. Keep this count wider than the byte-valued map.
-                clusterCount = Math.Max(clusterCount, cluster + 1);
             }
 
             bool prefix = reader.ReadBoolean();
@@ -297,11 +291,9 @@ internal sealed class JxlEntropyDecoder : IDisposable
                     }
                 }
 
+                // ReadCodeLengths accepts only complete codes and one-symbol codes, so the measurement cannot fail.
                 int count = HuffmanTableBuilder.Build([], 8, current, workspace);
-                if (count == 0)
-                {
-                    throw new InvalidImageContentException("The JPEG XL prefix table is invalid.");
-                }
+                DebugGuard.MustBeGreaterThan(count, 0, nameof(count));
 
                 clusters[i] = new Cluster(clusters[i].Integer, tableSize);
                 alphabetOffset += current.Length;
@@ -362,15 +354,16 @@ internal sealed class JxlEntropyDecoder : IDisposable
     }
 
     /// <summary>
-    /// Reads the simple or entropy-coded context map and validates that all cluster numbers are used.
+    /// Reads the simple or entropy-coded context map and checks that the map uses all cluster numbers.
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
-    /// <param name="allocator">The decoder's allocator.</param>
-    /// <param name="map">The nonempty destination sized by the consuming syntax before this call.</param>
+    /// <param name="allocator">The allocator of the decoder.</param>
+    /// <param name="map">The nonempty destination. The syntax of the caller sets its size before this call.</param>
+    /// <returns>The cluster count: the largest cluster number plus one.</returns>
     /// <remarks>
-    /// This method validates dense cluster numbering. The caller validates any smaller cluster limit required by its own syntax.
+    /// This method checks the dense cluster numbering. The caller checks any smaller cluster limit that its own syntax needs.
     /// </remarks>
-    public static void ReadContextMap(ref JxlBitReader reader, MemoryAllocator allocator, Span<byte> map)
+    public static int ReadContextMap(ref JxlBitReader reader, MemoryAllocator allocator, Span<byte> map)
     {
         if (reader.ReadBoolean())
         {
@@ -387,9 +380,20 @@ internal sealed class JxlEntropyDecoder : IDisposable
             bool moveToFront = reader.ReadBoolean();
             using JxlEntropyDecoder codes = Read(ref reader, allocator, 1, map.Length > 2);
             Reader symbols = codes.CreateReader(ref reader);
+
+            // The loop keeps the largest decoded symbol, and one check after the loop rejects it. Copies repeat stored map bytes,
+            // so only a literal can be more than 255.
+            uint maximumSymbol = 0;
             for (int i = 0; i < map.Length; i++)
             {
-                map[i] = symbols.ReadByte(ref reader, 0, map[..i]);
+                uint symbol = symbols.ReadByteSymbol(ref reader, 0, map[..i]);
+                maximumSymbol = Math.Max(maximumSymbol, symbol);
+                map[i] = (byte)symbol;
+            }
+
+            if (maximumSymbol > byte.MaxValue)
+            {
+                throw new InvalidImageContentException("The JPEG XL context map contains a cluster number above 255.");
             }
 
             symbols.CheckFinalState();
@@ -428,6 +432,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
         {
             throw new InvalidImageContentException("The JPEG XL context map skips a cluster number.");
         }
+
+        return maximum + 1;
     }
 
     /// <summary>
@@ -476,8 +482,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// Reads ANS symbols without LZ77 using hybrid integer widths 4/2/0 selected for every cluster.
     /// </summary>
     /// <remarks>
-    /// Arithmetic follows jxl-rs entropy_coding/hybrid_uint.rs read_config_420 at revision
-    /// d7a831fae15b903f1b56a76668030c19ac07bb6f. Invalid widths retain this decoder's existing rejection rule.
+    /// Invalid widths retain this decoder's existing rejection rule.
     /// </remarks>
     public readonly struct Ans420Operator : IEntropyOperator
     {
@@ -602,6 +607,11 @@ internal sealed class JxlEntropyDecoder : IDisposable
         private int copyDistance;
 
         /// <summary>
+        /// Records a symbol-decoding error that <see cref="CheckFinalState"/> reports.
+        /// </summary>
+        private bool unhealthy;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Reader"/> struct and borrows the owner's table spans.
         /// </summary>
         /// <param name="code">The table owner, which must outlive this reader.</param>
@@ -621,16 +631,40 @@ internal sealed class JxlEntropyDecoder : IDisposable
             this.state = initialState;
             this.remainingCopy = 0;
             this.copyDistance = 0;
+            this.unhealthy = false;
         }
 
         /// <summary>
-        /// Reads a byte-valued symbol or continues an LZ77 copy from the consumer's retained output.
+        /// Reads a byte-valued symbol or continues an LZ77 copy from the retained output of the consumer.
         /// </summary>
         /// <param name="reader">The bounded bit reader.</param>
-        /// <param name="context">The context fixed by the consumer's syntax or preceding decoded bytes.</param>
+        /// <param name="context">The context that the syntax of the consumer or the preceding decoded bytes set.</param>
         /// <param name="decoded">All preceding bytes in this entropy section.</param>
         /// <returns>The next byte.</returns>
+        /// <remarks>
+        /// libjxl keeps only the low eight bits of a literal that is more than 255, which gives a wrong byte with no error. This decoder rejects
+        /// that literal, as it rejects a hybrid integer wider than 32 bits.
+        /// </remarks>
+        /// <exception cref="InvalidImageContentException">The literal is more than 255.</exception>
         public byte ReadByte(ref JxlBitReader reader, int context, ReadOnlySpan<byte> decoded)
+        {
+            uint symbol = this.ReadByteSymbol(ref reader, context, decoded);
+            if (symbol > byte.MaxValue)
+            {
+                throw new InvalidImageContentException("The JPEG XL byte stream contains a value above 255.");
+            }
+
+            return (byte)symbol;
+        }
+
+        /// <summary>
+        /// Reads a literal, or continues an LZ77 copy from the retained byte output of the consumer.
+        /// </summary>
+        /// <param name="reader">The bounded bit reader.</param>
+        /// <param name="context">The context that the syntax of the consumer or the preceding decoded bytes set.</param>
+        /// <param name="decoded">All preceding bytes in this entropy section. The caller stores each returned value here.</param>
+        /// <returns>The literal, which can be more than 255, or the copied byte.</returns>
+        public uint ReadByteSymbol(ref JxlBitReader reader, int context, ReadOnlySpan<byte> decoded)
         {
             if (this.remainingCopy != 0)
             {
@@ -641,23 +675,21 @@ internal sealed class JxlEntropyDecoder : IDisposable
             uint value = this.ReadToken(ref reader, context, out uint copyCount);
             if (copyCount == 0)
             {
-                if (value > byte.MaxValue)
-                {
-                    throw new InvalidImageContentException("The JPEG XL byte stream contains a value above 255.");
-                }
-
-                return (byte)value;
-            }
-
-            if (decoded.IsEmpty)
-            {
-                throw new InvalidImageContentException("The JPEG XL LZ77 copy precedes the first decoded value.");
+                return value;
             }
 
             // The format limits backward distance to the one-megavalue window and available history.
             // Widen before adding one so an encoded uint.MaxValue still selects the maximum valid distance.
             this.copyDistance = (int)Math.Min(Math.Min((ulong)value + 1, MaximumLz77Distance), (ulong)decoded.Length);
             this.remainingCopy = copyCount - 1;
+            if (this.copyDistance == 0)
+            {
+                // A copy before the first value has distance zero. libjxl fills its window with zeros for this copy, so each copied value is zero.
+                // Then distance one repeats the zero that the caller stores.
+                this.copyDistance = 1;
+                return 0;
+            }
+
             return decoded[^this.copyDistance];
         }
 
@@ -767,11 +799,6 @@ internal sealed class JxlEntropyDecoder : IDisposable
             uint value = this.ReadClusteredToken<TOperator>(ref reader, clusterIndex, out uint copyCount);
             if (copyCount != 0)
             {
-                if (decodedCount == 0)
-                {
-                    throw new InvalidImageContentException("The JPEG XL LZ77 copy precedes the first decoded value.");
-                }
-
                 // Copies can overlap their own output. A fixed backward distance and a circular write position
                 // reproduce that sequence one value at a time, including after the window wraps.
                 // Image streams map the first 120 symbols to two-dimensional offsets. ICC and tree
@@ -784,7 +811,17 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
                 this.copyDistance = (int)Math.Min(Math.Min(distance, MaximumLz77Distance), decodedCount);
                 this.remainingCopy = copyCount - 1;
-                value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
+                if (this.copyDistance == 0)
+                {
+                    // Each mapped distance is at least one, so zero means a copy before the first value. libjxl fills its window with zeros for this
+                    // copy, so each copied value is zero. Distance one repeats the zero that the code below stores.
+                    this.copyDistance = 1;
+                    value = 0;
+                }
+                else
+                {
+                    value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
+                }
             }
 
             if (!history.IsEmpty)
@@ -837,13 +874,15 @@ internal sealed class JxlEntropyDecoder : IDisposable
                 return TOperator.Expand(ref reader, token, integer);
             }
 
-            uint length = this.code.copyLength.Expand(ref reader, token - this.code.minimumCopySymbol);
-            if (length > uint.MaxValue - this.code.minimumCopyLength)
+            // The minimum copy length is at least three, so a result less than the minimum means that the addition wrapped. Then libjxl marks the
+            // reader unhealthy and returns zero without a copy. CheckFinalState reports this error.
+            copyCount = this.code.copyLength.Expand(ref reader, token - this.code.minimumCopySymbol) + this.code.minimumCopyLength;
+            if (copyCount < this.code.minimumCopyLength)
             {
-                throw new InvalidImageContentException("The JPEG XL LZ77 copy length overflows.");
+                this.unhealthy = true;
+                copyCount = 0;
+                return 0;
             }
-
-            copyCount = length + this.code.minimumCopyLength;
 
             // Copy distance always uses the extra final context, not the context that selected the copy token.
             int distanceCluster = this.contextMap[^1];
@@ -852,15 +891,19 @@ internal sealed class JxlEntropyDecoder : IDisposable
         }
 
         /// <summary>
-        /// Validates the final ANS state after the consumer has read its required values.
+        /// Checks the symbol decoding and the final ANS state after the consumer reads its required values.
         /// </summary>
+        /// <remarks>
+        /// This method reports an overflowed LZ77 copy length and a wrong final ANS state. ReadByte, ReadContextMap, the hybrid integer width check and the
+        /// other ANS checks throw immediately when they find their error.
+        /// </remarks>
         public readonly void CheckFinalState()
         {
             // A consumer can stop within the final LZ77 copy. Its unused values require no more entropy symbols.
             // Both reference decoders validate the ANS state without requiring that copy to finish.
-            if (this.state != FinalAnsState)
+            if (this.unhealthy || this.state != FinalAnsState)
             {
-                throw new InvalidImageContentException("The JPEG XL entropy section has an invalid final state.");
+                throw new InvalidImageContentException("The JPEG XL entropy section has an invalid copy length or final state.");
             }
         }
 

@@ -55,8 +55,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     /// <returns>The finite positive factors in X, Y, B component order.</returns>
     public static Vector3 ReadDcQuantization(ref JxlBitReader reader)
     {
-        // Explicit half values store DC factors in units of 1/128. DecodeDC in libjxl quant_weights.cc
-        // rejects factors below 1E-8 after this normalization; it is a format validity bound, not a rounding tolerance.
+        // Explicit half values store DC factors in units of 1/128. Factors below 1E-8 after this normalization are invalid.
+        // This limit is a format validity bound, not a rounding tolerance.
         const float encodedFactorScale = 1F / 128F;
         const float minimumFactor = 1E-8F;
 
@@ -123,11 +123,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         codestream.Complete();
         if (!this.Options.SkipMetadata)
         {
+            // The container traversal limits each box range to the file. ApplyMetadataBox checks each payload length before it reads. It also reports damaged
+            // payloads with the ancillary policy.
             foreach ((uint Type, long Offset, long Length) box in codestream.Boxes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
-                    () => codestream.ApplyMetadataBox(box, metadata, this.Options.Configuration, cancellationToken));
+                codestream.ApplyMetadataBox(box, metadata, this.Options.Configuration, cancellationToken);
             }
 
             // JPEG XL's image header defines orientation. It takes precedence over an EXIF copy of that value.
@@ -229,30 +230,25 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         Image<TPixel>? image = null;
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
-
-        // True only while the section payloads of a frame are read. Errors there are damaged image data.
-        // Frame headers and section tables are structural, so their errors stay fatal.
-        bool readingImageData = false;
+        SegmentIntegrityHandling handling = this.Options.SegmentIntegrityHandling;
         try
         {
-            if (header.PreviewSize.HasValue)
-            {
-                JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true, this.Options.SegmentIntegrityHandling);
-                if (!JxlFrameSections.Skip(ref reader, allocator, preview.SectionCount, this.Options.SegmentIntegrityHandling, cancellationToken))
-                {
-                    // Skip returns false only in the IgnoreImageData mode. The truncated preview leaves no main frame
-                    // data, so each pixel keeps the fill value. Damage in a hidden frame before the first displayed
-                    // frame gives the same cleared canvas.
-                    image = this.CreateImage<TPixel>(header);
-                    this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
-                    return image;
-                }
-            }
-
-            while (true)
+            // A truncated preview leaves no main frame data. The IgnoreImageData mode then skips the loop.
+            bool decodeFrames = !header.PreviewSize.HasValue || this.SkipPreview(ref reader, header, cancellationToken);
+            while (decodeFrames)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
+
+                // Before the first displayed frame exists, a damaged frame header or section table is a structural error, and the decoder throws. After that
+                // frame, the damage is image data. Each check reports it once. A false or null result means that the IgnoreImageData mode keeps the frames that
+                // the decoder decoded before the damage.
+                bool imageExists = image is not null;
+                JxlFrameHeader? frame = JxlFrameHeader.Read(ref reader, header, false, handling, imageExists);
+                if (frame is null || !this.ValidateFrame(frame, lowFrequencyFrames, referenceFrames, header.Size, imageExists))
+                {
+                    break;
+                }
+
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
                 bool originalComposition = frame.NeedsBlending;
 
@@ -262,24 +258,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 bool lastRequestedFrame = frame.IsDisplayed && (uint)(image?.Frames.Count ?? 0) + 1 >= this.Options.MaxFrames;
                 bool saveReference = frame.CanBeReferenced && !lastRequestedFrame;
 
-                if ((frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
-                    | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
-                {
-                    throw new NotSupportedException("The JPEG XL frame uses unsupported reconstruction flags.");
-                }
-
-                Buffer2D<float>[]? dcReference = null;
-                if ((frame.Flags & JxlFrameHeader.UseLowFrequencyFrame) != 0)
-                {
-                    // A level n consumer reads slot n, which a preceding level n+1 producer saved.
-                    // There are four LF levels. Level four cannot request a fifth level, and an absent slot is malformed input.
-                    if (frame.LowFrequencyLevel == 4 || lowFrequencyFrames[frame.LowFrequencyLevel] is null)
-                    {
-                        throw new InvalidImageContentException("The JPEG XL frame requests a missing low-frequency dependency.");
-                    }
-
-                    dcReference = lowFrequencyFrames[frame.LowFrequencyLevel];
-                }
+                // A level n consumer reads slot n, which a preceding level n+1 producer saved. ValidateFrame checks the slot.
+                Buffer2D<float>[]? dcReference = (frame.Flags & JxlFrameHeader.UseLowFrequencyFrame) != 0 ? lowFrequencyFrames[frame.LowFrequencyLevel] : null;
 
                 // The first displayed frame uses visible seed one. Hidden frames advance the other counter;
                 // a displayed frame resets it. Native noise generation consumes the low 32 bits of each counter.
@@ -293,36 +273,29 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     nonvisibleFrame++;
                 }
 
-                using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-                ImageFrame<TPixel>? destination = null;
-                if (frame.IsDisplayed)
+                using JxlFrameSections? sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, handling, imageExists, cancellationToken);
+                if (sections is null)
                 {
-                    if (image is null)
-                    {
-                        image = this.CreateImage<TPixel>(header);
-                        destination = image.Frames.RootFrame;
-                    }
-                    else
-                    {
-                        // Native composition produces a complete canvas. A new initialized frame needs
-                        // no copy of the previous TPixel frame; reference backgrounds remain in native planes.
-                        destination = image.Frames.CreateFrame();
-                    }
-
-                    JxlFrameMetadata frameMetadata = destination.Metadata.GetFormatMetadata(JxlFormat.Instance);
-                    if (header.TicksPerSecond is Rational rate)
-                    {
-                        // Seconds = duration ticks * timebase denominator / timebase numerator.
-                        // Widen before multiplication and retain the exact fraction for every displayed frame.
-                        frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
-                    }
+                    break;
                 }
 
-                readingImageData = true;
-                using JxlFrame reconstructed = this.DecodeFrameData(
-                    ref reader, header, frame, sections, dcReference, referenceFrames, destination, profileConverter, cancellationToken);
+                using JxlFrame? reconstructed = this.DecodeFrameData(
+                    ref reader,
+                    codestream.Length,
+                    header,
+                    frame,
+                    sections,
+                    dcReference,
+                    referenceFrames,
+                    ref image,
+                    profileConverter,
+                    out ImageFrame<TPixel>? destination,
+                    cancellationToken);
 
-                readingImageData = false;
+                if (reconstructed is null)
+                {
+                    break;
+                }
 
                 bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
                 if (!pixelsWritten)
@@ -337,7 +310,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     {
                         if (saveReference && frame.SaveBeforeColorTransform && originalComposition)
                         {
-                            // libjxl dec_cache.cc saves every color and extra before the coding transform.
+                            // This frame saves every color and extra channel before the coding transform.
                             // The color replacement can still blend extras, so composition must not overwrite
                             // those earlier samples. Only this case needs separate native reference storage.
                             preservedReference = reconstructed.CopyReferenceFrame(this.Options.Configuration, cancellationToken);
@@ -384,9 +357,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
                     if (frame.IsLast || lastRequestedFrame)
                     {
-                        // Container traversal skips any frames omitted by MaxFrames and still reads later metadata boxes.
-                        this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
-                        return image;
+                        break;
                     }
                 }
                 else if (lowFrequency)
@@ -427,31 +398,16 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     previous?.Dispose();
                 }
             }
-        }
-        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex)
-            && (readingImageData || (reader.IsTruncatedInput && image is not null)))
-        {
-            // Two cases reach here: damaged or truncated section payloads, and physical EOF after at least
-            // one displayed frame started. The codestream reader finds container box errors before the decode starts.
-            // Frame headers and section tables are outside the image data reads, so their errors skip this handler.
-            // The Strict and IgnoreAncillary modes skip it too, so the original exception and its stack trace stay.
-            try
-            {
-                // IgnoreImageData keeps the frames and streamed rows decoded so far. Frame constructors clear
-                // their pixels, so each unread pixel keeps that value.
-                // Damage in a hidden frame before the first displayed frame leaves no canvas. Return a cleared one.
-                image ??= this.CreateImage<TPixel>(header);
 
-                // Physical pixel EOF does not waive container structure or metadata policies.
-                // Exceptions here leave this catch directly, so dispose the image in its own failure handler.
-                this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
-                return image;
-            }
-            catch
-            {
-                image?.Dispose();
-                throw;
-            }
+            // The loop ends at the last displayed frame, at MaxFrames, or at the one report of damaged image data that the IgnoreImageData mode ignored. That
+            // mode keeps the frames and the streamed rows that the decoder decoded before the damage. Frame constructors clear their pixels, so each pixel that
+            // the decoder did not read keeps that value. Damage before the first displayed frame leaves no canvas, so this code returns a cleared canvas.
+            image ??= this.CreateImage<TPixel>(header);
+
+            // The container traversal skips the frames that MaxFrames omits, and it still reads the later metadata boxes. A physical pixel EOF does not cancel
+            // the container structure rules or the metadata policies.
+            this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
+            return image;
         }
         catch
         {
@@ -476,53 +432,60 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs frame sections in dependency order and completes their native component planes.
+    /// Reconstructs the frame sections in dependency order and completes their native component planes.
     /// </summary>
-    /// <param name="reader">The reader at the frame's first section payload.</param>
+    /// <param name="reader">The reader at the first section payload of the frame.</param>
+    /// <param name="codestreamLength">The number of logical codestream bytes that the input holds.</param>
     /// <param name="header">The native channel declarations.</param>
-    /// <param name="frame">The coding dimensions and pass descriptions.</param>
-    /// <param name="sections">The retained physical section sizes and logical ordering.</param>
+    /// <param name="frame">The coding dimensions and the pass descriptions.</param>
+    /// <param name="sections">The retained physical section sizes and the logical order.</param>
     /// <param name="dcReference">The borrowed saved LF planes, or an empty span for coded DC.</param>
     /// <param name="references">The borrowed ordinary slots. Patches read their completed pre-transform planes.</param>
-    /// <param name="destination">The initialized displayed frame, or null for retained LF output.</param>
+    /// <param name="image">
+    /// The output image, or null before the first displayed frame. A displayed frame creates the image or appends a frame after its global sections, so a frame
+    /// that ends before them adds no frame.
+    /// </param>
     /// <param name="profileConverter">The shared ICC converter, or null for direct color conversion.</param>
-    /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
+    /// <param name="destination">The initialized displayed frame, or null for a hidden frame or an incomplete frame.</param>
+    /// <param name="cancellationToken">The token that the method checks between sections and in the reconstruction.</param>
     /// <returns>
-    /// The native component owner. Group-row output has already written destination pixels; retained planes still require spatial reconstruction.
+    /// The native component owner, or null if the IgnoreImageData mode ignores an incomplete section. The group-row output already wrote the destination
+    /// pixels. The retained planes still need spatial reconstruction.
     /// </returns>
-    private JxlFrame DecodeFrameData<TPixel>(
+    private JxlFrame? DecodeFrameData<TPixel>(
         ref JxlBitReader reader,
+        long codestreamLength,
         JxlHeader header,
         JxlFrameHeader frame,
         JxlFrameSections sections,
         ReadOnlySpan<Buffer2D<float>> dcReference,
         ReadOnlySpan<JxlReferenceFrame?> references,
-        ImageFrame<TPixel>? destination,
+        ref Image<TPixel>? image,
         ColorProfileConverter? profileConverter,
+        out ImageFrame<TPixel>? destination,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        destination = null;
         ReadOnlySpan<uint> sizes = sections.Sizes.Span;
         ReadOnlySpan<uint> order = sections.Order.Span;
         bool combined = sizes.Length == 1;
+
+        // The logical dependencies set the process order. The table can put those sections in another physical order. The code caches the prefix sums once, so
+        // a permuted frame needs no repeated table scans and no copied payloads. A combined section starts at the payload offset and needs no rented storage.
+        long payloadOffset = sections.PayloadOffset;
         using IMemoryOwner<long>? offsetsOwner = combined ? null : this.Options.Configuration.MemoryAllocator.Allocate<long>(sizes.Length);
-        Span<long> offsets = offsetsOwner is null ? [] : offsetsOwner.Memory.Span;
-        long position = sections.PayloadOffset;
+        Span<long> offsets = offsetsOwner is null ? new Span<long>(ref payloadOffset) : offsetsOwner.Memory.Span;
+        long position = payloadOffset;
         for (int i = 0; i < offsets.Length; i++)
         {
             offsets[i] = position;
             position += sizes[i];
         }
 
-        // Logical dependencies determine processing order. The table can put those sections in another physical order.
-        // Cache prefix sums once so a permuted frame needs neither repeated table scans nor copied payloads.
-        if (combined)
+        if (!this.TrySelectSection(ref reader, sizes, order, offsets, 0, codestreamLength))
         {
-            reader.BeginSection(sizes[0]);
-        }
-        else
-        {
-            SelectSection(ref reader, sizes, order, offsets, 0);
+            return null;
         }
 
         MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
@@ -531,6 +494,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         JxlVarDctDecoder? varDct = null;
         JxlModularDecoder? modular = null;
         JxlFrame? reconstructed = null;
+        JxlFrame? result = null;
         try
         {
             // Frame features precede DC factors in the DC-global section. Their entropy state ends
@@ -561,7 +525,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             // Global modular inverses can make alpha and black unavailable until all groups finish.
             // Saved native frames and the existing spatial-feature passes also consume retained planes.
             // Ordinary final color can instead be restored and packed as each group row becomes complete.
-            bool useGroupRows = destination is not null && varDct is not null
+            bool useGroupRows = frame.IsDisplayed && varDct is not null
                 && frame.Type == JxlFrameHeader.FrameType.Regular && !frame.CanBeReferenced && !frame.NeedsBlending
                 && header.Metadata.ExtraChannels.Count == 0 && frame.Upsampling == 1 && patches is null && splines is null && !noise.HasAny;
             for (int component = 0; component < frame.HorizontalSamplingShifts.Length; component++)
@@ -591,9 +555,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             for (int group = 0; group < dcGroupCount; group++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!combined)
+                if (!combined && !this.TrySelectSection(ref reader, sizes, order, offsets, 1 + group, codestreamLength))
                 {
-                    SelectSection(ref reader, sizes, order, offsets, 1 + group);
+                    return null;
                 }
 
                 Rectangle rectangle = new((group % dcGroupColumns) * dcGroupSize, (group / dcGroupColumns) * dcGroupSize, dcGroupSize, dcGroupSize);
@@ -606,7 +570,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 }
 
                 modular.ReadGroup(ref reader, rectangle, 3, 1000, 1 + dcGroupCount + group, cancellationToken);
-                varDct?.ReadAcMetadata(ref reader, modular, group, cancellationToken);
+                varDct?.ReadAcMetadata(ref reader, modular, group, this.Options.SegmentIntegrityHandling, image is not null, cancellationToken);
                 if (!combined)
                 {
                     reader.EndSection();
@@ -621,9 +585,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
 
             // Modular-only frames have no AC-global fields, but their physical section remains bounded.
-            if (!combined)
+            if (!combined && !this.TrySelectSection(ref reader, sizes, order, offsets, 1 + dcGroupCount, codestreamLength))
             {
-                SelectSection(ref reader, sizes, order, offsets, 1 + dcGroupCount);
+                return null;
             }
 
             if (varDct is not null)
@@ -635,6 +599,31 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             if (!combined)
             {
                 reader.EndSection();
+            }
+
+            if (frame.IsDisplayed)
+            {
+                // This decoder reads DC-global, the DC groups and AC-global before it allocates the output.
+                // Thus each global check runs before the image exists and stays structural in each mode.
+                if (image is null)
+                {
+                    image = this.CreateImage<TPixel>(header);
+                    destination = image.Frames.RootFrame;
+                }
+                else
+                {
+                    // Native composition makes a complete canvas, so a new initialized frame needs no copy of the previous TPixel frame. The reference
+                    // backgrounds stay in native planes.
+                    destination = image.Frames.CreateFrame();
+                }
+
+                JxlFrameMetadata frameMetadata = destination.Metadata.GetFormatMetadata(JxlFormat.Instance);
+                if (header.TicksPerSecond is Rational rate)
+                {
+                    // Seconds = duration ticks * timebase denominator / timebase numerator.
+                    // The code widens the values before the multiplication and keeps the exact fraction for each displayed frame.
+                    frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
+                }
             }
 
             // The frame takes ownership before traversal so both streamed and retained output share failure
@@ -691,9 +680,10 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 for (int pass = 0; pass < frame.PassCount; pass++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!combined)
+                    int section = 2 + dcGroupCount + (pass * groupCount) + group;
+                    if (!combined && !this.TrySelectSection(ref reader, sizes, order, offsets, section, codestreamLength))
                     {
-                        SelectSection(ref reader, sizes, order, offsets, 2 + dcGroupCount + (pass * groupCount) + group);
+                        return null;
                     }
 
                     // Tree property one includes reserved DC, AC-metadata and quantization-table stream IDs.
@@ -760,40 +750,131 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
 
-            return reconstructed;
+            result = reconstructed;
+            return result;
         }
-        catch
+        finally
         {
-            if (reconstructed is not null)
+            // An exception or an ignored incomplete section returns no frame. Thus this code releases each owner.
+            if (result is null)
             {
-                reconstructed.Dispose();
+                if (reconstructed is not null)
+                {
+                    reconstructed.Dispose();
+                }
+                else
+                {
+                    modular?.Dispose();
+                    varDct?.Dispose();
+                    patches?.Dispose();
+                    splines?.Dispose();
+                }
             }
-            else
-            {
-                modular?.Dispose();
-                varDct?.Dispose();
-                patches?.Dispose();
-                splines?.Dispose();
-            }
-
-            throw;
         }
     }
 
     /// <summary>
-    /// Selects one bounded payload from a logical section index without copying its bytes.
+    /// Checks the frame flags and the frame dependencies once, before the section table and the payloads.
+    /// </summary>
+    /// <param name="frame">The parsed frame header.</param>
+    /// <param name="lowFrequencyFrames">The saved LF planes for each LF level.</param>
+    /// <param name="references">The ordinary reference slots before this frame.</param>
+    /// <param name="canvasSize">The image canvas dimensions.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame. Before that, each error throws.</param>
+    /// <returns>Whether the frame is valid. False means that the IgnoreImageData mode ignored the error.</returns>
+    private bool ValidateFrame(
+        JxlFrameHeader frame,
+        ReadOnlySpan<Buffer2D<float>[]?> lowFrequencyFrames,
+        ReadOnlySpan<JxlReferenceFrame?> references,
+        Size canvasSize,
+        bool imageExists)
+    {
+        SegmentIntegrityHandling handling = this.Options.SegmentIntegrityHandling;
+        if ((frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
+            | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
+        {
+            // An unsupported feature is not damage, so it throws in each mode.
+            throw new NotSupportedException("The JPEG XL frame uses unsupported reconstruction flags.");
+        }
+
+        // A level n consumer reads slot n, which a preceding level n+1 producer saved. There are four LF levels. Level four cannot request a fifth level. An
+        // absent slot is malformed input.
+        if ((frame.Flags & JxlFrameHeader.UseLowFrequencyFrame) != 0 && (frame.LowFrequencyLevel == 4 || lowFrequencyFrames[frame.LowFrequencyLevel] is null))
+        {
+            handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL frame requests a missing low-frequency dependency.");
+            return false;
+        }
+
+        // Composition runs for each displayed frame that needs a background, and for each hidden frame that saves its samples after the color transform. It
+        // reads the reference slots as they are before this frame.
+        if (frame.NeedsBlending && (frame.IsDisplayed || !frame.SaveBeforeColorTransform))
+        {
+            uint usedSources = 1U << frame.Blending.Source;
+            foreach (JxlFrameHeader.BlendingInfo extra in frame.ExtraChannelBlending)
+            {
+                usedSources |= 1U << extra.Source;
+            }
+
+            // An absent slot is an all-zero background. Each populated source must cover the canvas at its origin. Only the color source must obey the coding
+            // color transform. That transform does not change the extra samples, so they can also come from a pre-transform reference.
+            for (int slot = 0; slot < references.Length; slot++)
+            {
+                JxlReferenceFrame? reference = references[slot];
+                if ((usedSources & (1U << slot)) != 0 && reference is not null
+                    && ((slot == frame.Blending.Source && reference.SavedBeforeColorTransform) || reference.Origin != Point.Empty
+                        || reference.Size.Width < canvasSize.Width || reference.Size.Height < canvasSize.Height))
+                {
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL composition background is not a complete original-color canvas.");
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Selects one complete payload from a logical section index. The method does not copy the payload bytes.
     /// </summary>
     /// <param name="reader">The frame bit reader.</param>
     /// <param name="sizes">The physical payload lengths.</param>
     /// <param name="order">The logical-to-physical permutation, or empty for identity order.</param>
     /// <param name="offsets">The precomputed physical payload starts in logical codestream byte units.</param>
-    /// <param name="logicalIndex">The section required by the current decoding stage.</param>
-    private static void SelectSection(
-        ref JxlBitReader reader, ReadOnlySpan<uint> sizes, ReadOnlySpan<uint> order, ReadOnlySpan<long> offsets, int logicalIndex)
+    /// <param name="logicalIndex">The section that the current decode stage needs.</param>
+    /// <param name="codestreamLength">The number of logical codestream bytes that the input holds.</param>
+    /// <returns>Whether the section is complete. False means that the IgnoreImageData mode ignored the truncation.</returns>
+    private bool TrySelectSection(
+        ref JxlBitReader reader, ReadOnlySpan<uint> sizes, ReadOnlySpan<uint> order, ReadOnlySpan<long> offsets, int logicalIndex, long codestreamLength)
     {
         int physicalIndex = order.IsEmpty ? logicalIndex : (int)order[logicalIndex];
-        reader.SeekBytePosition(offsets[physicalIndex]);
+        long offset = offsets[physicalIndex];
+        if (offset + sizes[physicalIndex] > codestreamLength)
+        {
+            // The frame decoder receives only complete sections. The first incomplete section is the one report of truncated image data.
+            // The IgnoreImageData mode keeps the frames and the streamed rows that the decoder decoded before it.
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG XL section payload is truncated.");
+            return false;
+        }
+
+        reader.SeekBytePosition(offset);
         reader.BeginSection(sizes[physicalIndex]);
+        return true;
+    }
+
+    /// <summary>
+    /// Reads the preview frame header and skips its section payloads. The decoder does not decode the preview.
+    /// </summary>
+    /// <param name="reader">The bit reader, at the position after the image header.</param>
+    /// <param name="header">The image-wide header that declares the preview.</param>
+    /// <param name="cancellationToken">The token that cancels the section traversal.</param>
+    /// <returns>Whether the preview payloads are complete. False means that the IgnoreImageData mode ignored the truncation.</returns>
+    private bool SkipPreview(ref JxlBitReader reader, JxlHeader header, CancellationToken cancellationToken)
+    {
+        // The preview comes before each main frame, so no image exists. Thus each header and table error throws, and Read returns a frame. Only a short preview
+        // payload uses the image data policy.
+        SegmentIntegrityHandling handling = this.Options.SegmentIntegrityHandling;
+        JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true, handling, false)!;
+        return JxlFrameSections.Skip(ref reader, this.Options.Configuration.MemoryAllocator, preview.SectionCount, handling, false, cancellationToken);
     }
 
     /// <summary>
@@ -806,27 +887,32 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     private List<ImageFrameMetadata> IdentifyFrames(ref JxlBitReader reader, JxlHeader header, CancellationToken cancellationToken)
     {
         MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
+        SegmentIntegrityHandling handling = this.Options.SegmentIntegrityHandling;
         List<ImageFrameMetadata> frames = [];
 
-        // A preview has its own header and section table. It precedes the main frames but does not
-        // contribute to their displayed count or consume the caller's MaxFrames allowance.
-        if (header.PreviewSize.HasValue)
+        // A preview has its own header and section table. It comes before the main frames. It does not add to the displayed frame count, and it does not use
+        // the MaxFrames allowance of the caller. If the preview is short, no main-frame header remains to read. Identify can still return the image-wide
+        // fields, but it does not add the preview as a displayed frame.
+        if (header.PreviewSize.HasValue && !this.SkipPreview(ref reader, header, cancellationToken))
         {
-            JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true, this.Options.SegmentIntegrityHandling);
-            if (!JxlFrameSections.Skip(ref reader, allocator, preview.SectionCount, this.Options.SegmentIntegrityHandling, cancellationToken))
-            {
-                // A short preview leaves no main-frame header to read. Identify can still return the
-                // image-wide fields, without adding the preview as a displayed frame.
-                return frames;
-            }
+            return frames;
         }
 
-        JxlFrameHeader frame;
+        JxlFrameHeader? frame;
         do
         {
             cancellationToken.ThrowIfCancellationRequested();
-            frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
-            bool complete = JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, this.Options.SegmentIntegrityHandling, cancellationToken);
+
+            // As in Decode, a damaged header or table after the first displayed frame is image data. A null result means that the IgnoreImageData mode keeps
+            // the frames that Identify found before the damage.
+            bool imageExists = frames.Count != 0;
+            frame = JxlFrameHeader.Read(ref reader, header, false, handling, imageExists);
+            if (frame is null)
+            {
+                break;
+            }
+
+            bool complete = JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, handling, imageExists, cancellationToken);
 
             // Zero-duration intermediate frames and reference-only frames still occupy sections.
             // Parse them to reach the next frame, but report only frames that produce displayed output.
@@ -848,8 +934,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
             if (!complete)
             {
-                // The header and table are complete, so their metadata remains valid. The reader is at
-                // the final logical end; attempting another frame would reinterpret missing payload as header bits.
+                // The mode ignored a short payload or a damaged table. The header is complete, so its metadata stays valid. An attempt to read another frame
+                // reads the missing payload or table bits as header bits.
                 break;
             }
         }

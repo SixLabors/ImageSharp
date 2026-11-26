@@ -45,7 +45,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Assert.Equal(subsampled ? 87 : 78, reader.Position);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, factors, []);
@@ -123,14 +123,13 @@ public partial class JxlHeaderTests
     }
 
     /// <summary>
-    /// Gets the interior smoothing samples recorded from the original libjxl AdaptiveDCSmoothing implementation.
+    /// Gets the interior smoothing samples recorded from the original libjxl implementation.
     /// </summary>
     /// <param name="subsampled">Whether X and B have half the luma resolution.</param>
     /// <param name="component">The X, Y or B component index.</param>
     /// <returns>Six columns from each of three consecutive interior rows.</returns>
     /// <remarks>
-    /// Generated with libjxl revision 91837342b24034078780b687f57f670a7def8153 by parsing the stored smoothing owner inputs,
-    /// then calling original DequantDC and hardware-dispatched AdaptiveDCSmoothing in lib/jxl/compressed_dc.cc.
+    /// Generated with libjxl revision 91837342b24034078780b687f57f670a7def8153 from the stored smoothing owner inputs, with hardware-dispatched smoothing.
     /// The native writer serialized a 280-by-40 frame with default DC factors, global scale 32768, DC quantizer 100 and extra precision one.
     /// Quantized samples are 2*x + 3*y + 5*c, plus one when (x + 2*y + c) modulo five is zero; c indexes X, Y, B.
     /// B also adds eight at (17,2). The subsampled input halves X/B horizontally and pads the full block width from 35 to 36.
@@ -179,14 +178,13 @@ public partial class JxlHeaderTests
     };
 
     /// <summary>
-    /// Gets the interior smoothing samples recorded from the original jxl-rs adaptive_lf_smoothing implementation.
+    /// Gets the interior smoothing samples recorded from the original jxl-rs implementation.
     /// </summary>
     /// <param name="subsampled">Whether X and B have half the luma resolution.</param>
     /// <param name="component">The X, Y or B component index.</param>
     /// <returns>Six columns from each of three consecutive interior rows.</returns>
     /// <remarks>
-    /// Generated with jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f by parsing the same stored inputs,
-    /// then calling original adaptive_lf_smoothing in jxl/src/frame/adaptive_lf_smoothing.rs.
+    /// Generated with jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f from the same stored inputs.
     /// The serialized input recipe and sampled positions are documented on NativeDcSmoothingPoints.
     /// Values are IEEE 754 float bit patterns before color conversion and pixel packing.
     /// </remarks>

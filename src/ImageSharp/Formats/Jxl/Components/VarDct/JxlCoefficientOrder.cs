@@ -11,12 +11,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal static class JxlCoefficientOrder
 {
     /// <summary>
-    /// The thirteen shared coefficient-order families from libjxl coeff_order_fwd.h kNumOrders.
+    /// The thirteen shared coefficient-order families.
     /// </summary>
     public const int OrderCount = 13;
 
     /// <summary>
-    /// The 27 raw transform strategies in libjxl ac_strategy.h AcStrategy::Type, before coefficient-order family sharing.
+    /// The 27 raw transform strategies, before coefficient-order family sharing.
     /// </summary>
     public const int StrategyCount = 27;
 

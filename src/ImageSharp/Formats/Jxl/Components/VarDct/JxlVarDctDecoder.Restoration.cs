@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder
 {
     /// <summary>
-    /// The negative sigma floor from native epf.cc ComputeSigma.
+    /// The negative sigma floor.
     /// The reciprocal uses min(-1e-4, scaledSigma), so its denominator cannot approach zero from below.
     /// </summary>
     private const float MinimumSigmaMagnitude = -1e-4F;

@@ -89,7 +89,8 @@ public class JxlBitReaderTests
     }
 
     /// <summary>
-    /// Verifies that unwritten reservoir bytes cannot become valid bits at the end of a codestream.
+    /// Verifies that a read past the codestream end returns zeros for the missing bits and consumes only the real bits. The read also records the overread for
+    /// the next checkpoint.
     /// </summary>
     [Fact]
     public void ReadBitsRejectsOverread()
@@ -104,23 +105,18 @@ public class JxlBitReaderTests
             reader.ReadBits(32);
         }
 
-        // Only the stored final byte, 0x03, remains. A short refill must not consume that byte on failure.
-        const string boundaryError = "The JPEG XL field exceeds its section or codestream boundary.";
-        InvalidImageContentException shortRead = Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(32));
-        Assert.Equal(boundaryError, shortRead.Message);
-        Assert.Equal(640, reader.Position);
-        Assert.True(reader.IsTruncatedInput);
-
-        // Prefix lookup can zero-pad its high bits, but those bits must not become valid consumption.
-        Assert.Equal(0x03U, reader.PeekBits(32));
-        InvalidImageContentException paddedConsumption = Assert.Throws<InvalidImageContentException>(() => reader.ConsumeBits(9));
-        Assert.Equal(boundaryError, paddedConsumption.Message);
-        Assert.Equal(640, reader.Position);
-
-        reader.ReadBits(8);
-
+        // Only the stored final byte, 0x03, remains. The short read returns that byte with zero high bits and consumes it.
+        Assert.True(reader.AllReadsWithinBounds);
+        Assert.Equal(0x03U, reader.ReadBits(32));
         Assert.Equal(648, reader.Position);
-        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(1));
+        Assert.False(reader.AllReadsWithinBounds);
+
+        // Each later lookup and read past the end gives zeros. The position stays at the codestream end.
+        Assert.Equal(0U, reader.PeekBits(32));
+        reader.ConsumeBits(9);
+        Assert.Equal(0U, reader.ReadBits(8));
+        Assert.Equal(648, reader.Position);
+        Assert.False(reader.AllReadsWithinBounds);
     }
 
     /// <summary>
@@ -137,8 +133,6 @@ public class JxlBitReaderTests
 
         // The first reservoir also contains the following 3F byte. Lookahead can expose only FA from this section.
         Assert.Equal(0xFAU, reader.PeekBits(16));
-        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(16));
-        Assert.False(reader.IsTruncatedInput);
         Assert.Equal(16, reader.Position);
         Assert.Equal(2U, reader.ReadBits(3));
         reader.EndSection();
@@ -171,14 +165,16 @@ public class JxlBitReaderTests
 
         Assert.Equal(expected, actual);
         Assert.Equal(72 + prefixBits, reader.Position);
-        reader.CheckBitBudget((ulong)(8 - prefixBits));
-        Assert.Throws<InvalidImageContentException>(() => reader.CheckBitBudget((ulong)(9 - prefixBits)));
+        Assert.True(reader.CheckBitBudget((ulong)(8 - prefixBits)));
+        Assert.True(reader.AllReadsWithinBounds);
+        Assert.False(reader.CheckBitBudget((ulong)(9 - prefixBits)));
         Assert.Equal(0U, reader.ReadBits(8 - prefixBits));
-        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(1));
+        Assert.Equal(0U, reader.ReadBits(1));
+        Assert.False(reader.AllReadsWithinBounds);
         Assert.Equal(80, reader.Position);
 
-        reader.EndSection();
-        Assert.Equal(0x00E0U, reader.ReadBits(16));
+        // The section is complete, so its checkpoint reports the read past its end in each mode.
+        Assert.Throws<InvalidImageContentException>(() => reader.EndSection());
     }
 
     /// <summary>
@@ -217,7 +213,11 @@ public class JxlBitReaderTests
         // The stored codestream has 81 bytes. A three-byte section starting at byte 79 has only two actual bytes.
         Assert.False(reader.TrySkipBytes(3));
         Assert.Equal(648, reader.Position);
-        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(1));
+        Assert.True(reader.AllReadsWithinBounds);
+
+        // A read past the physical end returns zero and records the overread without moving the position.
+        Assert.Equal(0U, reader.ReadBits(1));
+        Assert.False(reader.AllReadsWithinBounds);
         Assert.Equal(648, reader.Position);
     }
 }

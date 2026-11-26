@@ -31,7 +31,7 @@ internal static partial class JxlQuantization
     private static ReadOnlySpan<float> LibraryMatrixParameters =>
     [
 
-        // These single-precision values are the format defaults in libjxl's DequantMatricesLibraryDef.
+        // These single-precision values are the format defaults.
         // Seeds and special weights already include their factor of sixty-four. Band deltas and multipliers do not.
         // Quantization family 0.
         3.15e+3F, 0F, -0.4F, -0.4F, -0.4F, -2F, 5.6e+2F, 0F, -0.3F, -0.3F, -0.3F, -0.3F, 512F, -2F, -1F,

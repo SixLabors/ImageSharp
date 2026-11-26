@@ -195,8 +195,7 @@ public partial class JxlHeaderTests
     /// <param name="strategy">The raw transform strategy.</param>
     /// <returns>The sample bits in the documented spatial point order.</returns>
     /// <remarks>
-    /// Generated with libjxl revision 91837342b24034078780b687f57f670a7def8153 by calling the original
-    /// LowestFrequenciesFromDC and SSE2 TransformToPixels functions in lib/jxl/dec_transforms-inl.h.
+    /// Generated with the SSE2 inverse transform of libjxl revision 91837342b24034078780b687f57f670a7def8153.
     /// Inputs and sampled positions are the same as those documented on RustInverseTransformPoints.
     /// Values are IEEE 754 float bit patterns after spatial reconstruction, before color conversion or pixel packing.
     /// </remarks>
@@ -238,8 +237,7 @@ public partial class JxlHeaderTests
     /// <param name="strategy">The raw transform strategy.</param>
     /// <returns>The sample bits in the documented spatial point order.</returns>
     /// <remarks>
-    /// Generated with jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f by calling the original
-    /// jxl_transforms/src/transform.rs transform_to_pixels_impl with jxl_simd::ScalarDescriptor.
+    /// Generated with the scalar inverse transform of jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
     /// For a W-by-H transform, the coefficient stride is max(W,H). All coefficients start at zero except
     /// coefficient[1] = 1/8, coefficient[stride] = -1/16 and coefficient[W*H-1] = 1/32.
     /// The spatial DC grid contains DC[x,y] = 1/4 + x/32 - y/64. The Rust function inserts its low frequencies
@@ -404,7 +402,7 @@ public partial class JxlHeaderTests
     /// <param name="strategy">The raw AFV strategy.</param>
     /// <returns>The physical quadrant samples in row-major order.</returns>
     /// <remarks>
-    /// Generated with the same libjxl and jxl-rs revisions and entry points documented on RustInverseTransformPoints.
+    /// Generated with the same libjxl and jxl-rs revisions and transforms documented on RustInverseTransformPoints.
     /// For each AFV strategy, the 8-by-8 coefficient block starts at zero except coefficient[2] = 1/8,
     /// coefficient[16] = -1/16 and coefficient[54] = 1/32. The single DC sample is 1/4.
     /// Both references return identical float bits for all 64 output samples. These 16 values describe the

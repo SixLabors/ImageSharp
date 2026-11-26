@@ -351,6 +351,26 @@ public class PbmDecoderTests
     }
 
     /// <summary>
+    /// Rejects a zero width or height, or a header without raster data, before it allocates the image. Decode and Identify both throw.
+    /// </summary>
+    /// <param name="text">The input. Each character is one byte.</param>
+    [Theory]
+    [InlineData("P5\n0 1\n255\n\u0000")]
+    [InlineData("P2\n1 0\n255\n0\n")]
+    [InlineData("P5\n1 1\n255\n")]
+    [InlineData("P2\n1 1\n255\n")]
+    public void Decode_ZeroSizeOrNoRaster_ThrowsInvalidImageContentException(string text)
+    {
+        byte[] data = System.Text.Encoding.Latin1.GetBytes(text);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgb24> image = Image.Load<Rgb24>(data);
+        });
+    }
+
+    /// <summary>
     /// Rejects an overflowing header dimension before allocating the image.
     /// </summary>
     [Fact]

@@ -162,6 +162,33 @@ public class PbmEncoderTests
         Assert.Equal(new byte[] { 0x80, 0x00, 0x12, 0x34, 0x00, 0xFF }, encoded[^6..]);
     }
 
+    /// <summary>
+    /// Writes 8-bit samples when gray output gets the black and white component type.
+    /// </summary>
+    /// <param name="encoding">The output encoding.</param>
+    [Theory]
+    [InlineData(PbmEncoding.Plain)]
+    [InlineData(PbmEncoding.Binary)]
+    public void PbmEncoder_GrayscaleWithBitComponentType_WritesByteSamples(PbmEncoding encoding)
+    {
+        using Image<L8> image = new(2, 1);
+        image[0, 0] = new L8(0x80);
+        image[1, 0] = new L8(0x12);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new PbmEncoder
+        {
+            ColorType = PbmColorType.Grayscale,
+            ComponentType = PbmComponentType.Bit,
+            Encoding = encoding
+        });
+
+        memStream.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(memStream);
+        Assert.Equal(PbmComponentType.Byte, decoded.Metadata.GetPbmMetadata().ComponentType);
+        ImageComparer.Exact.VerifySimilarity(image, decoded);
+    }
+
     private static void TestPbmEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,
         PbmColorType colorType,

@@ -87,7 +87,7 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     /// Processes the ppm header.
     /// </summary>
     /// <param name="stream">The input stream.</param>
-    /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
+    /// <exception cref="InvalidImageContentException">The header is not valid, or the image has no raster data.</exception>
     [MemberNotNull(nameof(metadata))]
     private void ProcessHeader(BufferedReadStream stream)
     {
@@ -138,12 +138,19 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
                 throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
         }
 
+        // Each header token is a decimal number that ends at whitespace. See Netpbm pbm(5), pgm(5) and ppm(5), section "The Format".
         if (!stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int width, out bool widthOverflow) || widthOverflow ||
+            !stream.ReadDecimal(out int width, out bool widthOverflow, out bool widthValid) || widthOverflow || !widthValid ||
             !stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int height, out bool heightOverflow) || heightOverflow)
+            !stream.ReadDecimal(out int height, out bool heightOverflow, out bool heightValid) || heightOverflow || !heightValid)
         {
             ThrowInvalidHeader();
+        }
+
+        // An image needs at least one pixel.
+        if (width == 0 || height == 0)
+        {
+            throw new InvalidImageContentException($"Invalid PBM image size: width = {width}, height = {height}.");
         }
 
         // ReadDecimal consumed the separator after height. Only PBM's binary raster starts here;
@@ -155,7 +162,8 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
 
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            if (!stream.ReadDecimal(out this.maxPixelValue, out bool maxValueOverflow) || maxValueOverflow)
+            // ReadDecimal saturates an overflowing value at int.MaxValue, so the range check also rejects it.
+            if (!stream.ReadDecimal(out this.maxPixelValue, out _, out bool maxValueValid) || !maxValueValid)
             {
                 ThrowInvalidHeader();
             }
@@ -176,14 +184,20 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
 
             // The binary formats have exactly one separator before the raster. Its bytes can equal whitespace or '#'.
             // Plain samples are decimal tokens, so their leading whitespace and comments still need to be skipped.
-            if (this.encoding == PbmEncoding.Plain)
+            if (this.encoding == PbmEncoding.Plain && !stream.SkipWhitespaceAndComments())
             {
-                stream.SkipWhitespaceAndComments();
+                ThrowInvalidHeader();
             }
         }
         else
         {
             this.componentType = PbmComponentType.Bit;
+        }
+
+        // At this point, a plain raster starts at a byte that is not whitespace. A binary raster needs at least one byte.
+        if (this.encoding == PbmEncoding.Binary && stream.Position >= stream.Length)
+        {
+            throw new InvalidImageContentException("The PBM image has no raster data.");
         }
 
         this.pixelSize = new Size(width, height);

@@ -52,16 +52,6 @@ internal static class BufferedReadStreamExtensions
     }
 
     /// <summary>
-    /// Reads a decimal value and reports values above the supported integer range without wrapping.
-    /// </summary>
-    /// <param name="stream">The input stream.</param>
-    /// <param name="value">The parsed value, saturated at <see cref="int.MaxValue"/>.</param>
-    /// <param name="overflow">True if the decimal value exceeds <see cref="int.MaxValue"/>.</param>
-    /// <returns>False if EOF was reached. The final digits are retained in <paramref name="value"/>.</returns>
-    public static bool ReadDecimal(this BufferedReadStream stream, out int value, out bool overflow)
-        => stream.ReadDecimal(out value, out overflow, out _);
-
-    /// <summary>
     /// Reads a decimal value, reports values above the supported integer range without wrapping, and reports a
     /// token that is not a decimal number.
     /// </summary>

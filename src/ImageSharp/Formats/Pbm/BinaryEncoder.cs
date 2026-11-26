@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -22,11 +20,11 @@ internal class BinaryEncoder
     /// <param name="stream">The byte stream to write to.</param>
     /// <param name="image">The input image.</param>
     /// <param name="colorType">The color type to use.</param>
-    /// <param name="componentType">The data type of the pixel components.</param>
+    /// <param name="componentType">
+    /// The data type of the pixel components. It is <see cref="PbmComponentType.Byte"/> or <see cref="PbmComponentType.Short"/> for gray and RGB. <see
+    /// cref="PbmEncoderCore"/> maps the other values.
+    /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if an invalid combination of setting is requested.
-    /// </exception>
     public static void WritePixels<TPixel>(
         Configuration configuration,
         Stream stream,
@@ -42,13 +40,9 @@ internal class BinaryEncoder
             {
                 WriteGrayscale(configuration, stream, image, cancellationToken);
             }
-            else if (componentType == PbmComponentType.Short)
-            {
-                WriteWideGrayscale(configuration, stream, image, cancellationToken);
-            }
             else
             {
-                throw new ImageFormatException("Component type not supported for Grayscale PBM.");
+                WriteWideGrayscale(configuration, stream, image, cancellationToken);
             }
         }
         else if (colorType == PbmColorType.Rgb)
@@ -57,16 +51,12 @@ internal class BinaryEncoder
             {
                 WriteRgb(configuration, stream, image, cancellationToken);
             }
-            else if (componentType == PbmComponentType.Short)
+            else
             {
                 WriteWideRgb(configuration, stream, image, cancellationToken);
             }
-            else
-            {
-                throw new ImageFormatException("Component type not supported for Color PBM.");
-            }
         }
-        else if (componentType == PbmComponentType.Bit)
+        else
         {
             WriteBlackAndWhite(configuration, stream, image, cancellationToken);
         }
@@ -149,7 +139,7 @@ internal class BinaryEncoder
 
             // The binary format stores 16-bit samples most significant byte first,
             // but ToL16Bytes produces native (little-endian) byte order.
-            SwapSampleBytes(rowSpan);
+            BinaryDecoder.SwapSampleBytes(rowSpan);
 
             stream.Write(rowSpan);
         }
@@ -233,23 +223,9 @@ internal class BinaryEncoder
 
             // The binary format stores 16-bit samples most significant byte first,
             // but ToRgb48Bytes produces native (little-endian) byte order.
-            SwapSampleBytes(rowSpan);
+            BinaryDecoder.SwapSampleBytes(rowSpan);
 
             stream.Write(rowSpan);
-        }
-    }
-
-    /// <summary>
-    /// Reverses the byte order of each 16-bit sample in the given row when the host is little-endian.
-    /// The binary PGM and PPM formats store multi-byte samples most significant byte first.
-    /// </summary>
-    /// <param name="rowSpan">The row of native-endian sample data to convert in place.</param>
-    private static void SwapSampleBytes(Span<byte> rowSpan)
-    {
-        if (BitConverter.IsLittleEndian)
-        {
-            Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan);
-            BinaryPrimitives.ReverseEndianness(samples, samples);
         }
     }
 

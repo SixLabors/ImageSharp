@@ -12,12 +12,10 @@ internal abstract class ExrBaseCompressor : ExrBaseCompression
     /// </summary>
     /// <param name="output">The output stream to write the compressed image to.</param>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="bytesPerBlock">Bytes per row block.</param>
     /// <param name="bytesPerRow">Bytes per pixel row.</param>
-    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The number of pixels per row.</param>
-    protected ExrBaseCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
-        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
+    protected ExrBaseCompressor(Stream output, MemoryAllocator allocator, uint bytesPerRow, int width)
+        : base(allocator, bytesPerRow, width)
         => this.Output = output;
 
     /// <summary>

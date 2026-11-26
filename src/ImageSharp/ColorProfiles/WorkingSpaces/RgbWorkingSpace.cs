@@ -119,8 +119,8 @@ public abstract class RgbWorkingSpace
 
         // A primary defines the XYZ direction (x, y, 1-x-y), not an absolute luminance.
         // Retain unit-Y rows for nonzero y so existing matrices keep their arithmetic.
-        // A zero-y primary still defines a valid direction, such as the X and Z basis
-        // primaries accepted by OpenEXR's RGBtoXYZ. Keep its homogeneous row instead of dividing by zero.
+        // A zero-y primary still defines a valid direction, such as the X and Z basis primaries that OpenEXR accepts.
+        // Keep its homogeneous row instead of dividing by zero.
         float divisorR = yr == 0F ? 1F : yr;
         float divisorG = yg == 0F ? 1F : yg;
         float divisorB = yb == 0F ? 1F : yb;

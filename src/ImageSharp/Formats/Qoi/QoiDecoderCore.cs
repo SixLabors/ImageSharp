@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
@@ -15,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 
 internal class QoiDecoderCore : ImageDecoderCore
 {
+    /// <summary>
+    /// The error message for a header that is not a QOI header.
+    /// </summary>
+    private const string InvalidImageMessage = "The image is not a valid QOI image.";
+
     /// <summary>
     ///     The global configuration.
     /// </summary>
@@ -84,59 +88,30 @@ internal class QoiDecoderCore : ImageDecoderCore
     /// <exception cref="InvalidImageContentException">If the stream doesn't store a qoi image</exception>
     private void ProcessHeader(BufferedReadStream stream)
     {
-        Span<byte> magicBytes = stackalloc byte[4];
-        Span<byte> widthBytes = stackalloc byte[4];
-        Span<byte> heightBytes = stackalloc byte[4];
-
-        // Read magic bytes
-        int read = stream.Read(magicBytes);
-        if (read != 4 || !magicBytes.SequenceEqual([.. QoiConstants.Magic]))
+        Span<byte> headerBytes = stackalloc byte[QoiConstants.HeaderSize];
+        if (stream.Read(headerBytes) != headerBytes.Length || !headerBytes[..QoiConstants.Magic.Length].SequenceEqual(QoiConstants.Magic))
         {
-            ThrowInvalidImageContentException();
+            throw new InvalidImageContentException(InvalidImageMessage);
         }
 
-        // If it's a qoi image, read the rest of properties
-        read = stream.Read(widthBytes);
-        if (read != 4)
-        {
-            ThrowInvalidImageContentException();
-        }
-
-        read = stream.Read(heightBytes);
-        if (read != 4)
-        {
-            ThrowInvalidImageContentException();
-        }
-
-        // These numbers are in Big Endian so we have to reverse them to get the real number
-        uint width = BinaryPrimitives.ReadUInt32BigEndian(widthBytes);
-        uint height = BinaryPrimitives.ReadUInt32BigEndian(heightBytes);
+        uint width = BinaryPrimitives.ReadUInt32BigEndian(headerBytes[4..]);
+        uint height = BinaryPrimitives.ReadUInt32BigEndian(headerBytes[8..]);
 
         // The image types store each dimension as a positive int.
         if (width == 0 || height == 0 || width > int.MaxValue || height > int.MaxValue)
         {
-            throw new InvalidImageContentException(
-                $"The image has an invalid size: width = {width}, height = {height}");
+            throw new InvalidImageContentException($"The image has an invalid size: width = {width}, height = {height}");
         }
 
-        int channels = stream.ReadByte();
-        if (channels is -1 or (not 3 and not 4))
+        byte channels = headerBytes[12];
+        byte colorSpace = headerBytes[13];
+        if (channels is not (3 or 4) || colorSpace is not (0 or 1))
         {
-            ThrowInvalidImageContentException();
-        }
-
-        int colorSpace = stream.ReadByte();
-        if (colorSpace is -1 or (not 0 and not 1))
-        {
-            ThrowInvalidImageContentException();
+            throw new InvalidImageContentException(InvalidImageMessage);
         }
 
         this.header = new QoiHeader(width, height, (QoiChannels)channels, (QoiColorSpace)colorSpace);
     }
-
-    [DoesNotReturn]
-    private static void ThrowInvalidImageContentException()
-        => throw new InvalidImageContentException("The image is not a valid QOI image.");
 
     /// <summary>
     /// Decodes the QOI chunks into the pixel buffer and reads the end marker.
@@ -162,7 +137,7 @@ internal class QoiDecoderCore : ImageDecoderCore
         Span<byte> pixelBytes = MemoryMarshal.CreateSpan(ref Unsafe.As<Rgba32, byte>(ref readPixel), 4);
         TPixel pixel = default;
 
-        for (int i = 0; i < this.header.Height; i++)
+        for (int i = 0; i < pixels.Height; i++)
         {
             Span<TPixel> row = pixels.DangerousGetRowSpan(i);
             for (int j = 0; j < row.Length; j++)
@@ -251,14 +226,11 @@ internal class QoiDecoderCore : ImageDecoderCore
                                 previouslySeenPixels[pixelArrayPosition] = readPixel;
                                 break;
 
-                            // Repeating the previous pixel 1..63 times
-                            case QoiChunk.QoiOpRun:
+                            // The run repeats the previous pixel 1 to 62 times. The 2-bit tag has four values, and this case is the last one (QoiOpRun). The
+                            // bytes 0xFE and 0xFF also have this tag, but the outer switch reads them as QoiOpRgb and QoiOpRgba. Thus a run chunk always has a
+                            // valid length. See The Quite OK Image Format Specification, Version 1.0, QOI_OP_RUN (https://qoiformat.org/qoi-specification.pdf).
+                            default:
                                 int repetitions = operationByte & 0b00111111;
-                                if (repetitions is 62 or 63)
-                                {
-                                    ThrowInvalidImageContentException();
-                                }
-
                                 readPixel = previousPixel;
                                 pixel = TPixel.FromRgba32(readPixel);
                                 for (int k = -1; k < repetitions; k++, j++)
@@ -283,10 +255,6 @@ internal class QoiDecoderCore : ImageDecoderCore
 
                                 j--;
                                 continue;
-
-                            default:
-                                ThrowInvalidImageContentException();
-                                return;
                         }
 
                         break;

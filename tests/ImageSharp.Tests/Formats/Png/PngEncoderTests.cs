@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -441,6 +442,43 @@ public partial class PngEncoderTests
             Assert.Equal(originalFrameMetadata.BlendMode, outputFrameMetadata.BlendMode);
             Assert.Equal(originalFrameMetadata.DisposalMode, outputFrameMetadata.DisposalMode);
         }
+    }
+
+    /// <summary>
+    /// Verifies that the encoder writes dispose_op 0 (APNG_DISPOSE_OP_NONE) for a frame with the disposal mode Unspecified. The values 0, 1 and 2 are the
+    /// only valid dispose_op values. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control Chunk".
+    /// </summary>
+    [Fact]
+    public void Encode_UnspecifiedDisposalMode_WritesDisposeOpNone()
+    {
+        // The frames of a new image have the disposal mode Unspecified. The second frame has a different color, so the encoder writes it.
+        using Image<Rgba32> image = new(2, 2, new Rgba32(255, 0, 0));
+        using (Image<Rgba32> frame = new(2, 2, new Rgba32(0, 0, 255)))
+        {
+            image.Frames.AddFrame(frame.Frames.RootFrame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, PngEncoder);
+        byte[] data = stream.ToArray();
+
+        // The 8-byte signature comes first. Each chunk holds a 4-byte big-endian data length, the 4-byte type, the data and a 4-byte CRC. The dispose_op
+        // byte is at offset 24 of the fcTL data.
+        int frameControlCount = 0;
+        int offset = 8;
+        while (offset < data.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(offset, 4));
+            if (data.AsSpan(offset + 4, 4).SequenceEqual("fcTL"u8))
+            {
+                Assert.Equal(0, data[offset + 8 + 24]);
+                frameControlCount++;
+            }
+
+            offset += length + 12;
+        }
+
+        Assert.Equal(2, frameControlCount);
     }
 
     [Theory]

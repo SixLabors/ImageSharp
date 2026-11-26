@@ -130,7 +130,15 @@ internal sealed class JxlVarDctEncoder : IDisposable
         Buffer2D<int>? alpha = null;
         try
         {
-            coefficients = allocator.Allocate2D<int>(CoefficientsPerBlock, checked(3 * this.blockColumns * this.blockRows));
+            // A Level 10 frame has up to 2^40 pixels and up to 2^30 pixels on each axis (JxlEncoderCore).
+            // So it has fewer than 2^34 + 2^28 blocks. The row count fits in long, but it can exceed int.
+            long coefficientRows = 3L * this.blockColumns * this.blockRows;
+            if (coefficientRows > int.MaxValue)
+            {
+                InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)coefficientRows, int.MaxValue);
+            }
+
+            coefficients = allocator.Allocate2D<int>(CoefficientsPerBlock, (int)coefficientRows);
 
             if (retainAlpha)
             {
@@ -139,7 +147,16 @@ internal sealed class JxlVarDctEncoder : IDisposable
                 // The last tile reserves unused columns up to that width; callers never read or write them.
                 this.alphaGroupColumns = ((size.Width - 1) / JxlEncoderCore.GroupDimension) + 1;
                 int alphaWidth = Math.Min(size.Width, JxlEncoderCore.GroupDimension);
-                alpha = allocator.Allocate2D<int>(alphaWidth, checked(this.alphaGroupColumns * size.Height));
+
+                // A Level 10 frame has up to 2^40 pixels and up to 2^30 pixels on each axis (JxlEncoderCore).
+                // So it has fewer than 2^32 + 2^30 alpha rows. The row count fits in long, but it can exceed int.
+                long alphaRows = (long)this.alphaGroupColumns * size.Height;
+                if (alphaRows > int.MaxValue)
+                {
+                    InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)alphaRows, int.MaxValue);
+                }
+
+                alpha = allocator.Allocate2D<int>(alphaWidth, (int)alphaRows);
                 this.alphaRegion = alpha.GetRegion();
             }
 

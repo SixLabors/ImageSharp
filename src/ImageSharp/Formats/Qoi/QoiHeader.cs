@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Text;
-
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
 /// <summary>
@@ -17,11 +15,6 @@ internal readonly struct QoiHeader
         this.Channels = channels;
         this.ColorSpace = colorSpace;
     }
-
-    /// <summary>
-    /// Gets the magic bytes "qoif"
-    /// </summary>
-    public byte[] Magic { get; } = Encoding.UTF8.GetBytes("qoif");
 
     /// <summary>
     /// Gets the image width in pixels (Big Endian)

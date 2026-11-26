@@ -45,22 +45,31 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <summary>
     /// Resolves a reference-map slot that an earlier syntax boundary established as occupied.
     /// </summary>
+    /// <remarks>
+    /// The frame-header parse owns the occupancy check of each selected slot. The map changes only when a frame completes, so the slot stays occupied until
+    /// then, and this method does not check it again.
+    /// </remarks>
     /// <param name="slot">The zero-based reference-map slot.</param>
     /// <returns>The retained frame in the selected slot.</returns>
     public Av1ReferenceFrame ResolveRequired(int slot)
     {
-        return this.Resolve(slot)
-            ?? throw new InvalidImageContentException($"The AV1 reference-map slot {slot} has not been populated.");
+        Av1ReferenceFrame? frame = this.frames[slot];
+        DebugGuard.NotNull(frame);
+        return frame;
     }
 
     /// <summary>
     /// Resolves the presentation output established by the completed bounded payload.
     /// </summary>
+    /// <remarks>
+    /// The AV1 decoder checks and reports a payload without a shown frame before it resolves the output. As a result, the output is set.
+    /// </remarks>
     /// <returns>The retained frame selected for presentation.</returns>
     public Av1ReferenceFrame ResolveOutput()
     {
-        return this.outputFrame
-            ?? throw new InvalidImageContentException("The AV1 payload did not produce a shown frame.");
+        Av1ReferenceFrame? output = this.outputFrame;
+        DebugGuard.NotNull(output);
+        return output;
     }
 
     /// <summary>

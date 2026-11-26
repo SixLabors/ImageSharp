@@ -251,7 +251,7 @@ internal sealed partial class JxlVarDctDecoder
             Size size = new(this.dcSize.Width >> horizontal[c], this.dcSize.Height >> vertical[c]);
             if (referenced)
             {
-                // Native DecodeGroup checks that each requested DC rectangle fits the saved plane. A larger saved
+                // Each requested DC rectangle must fit the saved plane. A larger saved
                 // plane is valid; this frame reads only its top-left block extent. Keep the slot's ownership outside this owner.
                 Buffer2D<float> source = dcReference[c];
                 if (source.Width < size.Width || source.Height < size.Height)
@@ -281,8 +281,8 @@ internal sealed partial class JxlVarDctDecoder
             this.dcScratch[c] = JxlModularChannel.Allocate(allocator, new JxlModularChannelLayout(integerSize, 0, 0));
         }
 
-        // A reference contains restored float samples, not quantized integers. Native InitPassesSharedState
-        // sets every DC context to zero instead of classifying those floats against this frame's thresholds.
+        // A reference contains restored float samples, not quantized integers. Thus every DC context is zero.
+        // The decoder does not classify those floats against the thresholds of this frame.
         this.dcContexts = allocator.Allocate2D<byte>(this.dcSize, referenced ? AllocationOptions.Clean : AllocationOptions.None);
         this.DcContexts = this.dcContexts.GetRegion();
     }
@@ -294,7 +294,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <returns>The group clipped to the padded eight-pixel block dimensions.</returns>
     private Rectangle GetDcGroupRectangle(int group)
     {
-        // Native DCGroupRect clips to xsize_blocks/ysize_blocks, not the unpadded pixel size.
+        // The group rectangle clips to the padded block dimensions, not to the unpadded pixel size.
         // This retains the final sampling-alignment blocks used by subsampled DC and strategy metadata.
         int x = (group % this.dcGroupColumns) * this.dcGroupDimension;
         int y = (group / this.dcGroupColumns) * this.dcGroupDimension;

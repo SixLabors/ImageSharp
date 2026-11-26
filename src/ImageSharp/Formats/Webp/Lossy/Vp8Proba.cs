@@ -15,7 +15,9 @@ internal class Vp8Proba
     /// </summary>
     public Vp8Proba()
     {
+        // A frame that does not send the segment map probabilities uses 255 for each, as libwebp does.
         this.Segments = new uint[MbFeatureTreeProbs];
+        this.Segments.AsSpan().Fill(255);
         this.Bands = new Vp8BandProbas[WebpConstants.NumTypes, WebpConstants.NumBands];
         this.BandsPtr = new Vp8BandProbas[WebpConstants.NumTypes][];
 

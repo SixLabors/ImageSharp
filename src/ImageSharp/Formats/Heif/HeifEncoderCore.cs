@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -230,23 +231,51 @@ internal sealed partial class HeifEncoderCore
                     sequenceLinks);
             }
 
-            int fileTypeLength = this.WriteSequenceFileTypeBox(stream);
-            int metadataLength = GetMetadataBoxLength(sequenceItems, sequenceLinks);
-            int movieLength = GetSequenceMovieBoxLength(sequence);
-            this.WriteMetadataBox(sequenceItems, sequenceLinks, fileTypeLength, movieLength, stream);
-            this.WriteSequenceMovieBox(sequence, fileTypeLength + metadataLength, stream);
-            this.WriteMediaDataBox(compressedPixels, stream, cancellationToken);
-            stream.Flush();
+            this.WriteFile(stream, compressedPixels, sequenceItems, sequenceLinks, sequence, cancellationToken);
             return;
         }
 
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
         this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
+        this.WriteFile(stream, compressedPixels, items, links, null, cancellationToken);
+    }
 
-        long metadataBoxOffset = this.WriteFileTypeBox(stream);
-        this.WriteMetadataBox(items, links, metadataBoxOffset, 0, stream);
-        this.WriteMediaDataBox(compressedPixels, stream, cancellationToken);
+    /// <summary>
+    /// Validates the output lengths, allocates the box buffers, and then writes the complete file.
+    /// </summary>
+    /// <remarks>
+    /// Every length check and every box buffer allocation runs before the first output byte. Thus a size limit or an allocation limit never leaves a partial
+    /// file. A still image has no movie box. Thus its metadata box comes directly before the media-data box.
+    /// </remarks>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="compressedPixels">The coded item and sample payloads of the media-data box.</param>
+    /// <param name="items">The declared image and metadata items.</param>
+    /// <param name="links">The typed relationships between items.</param>
+    /// <param name="sequence">The coded image sequence, or <see langword="null"/> for a still image.</param>
+    /// <param name="cancellationToken">The token that cancels the media-data copy.</param>
+    private void WriteFile(
+        Stream stream,
+        ChunkedMemoryStream compressedPixels,
+        List<HeifItem> items,
+        List<HeifItemLink> links,
+        HeifSequenceEncoding? sequence,
+        CancellationToken cancellationToken)
+    {
+        CheckMediaDataLength(compressedPixels);
+        int metadataLength = GetMetadataBoxLength(items, links);
+        int movieLength = sequence is null ? 0 : GetSequenceMovieBoxLength(sequence.Value);
+        using IMemoryOwner<byte> metadataOwner = this.configuration.MemoryAllocator.Allocate<byte>(metadataLength);
+        using IMemoryOwner<byte>? movieOwner = sequence is null ? null : this.configuration.MemoryAllocator.Allocate<byte>(movieLength);
+        using IMemoryOwner<byte> copyOwner = this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
+        int fileTypeLength = sequence is null ? this.WriteFileTypeBox(stream) : this.WriteSequenceFileTypeBox(stream);
+        WriteMetadataBox(items, links, metadataOwner.Memory.Span[..metadataLength], fileTypeLength, movieLength, stream);
+        if (sequence is not null)
+        {
+            WriteSequenceMovieBox(sequence.Value, movieOwner!.Memory.Span[..movieLength], (long)fileTypeLength + metadataLength, stream);
+        }
+
+        WriteMediaDataBox(compressedPixels, copyOwner.Memory.Span, stream, cancellationToken);
         stream.Flush();
     }
 
@@ -324,19 +353,18 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <param name="items">The declared image and metadata items.</param>
     /// <param name="links">The typed relationships between items.</param>
+    /// <param name="memory">The box buffer. Its length is the metadata box length from <see cref="GetMetadataBoxLength"/>.</param>
     /// <param name="metadataBoxOffset">The metadata box offset from the start of the encoded file.</param>
     /// <param name="followingBoxLength">The number of bytes between this box and the media-data box.</param>
     /// <param name="stream">The destination stream positioned after the file-type box.</param>
-    private void WriteMetadataBox(
+    private static void WriteMetadataBox(
         List<HeifItem> items,
         List<HeifItemLink> links,
+        Span<byte> memory,
         long metadataBoxOffset,
         int followingBoxLength,
         Stream stream)
     {
-        int metadataLength = GetMetadataBoxLength(items, links);
-        using IMemoryOwner<byte> metadataOwner = this.configuration.MemoryAllocator.Allocate<byte>(metadataLength);
-        Span<byte> memory = metadataOwner.Memory.Span[..metadataLength];
         Span<byte> buffer = memory[..FullBoxHeaderLength];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Meta, 0, 0);
         bytesWritten += WriteHandlerBox(memory, bytesWritten);
@@ -356,7 +384,8 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
 
         // The mdat payload immediately follows the completed meta box and its own eight-byte header.
-        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + followingBoxLength + BasicBoxHeaderLength);
+        // The box offset is an int box length from the caller, so the sum of these int-sized terms fits in long.
+        long mediaDataOffset = metadataBoxOffset + bytesWritten + followingBoxLength + BasicBoxHeaderLength;
         WriteItemLocationBox(memory, itemLocationOffset, items, mediaDataOffset);
 
         buffer = memory[..bytesWritten];
@@ -374,14 +403,21 @@ internal sealed partial class HeifEncoderCore
     {
         // The length includes every string, profile, link, property and extent. Thus the writer fills one buffer and
         // never grows or copies it.
-        return checked(
-            FullBoxHeaderLength
+        long length = (long)FullBoxHeaderLength
             + HandlerBoxLength
             + PrimaryItemBoxLength
             + GetItemInformationBoxLength(items)
             + (links.Count == 0 ? 0 : GetItemReferenceBoxLength(links))
             + GetItemPropertiesBoxLength(items)
-            + GetItemLocationBoxLength(items));
+            + GetItemLocationBoxLength(items);
+
+        // The length is the size of one buffer. The limit is also below the 32-bit box size maximum.
+        if (length > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)length, int.MaxValue);
+        }
+
+        return (int)length;
     }
 
     /// <summary>
@@ -405,7 +441,9 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        return checked((int)length);
+        // The encoder writes at most ushort.MaxValue items (CompressAv1GridPixels), and item strings are short constants.
+        // Thus the length fits in int.
+        return (int)length;
     }
 
     /// <summary>
@@ -421,7 +459,9 @@ internal sealed partial class HeifEncoderCore
             length += ItemReferenceEntryFixedLength + ((long)link.DestinationIds.Count * sizeof(ushort));
         }
 
-        return checked((int)length);
+        // The encoder writes at most five links. Each link has at most ushort.MaxValue destination items (CompressAv1GridPixels).
+        // Thus the length fits in int.
+        return (int)length;
     }
 
     /// <summary>
@@ -482,7 +522,13 @@ internal sealed partial class HeifEncoderCore
             + (associationItemCount * PropertyAssociationEntryFixedLength)
             + (associationPropertyCount * associationSize);
 
-        return checked((int)length);
+        // A grid and its first cell each hold a copy of the ICC profile. A profile larger than 1 GiB makes the length exceed int.
+        if (length > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)length, int.MaxValue);
+        }
+
+        return (int)length;
     }
 
     /// <summary>
@@ -503,7 +549,9 @@ internal sealed partial class HeifEncoderCore
             + ((long)items.Count * ItemLocationEntryFixedLength)
             + (extentCount * ItemExtentLength);
 
-        return checked((int)length);
+        // The encoder writes at most ushort.MaxValue items (CompressAv1GridPixels). Each item has at most four extents,
+        // one for each layer (HeifEncoder.Layers). Thus the length fits in int.
+        return (int)length;
     }
 
     /// <summary>
@@ -1080,7 +1128,9 @@ internal sealed partial class HeifEncoderCore
             foreach (HeifLocation loc in item.DataLocations)
             {
                 // Each location is relative to the mdat payload. Adding the payload position gives the file offset.
-                long absoluteOffset = checked(mediaDataOffset + loc.BaseOffset + loc.Offset);
+                // The payload offset is a sum of int lengths. ChunkedMemoryStream holds at most int.MaxValue chunks of 4 MiB.
+                // Thus the sum fits in long.
+                long absoluteOffset = mediaDataOffset + loc.BaseOffset + loc.Offset;
                 BinaryPrimitives.WriteUInt64BigEndian(buffer[bytesWritten..], (ulong)absoluteOffset);
                 bytesWritten += 8;
                 BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)loc.Length);
@@ -1093,22 +1143,38 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
+    /// Rejects coded data that does not fit in one media data box. The encoder calls this method before it writes the first box,
+    /// so a rejected encode writes nothing to the output stream.
+    /// </summary>
+    /// <param name="data">The stream that holds the coded item and sample payloads.</param>
+    /// <exception cref="ImageFormatException">The box size does not fit in the 32-bit size field.</exception>
+    private static void CheckMediaDataLength(ChunkedMemoryStream data)
+    {
+        // The basic box header stores a 32-bit size. If the complete payload fits, every layer, extent and sample length in it fits in uint too.
+        if (data.Length + BasicBoxHeaderLength > uint.MaxValue)
+        {
+            throw new ImageFormatException($"Image is too large to encode with {data.Length} bytes of coded data for AVIF format.");
+        }
+    }
+
+    /// <summary>
     /// Writes all coded payloads in a media data box.
     /// </summary>
     /// <param name="data">The stream that holds the coded item and sample payloads.</param>
+    /// <param name="buffer">The copy buffer.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="cancellationToken">The token that stops the write between buffers.</param>
-    private void WriteMediaDataBox(ChunkedMemoryStream data, Stream stream, CancellationToken cancellationToken)
+    private static void WriteMediaDataBox(ChunkedMemoryStream data, Span<byte> buffer, Stream stream, CancellationToken cancellationToken)
     {
         Span<byte> buf = stackalloc byte[12];
         int bytesWritten = WriteBoxHeader(buf, Heif4CharCode.Mdat);
-        BinaryPrimitives.WriteUInt32BigEndian(buf, checked((uint)(data.Length + bytesWritten)));
+
+        // CheckMediaDataLength ran before the first write, so the box size fits in the 32-bit size field.
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)(data.Length + bytesWritten));
         stream.Write(buf[..bytesWritten]);
 
         // The method copies the payload one buffer at a time and checks for cancellation after each read. Thus a
         // canceled encode also stops during the write.
-        using IMemoryOwner<byte> bufferOwner = this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
-        Span<byte> buffer = bufferOwner.Memory.Span;
         data.Position = 0;
         int read;
         while ((read = data.Read(buffer)) > 0)
@@ -1260,7 +1326,6 @@ internal sealed partial class HeifEncoderCore
         {
             ChannelCount = settings.ColorConfig.IsMonochrome ? 1 : 3,
             UniformChannelBitDepth = channelBitDepth,
-            BitsPerPixel = channelBitDepth * (settings.ColorConfig.IsMonochrome ? 1 : 3),
             IccProfile = settings.IccProfile,
             CicpProfile = settings.ColorProfile
         };
@@ -1305,7 +1370,6 @@ internal sealed partial class HeifEncoderCore
                     IsHidden = true,
                     ChannelCount = colorGrid.ChannelCount,
                     UniformChannelBitDepth = channelBitDepth,
-                    BitsPerPixel = colorGrid.BitsPerPixel,
                     Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
                     IccProfile = colorGrid.IccProfile,
                     CicpProfile = settings.ColorProfile
@@ -1334,7 +1398,6 @@ internal sealed partial class HeifEncoderCore
             {
                 ChannelCount = 1,
                 UniformChannelBitDepth = channelBitDepth,
-                BitsPerPixel = channelBitDepth,
                 AuxiliaryType = HeifConstants.AlphaAuxiliaryType
             };
 
@@ -1380,7 +1443,6 @@ internal sealed partial class HeifEncoderCore
                         IsHidden = true,
                         ChannelCount = 1,
                         UniformChannelBitDepth = channelBitDepth,
-                        BitsPerPixel = channelBitDepth,
                         Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
                         AuxiliaryType = HeifConstants.AlphaAuxiliaryType
                     };
@@ -1756,7 +1818,6 @@ internal sealed partial class HeifEncoderCore
         {
             ChannelCount = settings.ColorConfig.IsMonochrome ? 1 : 3,
             UniformChannelBitDepth = channelBitDepth,
-            BitsPerPixel = channelBitDepth * (settings.ColorConfig.IsMonochrome ? 1 : 3),
             Av1CodecConfiguration = encoding.ColorConfiguration,
             IccProfile = settings.IccProfile,
             CicpProfile = settings.ColorProfile
@@ -1774,7 +1835,6 @@ internal sealed partial class HeifEncoderCore
             {
                 ChannelCount = 1,
                 UniformChannelBitDepth = channelBitDepth,
-                BitsPerPixel = channelBitDepth,
                 Av1CodecConfiguration = alphaConfiguration,
                 AuxiliaryType = HeifConstants.AlphaAuxiliaryType
             };
@@ -1805,10 +1865,9 @@ internal sealed partial class HeifEncoderCore
             return null;
         }
 
-        return new Av1LayeredImageIndex(
-            checked((uint)layers[0].Length),
-            layers.Length > 2 ? checked((uint)layers[1].Length) : 0,
-            layers.Length > 3 ? checked((uint)layers[2].Length) : 0);
+        // Each layer is part of the mdat payload. CheckMediaDataLength rejects a payload over the 32-bit box size before the encoder
+        // writes any box, so a truncated length here never reaches the output.
+        return new Av1LayeredImageIndex((uint)layers[0].Length, layers.Length > 2 ? (uint)layers[1].Length : 0, layers.Length > 3 ? (uint)layers[2].Length : 0);
     }
 
     /// <summary>

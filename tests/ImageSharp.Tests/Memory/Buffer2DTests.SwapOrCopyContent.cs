@@ -174,6 +174,31 @@ public partial class Buffer2DTests
         }
 
         [Fact]
+        public void WhenDestIsNotMemoryOwner_SameSize_StridedLayout_ShouldCopy()
+        {
+            int[] data = new int[5];
+            using Buffer2D<int> dest = Buffer2D<int>.WrapMemory(data.AsMemory(), 2, 2, 3);
+            using Buffer2D<int> source = this.memoryAllocator.Allocate2D<int>(2, 2, AllocationOptions.Clean);
+
+            source[0, 0] = 1;
+            source[1, 0] = 2;
+            source[0, 1] = 3;
+            source[1, 1] = 4;
+
+            bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
+
+            Assert.False(swap);
+            Assert.Equal(new Size(2, 2), dest.Size);
+            Assert.Equal(1, dest[0, 0]);
+            Assert.Equal(2, dest[1, 0]);
+            Assert.Equal(3, dest[0, 1]);
+            Assert.Equal(4, dest[1, 1]);
+
+            // The wrapped memory keeps its stride of 3, so the second row starts at index 3.
+            Assert.Equal([1, 2, 0, 3, 4], data);
+        }
+
+        [Fact]
         public void WhenDestIsNotMemoryOwner_DifferentSizeSameTotal_StridedLayout_ShouldCopy()
         {
             int[] data = new int[5];

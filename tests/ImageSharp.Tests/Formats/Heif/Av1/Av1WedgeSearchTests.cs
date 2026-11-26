@@ -24,8 +24,7 @@ public class Av1WedgeSearchTests
     private static readonly int[] Counts = [64, 128, 256, 512, 1024, 72];
 
     /// <summary>
-    /// Verifies av1_wedge_compute_delta_squares(), av1_wedge_sign_from_residuals() and
-    /// av1_wedge_sse_from_residuals().
+    /// Verifies the wedge delta squares, the wedge sign and the wedge sum of squared errors against the libaom definitions.
     /// </summary>
     [Fact]
     public void WedgeMeasuresMatchReference()
@@ -53,7 +52,7 @@ public class Av1WedgeSearchTests
                     expectedDelta[i] = (short)Math.Clamp((first[i] * first[i]) - (second[i] * second[i]), short.MinValue, short.MaxValue);
                 }
 
-                // The destination can be the first residual, as in pick_wedge().
+                // The destination can be the first residual, as in the libaom wedge search.
                 short[] actualDelta = (short[])first.Clone();
                 Av1WedgeSearch.ComputeDeltaSquares(actualDelta, actualDelta, second);
                 Assert.Equal(expectedDelta, actualDelta);

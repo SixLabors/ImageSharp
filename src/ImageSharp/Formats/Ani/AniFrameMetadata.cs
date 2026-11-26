@@ -143,8 +143,8 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         return new AniFrameMetadata
         {
             FrameDelay = (uint)Math.Round(metadata.Duration.TotalSeconds * 60),
-            EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
-            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
+            EncodingWidth = IconDirEntry.ClampEncodingDimension(metadata.EncodingWidth),
+            EncodingHeight = IconDirEntry.ClampEncodingDimension(metadata.EncodingHeight),
             Compression = bmpBitsPerPixel is BmpBitsPerPixel.Bit32 ? IconFrameCompression.Png : IconFrameCompression.Bmp,
             BmpBitsPerPixel = bmpBitsPerPixel
         };
@@ -167,8 +167,8 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         float ratioX = destination.Width / (float)source.Width;
         float ratioY = destination.Height / (float)source.Height;
 
-        this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
-        this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.EncodingWidth = IconDirEntry.ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
+        this.EncodingHeight = IconDirEntry.ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
         this.ColorTable = null;
     }
 
@@ -242,36 +242,4 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
             ColorType = colorType
         };
     }
-
-    /// <summary>
-    /// Scales an encoded dimension after an image transform.
-    /// </summary>
-    /// <param name="value">The encoded source dimension.</param>
-    /// <param name="destination">The full destination dimension.</param>
-    /// <param name="ratio">The destination-to-source scale ratio.</param>
-    /// <returns>The encoded destination dimension.</returns>
-    private static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
-    {
-        if (value is null)
-        {
-            return ClampEncodingDimension(destination);
-        }
-
-        // ICO and CUR encode dimensions in one byte, where zero represents 256 pixels or greater.
-        int source = value.Value is 0 ? 256 : value.Value;
-        return ClampEncodingDimension(MathF.Ceiling(source * ratio));
-    }
-
-    /// <summary>
-    /// Converts a pixel dimension to the one-byte ICO/CUR representation.
-    /// </summary>
-    /// <param name="dimension">The pixel dimension.</param>
-    /// <returns>The encoded dimension.</returns>
-    private static byte ClampEncodingDimension(float? dimension)
-        => dimension switch
-        {
-            > 255 => 0,
-            >= 1 => (byte)dimension,
-            _ => 0
-        };
 }

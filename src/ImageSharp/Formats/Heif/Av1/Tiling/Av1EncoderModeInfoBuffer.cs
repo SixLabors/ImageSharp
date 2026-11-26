@@ -36,18 +36,27 @@ internal sealed class Av1EncoderModeInfoBuffer : IDisposable
         this.ModeInfoStride = Av1Math.AlignPowerOf2(this.ModeInfoColumnCount, ModeInfoAlignmentLog2);
         int alignedModeInfoRowCount = Av1Math.AlignPowerOf2(this.ModeInfoRowCount, ModeInfoAlignmentLog2);
         int allocationShift = disallow4x4AllFrames ? 1 : 0;
-        int gridLength = checked(this.ModeInfoStride * alignedModeInfoRowCount);
-        int allocationLength = checked((this.ModeInfoStride >> allocationShift) * (alignedModeInfoRowCount >> allocationShift));
-        int gridByteLength = checked(gridLength * sizeof(int));
-        int allocationByteLength = checked(allocationLength * Unsafe.SizeOf<Av1MacroBlockModeInfo>());
-        int storageLength = checked(gridByteLength + allocationByteLength);
+
+        // A frame is at most Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension. Thus the stride and the aligned row count are
+        // at most 16384, the grid has at most 1 << 28 entries, and its byte length is at most 1 << 30.
+        int gridLength = this.ModeInfoStride * alignedModeInfoRowCount;
+        int allocationLength = (this.ModeInfoStride >> allocationShift) * (alignedModeInfoRowCount >> allocationShift);
+        int gridByteLength = gridLength * sizeof(int);
+
+        // The value region of a large frame can exceed int.MaxValue bytes, so it uses long. The limit check keeps both regions inside int.
+        long allocationByteLength = (long)allocationLength * Unsafe.SizeOf<Av1MacroBlockModeInfo>();
+        long storageLength = gridByteLength + allocationByteLength;
+        if (storageLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)storageLength, int.MaxValue);
+        }
 
         // The index grid and the value allocation have the same frame lifetime. One clean owner holds both typed regions, so the
         // frame needs only one allocation and one release.
-        this.owner = configuration.MemoryAllocator.Allocate<byte>(storageLength, AllocationOptions.Clean);
-        Memory<byte> storage = this.owner.Memory[..storageLength];
+        this.owner = configuration.MemoryAllocator.Allocate<byte>((int)storageLength, AllocationOptions.Clean);
+        Memory<byte> storage = this.owner.Memory[..(int)storageLength];
         this.grid = new ByteMemoryManager<int>(storage[..gridByteLength]);
-        this.allocation = new ByteMemoryManager<Av1MacroBlockModeInfo>(storage.Slice(gridByteLength, allocationByteLength));
+        this.allocation = new ByteMemoryManager<Av1MacroBlockModeInfo>(storage.Slice(gridByteLength, (int)allocationByteLength));
         this.Disallow4x4AllFrames = disallow4x4AllFrames;
     }
 

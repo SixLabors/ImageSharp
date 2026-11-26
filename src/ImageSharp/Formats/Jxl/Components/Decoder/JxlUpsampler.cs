@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 internal sealed partial class JxlUpsampler : IDisposable
 {
     /// <summary>
-    /// The two-source-pixel radius of each native frame-upsampling phase in stage_upsampling.cc.
+    /// The two-source-pixel radius of each native frame-upsampling phase.
     /// </summary>
     private const int UpsamplingRadius = 2;
 
@@ -602,8 +602,6 @@ internal sealed partial class JxlUpsampler : IDisposable
     /// <param name="factor">The twofold, fourfold or eightfold factor.</param>
     /// <returns>The original single-precision defaults in triangular order.</returns>
     /// <remarks>
-    /// These are the kWeights2, kWeights4 and kWeights8 defaults in CustomTransformData::VisitFields,
-    /// lib/jxl/image_metadata.cc, libjxl revision 91837342b24034078780b687f57f670a7def8153.
     /// Defaults retain their specified single-precision values. Explicit custom weights are stored as half-precision values in the codestream.
     /// </remarks>
     private static ReadOnlySpan<float> GetDefaultUpsamplingWeights(int factor) => factor switch

@@ -140,7 +140,7 @@ internal sealed partial class JxlVarDctDecoder
                 }
 
                 // Unused descriptions still consume and validate their encoded fields, including positive RAW integers.
-                // Derived weight limits apply when a description is used, as in libjxl's EnsureComputed boundary.
+                // Derived weight limits apply when a description is used.
                 if (!destination.IsEmpty)
                 {
                     InvertQuantizationWeights(destination);

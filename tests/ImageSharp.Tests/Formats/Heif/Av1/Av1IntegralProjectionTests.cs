@@ -8,8 +8,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies the integral projections against aom_int_pro_row_c, aom_int_pro_col_c and aom_vector_var_c across
-/// intrinsic tiers.
+/// Verifies the row and column integral projections and the vector variance against the scalar libaom definitions across intrinsic tiers.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1IntegralProjectionTests
@@ -104,7 +103,7 @@ public class Av1IntegralProjectionTests
     }
 
     /// <summary>
-    /// The scalar definition of aom_vector_var_c.
+    /// The scalar definition of the libaom vector variance.
     /// </summary>
     private static int VectorVarianceReference(short[] reference, short[] source)
     {

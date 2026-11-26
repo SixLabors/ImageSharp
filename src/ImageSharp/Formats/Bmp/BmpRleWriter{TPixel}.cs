@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </para>
 /// </remarks>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-internal ref struct BmpRleWriter<TPixel>
+internal ref partial struct BmpRleWriter<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly Buffer2D<TPixel> pixels;
@@ -62,7 +62,7 @@ internal ref struct BmpRleWriter<TPixel>
     /// <summary>
     /// Gets a value indicating whether each pixel of the image is written.
     /// </summary>
-    public readonly bool IsComplete => this.y >= this.height || this.width == 0;
+    public readonly bool IsComplete => this.y >= this.height;
 
     /// <summary>
     /// Writes <paramref name="count"/> pixels of one color.
@@ -241,7 +241,7 @@ internal ref struct BmpRleWriter<TPixel>
     /// <returns>The image row, or an empty span when <paramref name="storedRow"/> is past the last row.</returns>
     private readonly Span<TPixel> RowOf(int storedRow)
     {
-        if (storedRow >= this.height || this.width == 0)
+        if (storedRow >= this.height)
         {
             return default;
         }

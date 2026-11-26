@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -128,18 +129,15 @@ public class Av1BitStreamTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0xD9, 0x81, 0x80, 0x80, 0x00 }, 217, 40)] // Two byte value with trailing bytes.
-    public void ReadLittleEndianBytes128(byte[] buffer, ulong expected, int expectedBitPosition)
+    [InlineData(new byte[] { 0xD9, 0x81, 0x80, 0x80, 0x00 }, 217, 5)] // Two byte value with trailing bytes.
+    public void TryReadLeb128(byte[] buffer, uint expected, int expectedLength)
     {
-        // arrange
-        Av1BitStreamReader reader = new(buffer);
-
         // act
-        ulong actual = reader.ReadLittleEndianBytes128(out int length);
+        ObuFramingStatus status = ObuFramer.TryReadLeb128(buffer, out uint actual, out int length);
 
         // assert
+        Assert.Equal(ObuFramingStatus.Complete, status);
         Assert.Equal(expected, actual);
-        Assert.Equal(expectedBitPosition, reader.BitPosition);
-        Assert.NotEqual(0UL, actual);
+        Assert.Equal(expectedLength, length);
     }
 }

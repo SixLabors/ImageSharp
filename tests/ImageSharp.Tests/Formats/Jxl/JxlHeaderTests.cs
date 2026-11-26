@@ -40,12 +40,11 @@ public partial class JxlHeaderTests
     /// Checks independent native arithmetic and IEEE encodings for every conversion mode and SIMD remainder.
     /// </summary>
     /// <remarks>
-    /// Integer normalization follows libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/dec_modular.cc, SingleFromSingle and SingleFromSingleAccurate. From 23 main-image bits, the exact integer
-    /// multiplies the double factor before one final float rounding. In particular, 16777217 at 31-bit depth
-    /// rounds to 0x3C000001; converting that integer to float first loses one level and produces 0x3C000000.
+    /// Integer normalization follows libjxl revision 91837342b24034078780b687f57f670a7def8153.
+    /// From 23 main-image bits, the exact integer multiplies the double factor before one final float rounding.
+    /// In particular, 16777217 at 31-bit depth rounds to 0x3C000001; converting that integer to float first loses one level and produces 0x3C000000.
     /// Floating expectations are literal IEEE bits for signed zero, powers of two, endpoint mantissas, infinity and NaN payloads.
-    /// They also follow the original int_to_float layout and jxl-rs render/stages/convert.rs custom_float_sample_to_f32.
+    /// They also match the custom float layouts of libjxl and jxl-rs.
     /// No expected value uses the ImageSharp conversion or a round trip through another color model.
     /// </remarks>
     private static void ValidateSampleConversion()
@@ -213,7 +212,7 @@ public partial class JxlHeaderTests
             Vector128.Create(0x7FFFFFFEU, 0x7FFFFFFFU, 0x80000000U, uint.MaxValue)
         ];
 
-        // The ISO 18181-1 equation, also used by libjxl context_predict.h and jxl-rs predict.rs, is
+        // The ISO 18181-1 equation is
         // 4 + floor(maximum * floor(2^24/(index+1)) / 2^shift), with index=floor(error/2^shift).
         // The shift is max(0,floor(log2(error+1))-5).
         // These literal results use exact integer division and the mathematical 33-bit error+1 value.
@@ -345,20 +344,20 @@ public partial class JxlHeaderTests
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         Assert.Equal(new Size(64, 64), header.Size);
 
-        // Original libjxl ToFrameDimensions and jxl-rs size_upsampled agree on this existing three-frame pyramid.
+        // libjxl and jxl-rs agree on this existing three-frame pyramid.
         // Frame declarations keep the canvas size. Their output planes reduce by 8^level before color upsampling.
         ReadOnlySpan<int> levels = [2, 1, 0];
         ReadOnlySpan<int> lengths = [1, 8, 64];
         for (int i = 0; i < levels.Length; i++)
         {
-            JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+            JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
             Assert.Equal(new Size(64, 64), frame.Size);
             Assert.Equal(levels[i], frame.LowFrequencyLevel);
             Assert.Equal(new Size(lengths[i], lengths[i]), frame.OutputSize);
             Assert.Equal(frame.OutputSize, frame.CodingSize);
             Assert.Equal(i == 2 ? JxlFrameHeader.FrameType.Regular : JxlFrameHeader.FrameType.LowFrequency, frame.Type);
             Assert.Equal(i == 2, frame.IsLast);
-            Assert.True(JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, SegmentIntegrityHandling.Strict, default));
+            Assert.True(JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, SegmentIntegrityHandling.Strict, false, default));
         }
     }
 
@@ -379,8 +378,9 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
-        using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
+        using JxlFrameSections sections = JxlFrameSections.Read(
+            ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, SegmentIntegrityHandling.Strict, false, default)!;
         Assert.False(frame.Modular);
         Assert.Equal(1, sections.Sizes.Length);
         long start = reader.Position;
@@ -420,7 +420,7 @@ public partial class JxlHeaderTests
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         Assert.Equal(start + (file == TestImages.Jxl.Square ? 326 : 368), reader.Position);
 
-        // Original libjxl DequantDC produces these exact single-precision results. The nonzero fixture
+        // libjxl produces these exact single-precision results. The nonzero fixture
         // uses one extra precision bit and restores B by adding Y after scaling its coded residual.
         Vector3 expected = file == TestImages.Jxl.Square ? Vector3.Zero : new Vector3(0.000244140625F, 0.200312495F, 0.242031246F);
         for (int c = 0; c < 3; c++)
@@ -435,7 +435,7 @@ public partial class JxlHeaderTests
 
         // This group has no modular extra channels. AC metadata follows the DC samples without byte alignment.
         // Native decoding selects strategy 12 / quantizer 11 for Square, and strategy 2 / quantizer 60 for LossyRgb3x3.
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
         int strategy = file == TestImages.Jxl.Square ? 12 : 2;
         Assert.Equal(start + (file == TestImages.Jxl.Square ? 342 : 396), reader.Position);
         Assert.Equal((byte)((strategy << 1) | 1), varDct.Strategies.DangerousGetRowSpan(0)[0]);
@@ -483,7 +483,7 @@ public partial class JxlHeaderTests
             Assert.Equal(i >= matrixIndex && i < matrixIndex + 3 ? (i - matrixIndex) * naturalOrder.Length : -1, matrixOffsets[i]);
         }
 
-        // Original libjxl DecodeACVarBlock consumes these complete group payloads and validates their final ANS states.
+        // libjxl consumes these complete group payloads and validates their final ANS states.
         // Square has no nonzero AC values. The other file has 28, 18, 23 nonzeros in encoded Y, X, B component order.
         varDct.ReadAcGroup(ref reader, 0, 0, default);
         Assert.Equal(start + (file == TestImages.Jxl.Square ? 360 : 1472), reader.Position);
@@ -521,8 +521,7 @@ public partial class JxlHeaderTests
             Assert.Equal(expectedCoefficients, coefficients);
         }
 
-        // libjxl DequantBlock and TransformToPixels at revision 91837342b24034078780b687f57f670a7def8153
-        // produce these visible 3-by-3 samples for the unchanged lossy input, in X/Y/B plane order.
+        // libjxl revision 91837342b24034078780b687f57f670a7def8153 produces these visible 3-by-3 samples for the unchanged lossy input, in X/Y/B plane order.
         // Original jxl-rs differs by at most 5.96046e-8. An 8e-8 absolute bound includes that measured difference
         // and float multiply-add variation. These samples precede restoration, color conversion and pixel packing.
         ReadOnlySpan<uint> spatialBits =
@@ -558,8 +557,7 @@ public partial class JxlHeaderTests
     /// Verifies progressive coefficient shifts and accumulation through an LZ77-coded second pass.
     /// </summary>
     /// <remarks>
-    /// The stored component stream was generated with libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// using ProgressiveSplitter, TokenizeCoefficients, BuildAndEncodeHistograms and WriteTokens.
+    /// The stored component stream was generated with libjxl revision 91837342b24034078780b687f57f670a7def8153.
     /// Its shifts are 2 and 0. Every AC coefficient starts at X=20, Y=-20, B=20, then becomes X=23, Y=-23, B=21.
     /// The original libjxl and jxl-rs decoders agree on every coefficient and the recorded bit positions.
     /// The second pass uses the encoder's LZ77 run-length mode, so history must restart at that pass's first symbol.
@@ -571,21 +569,21 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Assert.Equal((byte)2, frame.PassCount);
         Assert.Equal((ReadOnlySpan<byte>)[2, 0], frame.PassShifts);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
         varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(363, reader.Position);
 
         // One cluster serves both literal and distance contexts. Native width selection interprets copy token
         // 518 with the shared normal hybrid configuration (4,2,0), giving a conservative bound of 130 bits.
-        // That selects int storage even though these actual coefficients fit short. jxl-rs counts the bound differently.
+        // That selects int storage even though these actual coefficients fit short.
         Assert.Equal(130, varDct.MaximumAcValueBits);
         Assert.False(varDct.Uses16BitCoefficients);
 
@@ -619,12 +617,12 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
         varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(272, reader.Position);
@@ -658,7 +656,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Assert.Equal(new Size(32, 8), frame.CodingSize);
         Assert.Equal(79, reader.Position);
 
@@ -668,7 +666,7 @@ public partial class JxlHeaderTests
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
         varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(590, reader.Position);
@@ -738,8 +736,9 @@ public partial class JxlHeaderTests
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
         JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
-        using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict, false)!;
+        using JxlFrameSections sections = JxlFrameSections.Read(
+            ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, SegmentIntegrityHandling.Strict, false, default)!;
         frameReader.BeginSection(sections.Sizes.Span[0]);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref frameReader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
@@ -750,7 +749,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
 
         return (
             varDct.CorrelationX.DangerousGetRowSpan(0)[0],
@@ -891,10 +890,11 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
-        using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
+        using JxlFrameSections sections = JxlFrameSections.Read(
+            ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, SegmentIntegrityHandling.Strict, false, default)!;
 
-        // jxl-rs headers/frame_header.rs records these values in test_has_permutation for this unchanged file.
+        // The jxl-rs tests record these values for this unchanged file.
         // Forty-nine sections exercise a non-power-of-two rank tree, including selections at its final entries.
         ReadOnlySpan<uint> sizes =
         [

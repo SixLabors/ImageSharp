@@ -22,7 +22,7 @@ internal static class JxlIccPrediction
     /// <returns>The predicted byte before the residual is added or subtracted modulo 256.</returns>
     public static byte GetHeaderPrediction(ReadOnlySpan<byte> output, int outputLength, int index)
     {
-        // Libjxl's ICCInitialHeaderPrediction and ICCPredictHeader supply these defaults and prior-byte rules.
+        // These are the default bytes and prior-byte rules of ICC header prediction.
         // Read only earlier profile bytes so the decoder can fill its final array in place and the encoder can borrow original data.
         return index switch
         {

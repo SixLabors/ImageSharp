@@ -40,9 +40,15 @@ internal abstract class IconEncoderCore
         /// Gets the encoding metadata for a source frame.
         /// </summary>
         /// <param name="frame">The source frame.</param>
-        /// <param name="colorTable">The optional bitmap color table.</param>
         /// <returns>The encoding metadata.</returns>
-        public EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame, out ReadOnlyMemory<Color>? colorTable);
+        public EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame);
+
+        /// <summary>
+        /// Gets the bitmap color table for a source frame.
+        /// </summary>
+        /// <param name="frame">The source frame.</param>
+        /// <returns>The bitmap color table, or <see langword="null"/>.</returns>
+        public ReadOnlyMemory<Color>? GetColorTable(ImageFrame frame);
     }
 
     /// <summary>
@@ -60,6 +66,13 @@ internal abstract class IconEncoderCore
     {
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
+
+        // The encoder checks the metadata of each frame before the first write. Thus, if a frame has invalid metadata, the encoder writes no bytes.
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            ImageFrame<TPixel> frame = image.Frames[i];
+            ValidateEntry(provider.GetEncodingFrameMetadata(frame), frame.Size);
+        }
 
         // Directory metadata is unmanaged and short-lived, so allocator-owned storage avoids an array plus one object per frame.
         using IMemoryOwner<EncodingFrameMetadata> owner = image.Configuration.MemoryAllocator.Allocate<EncodingFrameMetadata>(image.Frames.Count);
@@ -97,6 +110,13 @@ internal abstract class IconEncoderCore
         long basePosition = stream.Position;
         IconDir fileHeader = new(this.iconFileType, (ushort)entries.Length);
 
+        // The struct provider uses static dispatch. Thus the encoder does not box the provider or allocate intermediate ICO or CUR metadata. The caller checks
+        // the metadata of each frame before the first write.
+        for (int i = 0; i < entries.Length; i++)
+        {
+            entries[i] = provider.GetEncodingFrameMetadata(image.Frames[frameIndex + i]);
+        }
+
         // Reserve the directory first because BytesInRes and ImageOffset are known only after each payload is encoded.
         int dataOffset = IconDir.Size + (IconDirEntry.Size * entries.Length);
         _ = stream.Seek(dataOffset, SeekOrigin.Current);
@@ -105,33 +125,13 @@ internal abstract class IconEncoderCore
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
-            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
             ImageFrame<TPixel> frame = image.Frames[frameIndex + i];
-
-            // The struct provider is statically dispatched, avoiding boxing and intermediary ICO/CUR metadata allocations.
-            // Only unmanaged directory data survives until backpatching; the managed color table is consumed for this frame.
-            entries[i] = provider.GetEncodingFrameMetadata(frame, out ReadOnlyMemory<Color>? colorTable);
-            int width = entries[i].Entry.Width;
-            if (width is 0)
-            {
-                width = frame.Width;
-            }
-
-            int height = entries[i].Entry.Height;
-            if (height is 0)
-            {
-                height = frame.Height;
-            }
-
-            if (width > frame.Width || height > frame.Height)
-            {
-                // EncodingWidth and EncodingHeight are public metadata, so reject a crop that exceeds the source frame here.
-                throw new ImageFormatException("The icon encoding dimensions exceed the source frame dimensions.");
-            }
+            (int width, int height) = entries[i].GetEncodingSize(frame.Size);
 
             long imageStart = stream.Position;
-            entries[i].Entry.ImageOffset = checked((uint)(imageStart - basePosition));
+
+            // The directory is less than 1 MiB and the end check below bounds each earlier payload, so this offset fits in uint.
+            entries[i].Entry.ImageOffset = (uint)(imageStart - basePosition);
             ref EncodingFrameMetadata encodingMetadata = ref entries[i];
             Image<TPixel>? encodingImage = null;
             ImageMetadata? copiedMetadata = null;
@@ -185,7 +185,7 @@ internal abstract class IconEncoderCore
                     {
                         BmpEncoder bmpEncoder = new()
                         {
-                            Quantizer = this.GetQuantizer(encodingMetadata, colorTable),
+                            Quantizer = this.GetQuantizer(encodingMetadata, provider.GetColorTable(frame)),
                             ProcessedAlphaMask = true,
                             UseDoubleHeight = true,
                             SkipFileHeader = true,
@@ -225,9 +225,6 @@ internal abstract class IconEncoderCore
                         pngEncoderCore.Encode(encodingImage ?? image, sourceProfile, stream, cancellationToken);
                         break;
                     }
-
-                    default:
-                        throw new NotSupportedException();
                 }
             }
             finally
@@ -235,7 +232,13 @@ internal abstract class IconEncoderCore
                 encodingImage?.Dispose();
             }
 
-            encodingMetadata.Entry.BytesInRes = checked((uint)(stream.Position - imageStart));
+            // ImageOffset and BytesInRes are 32-bit fields. If the payload ends inside that range, its length and the next offset fit too.
+            if (stream.Position - basePosition > uint.MaxValue)
+            {
+                throw new ImageFormatException("ICO and CUR resources cannot be larger than 4294967295 bytes.");
+            }
+
+            encodingMetadata.Entry.BytesInRes = (uint)(stream.Position - imageStart);
         }
 
         // Backpatch the reserved directory after every relative offset and payload length has been measured.
@@ -248,6 +251,29 @@ internal abstract class IconEncoderCore
         }
 
         _ = stream.Seek(endPosition, SeekOrigin.Begin);
+    }
+
+    /// <summary>
+    /// Checks the encoding metadata of one frame before the first write, because the values come from public metadata.
+    /// </summary>
+    /// <param name="metadata">The encoding metadata of the frame.</param>
+    /// <param name="frameSize">The size of the source frame.</param>
+    /// <exception cref="ImageFormatException">
+    /// The compression is not BMP or PNG, or the encoding dimensions are larger than the source frame dimensions.
+    /// </exception>
+    public static void ValidateEntry(EncodingFrameMetadata metadata, Size frameSize)
+    {
+        if (metadata.Compression is not (IconFrameCompression.Bmp or IconFrameCompression.Png))
+        {
+            throw new ImageFormatException("ICO and CUR frames must use BMP or PNG compression.");
+        }
+
+        // EncodingWidth and EncodingHeight select a crop of the source frame. A crop cannot be larger than the source frame.
+        Size size = metadata.GetEncodingSize(frameSize);
+        if (size.Width > frameSize.Width || size.Height > frameSize.Height)
+        {
+            throw new ImageFormatException("The icon encoding dimensions exceed the source frame dimensions.");
+        }
     }
 
     /// <summary>
@@ -321,5 +347,17 @@ internal abstract class IconEncoderCore
         /// Gets the bitmap bit depth.
         /// </summary>
         public BmpBitsPerPixel BmpBitsPerPixel { get; }
+
+        /// <summary>
+        /// Gets the size of the encoded image. A zero directory dimension means 256 pixels or more, so the image keeps the frame dimension.
+        /// </summary>
+        /// <remarks>
+        /// Since Windows Vista, the BITMAPINFOHEADER structure or the PNG image data gives the size of an image. Thus an icon image can be larger than 256
+        /// pixels, but Microsoft does not recommend these sizes.
+        /// </remarks>
+        /// <param name="frameSize">The size of the source frame.</param>
+        /// <returns>The size of the encoded image.</returns>
+        public readonly Size GetEncodingSize(Size frameSize)
+            => new(this.Entry.Width is 0 ? frameSize.Width : this.Entry.Width, this.Entry.Height is 0 ? frameSize.Height : this.Entry.Height);
     }
 }

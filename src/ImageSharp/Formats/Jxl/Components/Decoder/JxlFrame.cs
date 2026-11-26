@@ -149,13 +149,9 @@ internal sealed class JxlFrame : IDisposable
 
         if (header.Type != JxlFrameHeader.FrameType.LowFrequency)
         {
-            // Black is an ICC device component. An alpha extra channel must never substitute for missing black.
+            // Black is an ICC device component. JxlHeader.Read rejects a CMYK profile without a black extra channel.
             bool cmyk = !image.UsesXybTransform && image.IccProfile?.Header.DataColorSpace == IccColorSpaceType.Cmyk;
-            if (cmyk && this.BlackExtra < 0)
-            {
-                throw new InvalidImageContentException("The JPEG XL CMYK profile requires a black extra channel.");
-            }
-
+            DebugGuard.IsTrue(!cmyk || this.BlackExtra >= 0, "The JPEG XL image header guarantees a black extra channel for CMYK.");
             if (!cmyk)
             {
                 this.BlackExtra = -1;
@@ -435,7 +431,7 @@ internal sealed class JxlFrame : IDisposable
 
         // Noise uses final-resolution native components. Applying it before upsampling changes its spatial
         // spectrum; applying it after color conversion changes its channel correlation and strength lookup.
-        // The generator uses frame counters and output-space group origins, as native Random3Planes does.
+        // The generator uses frame counters and output-space group origins.
         Vector2 noiseCorrelation = varDct is null ? Vector2.UnitY : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
         this.noise.Apply(
             this.reconstructedColors,
@@ -535,16 +531,16 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
-    /// Composes completed original-device components onto the image canvas using the selected reference backgrounds.
+    /// Composes the completed original-device components on the image canvas with the selected reference backgrounds.
     /// </summary>
-    /// <param name="references">The four ordinary reference slots, retained for the complete composition call.</param>
+    /// <param name="references">The four ordinary reference slots. They stay valid for the complete composition call.</param>
     /// <param name="canvasSize">The image canvas dimensions.</param>
-    /// <param name="allocator">The tracked allocator for the canvas planes and bounded block scratch.</param>
-    /// <param name="cancellationToken">The token checked between component rows.</param>
+    /// <param name="allocator">The tracked allocator for the canvas planes and the bounded block scratch.</param>
+    /// <param name="cancellationToken">The token that the method checks between component rows.</param>
     /// <remarks>
-    /// The caller restores coding color transforms before this call. Backgrounds must contain original-device samples.
-    /// Each extra channel selects its own reference source, including extra channels used as blend weights.
-    /// New canvas owners publish only after every row succeeds. Failure leaves the foreground owners unchanged.
+    /// The caller restores the coding color transforms before this call. The backgrounds must contain original-device samples. The decoder checks each selected
+    /// background before the frame payload. An absent slot is an all-zero background. Each extra channel selects its own reference source, also if the extra
+    /// channel is a blend weight. The method publishes the new canvas owners only after each row succeeds, so a failure does not change the foreground owners.
     /// </remarks>
     public void Compose(ReadOnlySpan<JxlReferenceFrame?> references, Size canvasSize, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
@@ -571,26 +567,6 @@ internal sealed class JxlFrame : IDisposable
             };
 
             colorOperation = new JxlBlending(opaqueMode, colorInfo.AlphaChannel, colorInfo.Clamp);
-        }
-
-        uint usedSources = 1U << frame.Blending.Source;
-        foreach (JxlFrameHeader.BlendingInfo extra in frame.ExtraChannelBlending)
-        {
-            usedSources |= 1U << extra.Source;
-        }
-
-        // An absent slot is an all-zero background. Every populated source must cover the canvas
-        // at its origin. Only the color source must follow the coding color transform: extra samples
-        // are unchanged by that transform and can also come from a pre-transform reference.
-        for (int slot = 0; slot < references.Length; slot++)
-        {
-            JxlReferenceFrame? reference = references[slot];
-            if ((usedSources & (1U << slot)) != 0 && reference is not null
-                && ((slot == frame.Blending.Source && reference.SavedBeforeColorTransform) || reference.Origin != Point.Empty
-                    || reference.Size.Width < canvasSize.Width || reference.Size.Height < canvasSize.Height))
-            {
-                throw new InvalidImageContentException("The JPEG XL composition background is not a complete original-color canvas.");
-            }
         }
 
         // Origins are signed. Widen before adding dimensions and intersecting the crop with the
@@ -1009,7 +985,7 @@ internal sealed class JxlFrame : IDisposable
         Span<float> mix = workspace.Slice(width, width);
         Span<float> contribution = workspace.Slice(2 * width, width);
 
-        // Native stage_spot and Rust SpotColorStage apply encoded spots in order. For each channel,
+        // Apply the encoded spots in order. For each channel,
         // mix = opacity * sample and result = mix * spotColor + (1 - mix) * currentColor.
         // Keep the same device-space boundary and leave alpha and all other extra channels unchanged.
         foreach ((int channel, JxlExtraChannelMetadata metadata, Buffer2D<float>? plane) in this.spotColors)

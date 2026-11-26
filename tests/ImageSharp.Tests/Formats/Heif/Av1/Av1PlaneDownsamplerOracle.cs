@@ -7,9 +7,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Halves a plane with a direct transcription of the reference decoder's separable passes.
 /// </summary>
 /// <remarks>
-/// This is the oracle the halving filter and the image pyramid are both measured against, so it is
-/// deliberately written as the plainest possible form of the reference rather than as fast code.
-/// Reference: av1_resize_plane_to_half() and down2_symeven().
+/// This is the oracle the halving filter and the image pyramid are both measured against, so it is deliberately written as the plainest possible form of the
+/// reference rather than as fast code. The reference is the libaom resize of a plane to half size.
 /// </remarks>
 internal static class Av1PlaneDownsamplerOracle
 {

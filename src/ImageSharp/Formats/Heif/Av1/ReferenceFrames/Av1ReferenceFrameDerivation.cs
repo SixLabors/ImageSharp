@@ -46,16 +46,17 @@ internal static class Av1ReferenceFrameDerivation
     /// <param name="referenceFrameIndices">
     /// The destination for seven slot indices ordered from <see cref="Av1ReferenceFrameType.Last"/> through <see cref="Av1ReferenceFrameType.Alternate"/>.
     /// </param>
-    /// <exception cref="InvalidImageContentException">
-    /// The signaled LAST or GOLDEN slot is empty, refers to the current frame, or refers to a future frame.
-    /// </exception>
+    /// <returns>
+    /// <see langword="true"/> when the derivation wrote every destination entry. <see langword="false"/> when the signaled LAST or GOLDEN slot is empty, or
+    /// holds the current frame or a future frame. The derivation then stops, because the fill of the other roles needs an occupied past LAST or GOLDEN frame.
+    /// </returns>
     /// <remarks>
     /// The caller owns the fixed AV1 table-size invariants. <paramref name="slotOrderHints"/> and <paramref name="slotOccupancy"/> contain eight entries, and
-    /// <paramref name="referenceFrameIndices"/> contains seven entries. The signaled indices and order hints come from their bounded bit fields. On success,
-    /// the method writes every destination entry. More than one reference type can select the same slot. Frame-ID validity is a separate conformance state. The
-    /// caller checks it for every resolved reference after the derivation.
+    /// <paramref name="referenceFrameIndices"/> contains seven entries. The signaled indices and order hints come from their bounded bit fields. More than one
+    /// reference type can select the same slot. Frame-ID validity is a separate conformance state. The caller checks it for each resolved reference after the
+    /// derivation.
     /// </remarks>
-    public static void DeriveShortSignaledReferences(
+    public static bool DeriveShortSignaledReferences(
         uint currentOrderHint,
         int orderHintBitWidth,
         uint lastFrameIndex,
@@ -67,17 +68,10 @@ internal static class Av1ReferenceFrameDerivation
         int lastMapIndex = (int)lastFrameIndex;
         int goldenMapIndex = (int)goldenFrameIndex;
 
-        if (!slotOccupancy[lastMapIndex])
+        // Unlike an unused empty slot, the explicitly signaled LAST and GOLDEN slots must own decoded frames before the code uses any derived mapping.
+        if (!slotOccupancy[lastMapIndex] || !slotOccupancy[goldenMapIndex])
         {
-            // Unlike an unused empty slot, the explicitly signaled LAST slot must own a decoded frame before any derived mapping is used. Thus the decoder
-            // rejects the missing reference at this frame-header boundary.
-            throw new InvalidImageContentException("An AV1 inter frame requests an unavailable LAST reference.");
-        }
-
-        if (!slotOccupancy[goldenMapIndex])
-        {
-            // GOLDEN is the other explicitly signaled slot and has the same ownership requirement as LAST.
-            throw new InvalidImageContentException("An AV1 inter frame requests an unavailable GOLDEN reference.");
+            return false;
         }
 
         int currentFrameSortIndex = 1 << (orderHintBitWidth - 1);
@@ -118,14 +112,10 @@ internal static class Av1ReferenceFrameDerivation
             }
         }
 
-        if (lastFrameSortIndex >= currentFrameSortIndex)
+        // AV1 section 7.8 requires LAST and GOLDEN to be past frames.
+        if (lastFrameSortIndex >= currentFrameSortIndex || goldenFrameSortIndex >= currentFrameSortIndex)
         {
-            throw new InvalidImageContentException("An AV1 inter frame requests a current or future frame as LAST.");
-        }
-
-        if (goldenFrameSortIndex >= currentFrameSortIndex)
-        {
-            throw new InvalidImageContentException("An AV1 inter frame requests a current or future frame as GOLDEN.");
+            return false;
         }
 
         // The sort uses the shifted output order first and then the reference-map index. The explicit tie break is normative. Equal order hints select the
@@ -255,6 +245,8 @@ internal static class Av1ReferenceFrameDerivation
             referenceFrameIndices[referenceIndex] = (uint)referenceInfo[forwardStartIndex].MapIndex;
             assignedReferences[referenceIndex] = true;
         }
+
+        return true;
     }
 
     /// <summary>

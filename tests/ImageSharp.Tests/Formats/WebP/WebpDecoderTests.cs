@@ -437,7 +437,7 @@ public class WebpDecoderTests
     public void WebpDecoder_CanDecode_Lossless_WithIssues<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // These stored files end before their declared VP8L payload ends. Local libwebp reports NOT_ENOUGH_DATA.
+        // These stored files end before their declared VP8L payload ends. Local libwebp reports that the data is not complete.
         // Recovery belongs to IgnoreImageData; ignoring ancillary errors must not permit missing image bytes.
         DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         DecoderOptions ancillary = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
@@ -447,6 +447,55 @@ public class WebpDecoderTests
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         image.DebugSave(provider);
+    }
+
+    /// <summary>
+    /// Sets a reserved bit of the ALPH header byte. libwebp rejects the header, so the alpha data is damaged image data. In the Strict and IgnoreAncillary
+    /// modes, the decoder throws. In the IgnoreImageData mode, the decoder keeps the color pixels and sets each alpha value to 0, the transparent fill of
+    /// damaged data.
+    /// </summary>
+    /// <param name="imagePath">The lossy image with an ALPH chunk.</param>
+    [Theory]
+    [InlineData(Lossy.AlphaNoCompression)]
+    [InlineData(Lossy.AlphaCompressedNoFilter)]
+    public void WebpDecoder_Decode_AlphaHeaderWithReservedBit_FollowsIntegrityHandling(string imagePath)
+    {
+        byte[] bytes = TestFile.Create(imagePath).Bytes;
+        byte[] damaged = (byte[])bytes.Clone();
+
+        // RIFF chunks start after the 12-byte file header. Each chunk has a 4-byte type, a 4-byte size, and a payload with padding to an even length. The first
+        // payload byte of ALPH is the alpha header.
+        int offset = 12;
+        while (!damaged.AsSpan(offset, 4).SequenceEqual("ALPH"u8))
+        {
+            int size = BinaryPrimitives.ReadInt32LittleEndian(damaged.AsSpan(offset + 4));
+            offset += 8 + size + (size & 1);
+        }
+
+        damaged[offset + 8] |= 0x40;
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions ancillary = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, damaged));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(ancillary, damaged));
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(strict, bytes);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, damaged);
+        expected.ProcessPixelRows(actual, (expectedAccessor, actualAccessor) =>
+        {
+            for (int y = 0; y < expectedAccessor.Height; y++)
+            {
+                Span<Rgba32> expectedRow = expectedAccessor.GetRowSpan(y);
+                Span<Rgba32> actualRow = actualAccessor.GetRowSpan(y);
+                for (int x = 0; x < expectedRow.Length; x++)
+                {
+                    Rgba32 color = expectedRow[x];
+                    color.A = 0;
+                    Assert.Equal(color, actualRow[x]);
+                }
+            }
+        });
     }
 
     [Theory]
@@ -645,6 +694,66 @@ public class WebpDecoderTests
     }
 
     /// <summary>
+    /// The third frame of an animated image is damaged. In the Strict and IgnoreAncillary modes, the decoder throws. In the IgnoreImageData mode, the decoder
+    /// keeps the first two frames.
+    /// </summary>
+    /// <param name="damage">The damage to the third frame.</param>
+    [Theory]
+    [InlineData("FrameRegion")]
+    [InlineData("Vp8LVersion")]
+    public void Decode_DamagedLaterAnimationFrame_KeepsDecodedFrames(string damage)
+    {
+        using Image<Rgb24> source = CreateNoiseImage(32, 32, 3);
+        for (int i = 0; i < 2; i++)
+        {
+            using Image<Rgb24> frame = CreateNoiseImage(32, 32, 4 + i);
+            source.Frames.AddFrame(frame.Frames.RootFrame);
+        }
+
+        using MemoryStream stream = new();
+        source.Save(stream, new WebpEncoder { FileFormat = WebpFileFormatType.Lossless });
+        byte[] original = stream.ToArray();
+
+        byte[] data = [.. original];
+        List<int> frames = FindChunks(data, "ANMF");
+        Assert.Equal(3, frames.Count);
+        if (damage == "FrameRegion")
+        {
+            // An ANMF payload starts with the 3-byte X and Y offsets, then the 3-byte frame width minus one. A width of 2^24 puts the frame region outside the
+            // 32x32 canvas. See the WebP Container Specification, section "ANMF Chunk" (https://developers.google.com/speed/webp/docs/riff_container).
+            int widthField = frames[2] + 8 + 6;
+            data[widthField] = 0xFF;
+            data[widthField + 1] = 0xFF;
+            data[widthField + 2] = 0xFF;
+        }
+        else
+        {
+            // The VP8L chunk follows the 16-byte ANMF frame header. Its payload starts with the 0x2F signature byte, then a 32-bit little-endian field: 14 bits
+            // of width minus one, 14 bits of height minus one, 1 alpha bit and the 3-bit version in bits 29 to 31. A version other than 0 is not valid. See the
+            // WebP Lossless Bitstream Specification, section 3 "RIFF Header"
+            // (https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification).
+            int imageChunk = frames[2] + 8 + 16;
+            Assert.Equal("VP8L", System.Text.Encoding.ASCII.GetString(data, imageChunk, 4));
+            Assert.Equal(0x2F, data[imageChunk + 8]);
+            data[imageChunk + 8 + 4] |= 0x20;
+        }
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+        }
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(original);
+        expected.Frames.RemoveFrame(2);
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, data);
+        Assert.Equal(2, actual.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// A lossy image whose ALPH data ends early decodes with the default options. The color rows decode, the alpha
     /// rows before the end match a full decode, and the alpha values after it are 0. Strict mode throws.
     /// </summary>
@@ -690,6 +799,144 @@ public class WebpDecoderTests
 
         DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, truncated));
+    }
+
+    /// <summary>
+    /// A VP8X file with the alpha flag and no ALPH chunk decodes as the opaque VP8 image. libwebp decodes alpha only from ALPH data.
+    /// </summary>
+    [Fact]
+    public void Decode_AlphaFlagWithoutAlphaChunk_DecodesOpaqueImage()
+    {
+        byte[] data = TestFile.Create(Lossy.AlphaNoCompression).Bytes;
+        int alpha = FindChunks(data, "ALPH")[0];
+        int vp8 = FindChunks(data, "VP8 ")[0];
+
+        // The test removes the ALPH chunk and sets the RIFF size. The VP8X chunk keeps its alpha flag.
+        byte[] withoutAlpha = [.. data.AsSpan(0, alpha), .. data.AsSpan(vp8)];
+        BinaryPrimitives.WriteUInt32LittleEndian(withoutAlpha.AsSpan(4), (uint)(withoutAlpha.Length - 8));
+
+        // The simple file format holds only the VP8 chunk. It is the opaque image of the same bitstream.
+        byte[] simple = [.. "RIFF"u8, 0, 0, 0, 0, .. "WEBP"u8, .. data.AsSpan(vp8)];
+        BinaryPrimitives.WriteUInt32LittleEndian(simple.AsSpan(4), (uint)(simple.Length - 8));
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(simple);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(withoutAlpha);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// A VP8L stream whose entropy image names more Huffman groups than the data can hold is not valid. Each group needs at least 20 bits, and libwebp rejects
+    /// the stream before it allocates the tables. The headers come before the image, so the decoder throws in each mode.
+    /// </summary>
+    [Fact]
+    public void Decode_LosslessHuffmanGroupsLargerThanData_Throws()
+    {
+        // The VP8L bits are in least-significant-bit-first order. See the WebP Lossless Bitstream Specification
+        // (https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification).
+        List<byte> payload = [];
+        ulong bits = 0;
+        int bitCount = 0;
+
+        void WriteBits(uint value, int count)
+        {
+            bits |= (ulong)value << bitCount;
+            bitCount += count;
+            while (bitCount >= 8)
+            {
+                payload.Add((byte)bits);
+                bits >>= 8;
+                bitCount -= 8;
+            }
+        }
+
+        // The header: the 0x2F signature, a 4x4 size, no alpha and version 0.
+        WriteBits(0x2F, 8);
+        WriteBits(3, 14);
+        WriteBits(3, 14);
+        WriteBits(0, 1);
+        WriteBits(0, 3);
+
+        // No transform, no color cache, and an entropy image with a precision of 2 bits. Thus, the entropy image of the 4x4 image has one pixel. The entropy
+        // image has no color cache.
+        WriteBits(0, 1);
+        WriteBits(0, 1);
+        WriteBits(1, 1);
+        WriteBits(0, 3);
+        WriteBits(0, 1);
+
+        // Five simple codes with one 8-bit symbol each: green 255, red 255, blue 0, alpha 0 and distance 0. The entropy pixel has red 255 and green 255, so it
+        // names group 0xFFFF, and the image needs 65536 groups.
+        foreach (uint symbol in new uint[] { 255, 255, 0, 0, 0 })
+        {
+            WriteBits(1, 1);
+            WriteBits(0, 1);
+            WriteBits(1, 1);
+            WriteBits(symbol, 8);
+        }
+
+        WriteBits(0, 8 - bitCount);
+        payload.AddRange(new byte[4]);
+
+        byte[] data = [.. "RIFF"u8, 0, 0, 0, 0, .. "WEBP"u8, .. "VP8L"u8, 0, 0, 0, 0, .. payload];
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(4), (uint)(data.Length - 8));
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(16), (uint)payload.Count);
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+        }
+    }
+
+    /// <summary>
+    /// libwebp rejects a VP8X still image whose canvas size is not the size of its image chunk. It also rejects a VP8X canvas area of 2^32 or more. The
+    /// decoder throws in each mode.
+    /// </summary>
+    /// <param name="fileName">The file to change.</param>
+    /// <param name="canvasWidthMinusOne">The canvas width minus one to write to the VP8X chunk.</param>
+    /// <param name="canvasHeightMinusOne">The canvas height minus one to write to the VP8X chunk.</param>
+    [Theory]
+    [InlineData(ContainerDirectory + "odd-metadata.webp", 2, 1)]
+    [InlineData(ContainerDirectory + "animation.webp", 0xFFFFFF, 0xFFFFFF)]
+    public void Decode_InvalidVp8XCanvas_Throws(string fileName, int canvasWidthMinusOne, int canvasHeightMinusOne)
+    {
+        byte[] data = [.. TestFile.Create(fileName).Bytes];
+
+        // The VP8X chunk follows the 12-byte RIFF header. Its payload has 4 bytes of flags, then the 24-bit canvas width minus one and the 24-bit canvas height
+        // minus one. See the WebP Container Specification, section "Extended File Format" (https://developers.google.com/speed/webp/docs/riff_container).
+        Assert.Equal("VP8X", System.Text.Encoding.ASCII.GetString(data, 12, 4));
+        for (int i = 0; i < 3; i++)
+        {
+            data[24 + i] = (byte)(canvasWidthMinusOne >> (8 * i));
+            data[27 + i] = (byte)(canvasHeightMinusOne >> (8 * i));
+        }
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+        }
+    }
+
+    /// <summary>
+    /// A VP8 partition that starts with 0xFF is not valid. RFC 6386, section 7.2, keeps the value less than the range, and libwebp rejects the
+    /// partition. The frame headers come before the image, so the decoder throws in each mode.
+    /// </summary>
+    [Fact]
+    public void Decode_Vp8PartitionStartsWithValueLargerThanRange_Throws()
+    {
+        byte[] data = [.. TestFile.Create(Lossy.BikeSmall).Bytes];
+
+        // The first partition follows the 8-byte chunk header and the 10-byte VP8 frame header. See RFC 6386, section 9.1.
+        int vp8 = FindChunks(data, "VP8 ")[0];
+        data[vp8 + 8 + 10] = 0xFF;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+        }
     }
 
     /// <summary>

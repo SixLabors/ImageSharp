@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -583,11 +584,7 @@ internal sealed partial class HeifEncoderCore
                         image.Frames[firstFrameIndex + sampleIndex].Metadata.GetHeifMetadata().FrameDelay,
                         timescale);
 
-                    colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
-                        sampleStart,
-                        checked((int)(sampleEnd - sampleStart)),
-                        duration,
-                        syncSamples[sampleIndex]);
+                    colorSamples[sampleIndex] = new HeifSequenceSampleInfo(sampleStart, sampleEnd - sampleStart, duration, syncSamples[sampleIndex]);
 
                     sampleStart = sampleEnd;
                 }
@@ -623,11 +620,7 @@ internal sealed partial class HeifEncoderCore
                 alphaEncoder.EncodeKeyFrame(firstFrame, stream);
                 alphaHeader = alphaEncoder.SequenceHeader;
 
-                alphaSamples[0] = new HeifSequenceSampleInfo(
-                    alphaOffset,
-                    checked((int)(stream.Length - alphaOffset)),
-                    colorSamples[0].Duration,
-                    isSyncSample: true);
+                alphaSamples[0] = new HeifSequenceSampleInfo(alphaOffset, stream.Length - alphaOffset, colorSamples[0].Duration, isSyncSample: true);
 
                 for (int sampleIndex = 1; sampleIndex < frameCount; sampleIndex++)
                 {
@@ -643,7 +636,7 @@ internal sealed partial class HeifEncoderCore
 
                     alphaSamples[sampleIndex] = new HeifSequenceSampleInfo(
                         alphaOffset,
-                        checked((int)(stream.Length - alphaOffset)),
+                        stream.Length - alphaOffset,
                         colorSamples[sampleIndex].Duration,
                         isSyncSample: keyFrame);
                 }
@@ -706,7 +699,7 @@ internal sealed partial class HeifEncoderCore
         colorEncoder.EncodeKeyFrame(firstFrame, stream);
         colorSamples[0] = new HeifSequenceSampleInfo(
             colorOffset,
-            checked((int)(stream.Length - colorOffset)),
+            stream.Length - colorOffset,
             GetSequenceSampleDuration(firstFrame.Metadata.GetHeifMetadata().FrameDelay, timescale),
             isSyncSample: true);
 
@@ -718,11 +711,7 @@ internal sealed partial class HeifEncoderCore
             uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
             colorOffset = stream.Length;
             bool keyFrame = colorEncoder.EncodeNextFrame(frame, stream, forceKeyFrame: false);
-            colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
-                colorOffset,
-                checked((int)(stream.Length - colorOffset)),
-                duration,
-                isSyncSample: keyFrame);
+            colorSamples[sampleIndex] = new HeifSequenceSampleInfo(colorOffset, stream.Length - colorOffset, duration, isSyncSample: keyFrame);
         }
     }
 
@@ -764,20 +753,15 @@ internal sealed partial class HeifEncoderCore
     /// patches each chunk offset after it knows the movie box length.
     /// </summary>
     /// <param name="sequence">The coded sequence.</param>
+    /// <param name="memory">The box buffer. Its length is the movie box length from <see cref="GetSequenceMovieBoxLength"/>.</param>
     /// <param name="precedingBoxLength">The number of bytes in the file before the movie box.</param>
     /// <param name="stream">The destination stream.</param>
-    private void WriteSequenceMovieBox(HeifSequenceEncoding sequence, int precedingBoxLength, Stream stream)
+    private static void WriteSequenceMovieBox(HeifSequenceEncoding sequence, Span<byte> memory, long precedingBoxLength, Stream stream)
     {
-        int movieLength = GetSequenceMovieBoxLength(sequence);
-        using IMemoryOwner<byte> movieOwner = this.configuration.MemoryAllocator.Allocate<byte>(movieLength);
-        Span<byte> memory = movieOwner.Memory.Span[..movieLength];
         int offset = 0;
         int movieStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Moov);
-        ulong mediaDuration = GetSequenceMediaDuration(sequence.ColorTrack.Samples);
-        ulong trackDuration = sequence.RepeatCount == 0
-            ? ulong.MaxValue
-            : checked(mediaDuration * sequence.RepeatCount);
-
+        ulong mediaDuration = sequence.MediaDuration;
+        ulong trackDuration = sequence.TrackDuration;
         bool hasAlpha = sequence.AlphaTrack.HasValue;
 
         WriteSequenceMovieHeader(
@@ -813,16 +797,15 @@ internal sealed partial class HeifEncoderCore
         }
 
         EndSequenceBox(memory, movieStart, offset);
-        ulong mediaDataOffset = checked((ulong)precedingBoxLength + (uint)offset + 8U);
-        BinaryPrimitives.WriteUInt64BigEndian(
-            memory[colorChunkOffsetPosition..],
-            checked(mediaDataOffset + (ulong)sequence.ColorTrack.Samples[0].Offset));
+
+        // The mdat payload offset is a sum of three int box lengths and a box header. A sample offset is a ChunkedMemoryStream
+        // position, which is at most int.MaxValue chunks of 4 MiB. Thus each chunk offset fits in ulong.
+        ulong mediaDataOffset = (ulong)precedingBoxLength + (uint)offset + 8U;
+        BinaryPrimitives.WriteUInt64BigEndian(memory[colorChunkOffsetPosition..], mediaDataOffset + (ulong)sequence.ColorTrack.Samples[0].Offset);
 
         if (alphaChunkOffsetPosition >= 0)
         {
-            BinaryPrimitives.WriteUInt64BigEndian(
-                memory[alphaChunkOffsetPosition..],
-                checked(mediaDataOffset + (ulong)alphaPayloadOffset));
+            BinaryPrimitives.WriteUInt64BigEndian(memory[alphaChunkOffsetPosition..], mediaDataOffset + (ulong)alphaPayloadOffset);
         }
 
         stream.Write(memory);
@@ -877,9 +860,9 @@ internal sealed partial class HeifEncoderCore
         int colorSyncSampleCount = GetSequenceSyncSampleCount(sequence.ColorTrack.Samples);
         long colorSampleTableLength =
             (long)sampleTableFixedLength
-            + (colorRunCount * timingRunLength)
-            + (sequence.ColorTrack.Samples.Length * sampleSizeEntryLength)
-            + (colorSyncSampleCount * syncSampleEntryLength)
+            + ((long)colorRunCount * timingRunLength)
+            + ((long)sequence.ColorTrack.Samples.Length * sampleSizeEntryLength)
+            + ((long)colorSyncSampleCount * syncSampleEntryLength)
             + colorInformationBoxLength;
 
         if (!sequence.IccProfileData.IsEmpty)
@@ -922,9 +905,9 @@ internal sealed partial class HeifEncoderCore
 
             long alphaSampleTableLength =
                 (long)sampleTableFixedLength
-                + (alphaRunCount * timingRunLength)
-                + (alphaTrack.Samples.Length * sampleSizeEntryLength)
-                + (alphaSyncSampleCount * syncSampleEntryLength)
+                + ((long)alphaRunCount * timingRunLength)
+                + ((long)alphaTrack.Samples.Length * sampleSizeEntryLength)
+                + ((long)alphaSyncSampleCount * syncSampleEntryLength)
                 + auxiliaryTypeBoxLength;
 
             alphaTrackLength =
@@ -939,7 +922,14 @@ internal sealed partial class HeifEncoderCore
         // The movie box contains one header and one or two tracks. The length is exact, so the writer fills one
         // buffer and never grows or copies it.
         long movieLength = BasicBoxHeaderLength + movieHeaderBoxLength + colorTrackLength + alphaTrackLength;
-        return checked((int)movieLength);
+
+        // The ICC, Exif and XMP payloads and the sample tables can exceed one buffer. The limit is also below the 32-bit box size maximum.
+        if (movieLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)movieLength, int.MaxValue);
+        }
+
+        return (int)movieLength;
     }
 
     /// <summary>
@@ -1330,6 +1320,9 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
         WriteSequenceUInt32(memory, ref offset, 0);
         WriteSequenceUInt32(memory, ref offset, (uint)track.Samples.Length);
+
+        // The stsz entry_size field has 32 bits. CheckMediaDataLength limits the whole mdat payload to the 32-bit box size,
+        // so each sample length in the payload also fits.
         foreach (HeifSequenceSampleInfo sample in track.Samples)
         {
             WriteSequenceUInt32(memory, ref offset, (uint)sample.Length);
@@ -1518,6 +1511,7 @@ internal sealed partial class HeifEncoderCore
     /// <param name="delay">The frame delay in seconds.</param>
     /// <param name="timescale">The number of time units in one second.</param>
     /// <returns>The sample duration. The value is at least 1.</returns>
+    /// <exception cref="ImageFormatException">The sample duration does not fit in the 32-bit duration field.</exception>
     private static uint GetSequenceSampleDuration(Rational delay, uint timescale)
     {
         // HEIF metadata uses a zero numerator or a zero denominator for an unspecified duration. A sample needs a
@@ -1527,8 +1521,17 @@ internal sealed partial class HeifEncoderCore
             return 1;
         }
 
+        // Both factors are 32-bit, so the product plus half the denominator fits in ulong.
         ulong scaledDuration = ((ulong)delay.Numerator * timescale) + (delay.Denominator / 2U);
-        return checked((uint)Math.Max(1UL, scaledDuration / delay.Denominator));
+        ulong duration = Math.Max(1UL, scaledDuration / delay.Denominator);
+
+        // The time-to-sample box stores each sample duration in a 32-bit field.
+        if (duration > uint.MaxValue)
+        {
+            throw new ImageFormatException($"The frame delay of {delay} seconds is too long to encode for AVIF format.");
+        }
+
+        return (uint)duration;
     }
 
     /// <summary>
@@ -1592,10 +1595,11 @@ internal sealed partial class HeifEncoderCore
     /// <returns>The duration of one play of the samples, in time units.</returns>
     private static ulong GetSequenceMediaDuration(ReadOnlySpan<HeifSequenceSampleInfo> samples)
     {
+        // A span holds at most int.MaxValue samples of 32-bit durations. Thus the sum fits in ulong.
         ulong duration = 0;
         foreach (HeifSequenceSampleInfo sample in samples)
         {
-            duration = checked(duration + sample.Duration);
+            duration += sample.Duration;
         }
 
         return duration;
@@ -1844,7 +1848,7 @@ internal sealed partial class HeifEncoderCore
         /// <param name="length">The length of the sample in bytes.</param>
         /// <param name="duration">The duration of the sample in time units.</param>
         /// <param name="isSyncSample">Whether the sample starts with a key frame.</param>
-        public HeifSequenceSampleInfo(long offset, int length, uint duration, bool isSyncSample)
+        public HeifSequenceSampleInfo(long offset, long length, uint duration, bool isSyncSample)
         {
             this.Offset = offset;
             this.Length = length;
@@ -1860,7 +1864,7 @@ internal sealed partial class HeifEncoderCore
         /// <summary>
         /// Gets the length of the sample in bytes.
         /// </summary>
-        public int Length { get; }
+        public long Length { get; }
 
         /// <summary>
         /// Gets the duration of the sample in time units.
@@ -1892,6 +1896,7 @@ internal sealed partial class HeifEncoderCore
         /// <param name="exifData">The Exif bytes, or <see langword="null"/>.</param>
         /// <param name="exifTiffHeaderOffset">The offset of the TIFF header in <paramref name="exifData"/>.</param>
         /// <param name="xmpData">The XMP bytes, or <see langword="null"/>.</param>
+        /// <exception cref="ImageFormatException">The duration of all plays does not fit in the 64-bit duration field.</exception>
         public HeifSequenceEncoding(
             int width,
             int height,
@@ -1916,6 +1921,16 @@ internal sealed partial class HeifEncoderCore
             this.ExifData = exifData;
             this.ExifTiffHeaderOffset = exifTiffHeaderOffset;
             this.XmpData = xmpData;
+            this.MediaDuration = GetSequenceMediaDuration(colorTrack.Samples);
+
+            // The version 1 movie and track headers store the duration of all plays in a 64-bit field.
+            // The check runs here, before the encoder writes the first output byte.
+            if (repeatCount != 0 && this.MediaDuration > ulong.MaxValue / repeatCount)
+            {
+                throw new ImageFormatException($"The duration of {repeatCount} plays is too long to encode for AVIF format.");
+            }
+
+            this.TrackDuration = repeatCount == 0 ? ulong.MaxValue : this.MediaDuration * repeatCount;
         }
 
         /// <summary>
@@ -1972,6 +1987,17 @@ internal sealed partial class HeifEncoderCore
         /// Gets the XMP bytes, or <see langword="null"/>.
         /// </summary>
         public byte[]? XmpData { get; }
+
+        /// <summary>
+        /// Gets the duration of one play of the color samples, in time units.
+        /// </summary>
+        public ulong MediaDuration { get; }
+
+        /// <summary>
+        /// Gets the duration of the track with all repeats, in time units. The value is <see cref="ulong.MaxValue"/>
+        /// when the sequence repeats without end.
+        /// </summary>
+        public ulong TrackDuration { get; }
     }
 
     /// <summary>

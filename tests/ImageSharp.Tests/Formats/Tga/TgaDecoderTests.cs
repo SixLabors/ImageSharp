@@ -976,6 +976,137 @@ public class TgaDecoderTests
         ImageComparer.Exact.VerifySimilarity(expected, image);
     }
 
+    /// <summary>
+    /// The decoder rejects a pixel depth or a color map that it cannot use before it allocates the pixel buffer. The 4096x4096 image needs 64 MB of pixels,
+    /// which is more than the 1 MB allocation limit. Thus an allocation before the check fails with a memory error, not with the structural error.
+    /// </summary>
+    /// <param name="colorMapType">The color map type at header byte 1.</param>
+    /// <param name="imageType">The image type at header byte 2.</param>
+    /// <param name="colorMapDepth">The color map entry depth at header byte 7.</param>
+    /// <param name="pixelDepth">The pixel depth at header byte 16.</param>
+    [Theory]
+    [InlineData(0, 2, 0, 7)]
+    [InlineData(1, 1, 12, 8)]
+    [InlineData(1, 1, 24, 24)]
+    public void TgaDecoder_UnsupportedLayout_ThrowsBeforePixelAllocation(byte colorMapType, byte imageType, byte colorMapDepth, byte pixelDepth)
+    {
+        // The header declares one color map entry and a 4096x4096 image with top-left origin.
+        byte[] data = [0, colorMapType, imageType, 0, 0, 1, 0, colorMapDepth, 0, 0, 0, 0, 0, 16, 0, 16, pixelDepth, 0x20, 0, 0, 0, 0];
+
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 1 });
+
+        foreach (SegmentIntegrityHandling handling in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+            using MemoryStream stream = new(data, false);
+            Assert.Throws<NotSupportedException>(() => TgaDecoder.Instance.Decode<Rgba32>(options, stream));
+        }
+    }
+
+    /// <summary>
+    /// A color mapped image without color map entries is a structural error. The decoder reports it before it allocates the 4096x4096 pixel buffer, which is
+    /// more than the 1 MB allocation limit.
+    /// </summary>
+    [Fact]
+    public void TgaDecoder_MissingColorMap_ThrowsBeforePixelAllocation()
+    {
+        byte[] data = [0, 1, 1, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 16, 0, 16, 8, 0x20, 0, 0, 0, 0];
+
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 1 });
+        DecoderOptions options = new(configuration);
+
+        using MemoryStream stream = new(data, false);
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => TgaDecoder.Instance.Decode<Rgba32>(options, stream));
+        Assert.Null(ex.InnerException);
+    }
+
+    /// <summary>
+    /// A file that is shorter than the 18-byte header is a structural error. Identify also throws.
+    /// </summary>
+    /// <returns>A task that completes when the test completes.</returns>
+    [Fact]
+    public async Task TgaDecoder_TruncatedHeader_Throws()
+    {
+        // A valid 1x1 24-bit header without its last byte, the image descriptor.
+        byte[] data = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 24];
+
+        using MemoryStream stream = new(data, false);
+        await Assert.ThrowsAsync<InvalidImageContentException>(
+            () => TgaDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Image type 0, no image data, is a structural error in each mode. See TGA 2.0, field 3.
+    /// </summary>
+    [Fact]
+    public void TgaDecoder_NoImageDataType_Throws()
+    {
+        byte[] data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 24, 0x20, 0, 0, 255];
+
+        foreach (SegmentIntegrityHandling handling in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+        }
+    }
+
+    /// <summary>
+    /// A true-color image with a color map decodes 16-bit and 24-bit pixels as true color and skips the color map. See TGA 2.0, field 2, page 6. An 8-bit pixel
+    /// is a color map index, so the colors of the color map stay in the image.
+    /// </summary>
+    /// <param name="pixelDepth">The pixel depth at header byte 16.</param>
+    /// <param name="pixel">The stored pixel.</param>
+    /// <param name="red">The expected red component.</param>
+    /// <param name="blue">The expected blue component.</param>
+    [Theory]
+    [InlineData(24, new byte[] { 0, 0, 255 }, 255, 0)]
+    [InlineData(16, new byte[] { 0x00, 0x7C }, 255, 0)]
+    [InlineData(8, new byte[] { 0 }, 0, 255)]
+    public void TgaDecoder_TrueColorWithColorMap_UsesColorMapOnlyFor8Bit(byte pixelDepth, byte[] pixel, byte red, byte blue)
+    {
+        // A 1x1 true-color image with one 24-bit color map entry (blue), then one stored pixel. The 16-bit and 24-bit pixels are red.
+        byte[] data = [0, 1, 2, 0, 0, 1, 0, 24, 0, 0, 0, 0, 1, 0, 1, 0, pixelDepth, 0x20, 255, 0, 0, .. pixel];
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        Assert.Equal(new Rgba32(red, 0, blue, 255), image[0, 0]);
+    }
+
+    /// <summary>
+    /// Verifies that a 16-bit black and white image with 0 alpha bits decodes as opaque. Without alpha bits, the second byte of a pixel is not alpha.
+    /// </summary>
+    [Fact]
+    public void TgaDecoder_BlackAndWhite16BitWithoutAlphaBits_DecodesOpaque()
+    {
+        // A 1x1 image of type 3 (black and white) with 16 bits per pixel. The image descriptor 0x20 has 0 alpha bits. The pixel has the gray value 0x40, and
+        // its second byte is 0.
+        byte[] data = [0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 16, 0x20, 0x40, 0x00];
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        Assert.Equal(new Rgba32(0x40, 0x40, 0x40, 255), image[0, 0]);
+    }
+
+    /// <summary>
+    /// A color map index outside the stored color map is damaged image data. In strict mode, the decoder throws. With the default options, the decoder keeps
+    /// the pixels before the index, and the other pixels keep the fill value.
+    /// </summary>
+    [Fact]
+    public void TgaDecoder_IndexOutsideColorMap_KeepsPixelsBeforeIndex()
+    {
+        // A 3x1 8-bit color mapped image with one 24-bit color map entry (red). The third index is outside the map.
+        byte[] data = [0, 1, 1, 0, 0, 1, 0, 24, 0, 0, 0, 0, 3, 0, 1, 0, 8, 0x20, 0, 0, 255, 0, 0, 5];
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(strict, data));
+
+        Rgba32[] pixels = [new(255, 0, 0, 255), new(255, 0, 0, 255), default];
+        using Image<Rgba32> expected = Image.LoadPixelData<Rgba32>(pixels, 3, 1);
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
     [Theory]
     [WithFile(Bit24BottomLeft, PixelTypes.Rgba32)]
     [WithFile(Bit32BottomLeft, PixelTypes.Rgba32)]

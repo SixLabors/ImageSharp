@@ -110,11 +110,33 @@ public class ExrZipDecoderTests
     }
 
     /// <summary>
+    /// The chunk header owns the block sizes. A byte count that ends outside the stream is damaged image data. The Strict mode throws. The IgnoreImageData mode
+    /// keeps the fill value for the rows of the chunk.
+    /// </summary>
+    [Fact]
+    public void Decode_ChunkByteCountOutsideStream_RespectsIntegrityHandling()
+    {
+        byte[] compressed = ZlibCompress(new byte[256 * sizeof(float)]);
+        byte[] data = BuildExr(compressed, ExrPixelType.Float, 3, 0);
+
+        // The byte count of the chunk comes immediately before the compressed data.
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(data.Length - compressed.Length - sizeof(uint)), uint.MaxValue);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(strict, data));
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<RgbaVector> image = Image.Load<RgbaVector>(ignore, data);
+        using Image<RgbaVector> cleared = new(256, 1);
+        ImageComparer.Exact.VerifySimilarity(cleared, image);
+    }
+
+    /// <summary>
     /// Missing color channels must not inherit the allocator's previous contents.
     /// </summary>
     /// <param name="pixelType">The stored sample type.</param>
     /// <param name="compression">The ZIP compression code.</param>
-    /// <param name="yMin">The data window's first row coordinate.</param>
+    /// <param name="yMin">The first row coordinate of the data window.</param>
     [Theory]
     [InlineData(ExrPixelType.Half, 2, 0)]
     [InlineData(ExrPixelType.Float, 2, 0)]
@@ -149,6 +171,61 @@ public class ExrZipDecoderTests
     }
 
     /// <summary>
+    /// A row holds the samples of every channel, in the order of the channel list. The decoder skips the samples of a channel that is not R, G, B, A or Y. Thus
+    /// the samples of the next channel stay in place.
+    /// </summary>
+    [Fact]
+    public void Decode_UnknownChannel_SkipsAllItsSamples()
+    {
+        // The FLOAT Q samples are 0xFFFFFFFF. The HALF R samples are 0x3C00, which is 1.
+        byte[] chunk = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x3C, 0x00, 0x3C];
+        byte[] data = BuildFloatAndHalfChannelExr(0, ExrCompression.None, chunk);
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(data);
+        AssertTwoPixels(decoded, new Rgba32(255, 0, 0, 255));
+    }
+
+    /// <summary>
+    /// PXR24 packs each channel with its own pixel type.
+    /// </summary>
+    [Fact]
+    public void Decode_Pxr24MixedPixelTypes_UsesTypeOfEachChannel()
+    {
+        // A FLOAT channel keeps 3 byte planes. A HALF channel keeps 2 byte planes. Each plane holds the differences to the previous sample. Q is 0. R starts at
+        // 0x3C00, which is 1, and does not change.
+        byte[] packed = [0, 0, 0, 0, 0, 0, 0x3C, 0x00, 0x00, 0x00];
+        byte[] data = BuildFloatAndHalfChannelExr(0, ExrCompression.Pxr24, ZlibCompress(packed));
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(data);
+        AssertTwoPixels(decoded, new Rgba32(255, 0, 0, 255));
+    }
+
+    /// <summary>
+    /// B44 stores the samples of a FLOAT channel without change. For a pLinear HALF channel, the encoder stores exp(x / 8). The decoder restores x.
+    /// </summary>
+    [Fact]
+    public void Decode_B44FloatAndLinearChannels_RestoresSamples()
+    {
+        // The 8 bytes of the two FLOAT Q samples come first. The flat tile of R holds 0xBC00, the ordered form of 1. 1 is exp(0 / 8). Thus R is 0.
+        byte[] chunk = [0, 0, 0, 0, 0, 0, 0, 0, 0xBC, 0x00, 0xFF];
+        byte[] data = BuildFloatAndHalfChannelExr(1, ExrCompression.B44, chunk);
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(data);
+        AssertTwoPixels(decoded, new Rgba32(0, 0, 0, 255));
+    }
+
+    /// <summary>
+    /// Asserts that both pixels of a 2x1 image have the expected value.
+    /// </summary>
+    /// <param name="image">The decoded image.</param>
+    /// <param name="pixel">The expected value of each pixel.</param>
+    private static void AssertTwoPixels(Image<Rgba32> image, Rgba32 pixel)
+    {
+        using Image<Rgba32> expected = new(2, 1, pixel);
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
+    /// <summary>
     /// Compresses the predictor bytes for a scanline block.
     /// </summary>
     /// <param name="data">The predictor bytes.</param>
@@ -177,11 +254,55 @@ public class ExrZipDecoderTests
     /// <param name="compressed">The compressed scanline bytes.</param>
     /// <param name="pixelType">The stored sample type.</param>
     /// <param name="compression">The compression code.</param>
-    /// <param name="yMin">The data window's first row coordinate.</param>
+    /// <param name="yMin">The first row coordinate of the data window.</param>
     /// <returns>The encoded image.</returns>
     internal static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression, int yMin)
+        => BuildExr(BuildChannelList(("R", pixelType, 0)), 256, compressed, compression, yMin);
+
+    /// <summary>
+    /// Builds a 2x1 EXR with a FLOAT Q channel and a HALF R channel.
+    /// </summary>
+    /// <param name="redLinear">The pLinear value of the R channel.</param>
+    /// <param name="compression">The compression method of the chunk.</param>
+    /// <param name="compressed">The stored bytes of the chunk.</param>
+    /// <returns>The encoded image.</returns>
+    private static byte[] BuildFloatAndHalfChannelExr(byte redLinear, ExrCompression compression, byte[] compressed)
+        => BuildExr(BuildChannelList(("Q", ExrPixelType.Float, 0), ("R", ExrPixelType.Half, redLinear)), 2, compressed, (byte)compression, 0);
+
+    /// <summary>
+    /// Builds the value of a channel list attribute. Each channel has the x and y sampling 1.
+    /// </summary>
+    /// <param name="channels">The channels, in the order of the list.</param>
+    /// <returns>The attribute value, with the null byte at its end.</returns>
+    private static byte[] BuildChannelList(params (string Name, ExrPixelType PixelType, byte Linear)[] channels)
     {
-        const int width = 256;
+        using MemoryStream channelStream = new();
+        using BinaryWriter channelWriter = new(channelStream);
+        foreach ((string name, ExrPixelType pixelType, byte linear) in channels)
+        {
+            WriteString(channelWriter, name);
+            channelWriter.Write((int)pixelType);
+            channelWriter.Write(linear);
+            channelWriter.Write(new byte[] { 0, 0, 0 });
+            channelWriter.Write(1);
+            channelWriter.Write(1);
+        }
+
+        channelWriter.Write((byte)0);
+        return channelStream.ToArray();
+    }
+
+    /// <summary>
+    /// Builds a single-row EXR with one scanline chunk.
+    /// </summary>
+    /// <param name="channelList">The value of the channel list attribute.</param>
+    /// <param name="width">The image width in pixels.</param>
+    /// <param name="compressed">The compressed scanline bytes.</param>
+    /// <param name="compression">The compression code.</param>
+    /// <param name="yMin">The first row coordinate of the data window.</param>
+    /// <returns>The encoded image.</returns>
+    private static byte[] BuildExr(byte[] channelList, int width, byte[] compressed, byte compression, int yMin)
+    {
         const int height = 1;
 
         using MemoryStream output = new();
@@ -191,20 +312,7 @@ public class ExrZipDecoderTests
         writer.Write((byte)2);
         writer.Write(new byte[] { 0, 0, 0 });
 
-        using (MemoryStream channelStream = new())
-        using (BinaryWriter channelWriter = new(channelStream))
-        {
-            WriteString(channelWriter, "R");
-            channelWriter.Write((int)pixelType);
-            channelWriter.Write((byte)0);
-            channelWriter.Write(new byte[] { 0, 0, 0 });
-            channelWriter.Write(1);
-            channelWriter.Write(1);
-            channelWriter.Write((byte)0);
-
-            WriteAttribute(writer, "channels", "chlist", channelStream.ToArray());
-        }
-
+        WriteAttribute(writer, "channels", "chlist", channelList);
         WriteAttribute(writer, "compression", "compression", [compression]);
 
         using (MemoryStream boxStream = new())

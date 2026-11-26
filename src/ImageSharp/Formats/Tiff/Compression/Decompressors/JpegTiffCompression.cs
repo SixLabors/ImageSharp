@@ -43,11 +43,13 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
         ImageFrameMetadata metadata,
         byte[] jpegTables,
         TiffPhotometricInterpretation photometricInterpretation)
-        : base(memoryAllocator, width, bitsPerPixel, TiffPredictor.None)
+        : base(memoryAllocator, width, bitsPerPixel, options.GeneralOptions.SegmentIntegrityHandling)
     {
         this.options = options;
         this.metadata = metadata;
         this.jpegTables = jpegTables;
+
+        // The parser accepts only the photometric interpretations that DecodeJpegData decodes.
         this.photometricInterpretation = photometricInterpretation;
     }
 
@@ -55,9 +57,13 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
     public override bool DecodesPixels => true;
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    /// <remarks>The nested decoder writes the pixels. Thus the sample buffer is empty.</remarks>
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
-        => this.DecodeJpegData(stream, stripHeight, pixels, cancellationToken);
+    {
+        this.DecodeJpegData(stream, stripHeight, pixels, cancellationToken);
+        return buffer.Length;
+    }
 
     /// <summary>
     /// Applies the nested JPEG color conversion and copies its TPixel output into the TIFF destination.
@@ -121,10 +127,6 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
                 this.CopyPixels(decompressedBuffer, stripHeight, buffer);
                 break;
             }
-
-            default:
-                TiffThrowHelper.ThrowNotSupported($"Jpeg compressed tiff with photometric interpretation {this.photometricInterpretation} is not supported");
-                break;
         }
     }
 

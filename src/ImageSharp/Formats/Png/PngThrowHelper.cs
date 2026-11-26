@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -22,35 +21,18 @@ internal static class PngThrowHelper
     public static void ThrowMissingDefaultData() => throw new InvalidImageContentException("APNG Image does not contain a default data chunk.");
 
     [DoesNotReturn]
-    public static void ThrowInvalidAnimationControl()
-        => throw new InvalidImageContentException("APNG Image must contain a acTL chunk and it must be located before any IDAT and fdAT chunks.");
-
-    [DoesNotReturn]
-    public static void ThrowMissingFrameControl() => throw new InvalidImageContentException("One of APNG Image's frames do not have a frame control chunk.");
-
-    [DoesNotReturn]
     public static void ThrowMissingPalette() => throw new InvalidImageContentException("PNG Image does not contain a palette chunk.");
-
-    [DoesNotReturn]
-    public static void ThrowInvalidChunkType(string message) => throw new InvalidImageContentException(message);
 
     [DoesNotReturn]
     public static void ThrowInvalidChunkCrc(string chunkTypeName)
         => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
 
+    /// <summary>
+    /// Throws a <see cref="NotSupportedException"/> for a critical chunk that the decoder does not know. The decoder cannot decode the image without the data
+    /// of a critical chunk.
+    /// </summary>
+    /// <param name="chunkTypeName">The four-letter type of the chunk.</param>
     [DoesNotReturn]
-    public static void ThrowInvalidParameter(object value, string message, [CallerArgumentExpression(nameof(value))] string name = "")
-        => throw new NotSupportedException($"Invalid {name}. {message}. Was '{value}'.");
-
-    [DoesNotReturn]
-    public static void ThrowInvalidParameter(
-        object value1,
-        object value2,
-        string message,
-        [CallerArgumentExpression(nameof(value1))] string name1 = "",
-        [CallerArgumentExpression(nameof(value2))] string name2 = "")
-        => throw new NotSupportedException($"Invalid {name1} or {name2}. {message}. Was '{value1}' and '{value2}'.");
-
-    [DoesNotReturn]
-    public static void ThrowNotSupportedColor() => throw new NotSupportedException("Unsupported PNG color type.");
+    public static void ThrowUnknownCriticalChunk(string chunkTypeName)
+        => throw new NotSupportedException($"The PNG {chunkTypeName} chunk is critical, and the decoder does not know it.");
 }

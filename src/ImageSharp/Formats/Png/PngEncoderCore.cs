@@ -201,6 +201,14 @@ internal sealed class PngEncoderCore : IDisposable
         bool animateRootFrame = this.animateRootFrame ?? pngMetadata.AnimateRootFrame;
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
+        // The encoder holds a scanline and its filter type byte in one buffer, so their length must fit in an int. PngHeader.Validate
+        // applies the same limit to the decoder. An Adam7 pass is not wider than the image, so this check bounds each pass too.
+        long scanlineLength = PngHeader.CalculateScanlineLength(this.width, this.bitDepth, this.bytesPerPixel);
+        if (scanlineLength >= int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)scanlineLength + 1, int.MaxValue);
+        }
+
         // PNG emits one profile for the whole image, including every APNG frame. Frame metadata takes precedence for container resources.
         IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile, pngMetadata.GetPixelTypeInfo().ColorType, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
@@ -923,8 +931,9 @@ internal sealed class PngEncoderCore : IDisposable
         // For interoperability, wrap raw IPTC (IIM) in a Photoshop IRB (8BIM, resource 0x0404),
         // since "Raw profile type iptc" commonly stores IRB payloads.
 
-        // The complete resource must fit in one buffer, including its header and padding.
-        int irbLength = checked((int)IptcWriter.GetPhotoshopResourceLength(iptcData.Length));
+        // The complete resource must fit in one buffer, including its header and padding. The array length is at most Array.MaxLength,
+        // so the 12-byte header and the padding byte keep the length inside int.
+        int irbLength = (int)IptcWriter.GetPhotoshopResourceLength(iptcData.Length);
         using IMemoryOwner<byte> irb = this.memoryAllocator.Allocate<byte>(irbLength);
         Span<byte> irbSpan = irb.GetSpan()[..irbLength];
         IptcWriter.WritePhotoshopResource(irbSpan, iptcData);
@@ -972,12 +981,19 @@ internal sealed class PngEncoderCore : IDisposable
         // Use 64 bytes per line (128 hex chars) to keep the chunk readable.
         const int bytesPerLine = 64;
 
-        int hexChars = payload.Length * 2;
-        int lineCount = (payload.Length + (bytesPerLine - 1)) / bytesPerLine;
-        int newlineCount = 2 + lineCount; // header line + length line + hex lines
-        int capacity = header.Length + 32 + hexChars + newlineCount;
+        // The text has 2 hex characters for each byte and one line break for each line. .NET limits a string to 0x3FFFFFDF
+        // characters, so a large payload is rejected before the text is built.
+        const int maxStringLength = 0x3FFFFFDF;
+        long hexChars = (long)payload.Length * 2;
+        long lineCount = (payload.Length + (bytesPerLine - 1L)) / bytesPerLine;
+        long newlineCount = 2 + lineCount; // header line + length line + hex lines
+        long capacity = header.Length + 32 + hexChars + newlineCount;
+        if (capacity > maxStringLength)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)capacity, maxStringLength);
+        }
 
-        StringBuilder sb = new(capacity);
+        StringBuilder sb = new((int)capacity);
         sb.Append(header).Append('\n');
         sb.Append(payload.Length).Append('\n');
 
@@ -1365,7 +1381,7 @@ internal sealed class PngEncoderCore : IDisposable
         ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
+        int bytesPerScanline = (int)PngHeader.CalculateScanlineLength(pixels.Width, this.bitDepth, this.bytesPerPixel);
         int filterLength = bytesPerScanline + 1;
         this.AllocateScanlineBuffers(bytesPerScanline);
 
@@ -1426,9 +1442,7 @@ internal sealed class PngEncoderCore : IDisposable
                 continue;
             }
 
-            int bytesPerScanline = this.bytesPerPixel <= 1
-                ? ((blockWidth * this.bitDepth) + 7) / 8
-                : blockWidth * this.bytesPerPixel;
+            int bytesPerScanline = (int)PngHeader.CalculateScanlineLength(blockWidth, this.bitDepth, this.bytesPerPixel);
 
             int filterLength = bytesPerScanline + 1;
             this.AllocateScanlineBuffers(bytesPerScanline);
@@ -1517,9 +1531,7 @@ internal sealed class PngEncoderCore : IDisposable
                 continue;
             }
 
-            int bytesPerScanline = this.bytesPerPixel <= 1
-                ? ((blockWidth * this.bitDepth) + 7) / 8
-                : blockWidth * this.bytesPerPixel;
+            int bytesPerScanline = (int)PngHeader.CalculateScanlineLength(blockWidth, this.bitDepth, this.bytesPerPixel);
 
             int filterLength = bytesPerScanline + 1;
 
@@ -1629,27 +1641,6 @@ internal sealed class PngEncoderCore : IDisposable
         stream.Write(buffer, 0, 4); // write the crc
     }
 
-    /// <summary>
-    /// Calculates the scanline length.
-    /// </summary>
-    /// <param name="width">The width of the row.</param>
-    /// <returns>
-    /// The <see cref="int"/> representing the length.
-    /// </returns>
-    private int CalculateScanlineLength(int width)
-    {
-        int mod = this.bitDepth is 16 ? 16 : 8;
-        int scanlineLength = width * this.bitDepth * this.bytesPerPixel;
-
-        int amount = scanlineLength % mod;
-        if (amount != 0)
-        {
-            scanlineLength += mod - amount;
-        }
-
-        return scanlineLength / mod;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SwapScanlineBuffers()
     {
@@ -1708,7 +1699,7 @@ internal sealed class PngEncoderCore : IDisposable
         }
 
         use16Bit = bits == (byte)PngBitDepth.Bit16;
-        bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
+        bytesPerPixel = PngHeader.CalculateBytesPerPixel(this.colorType, bits);
 
         this.interlaceMode = encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod;
         this.chunkFilter = encoder.SkipMetadata ? PngChunkFilter.ExcludeAll : encoder.ChunkFilter ?? PngChunkFilter.None;
@@ -1838,22 +1829,4 @@ internal sealed class PngEncoderCore : IDisposable
 
         return bitDepth;
     }
-
-    /// <summary>
-    /// Calculates the correct number of bytes per pixel for the given color type.
-    /// </summary>
-    /// <param name="pngColorType">The color type.</param>
-    /// <param name="use16Bit">Whether to use 16 bits per component.</param>
-    /// <returns>Bytes per pixel.</returns>
-    private static int CalculateBytesPerPixel(PngColorType? pngColorType, bool use16Bit)
-        => pngColorType switch
-        {
-            PngColorType.Grayscale => use16Bit ? 2 : 1,
-            PngColorType.GrayscaleWithAlpha => use16Bit ? 4 : 2,
-            PngColorType.Palette => 1,
-            PngColorType.Rgb => use16Bit ? 6 : 3,
-
-            // PngColorType.RgbWithAlpha
-            _ => use16Bit ? 8 : 4,
-        };
 }

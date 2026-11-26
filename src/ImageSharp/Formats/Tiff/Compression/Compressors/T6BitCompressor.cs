@@ -140,8 +140,8 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     /// <summary>
     /// Finds the end of a pixel run.
     /// </summary>
-    /// <param name="row">The row of pixels to examine.</param>
-    /// <param name="startIndex">The index of the first pixel in <paramref name="row"/> to examine.</param>
+    /// <param name="row">The row of pixels to check.</param>
+    /// <param name="startIndex">The index of the first pixel in <paramref name="row"/> to check.</param>
     /// <param name="color">Color of pixels in the run.  If not specified, the color at
     /// <paramref name="startIndex"/> will be used.</param>
     /// <returns>The index of the first pixel at or after <paramref name="startIndex"/>

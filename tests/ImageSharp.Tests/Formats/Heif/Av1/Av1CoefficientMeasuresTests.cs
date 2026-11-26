@@ -19,7 +19,7 @@ public class Av1CoefficientMeasuresTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the sum of magnitudes (aom_satd), the largest magnitude, the end of block and the level bits.
+    /// Verifies the sum of magnitudes, the largest magnitude, the end of block and the level bits.
     /// </summary>
     [Fact]
     public void MeasuresMatchReference()
@@ -82,7 +82,7 @@ public class Av1CoefficientMeasuresTests
 
                 Assert.Equal(expectedEnd, Av1CoefficientMeasures.GetEndOfBlock(coefficients, inverseScan));
 
-                // The level bits of rate_estimator(), with one magnitude above 2^30 so every logarithm step is taken.
+                // The level bits, with one magnitude above 2^30 so every logarithm step is taken.
                 if (length > 0)
                 {
                     coefficients[random.Next(length)] = (1 << 30) + random.Next(1 << 20);
@@ -97,7 +97,7 @@ public class Av1CoefficientMeasuresTests
 
                 Assert.Equal(expectedBits, Av1CoefficientMeasures.SumLevelBits(coefficients));
 
-                // The reconstruction wraps to int16 in low precision, as av1_block_error_lp stores it.
+                // The reconstruction wraps to int16 in low precision, as libaom stores it.
                 int[] reconstructed = new int[length];
                 for (int i = 0; i < length; i++)
                 {

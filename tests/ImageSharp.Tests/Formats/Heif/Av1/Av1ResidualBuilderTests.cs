@@ -36,8 +36,8 @@ public class Av1ResidualBuilderTests
     }
 
     /// <summary>
-    /// Compares the outside-frame residue fill with the per-sample definition of fill_residue_outside_frame() for
-    /// every transform class and clipped extent.
+    /// Compares the outside-frame residue fill with the per-sample definition of the libaom residue fill outside the frame for every transform class and
+    /// clipped extent.
     /// </summary>
     private static void ValidateResidueOutsideFrame()
     {
@@ -661,7 +661,7 @@ public class Av1ResidualBuilderTests
     }
 
     /// <summary>
-    /// The scalar compound blend: comp_avg_pred() for equal weights, AOM_BLEND_A64() for mask weights.
+    /// The scalar compound blend: the rounded average for equal weights, and the 64-level alpha blend for mask weights.
     /// </summary>
     private static int CompoundBlendReference(int searched, int second, byte[] mask, int index)
         => mask.Length == 0
@@ -714,7 +714,7 @@ public class Av1ResidualBuilderTests
     }
 
     /// <summary>
-    /// The scalar definition of av1_get_horver_correlation_full_c().
+    /// The scalar definition of the libaom horizontal and vertical correlation.
     /// </summary>
     private static void CorrelationReference(short[] diff, int stride, int width, int height, out float horizontal, out float vertical)
     {

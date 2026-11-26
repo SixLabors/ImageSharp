@@ -128,12 +128,12 @@ public partial class JxlHeaderTests
         JxlBitReader reader = new(new JxlCodestreamReader(buffered, SegmentIntegrityHandling.Strict));
         MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict, false)!;
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
-        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, SegmentIntegrityHandling.Strict, false, default);
         Assert.Equal(304, reader.Position);
         varDct.PrepareReconstruction(allocator, header, frame);
         Assert.Equal(new Size(19, 17), frame.CodingSize);
@@ -142,7 +142,7 @@ public partial class JxlHeaderTests
         Assert.Equal(1024, varDct.GlobalScale);
 
         // These stored little-endian float planes are independent numeric samples, not a generated image.
-        // Original libjxl stage_gaborish/stage_epf and jxl-rs render/filter consumed the same samples and metadata.
+        // libjxl and jxl-rs consumed the same samples and metadata.
         // The 19-column rows cross sigma blocks, include mixed skip/filter lanes, and leave a SIMD remainder.
         ReadOnlySpan<byte> input = TestFile.Create(TestImages.Jxl.VarDctRestorationSamples).Bytes;
         ReadOnlySpan<byte> native = TestFile.Create(TestImages.Jxl.VarDctRestorationNative).Bytes;

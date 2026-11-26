@@ -73,13 +73,13 @@ internal readonly struct WebpVp8X : IEquatable<WebpVp8X>
     {
         if (this.Width > maxDimension || this.Height > maxDimension)
         {
-            WebpThrowHelper.ThrowInvalidImageDimensions($"Image width or height exceeds maximum allowed dimension of {maxDimension}");
+            WebpThrowHelper.ThrowInvalidImageContentException($"Image width or height exceeds maximum allowed dimension of {maxDimension}");
         }
 
         // The spec states that the product of Canvas Width and Canvas Height MUST be at most 2^32 - 1.
         if (this.Width * this.Height > maxCanvasPixels)
         {
-            WebpThrowHelper.ThrowInvalidImageDimensions("The product of image width and height MUST be at most 2^32 - 1");
+            WebpThrowHelper.ThrowInvalidImageContentException("The product of image width and height MUST be at most 2^32 - 1");
         }
     }
 

@@ -186,12 +186,23 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     public static int GetLevelStorageLength(int width, int height, int size)
     {
         // Each origin has one hash and one link. Each bucket has a head, a tail, and a count.
-        int origins = checked((width - size + 1) * (height - size + 1));
-        int length = checked((2 * origins * sizeof(uint)) + (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort))));
+        // A frame of up to Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension can need more than int.MaxValue bytes, so the length uses long.
+        long origins = (long)(width - size + 1) * (height - size + 1);
+        long length = (2 * origins * sizeof(uint)) + (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort)));
 
         // The first reduction writes the 4x4 hashes over the 2x2 seeds in the 4x4 storage. A very narrow picture can need more seed storage than
         // 4x4 entries, so the 4x4 storage reserves the larger extent.
-        return size == 4 ? Math.Max(length, checked((width - 1) * (height - 1) * sizeof(uint))) : length;
+        if (size == 4)
+        {
+            length = Math.Max(length, (long)(width - 1) * (height - 1) * sizeof(uint));
+        }
+
+        if (length > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)length, int.MaxValue);
+        }
+
+        return (int)length;
     }
 
     /// <summary>

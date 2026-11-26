@@ -82,7 +82,12 @@ internal sealed class PbmEncoderCore
         this.colorType = this.encoder.ColorType ?? metadata.ColorType;
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
+            // Gray and RGB samples are 8-bit or 16-bit. A Bit component type comes from black and white metadata or options, so it maps to 8-bit samples.
             this.componentType = this.encoder.ComponentType ?? metadata.ComponentType;
+            if (this.componentType == PbmComponentType.Bit)
+            {
+                this.componentType = PbmComponentType.Byte;
+            }
         }
         else
         {

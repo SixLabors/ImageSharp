@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -91,6 +92,15 @@ internal sealed class AniEncoderCore
                 }
             }
 
+            // The icon encoder owns the rules of each icon entry. The ANI encoder applies them before it writes the RIFF header. Thus, if a frame has invalid
+            // metadata, the encoder writes no bytes.
+            AniIconFrameMetadataProvider provider = new(metadata.FrameFormat);
+            for (int i = 0; i < groupSize; i++)
+            {
+                ImageFrame frame = image.Frames[frameIndex + i];
+                IconEncoderCore.ValidateEntry(provider.GetEncodingFrameMetadata(frame), frame.Size);
+            }
+
             // Equal positive sequence numbers mark one stored frame. The first step with a number stores the frame. Each
             // later step with that number plays the stored frame again, so the encoder does not write its frames. A
             // linear search over the earlier steps finds that stored frame without an allocation.
@@ -144,7 +154,7 @@ internal sealed class AniEncoderCore
         Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner.GetSpan();
 
         // ImageEncoder guarantees a seekable destination, allowing direct nested encoding and RIFF size backpatching.
-        long riffSizePosition = this.BeginContainer(stream, AniConstants.RiffFourCc, AniConstants.AniFormTypeFourCc);
+        long riffSizePosition = BeginContainer(stream, AniConstants.RiffFourCc, AniConstants.AniFormTypeFourCc);
         this.WriteHeader(stream, header);
 
         if (reusesFrames)
@@ -159,10 +169,10 @@ internal sealed class AniEncoderCore
 
         if (!this.encoder.SkipMetadata && (imageMetadata.Name is not null || imageMetadata.Artist is not null))
         {
-            this.WriteInfoList(stream, imageMetadata, image.Configuration.MemoryAllocator);
+            WriteInfoList(stream, imageMetadata, image.Configuration.MemoryAllocator);
         }
 
-        long frameListSizePosition = this.BeginContainer(stream, "LIST"u8, "fram"u8);
+        long frameListSizePosition = BeginContainer(stream, "LIST"u8, "fram"u8);
 
         // The encoder writes each stored frame once, from its first step. Stored frames get their indices in this order.
         int written = 0;
@@ -176,14 +186,14 @@ internal sealed class AniEncoderCore
             cancellationToken.ThrowIfCancellationRequested();
 
             AniFrameFormat format = image.Frames[step.FrameIndex].Metadata.GetAniMetadata().FrameFormat;
-            long frameSizePosition = this.BeginChunk(stream, "icon"u8);
+            long frameSizePosition = RiffHelper.BeginWriteChunk(stream, "icon"u8);
             this.WriteFrameResource(image, stream, step.FrameIndex, step.FrameCount, format, iconEntries, cancellationToken);
-            this.EndChunk(stream, frameSizePosition);
+            RiffHelper.EndWriteChunk(stream, frameSizePosition);
             written++;
         }
 
-        this.EndChunk(stream, frameListSizePosition);
-        this.EndChunk(stream, riffSizePosition);
+        RiffHelper.EndWriteChunk(stream, frameListSizePosition);
+        RiffHelper.EndWriteChunk(stream, riffSizePosition);
     }
 
     /// <summary>
@@ -246,8 +256,8 @@ internal sealed class AniEncoderCore
         int firstDepth = first.Compression is IconFrameCompression.Png ? 32 : (int)first.BmpBitsPerPixel;
         int secondDepth = second.Compression is IconFrameCompression.Png ? 32 : (int)second.BmpBitsPerPixel;
 
-        return (first.EncodingWidth ?? NarrowDimension(a.Width)) == (second.EncodingWidth ?? NarrowDimension(b.Width))
-            && (first.EncodingHeight ?? NarrowDimension(a.Height)) == (second.EncodingHeight ?? NarrowDimension(b.Height))
+        return IconDirEntry.ClampEncodingDimension(first.EncodingWidth ?? a.Width) == IconDirEntry.ClampEncodingDimension(second.EncodingWidth ?? b.Width)
+            && IconDirEntry.ClampEncodingDimension(first.EncodingHeight ?? a.Height) == IconDirEntry.ClampEncodingDimension(second.EncodingHeight ?? b.Height)
             && firstDepth == secondDepth;
     }
 
@@ -258,11 +268,11 @@ internal sealed class AniEncoderCore
     /// <param name="header">The animation header.</param>
     private void WriteHeader(Stream stream, AniHeader header)
     {
-        long sizePosition = this.BeginChunk(stream, "anih"u8);
+        long sizePosition = RiffHelper.BeginWriteChunk(stream, "anih"u8);
         Span<byte> data = this.buffer;
         header.WriteTo(data);
         stream.Write(data);
-        this.EndChunk(stream, sizePosition);
+        RiffHelper.EndWriteChunk(stream, sizePosition);
     }
 
     /// <summary>
@@ -272,7 +282,7 @@ internal sealed class AniEncoderCore
     /// <param name="steps">The animation steps.</param>
     private void WriteSequence(Stream stream, ReadOnlySpan<AniStep> steps)
     {
-        long sizePosition = this.BeginChunk(stream, "seq "u8);
+        long sizePosition = RiffHelper.BeginWriteChunk(stream, "seq "u8);
         Span<byte> value = this.buffer[..sizeof(uint)];
 
         foreach (AniStep step in steps)
@@ -281,7 +291,7 @@ internal sealed class AniEncoderCore
             stream.Write(value);
         }
 
-        this.EndChunk(stream, sizePosition);
+        RiffHelper.EndWriteChunk(stream, sizePosition);
     }
 
     /// <summary>
@@ -293,7 +303,7 @@ internal sealed class AniEncoderCore
     /// <param name="displayRate">The default header display rate.</param>
     private void WriteRates(Stream stream, Image image, ReadOnlySpan<AniStep> steps, uint displayRate)
     {
-        long sizePosition = this.BeginChunk(stream, "rate"u8);
+        long sizePosition = RiffHelper.BeginWriteChunk(stream, "rate"u8);
         Span<byte> value = this.buffer[..sizeof(uint)];
 
         // The rate table contains one DWORD per animation step, not one value per resolution variant.
@@ -304,7 +314,7 @@ internal sealed class AniEncoderCore
             stream.Write(value);
         }
 
-        this.EndChunk(stream, sizePosition);
+        RiffHelper.EndWriteChunk(stream, sizePosition);
     }
 
     /// <summary>
@@ -313,9 +323,9 @@ internal sealed class AniEncoderCore
     /// <param name="stream">The destination stream.</param>
     /// <param name="metadata">The ANI image metadata.</param>
     /// <param name="memoryAllocator">The allocator used for the text buffer.</param>
-    private void WriteInfoList(Stream stream, AniMetadata metadata, MemoryAllocator memoryAllocator)
+    private static void WriteInfoList(Stream stream, AniMetadata metadata, MemoryAllocator memoryAllocator)
     {
-        long sizePosition = this.BeginContainer(stream, "LIST"u8, "INFO"u8);
+        long sizePosition = BeginContainer(stream, "LIST"u8, "INFO"u8);
         int nameLength = metadata.Name is null ? 0 : Encoding.ASCII.GetByteCount(metadata.Name);
         int artistLength = metadata.Artist is null ? 0 : Encoding.ASCII.GetByteCount(metadata.Artist);
 
@@ -325,15 +335,15 @@ internal sealed class AniEncoderCore
 
         if (metadata.Name is not null)
         {
-            this.WriteTextChunk(stream, "INAM"u8, metadata.Name, buffer);
+            WriteTextChunk(stream, "INAM"u8, metadata.Name, buffer);
         }
 
         if (metadata.Artist is not null)
         {
-            this.WriteTextChunk(stream, "IART"u8, metadata.Artist, buffer);
+            WriteTextChunk(stream, "IART"u8, metadata.Artist, buffer);
         }
 
-        this.EndChunk(stream, sizePosition);
+        RiffHelper.EndWriteChunk(stream, sizePosition);
     }
 
     /// <summary>
@@ -343,16 +353,16 @@ internal sealed class AniEncoderCore
     /// <param name="fourCc">The chunk identifier.</param>
     /// <param name="value">The text value.</param>
     /// <param name="buffer">The reusable text buffer.</param>
-    private void WriteTextChunk(Stream stream, ReadOnlySpan<byte> fourCc, string value, Span<byte> buffer)
+    private static void WriteTextChunk(Stream stream, ReadOnlySpan<byte> fourCc, string value, Span<byte> buffer)
     {
-        long sizePosition = this.BeginChunk(stream, fourCc);
+        long sizePosition = RiffHelper.BeginWriteChunk(stream, fourCc);
         int written = Encoding.ASCII.GetBytes(value, buffer);
         stream.Write(buffer[..written]);
 
         // The terminating zero belongs to the RIFF text payload and is therefore included in the backpatched chunk size.
         stream.WriteByte(0);
 
-        this.EndChunk(stream, sizePosition);
+        RiffHelper.EndWriteChunk(stream, sizePosition);
     }
 
     /// <summary>
@@ -423,8 +433,8 @@ internal sealed class AniEncoderCore
         // ICO stores planes/BPP in these fields, while CUR reuses the same two words for the hotspot coordinates.
         return new IconDirEntry
         {
-            Width = metadata.EncodingWidth ?? NarrowDimension(size.Width),
-            Height = metadata.EncodingHeight ?? NarrowDimension(size.Height),
+            Width = IconDirEntry.ClampEncodingDimension(metadata.EncodingWidth ?? size.Width),
+            Height = IconDirEntry.ClampEncodingDimension(metadata.EncodingHeight ?? size.Height),
             ColorCount = colorCount,
             Planes = format is AniFrameFormat.Ico ? (ushort)1 : metadata.HotspotX,
             BitCount = format is AniFrameFormat.Ico
@@ -434,71 +444,17 @@ internal sealed class AniEncoderCore
     }
 
     /// <summary>
-    /// Converts a pixel dimension to the one-byte ICO/CUR representation.
-    /// </summary>
-    /// <param name="value">The pixel dimension.</param>
-    /// <returns>The encoded dimension, where zero represents 256 pixels or greater.</returns>
-    private static byte NarrowDimension(int value) => value > byte.MaxValue ? (byte)0 : (byte)value;
-
-    /// <summary>
-    /// Begins a RIFF chunk whose size will be backpatched after its payload is written.
-    /// </summary>
-    /// <param name="stream">The destination stream.</param>
-    /// <param name="fourCc">The chunk identifier.</param>
-    /// <returns>The stream position of the chunk-size field.</returns>
-    private long BeginChunk(Stream stream, ReadOnlySpan<byte> fourCc)
-    {
-        stream.Write(fourCc);
-        long sizePosition = stream.Position;
-
-        // Payload length is unknown until nested encoding completes, so reserve the DWORD and remember its absolute position.
-        Span<byte> size = this.buffer[..sizeof(uint)];
-        size.Clear();
-        stream.Write(size);
-
-        return sizePosition;
-    }
-
-    /// <summary>
     /// Begins a RIFF container chunk and writes its form or list type.
     /// </summary>
     /// <param name="stream">The destination stream.</param>
     /// <param name="fourCc">The container identifier.</param>
     /// <param name="type">The container form or list type.</param>
     /// <returns>The stream position of the container-size field.</returns>
-    private long BeginContainer(Stream stream, ReadOnlySpan<byte> fourCc, ReadOnlySpan<byte> type)
+    private static long BeginContainer(Stream stream, ReadOnlySpan<byte> fourCc, ReadOnlySpan<byte> type)
     {
-        long sizePosition = this.BeginChunk(stream, fourCc);
+        long sizePosition = RiffHelper.BeginWriteChunk(stream, fourCc);
         stream.Write(type);
         return sizePosition;
-    }
-
-    /// <summary>
-    /// Word-aligns a RIFF chunk and writes its payload size into the reserved field.
-    /// </summary>
-    /// <param name="stream">The destination stream.</param>
-    /// <param name="sizePosition">The stream position of the reserved size field.</param>
-    private void EndChunk(Stream stream, long sizePosition)
-    {
-        long endPosition = stream.Position;
-
-        // sizePosition addresses the size DWORD itself; subtracting its four bytes yields payload length.
-        uint dataSize = checked((uint)(endPosition - sizePosition - sizeof(uint)));
-
-        // RIFF chunk sizes exclude the optional padding byte used to align the next chunk to a WORD boundary.
-        if ((dataSize & 1) is 1)
-        {
-            stream.WriteByte(0);
-            endPosition++;
-        }
-
-        Span<byte> size = this.buffer[..sizeof(uint)];
-        BinaryPrimitives.WriteUInt32LittleEndian(size, dataSize);
-
-        // Backpatch only the reserved DWORD, then restore the append position after any alignment byte.
-        stream.Position = sizePosition;
-        stream.Write(size);
-        stream.Position = endPosition;
     }
 
     /// <summary>
@@ -558,15 +514,17 @@ internal sealed class AniEncoderCore
             => this.format = format;
 
         /// <inheritdoc/>
-        public IconEncoderCore.EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame, out ReadOnlyMemory<Color>? colorTable)
+        public IconEncoderCore.EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame)
         {
             AniFrameMetadata metadata = frame.Metadata.GetAniMetadata();
-            colorTable = metadata.ColorTable;
 
             return new IconEncoderCore.EncodingFrameMetadata(
                 metadata.Compression,
                 metadata.BmpBitsPerPixel,
                 CreateIconDirEntry(metadata, this.format, frame.Size));
         }
+
+        /// <inheritdoc/>
+        public ReadOnlyMemory<Color>? GetColorTable(ImageFrame frame) => frame.Metadata.GetAniMetadata().ColorTable;
     }
 }

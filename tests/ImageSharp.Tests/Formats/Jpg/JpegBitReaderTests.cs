@@ -40,7 +40,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData, 0);
 
             // Each fill loads six bytes. The second fill finds the marker after the eighth entropy-coded byte.
             reader.CheckBits();
@@ -72,7 +72,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData, 0);
 
             // One fill loads six bytes into the bit buffer. The bytes after them are not read.
             reader.CheckBits();
@@ -96,7 +96,7 @@ public class JpegBitReaderTests
         byte[] entropyBuffer = new byte[entropyBufferLength];
         fixed (byte* entropy = entropyBuffer)
         {
-            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData);
+            JpegBitReader reader = new(stream, entropy, entropyBufferLength, SegmentIntegrityHandling.IgnoreImageData, 0);
 
             reader.CheckBits();
             _ = reader.GetBits(16);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
@@ -94,7 +95,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act
-        obuReader.ReadAll(ref reader, blockSize, () => decoder, isAnnexB: false);
+        obuReader.ReadAll(ref reader, blockSize, decoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -117,7 +118,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act 1
-        obuReader.ReadAll(ref reader, blockSize, () => tileStub, isAnnexB: false);
+        obuReader.ReadAll(ref reader, blockSize, tileStub);
 
         // Assign 2
         MemoryStream encoded = new();
@@ -142,7 +143,7 @@ public class ObuFrameHeaderTests
         ObuSequenceHeader expected = GetDefaultSequenceHeader();
 
         // Act
-        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder, isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -220,11 +221,9 @@ public class ObuFrameHeaderTests
         byte[] bitStream = stream.ToArray();
 
         int sequenceObuOffset = DefaultTemporalDelimiterBitStream.Length;
-        Av1BitStreamReader sequenceSizeReader = new(bitStream.AsSpan(sequenceObuOffset + 1));
-        ulong sequencePayloadLength = sequenceSizeReader.ReadLittleEndianBytes128(out int sequenceSizeLength);
+        _ = ObuFramer.TryReadLeb128(bitStream.AsSpan(sequenceObuOffset + 1), out uint sequencePayloadLength, out int sequenceSizeLength);
         int frameObuOffset = sequenceObuOffset + 1 + sequenceSizeLength + (int)sequencePayloadLength;
-        Av1BitStreamReader frameSizeReader = new(bitStream.AsSpan(frameObuOffset + 1));
-        _ = frameSizeReader.ReadLittleEndianBytes128(out int frameSizeLength);
+        _ = ObuFramer.TryReadLeb128(bitStream.AsSpan(frameObuOffset + 1), out _, out int frameSizeLength);
         int framePayloadOffset = frameObuOffset + 1 + frameSizeLength;
 
         // Preserve syntax after the frame prefix so each malformed stream differs from a valid writer result only in
@@ -235,7 +234,8 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
-    /// Verifies that content-light metadata is parsed from the OBU and retained for image metadata transfer.
+    /// Verifies that the OBU reader accepts a content-light metadata OBU. It also verifies that the HDR metadata reader of the OBU scan reads the values of
+    /// that OBU for image metadata transfer. This reader is the only parser of HDR metadata.
     /// </summary>
     [Fact]
     public void ReadMetadataRetainsContentLightLevel()
@@ -246,11 +246,13 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder, isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
 
-        Assert.True(obuReader.ContentLightLevel.HasValue);
-        Assert.Equal((ushort)1_000, obuReader.ContentLightLevel.Value.MaximumContentLightLevel);
-        Assert.Equal((ushort)400, obuReader.ContentLightLevel.Value.MaximumPictureAverageLightLevel);
+        // The OBU payload follows the one-byte header and the one-byte size field.
+        Assert.Null(Av1CodecConfiguration.ReadHdrMetadata(bitStream.AsSpan(2), "test", out HeifContentLightLevel? contentLightLevel, out _));
+        Assert.True(contentLightLevel.HasValue);
+        Assert.Equal((ushort)1_000, contentLightLevel.Value.MaximumContentLightLevel);
+        Assert.Equal((ushort)400, contentLightLevel.Value.MaximumPictureAverageLightLevel);
         Assert.Equal(bitStream.Length * 8, reader.BitPosition);
     }
 
@@ -294,7 +296,7 @@ public class ObuFrameHeaderTests
         byte[] bitStream = stream.ToArray();
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub(), isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, new Av1TileDecoderStub());
 
         ObuSequenceHeader output = obuReader.SequenceHeader;
         ObuTimingInfo outputTiming = output.GetTimingInfo();
@@ -349,7 +351,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
         Av1TileDecoderStub decodedTiles = new();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, () => decodedTiles, isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, decodedTiles);
 
         ObuTileGroupHeader actual = obuReader.FrameHeader.TilesInfo;
         Assert.False(actual.HasUniformTileSpacing);
@@ -571,7 +573,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new(operatingPointIndex);
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder, isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
     }
 
     private static ObuFrameHeader GetKeyFrameHeader()

@@ -5,6 +5,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -13,8 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 /// <summary>
 /// Decodes the Huffman encoded spectral scan.
-/// Originally ported from <see href="https://github.com/t0rakka/mango"/>
-/// with additional fixes for both performance and common encoding errors.
 /// </summary>
 internal class HuffmanScanDecoder : IJpegScanDecoder
 {
@@ -62,20 +61,14 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private int restartInterval;
 
     /// <summary>
-    /// How many mcu's are left to do.
-    /// </summary>
-    private int todo;
-
-    /// <summary>
     /// The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
     /// </summary>
     private int eobrun;
 
     /// <summary>
-    /// Whether a restart interval ended without its restart marker. The decoder reports the error only when another
-    /// MCU follows, because the last restart interval of a scan has no restart marker.
+    /// The DHT tables that the stream defined. <see cref="BuildHuffmanTable"/> sets bit (type * MaxTables) + index for each table.
     /// </summary>
-    private bool restartMarkerMissing;
+    private int definedTables;
 
     /// <summary>
     /// The DC Huffman tables.
@@ -123,11 +116,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// </summary>
     public int ResetInterval
     {
-        set
-        {
-            this.restartInterval = value;
-            this.todo = value;
-        }
+        set => this.restartInterval = value;
     }
 
     // The spectral selection start.
@@ -161,13 +150,11 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 this.stream,
                 (byte*)this.entropyBufferHandle.Pointer,
                 JpegBitReader.EntropyBufferSize,
-                this.SegmentIntegrityHandling);
+                this.SegmentIntegrityHandling,
+                this.restartInterval);
         }
 
         this.frame.AllocateComponents();
-
-        this.todo = this.restartInterval;
-        this.restartMarkerMissing = false;
 
         if (!this.frame.Progressive)
         {
@@ -178,8 +165,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             this.ParseProgressiveData();
         }
 
-        // A scan that ends early, or that a marker interrupts, makes the decoder use fill bits.
-        this.scanBuffer.ThrowOrIgnoreIfFillBitsUsed();
+        // A bad Huffman code, or a scan that ends early or that a marker interrupts, is damaged data.
+        this.scanBuffer.ThrowOrIgnoreIfDataDamaged();
 
         // The bit reader reads bytes before it needs them.
         // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
@@ -375,60 +362,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void CheckProgressiveData()
-    {
-        // Validate successive scan parameters.
-        // Logic has been adapted from libjpeg.
-        // See Table B.3 – Scan header parameter size and values. itu-t81.pdf
-        bool invalid = false;
-        if (this.SpectralStart == 0)
-        {
-            if (this.SpectralEnd != 0)
-            {
-                invalid = true;
-            }
-        }
-        else
-        {
-            // Need not check Ss/Se < 0 since they came from unsigned bytes.
-            if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd > 63)
-            {
-                invalid = true;
-            }
-
-            // AC scans may have only one component.
-            if (this.scanComponentCount != 1)
-            {
-                invalid = true;
-            }
-        }
-
-        if (this.SuccessiveHigh != 0)
-        {
-            // Successive approximation refinement scan: must have Al = Ah-1.
-            if (this.SuccessiveHigh - 1 != this.SuccessiveLow)
-            {
-                invalid = true;
-            }
-        }
-
-        // TODO: How does this affect 12bit jpegs.
-        // According to libjpeg the range covers 8bit only?
-        if (this.SuccessiveLow > 13)
-        {
-            invalid = true;
-        }
-
-        if (invalid)
-        {
-            JpegThrowHelper.ThrowBadProgressiveScan(this.SpectralStart, this.SpectralEnd, this.SuccessiveHigh, this.SuccessiveLow);
-        }
-    }
-
     private void ParseProgressiveData()
     {
-        this.CheckProgressiveData();
-
         if (this.scanComponentCount == 1)
         {
             this.ParseProgressiveDataNonInterleaved();
@@ -770,56 +705,18 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         this.scanBuffer.Reset();
     }
 
+    /// <summary>
+    /// Counts down the restart interval after an MCU. At a restart marker, the method reports the damage in the interval and resets the decode state.
+    /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private bool HandleRestart()
+    private void HandleRestart()
     {
-        if (this.restartInterval <= 0)
+        if (this.scanBuffer.HandleRestart())
         {
-            return false;
+            // Reset clears the state of the bit reader. Thus the method reports the damage in the interval before the reset.
+            this.scanBuffer.ThrowOrIgnoreIfDataDamaged();
+            this.Reset();
         }
-
-        if (this.restartMarkerMissing)
-        {
-            // An MCU followed the restart interval that had no restart marker.
-            this.restartMarkerMissing = false;
-            this.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data is missing a restart marker.");
-        }
-
-        if ((--this.todo) == 0)
-        {
-            // A restart interval that ends early, or that a marker interrupts, makes the decoder use fill bits.
-            this.scanBuffer.ThrowOrIgnoreIfFillBitsUsed();
-
-            // A reserved marker cannot complete a restart interval. The shared reader applies the recovery policy.
-            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
-            {
-                if (!this.scanBuffer.FindNextMarker())
-                {
-                    // The stream ends before the restart marker.
-                    this.restartMarkerMissing = true;
-                    return false;
-                }
-            }
-
-            this.todo = this.restartInterval;
-
-            if (this.scanBuffer.HasRestartMarker())
-            {
-                this.Reset();
-                return true;
-            }
-
-            if (this.scanBuffer.HasBadMarker())
-            {
-                // A marker that is not a restart marker is at the end of the restart interval.
-                this.restartMarkerMissing = true;
-                this.scanBuffer.RewindToMarker();
-                this.Reset();
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>
@@ -836,6 +733,35 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
         Span<int> fastLookup = this.GetFastLookups().Slice(((type * MaxTables) + index) * JpegConstants.Huffman.FastSize, JpegConstants.Huffman.FastSize);
         tables[index] = new HuffmanTable(codeLengths, values, workspace, fastLookup);
+        this.definedTables |= 1 << ((type * MaxTables) + index);
+    }
+
+    /// <summary>
+    /// Makes sure that each Huffman table that the next scan uses is defined. The method uses the scan parameters and the table selectors of the scan
+    /// components. The decoder calls it before <see cref="ParseEntropyCodedData"/>.
+    /// </summary>
+    /// <remarks>
+    /// A sequential scan uses the DC and AC tables of each component. A progressive scan uses the DC tables in a first DC scan and no table in a DC refinement
+    /// scan. A progressive AC scan uses the AC table. A sequential decoder uses the standard table for an undefined table 0 or 1, as libjpeg-turbo does.
+    /// Motion JPEG frames often omit these tables.
+    /// </remarks>
+    /// <param name="scanComponentCount">The number of components in the scan.</param>
+    /// <returns><see langword="true"/> if each table of the scan is defined. Otherwise <see langword="false"/>.</returns>
+    public bool TryInitDecodingTables(int scanComponentCount)
+    {
+        bool progressive = this.frame.Progressive;
+        bool usesDc = !progressive || (this.SpectralStart == 0 && this.SuccessiveHigh == 0);
+        bool usesAc = !progressive || this.SpectralStart != 0;
+        for (int k = 0; k < scanComponentCount; k++)
+        {
+            JpegComponent component = this.components[this.frame.ComponentOrder[k]];
+            if ((usesDc && !this.TryInitDecodingTable(0, component.DcTableId)) || (usesAc && !this.TryInitDecodingTable(1, component.AcTableId)))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <inheritdoc/>
@@ -850,13 +776,13 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     }
 
     /// <summary>
-    /// Gets the combined lookup tables of all Huffman tables. The decoder allocates the clean buffer on first use.
-    /// Thus, a table that the stream does not define has only zero entries, and it goes to the slow path.
-    /// The zeroed <see cref="HuffmanTable"/> of such a table also goes to the slow path.
+    /// Gets the combined lookup tables of all Huffman tables. The decoder allocates the buffer on first use. The decoder does not clear the buffer. <see
+    /// cref="HuffmanTable"/> fills all entries of a table when it builds the table. <see cref="TryInitDecodingTables"/> makes sure that a scan uses only built
+    /// tables.
     /// </summary>
     /// <returns>The combined lookup tables.</returns>
     private Span<int> GetFastLookups()
-        => (this.fastLookups ??= this.allocator.Allocate<int>(2 * MaxTables * JpegConstants.Huffman.FastSize, AllocationOptions.Clean)).Memory.Span;
+        => (this.fastLookups ??= this.allocator.Allocate<int>(2 * MaxTables * JpegConstants.Huffman.FastSize)).Memory.Span;
 
     /// <summary>
     /// Gets the first combined lookup entry of a Huffman table.
@@ -867,4 +793,41 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <returns>The first entry of the table.</returns>
     private static ref int GetFastLookup(Span<int> fastLookups, int type, int index)
         => ref Unsafe.Add(ref MemoryMarshal.GetReference(fastLookups), (uint)(((type * MaxTables) + index) * JpegConstants.Huffman.FastSize));
+
+    /// <summary>
+    /// Makes sure that a Huffman table is defined. For an undefined table 0 or 1 of a sequential frame, the method builds the standard table.
+    /// </summary>
+    /// <param name="type">The table type. 0 is DC, 1 is AC.</param>
+    /// <param name="index">The table index. JpegDecoderCore makes sure that it is less than <see cref="MaxTables"/>.</param>
+    /// <returns><see langword="true"/> if the table is defined. Otherwise <see langword="false"/>.</returns>
+    private bool TryInitDecodingTable(int type, int index)
+    {
+        if ((this.definedTables & (1 << ((type * MaxTables) + index))) != 0)
+        {
+            return true;
+        }
+
+        // The decoder adds the standard tables only to a sequential frame, as libjpeg-turbo does. A progressive frame requires a DHT marker for each table.
+        // Table 0 is for luminance and table 1 is for chrominance (ITU T.81, K.3).
+        if (this.frame.Progressive || index > 1)
+        {
+            return false;
+        }
+
+        HuffmanSpec spec = type == 0
+            ? index == 0 ? HuffmanSpec.LuminanceDC : HuffmanSpec.ChrominanceDC
+            : index == 0 ? HuffmanSpec.LuminanceAC : HuffmanSpec.ChrominanceAC;
+
+        // The table build reads the code length counts at indexes 1 to 16. The specification stores them at 0 to 15. The workspace is first in the buffer, so
+        // it has the alignment of uint.
+        const int codeLengthsByteSize = 17;
+        using IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(HuffmanTable.WorkspaceByteSize + codeLengthsByteSize);
+        Span<byte> bufferSpan = buffer.GetSpan();
+        Span<uint> workspace = MemoryMarshal.Cast<byte, uint>(bufferSpan[..HuffmanTable.WorkspaceByteSize]);
+        Span<byte> codeLengths = bufferSpan.Slice(HuffmanTable.WorkspaceByteSize, codeLengthsByteSize);
+        spec.Count.CopyTo(codeLengths[1..]);
+
+        this.BuildHuffmanTable(type, index, codeLengths, spec.Values, workspace);
+        return true;
+    }
 }

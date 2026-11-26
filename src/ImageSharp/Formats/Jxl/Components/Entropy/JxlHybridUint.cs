@@ -154,9 +154,10 @@ internal readonly struct JxlHybridUint
             return token;
         }
 
-        // Above the direct-value range, the token stores a length index plus leading and trailing
-        // value bits. Insert the implicit leading one and read only the middle bits from the stream.
-        // Validate the reconstructed width first because C# masks an out-of-range shift count.
+        // If the token is more than the direct-value range, it stores a length index and the leading and trailing value bits. The code inserts the implicit
+        // leading one and reads only the middle bits from the stream. It checks the reconstructed width first, because C# masks an out-of-range shift count.
+        // libjxl masks the width, which gives a wrong value with no error. This decoder rejects that width, as the fixed 4/2/0
+        // path does.
         int tokenBits = this.highBits + this.lowBits;
         uint bits = (uint)(this.splitExponent - tokenBits) + ((token - this.splitToken) >> tokenBits);
         if (bits + (uint)tokenBits >= 32)

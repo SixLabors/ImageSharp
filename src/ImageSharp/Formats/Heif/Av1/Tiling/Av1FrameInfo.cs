@@ -284,7 +284,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
         {
             // Reconstruction consumes one superblock before parsing the next. One allocator-owned storage surface
             // therefore covers all three planes without per-block arrays or unmanaged ownership outside ImageSharp.
-            int coefficientStorageLength = checked(this.lumaCoefficientCount + (2 * this.chromaCoefficientCount));
+            // Each plane of a 128x128 superblock has at most 1024 x 16 = 16384 coefficients, so the three planes need at most 49152.
+            int coefficientStorageLength = this.lumaCoefficientCount + (2 * this.chromaCoefficientCount);
             allocatedCoefficientStorage = this.memoryAllocator.Allocate<int>(coefficientStorageLength, AllocationOptions.Clean);
 
             // A decoded block can cover multiple 4x4 positions. Each allocator-backed row stores one
@@ -303,8 +304,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
                     this.modeInfoSizePerSuperblock * this.superblockRowCount));
 
             // Tile parsing reconstructs each superblock before it moves to the next one. Thus one owner for all three planes holds every active transform, and
-            // the frame keeps no frame-wide copies.
-            int transformInfoStorageLength = checked(this.modeInfoCountPerSuperblock * 3);
+            // the frame keeps no frame-wide copies. A superblock has at most 1024 mode-information units, so the length is at most 3072.
+            int transformInfoStorageLength = this.modeInfoCountPerSuperblock * 3;
             allocatedTransformInfoStorage = this.memoryAllocator.Allocate<Av1TransformInfo>(transformInfoStorageLength, clean);
             allocatedQuantizerIndices = this.memoryAllocator.Allocate2D<int>(1, superblockCount, clean);
 
@@ -598,20 +599,6 @@ internal sealed partial class Av1FrameInfo : IDisposable
     {
         int storageRow = (index.Y * this.superblockColumnCount) + index.X;
         return this.modeInfoCounts[0, storageRow];
-    }
-
-    /// <summary>
-    /// Discards the mode-information records of a superblock, so that the tile reader can parse the superblock again.
-    /// </summary>
-    /// <remarks>
-    /// A new parse of the superblock covers each of its mode-information positions again. Thus it replaces every map
-    /// entry and every record of the earlier parse.
-    /// </remarks>
-    /// <param name="index">The position in the frame superblock grid.</param>
-    public void ResetModeInfos(Point index)
-    {
-        int storageRow = (index.Y * this.superblockColumnCount) + index.X;
-        this.modeInfoCounts[0, storageRow] = 0;
     }
 
     /// <summary>

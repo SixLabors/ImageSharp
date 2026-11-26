@@ -13,7 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 /// <summary>
 /// Decodes a arithmetic encoded spectral scan.
-/// Based on https://github.com/yigolden/JpegLibrary/blob/main/src/JpegLibrary/ScanDecoder/JpegArithmeticScanDecoder.cs
 /// </summary>
 internal class ArithmeticScanDecoder : IJpegScanDecoder
 {
@@ -44,20 +43,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private int restartInterval;
 
     /// <summary>
-    /// How many mcu's are left to do.
-    /// </summary>
-    private int todo;
-
-    /// <summary>
-    /// Whether a restart interval ended without its restart marker. The decoder reports the error only when another
-    /// MCU follows, because the last restart interval of a scan has no restart marker.
-    /// </summary>
-    private bool restartMarkerMissing;
-
-    /// <summary>
-    /// Whether the decoder found an arithmetic code that is not valid in the current restart interval.
-    /// The decoder then skips the blocks until the next restart marker, as libjpeg does (jdarith.c).
-    /// The skipped blocks keep their coefficients.
+    /// A value that tells if the decoder found an arithmetic code that is not valid in the current restart interval. The decoder then skips the blocks until
+    /// the next restart marker, as libjpeg does. The blocks that the decoder skips keep their coefficients. The flag stays set until the next reset.
+    /// <see cref="ThrowOrIgnoreInvalidCode"/> reports it one time at the end of the restart interval or scan.
     /// </summary>
     private bool invalidCodeFound;
 
@@ -237,11 +225,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <inheritdoc/>
     public int ResetInterval
     {
-        set
-        {
-            this.restartInterval = value;
-            this.todo = value;
-        }
+        set => this.restartInterval = value;
     }
 
     /// <inheritdoc/>
@@ -256,14 +240,21 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <inheritdoc/>
     public int SuccessiveLow { get; set; }
 
+    /// <summary>
+    /// Sets the conditioning tables and the statistics bins that the components select for the next scan.
+    /// </summary>
+    /// <remarks>
+    /// The decode loops read the tables by the table selectors of the components. Thus the method stores each table at its selector.
+    /// </remarks>
+    /// <param name="arithmeticDecodingTables">The conditioning tables of the DAC segments.</param>
     public void InitDecodingTables(List<ArithmeticDecodingTable> arithmeticDecodingTables)
     {
         for (int i = 0; i < this.components.Length; i++)
         {
             ArithmeticDecodingComponent component = this.components[i] as ArithmeticDecodingComponent;
-            this.dcDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
+            this.dcDecodingTables[component.DcTableId] = GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
             component.DcStatistics = this.CreateOrGetStatisticsBin(true, component.DcTableId);
-            this.acDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, false, component.AcTableId);
+            this.acDecodingTables[component.AcTableId] = GetArithmeticTable(arithmeticDecodingTables, false, component.AcTableId);
             component.AcStatistics = this.CreateOrGetStatisticsBin(false, component.AcTableId);
         }
     }
@@ -289,12 +280,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 this.stream,
                 (byte*)this.entropyBufferHandle.Pointer,
                 JpegBitReader.EntropyBufferSize,
-                this.SegmentIntegrityHandling);
+                this.SegmentIntegrityHandling,
+                this.restartInterval);
         }
 
         this.frame.AllocateComponents();
 
-        this.restartMarkerMissing = false;
         this.invalidCodeFound = false;
 
         if (this.frame.Progressive)
@@ -306,7 +297,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             this.ParseBaselineData(iccProfile);
         }
 
-        // Arithmetic-coded data can use zero fill bits after a marker (libjpeg-turbo jdarith.c, arith_decode).
+        this.ThrowOrIgnoreInvalidCode();
+
+        // Arithmetic-coded data can use zero fill bits after a marker.
         // NoData without a marker shows that the stream ended and that the decoder used fill bits after the end.
         // Thus, the scan data is truncated. The blocks after the end keep their earlier coefficients.
         if (this.scanBuffer.NoData && this.scanBuffer.Marker == JpegConstants.Markers.XFF)
@@ -333,8 +326,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         this.frame = frame;
         this.components = frame.Components;
 
-        this.dcDecodingTables = new ArithmeticDecodingTable[this.components.Length];
-        this.acDecodingTables = new ArithmeticDecodingTable[this.components.Length];
+        // The SOS parse limits the table selectors to 0 to 3 (ITU T.81, B.2.3).
+        this.dcDecodingTables = new ArithmeticDecodingTable[4];
+        this.acDecodingTables = new ArithmeticDecodingTable[4];
 
         this.spectralConverter.InjectFrameData(frame, jpegData);
     }
@@ -392,8 +386,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
             component.DcPredictor = 0;
             component.DcContext = 0;
-            component.DcStatistics?.Reset();
-            component.AcStatistics?.Reset();
+            component.DcStatistics.Reset();
+            component.AcStatistics.Reset();
         }
 
         this.Reset();
@@ -418,8 +412,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveData()
     {
-        this.CheckProgressiveData();
-
         for (int i = 0; i < this.components.Length; i++)
         {
             ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
@@ -427,12 +419,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             {
                 component.DcPredictor = 0;
                 component.DcContext = 0;
-                component.DcStatistics?.Reset();
+                component.DcStatistics.Reset();
             }
 
             if (this.SpectralStart != 0)
             {
-                component.AcStatistics?.Reset();
+                component.AcStatistics.Reset();
             }
         }
 
@@ -445,56 +437,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         else
         {
             this.ParseProgressiveDataInterleaved();
-        }
-    }
-
-    private void CheckProgressiveData()
-    {
-        // Validate successive scan parameters.
-        // Logic has been adapted from libjpeg.
-        // See Table B.3 – Scan header parameter size and values. itu-t81.pdf
-        bool invalid = false;
-        if (this.SpectralStart == 0)
-        {
-            if (this.SpectralEnd != 0)
-            {
-                invalid = true;
-            }
-        }
-        else
-        {
-            // Need not check Ss/Se < 0 since they came from unsigned bytes.
-            if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd > 63)
-            {
-                invalid = true;
-            }
-
-            // AC scans may have only one component.
-            if (this.scanComponentCount != 1)
-            {
-                invalid = true;
-            }
-        }
-
-        if (this.SuccessiveHigh != 0)
-        {
-            // Successive approximation refinement scan: must have Al = Ah-1.
-            if (this.SuccessiveHigh - 1 != this.SuccessiveLow)
-            {
-                invalid = true;
-            }
-        }
-
-        // TODO: How does this affect 12bit jpegs.
-        // According to libjpeg the range covers 8bit only?
-        if (this.SuccessiveLow > 13)
-        {
-            invalid = true;
-        }
-
-        if (invalid)
-        {
-            JpegThrowHelper.ThrowBadProgressiveScan(this.SpectralStart, this.SpectralEnd, this.SuccessiveHigh, this.SuccessiveLow);
         }
     }
 
@@ -768,11 +710,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void DecodeBlockProgressiveDc(ArithmeticDecodingComponent component, ref Block8x8 block, ref ArithmeticDecodingTable dcTable)
     {
-        if (dcTable == null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("DC table is missing");
-        }
-
         if (this.invalidCodeFound)
         {
             return;
@@ -810,7 +747,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     {
                         if ((m <<= 1) == 0x8000)
                         {
-                            this.ThrowOrIgnoreInvalidCode();
+                            this.invalidCodeFound = true;
                             return;
                         }
 
@@ -870,11 +807,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
         ArithmeticStatistics acStatistics = component.AcStatistics;
-        if (acStatistics == null || acTable == null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("AC table is missing");
-        }
-
         if (this.invalidCodeFound)
         {
             return;
@@ -903,7 +835,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     k++;
                     if (k > 63)
                     {
-                        this.ThrowOrIgnoreInvalidCode();
+                        this.invalidCodeFound = true;
                         return;
                     }
                 }
@@ -925,7 +857,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                         {
                             if ((m <<= 1) == 0x8000)
                             {
-                                this.ThrowOrIgnoreInvalidCode();
+                                this.invalidCodeFound = true;
                                 return;
                             }
 
@@ -1017,7 +949,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 k++;
                 if (k > end)
                 {
-                    this.ThrowOrIgnoreInvalidCode();
+                    this.invalidCodeFound = true;
                     return;
                 }
             }
@@ -1030,16 +962,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         ref ArithmeticDecodingTable acTable,
         ref ArithmeticDecodingTable dcTable)
     {
-        if (acTable is null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("AC table is missing.");
-        }
-
-        if (dcTable is null)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException("DC table is missing.");
-        }
-
         if (this.invalidCodeFound)
         {
             return;
@@ -1075,7 +997,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 {
                     if ((m <<= 1) == 0x8000)
                     {
-                        this.ThrowOrIgnoreInvalidCode();
+                        this.invalidCodeFound = true;
                         return;
                     }
 
@@ -1138,7 +1060,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 k++;
                 if (k > 63)
                 {
-                    this.ThrowOrIgnoreInvalidCode();
+                    this.invalidCodeFound = true;
                     return;
                 }
             }
@@ -1160,7 +1082,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     {
                         if ((m <<= 1) == 0x8000)
                         {
-                            this.ThrowOrIgnoreInvalidCode();
+                            this.invalidCodeFound = true;
                             return;
                         }
 
@@ -1192,74 +1114,45 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     }
 
     /// <summary>
-    /// Reports an arithmetic code that is not valid. When the mode ignores image data errors, the decoder skips the
-    /// blocks until the next restart marker.
+    /// Reports an arithmetic code that is not valid in the current restart interval. The decoder calls this method at the end of each restart interval and at
+    /// the end of the scan. Thus the decode loops do not throw.
     /// </summary>
-    /// <exception cref="InvalidImageContentException">The integrity mode does not ignore image data errors.</exception>
-    [MethodImpl(InliningOptions.ColdPath)]
+    /// <exception cref="InvalidImageContentException">
+    /// The decoder found an invalid code, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    [MethodImpl(InliningOptions.ShortMethod)]
     private void ThrowOrIgnoreInvalidCode()
     {
-        this.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Invalid arithmetic code.");
-        this.invalidCodeFound = true;
+        if (this.invalidCodeFound)
+        {
+            this.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Invalid arithmetic code.");
+        }
     }
 
+    /// <summary>
+    /// Counts down the restart interval after an MCU. At a restart marker, the method reports the damage in the interval. Then it resets the decode state and
+    /// the statistics bins.
+    /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private bool HandleRestart()
+    private void HandleRestart()
     {
-        if (this.restartInterval <= 0)
+        if (!this.scanBuffer.HandleRestart())
         {
-            return false;
+            return;
         }
 
-        if (this.restartMarkerMissing)
+        // Reset clears the flag. Thus the method reports the damage in the interval before the reset.
+        this.ThrowOrIgnoreInvalidCode();
+
+        for (int i = 0; i < this.components.Length; i++)
         {
-            // An MCU followed the restart interval that had no restart marker.
-            this.restartMarkerMissing = false;
-            this.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data is missing a restart marker.");
+            ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
+            component.DcContext = 0;
+            component.DcStatistics.Reset();
+            component.AcStatistics.Reset();
         }
 
-        if ((--this.todo) == 0)
-        {
-            // Use the same marker recovery and integrity policy as Huffman-coded scans.
-            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
-            {
-                if (!this.scanBuffer.FindNextMarker())
-                {
-                    // The stream ends before the restart marker.
-                    this.restartMarkerMissing = true;
-                    return false;
-                }
-            }
-
-            this.todo = this.restartInterval;
-
-            for (int i = 0; i < this.components.Length; i++)
-            {
-                ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
-                component.DcPredictor = 0;
-                component.DcContext = 0;
-                component.DcStatistics?.Reset();
-                component.AcStatistics?.Reset();
-            }
-
-            // Reset clears the detected marker. Classify it first so a real segment marker can be read again.
-            if (this.scanBuffer.HasRestartMarker())
-            {
-                this.Reset();
-                return true;
-            }
-
-            if (this.scanBuffer.HasBadMarker())
-            {
-                // A marker that is not a restart marker is at the end of the restart interval.
-                this.restartMarkerMissing = true;
-                this.scanBuffer.RewindToMarker();
-                this.Reset();
-                return true;
-            }
-        }
-
-        return false;
+        this.Reset();
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -1360,7 +1253,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     // into the compact INT32 representation.
     // Note that this formula must match the actual arithmetic encoder and decoder implementation. The implementation has to be changed
     // if this formula is changed.
-    // The current organization is leaned on Markus Kuhn's JBIG implementation (jbig_tab.c).
+    // The packing follows the JBIG implementation of Markus Kuhn.
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int Pack(int a, int b, int c, int d)
         => (a << 16) | (c << 8) | (d << 7) | b;

@@ -197,7 +197,8 @@ public class BmpMetadataTests
     }
 
     /// <summary>
-    /// Checks that strict Identify rejects an invalid ICC profile.
+    /// Verifies that strict Identify rejects an invalid ICC profile. The decoder reports errors in file data through <see cref="InvalidImageContentException"/>,
+    /// with the ICC exception inside.
     /// </summary>
     /// <param name="provider">The existing BMP with an embedded profile.</param>
     [Theory]
@@ -206,11 +207,13 @@ public class BmpMetadataTests
     {
         byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, encoded));
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, encoded));
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
     }
 
     /// <summary>
-    /// Checks that strict Decode rejects an invalid ICC profile.
+    /// Verifies that strict Decode rejects an invalid ICC profile. The decoder reports errors in file data through <see cref="InvalidImageContentException"/>,
+    /// with the ICC exception inside.
     /// </summary>
     /// <param name="provider">The existing BMP with an embedded profile.</param>
     [Theory]
@@ -219,10 +222,12 @@ public class BmpMetadataTests
     {
         byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        Assert.Throws<InvalidIccProfileException>(() =>
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
         });
+
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
     }
 
     /// <summary>

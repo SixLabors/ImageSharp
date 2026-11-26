@@ -40,7 +40,8 @@ internal sealed class TiffOldJpegSpectralConverter<TPixel> : SpectralConverter<T
             // Like libtiff: Always treat the pixel data as YCbCr when the data is compressed with old jpeg compression.
             TiffPhotometricInterpretation.Rgb => JpegColorSpace.YCbCr,
             TiffPhotometricInterpretation.Separated => data.ColorSpace == JpegColorSpace.Ycck ? JpegColorSpace.TiffYccK : JpegColorSpace.TiffCmyk,
-            TiffPhotometricInterpretation.YCbCr => JpegColorSpace.YCbCr,
-            _ => throw new InvalidImageContentException($"Invalid tiff photometric interpretation for jpeg encoding: {interpretation}"),
+
+            // The parser allows Rgb, Separated and YCbCr here. The gray interpretations use GrayJpegSpectralConverter.
+            _ => JpegColorSpace.YCbCr,
         };
 }

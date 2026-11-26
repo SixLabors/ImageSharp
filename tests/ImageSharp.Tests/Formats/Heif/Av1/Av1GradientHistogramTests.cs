@@ -27,8 +27,8 @@ public class Av1GradientHistogramTests
     ];
 
     /// <summary>
-    /// Verifies every interior sample's magnitude and bin against the per-sample definitions of
-    /// lowbd_generate_hog() and get_hist_bin_idx(), for every block width and sample precision.
+    /// Verifies every interior sample's magnitude and bin against the per-sample definitions of the libaom gradient histogram, for every block width and sample
+    /// precision.
     /// </summary>
     [Fact]
     public void GradientRowsMatchReferenceAcrossHardwareWidths()

@@ -72,12 +72,6 @@
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Build the optional Rust reference once with Codecs/Jxl/Native/Build.ps1 before running DecodeJxl. -->
-    <None Include="$(SixLaborsSolutionDirectory)artifacts/native/jxl-rs/$(NETCoreSdkRuntimeIdentifier)/*"
-          Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->
   <ItemGroup Condition="'$(SignAssembly)' == 'false'">
     <Compile Remove="Codecs\Jpeg\BlockOperations\**" />

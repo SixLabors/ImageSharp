@@ -740,6 +740,187 @@ public class GifDecoderTests
     }
 
     /// <summary>
+    /// A complete green frame comes before a damaged block. The damaged block is image data, because it controls a later frame. In the Strict and
+    /// IgnoreAncillary modes, the decoder throws. In the IgnoreImageData mode, the decoder keeps the green frame and each complete frame after a frame without
+    /// pixels.
+    /// </summary>
+    /// <param name="damage">The damaged block after the green frame.</param>
+    /// <param name="frameCount">The frame count that the IgnoreImageData mode keeps.</param>
+    [Theory]
+    [InlineData("TruncatedGraphicControlExtension", 1)]
+    [InlineData("TruncatedImageDescriptor", 1)]
+    [InlineData("TruncatedLocalColorTable", 1)]
+    [InlineData("ZeroSizeImageDescriptor", 2)]
+    public void Decode_DamagedBlockAfterFrame_KeepsDecodedFrames(string damage, int frameCount)
+    {
+        // GIF89a, sections 18 to 23. https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        // The 4 x 4 screen has a global color table with 4 colors: black, red, green and blue.
+        byte[] header =
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x04, 0x00, 0x04, 0x00, 0x81, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
+        ];
+
+        // A frame that covers the screen. Its LZW data holds the codes of 16 green pixels and the end code.
+        byte[] greenFrame =
+        [
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+        ];
+
+        byte[] damaged = damage switch
+        {
+            // The data ends after 2 of the 6 bytes of the extension.
+            "TruncatedGraphicControlExtension" => [0x21, 0xF9, 0x04, 0x00],
+
+            // The data ends after 3 of the 9 bytes of the descriptor.
+            "TruncatedImageDescriptor" => [0x2C, 0x00, 0x00],
+
+            // The descriptor declares a local color table with 4 entries, but the data ends after 5 of its 12 bytes.
+            "TruncatedLocalColorTable" => [0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x81, 0x00, 0x00, 0x00, 0xFF, 0x00],
+
+            // The descriptor has a width of 0. The minimum code size and an empty sub-block list follow it, then a second green frame and the trailer.
+            _ => [0x2C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x02, 0x00, .. greenFrame, 0x3B],
+        };
+
+        byte[] data = [.. header, .. greenFrame, .. damaged];
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        using Image<Rgba32> expected = new(4, 4, new Rgba32(0, 255, 0));
+        for (int i = 1; i < frameCount; i++)
+        {
+            expected.Frames.AddFrame(expected.Frames.RootFrame);
+        }
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        ImageInfo info = Image.Identify(ignore, data);
+        Assert.Equal(frameCount, info.FrameMetadataCollection.Count);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, data);
+        Assert.Equal(frameCount, actual.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// An extension with an unknown label comes before the frame. The decoder skips its data sub-blocks, as GIF89a section 12 requires, and decodes the frame
+    /// in each integrity mode.
+    /// </summary>
+    [Fact]
+    public void Decode_UnknownExtensionLabel_SkipsExtension()
+    {
+        // GIF89a, sections 12, 15 and 18 to 22. https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        // The 4 x 4 screen has a global color table with 4 colors: black, red, green and blue. The extension with label 0x99 holds one sub-block with an image
+        // separator and two zero bytes. If the decoder reads the sub-block size as a block label, it reads that separator as the start of a frame. That frame
+        // has a width of 0. The real frame covers the screen. Its LZW data holds the codes of 16 green pixels and the end code.
+        byte[] data =
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x04, 0x00, 0x04, 0x00, 0x81, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
+            0x21, 0x99, 0x03, 0x2C, 0x00, 0x00, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x3B
+        ];
+
+        using Image<Rgba32> expected = new(4, 4, new Rgba32(0, 255, 0));
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            ImageInfo info = Image.Identify(options, data);
+            Assert.Single(info.FrameMetadataCollection);
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            Assert.Single(actual.Frames);
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// The first frame has no color table. The decoder reads its LZW minimum code size and skips its data sub-blocks, so it decodes the second frame in each
+    /// integrity mode.
+    /// </summary>
+    [Fact]
+    public void Decode_FrameWithoutColorTable_DecodesNextFrame()
+    {
+        // GIF89a, sections 18 to 22. https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        // The 4 x 4 screen has no global color table. Each frame covers the screen and holds the LZW codes of 16 pixels with index 2 and the end code. The
+        // first frame has no local color table, so it has no colors and keeps its transparent pixels. The second frame has a local color table with 4 colors:
+        // black, red, green and blue. If the decoder reads the minimum code size as a sub-block size, it loses the block alignment.
+        byte[] data =
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x04, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x81,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x3B
+        ];
+
+        // The second frame starts from a copy of the first frame, and its green pixels cover the screen.
+        using Image<Rgba32> expected = new(4, 4);
+        using (Image<Rgba32> secondFrame = new(4, 4, new Rgba32(0, 255, 0)))
+        {
+            expected.Frames.AddFrame(secondFrame.Frames.RootFrame);
+        }
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            ImageInfo info = Image.Identify(options, data);
+            Assert.Equal(2, info.FrameMetadataCollection.Count);
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            Assert.Equal(2, actual.Frames.Count);
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the decoder returns one frame when MaxFrames is 1 and the first frame uses the RestoreToPrevious disposal method.
+    /// </summary>
+    [Fact]
+    public void Decode_MaxFramesAfterRestoreToPreviousFrame_ReturnsMaxFrames()
+    {
+        // GIF89a, sections 18 to 23. https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+        // The 4 x 4 screen has a global color table with 4 colors: black, red, green and blue. The graphic control extension of the first frame has the
+        // packed value 0x0C. Bits 2 to 4 hold the disposal method 3, Restore to Previous. Each frame covers the screen. Its LZW data holds the codes of 16
+        // green pixels and the end code.
+        byte[] data =
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x04, 0x00, 0x04, 0x00, 0x81, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
+            0x21, 0xF9, 0x04, 0x0C, 0x00, 0x00, 0x00, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00,
+            0x02, 0x0A, 0x94, 0x28, 0x51, 0xA2, 0x44, 0x89, 0x12, 0x25, 0x4A, 0x05, 0x00,
+            0x3B
+        ];
+
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
+        using Image<Rgba32> expected = new(4, 4, new Rgba32(0, 255, 0));
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+
+        Assert.Single(actual.Frames);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Clips stored frame rows to the logical screen without changing interlace order or later frame parsing.
     /// </summary>
     /// <param name="path">The stored GIF with a four-color row pattern and a second frame containing one white pixel.</param>

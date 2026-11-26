@@ -473,7 +473,7 @@ internal class Vp8Encoder : IDisposable
         Vp8EncIterator it = new(this);
         Span<int> alphas = stackalloc int[WebpConstants.MaxAlpha + 1];
         this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
-        int totalMb = this.Mbw * this.Mbw;
+        int totalMb = this.Mbw * this.Mbh;
         this.alpha /= totalMb;
         this.uvAlpha /= totalMb;
 
@@ -499,7 +499,7 @@ internal class Vp8Encoder : IDisposable
             info.Clear();
             it.Import(y, u, v, yStride, uvStride, width, height, false);
 
-            // Warning! order is important: first call VP8Decimate() and
+            // Warning! order is important: first call Decimate() and
             // *then* decide how to code the skip decision if there's one.
             if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
             {
@@ -1178,8 +1178,7 @@ internal class Vp8Encoder : IDisposable
         {
             // At this point we have heuristically decided intra16 / intra4.
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
-            // For method <= 1, we don't re-examine the decision but just go ahead with
-            // quantization/reconstruction.
+            // For method <= 1, the encoder does not check the decision again. It goes directly to quantization and reconstruction.
             QuantEnc.RefineUsingDistortion(
                 it,
                 this.SegmentInfos,

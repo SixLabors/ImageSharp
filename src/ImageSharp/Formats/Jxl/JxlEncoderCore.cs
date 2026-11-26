@@ -518,8 +518,8 @@ internal sealed class JxlEncoderCore : IDisposable
         this.componentCount = this.colorComponents + extraCount;
         this.suppliedScratchOffset = Math.Max(encoder.ExtraChannels.Count - 1, 0);
 
-        // Unsqueezed integers need one sign bit. Squeeze reserves two further arithmetic bits;
-        // the native max_bitdepth + 2 < 16 rule includes that original sign bit.
+        // Unsqueezed integers need one sign bit. Squeeze reserves two further arithmetic bits.
+        // The libjxl limit of bit depth + 2 < 16 includes that original sign bit.
         this.narrowSamples = !this.usesXyb && bitDepth.ExponentBits == 0 && bitDepth.BitsPerSample <= (encoder.Progressive ? 12 : 14);
         bool hasBlackChannel = false;
 
@@ -634,12 +634,15 @@ internal sealed class JxlEncoderCore : IDisposable
         this.groupHeight = encoder.Progressive && !this.usesXyb ? 1 : Math.Min(size.Height, GroupDimension);
         this.groupColumns = ((size.Width - 1) / GroupDimension) + 1;
         this.groupRows = ((size.Height - 1) / GroupDimension) + 1;
-        this.groupCount = checked(this.groupColumns * this.groupRows);
+
+        // The constructor limits each axis to 2^30 pixels and the area to 2^40 pixels. Thus there are fewer than
+        // 2^25 coding groups, and the group, DC group and section counts fit in int.
+        this.groupCount = this.groupColumns * this.groupRows;
 
         // Each DC group spans eight coding groups on each axis. A single coding group combines every section.
-        this.dcGroupCount = checked((((this.groupColumns - 1) / 8) + 1) * (((this.groupRows - 1) / 8) + 1));
+        this.dcGroupCount = (((this.groupColumns - 1) / 8) + 1) * (((this.groupRows - 1) / 8) + 1);
         this.sectionCount = this.groupCount == 1 && !encoder.Progressive ? 1
-            : checked(2 + this.dcGroupCount + (this.groupCount * (encoder.Progressive ? this.usesXyb ? 3 : 2 : 1)));
+            : 2 + this.dcGroupCount + (this.groupCount * (encoder.Progressive ? this.usesXyb ? 3 : 2 : 1));
 
         MemoryAllocator allocator = configuration.MemoryAllocator;
 
@@ -1008,9 +1011,10 @@ internal sealed class JxlEncoderCore : IDisposable
             this.outputStream.Write(header[..9]);
         }
 
+        // An array length is at most int.MaxValue. Thus each box size below fits in the 32-bit size field.
         if (exif is not null)
         {
-            BinaryPrimitives.WriteUInt32BigEndian(header, checked((uint)exif.Length + 12U));
+            BinaryPrimitives.WriteUInt32BigEndian(header, (uint)exif.Length + 12U);
             BinaryPrimitives.WriteUInt32BigEndian(header[4..], JxlConstants.ExifBox);
             BinaryPrimitives.WriteUInt32BigEndian(header[8..], 0);
             this.outputStream.Write(header[..12]);
@@ -1019,7 +1023,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
         if (xmp is not null)
         {
-            BinaryPrimitives.WriteUInt32BigEndian(header, checked((uint)xmp.Length + 8U));
+            BinaryPrimitives.WriteUInt32BigEndian(header, (uint)xmp.Length + 8U);
             BinaryPrimitives.WriteUInt32BigEndian(header[4..], JxlConstants.XmlBox);
             this.outputStream.Write(header[..8]);
             this.outputStream.Write(xmp);
@@ -1376,7 +1380,7 @@ internal sealed class JxlEncoderCore : IDisposable
                     // A leading full-resolution channel larger than one coding group ends the global prefix.
                     // Reduced channels then use DC or AC groups; HF-global has no data in this modular frame.
                     this.FlushBits(output);
-                    sectionSizes[0] = checked((uint)payload.Position);
+                    sectionSizes[0] = GetSectionSize(payload.Position);
                     this.WritePlainDcSections(useGradient, codeLength, prefixCodes, floatRows, sectionSizes, output, cancellationToken);
                 }
 
@@ -1413,7 +1417,7 @@ internal sealed class JxlEncoderCore : IDisposable
                         cancellationToken);
 
                     this.FlushBits(output);
-                    sectionSizes[combined ? 0 : 2 + this.dcGroupCount + index] = checked((uint)(payload.Position - sectionStart));
+                    sectionSizes[combined ? 0 : 2 + this.dcGroupCount + index] = GetSectionSize(payload.Position - sectionStart);
                 }
             }
 
@@ -1558,7 +1562,7 @@ internal sealed class JxlEncoderCore : IDisposable
             if (!combined)
             {
                 this.FlushBits(output);
-                sectionSizes[0] = checked((uint)this.payload.Position);
+                sectionSizes[0] = GetSectionSize(this.payload.Position);
             }
 
             for (int group = 0; group < this.dcGroupCount; group++)
@@ -1625,7 +1629,7 @@ internal sealed class JxlEncoderCore : IDisposable
                 if (!combined)
                 {
                     this.FlushBits(output);
-                    sectionSizes[1 + group] = checked((uint)(this.payload.Position - start));
+                    sectionSizes[1 + group] = GetSectionSize(this.payload.Position - start);
                 }
             }
 
@@ -1645,7 +1649,7 @@ internal sealed class JxlEncoderCore : IDisposable
             if (!combined)
             {
                 this.FlushBits(output);
-                sectionSizes[1 + this.dcGroupCount] = checked((uint)(this.payload.Position - acGlobalStart));
+                sectionSizes[1 + this.dcGroupCount] = GetSectionSize(this.payload.Position - acGlobalStart);
             }
 
             for (int pass = 0; pass < passes; pass++)
@@ -1668,8 +1672,7 @@ internal sealed class JxlEncoderCore : IDisposable
                         varDct, pixels, minimumShift, maximumShift, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
 
                     this.FlushBits(output);
-                    sectionSizes[combined ? 0 : 2 + this.dcGroupCount + (pass * this.groupCount) + group]
-                        = checked((uint)(this.payload.Position - start));
+                    sectionSizes[combined ? 0 : 2 + this.dcGroupCount + (pass * this.groupCount) + group] = GetSectionSize(this.payload.Position - start);
                 }
             }
 
@@ -2283,7 +2286,7 @@ internal sealed class JxlEncoderCore : IDisposable
             }
 
             this.FlushBits(output);
-            sectionSizes[1 + group] = checked((uint)(this.payload.Position - start));
+            sectionSizes[1 + group] = GetSectionSize(this.payload.Position - start);
         }
     }
 
@@ -2568,7 +2571,7 @@ internal sealed class JxlEncoderCore : IDisposable
         }
 
         this.FlushBits(output);
-        sectionSizes[0] = checked((uint)this.payload.Position);
+        sectionSizes[0] = GetSectionSize(this.payload.Position);
 
         int dcColumns = ((this.groupColumns - 1) / 8) + 1;
 
@@ -2612,7 +2615,7 @@ internal sealed class JxlEncoderCore : IDisposable
             }
 
             this.FlushBits(output);
-            sectionSizes[1 + group] = checked((uint)(this.payload.Position - start));
+            sectionSizes[1 + group] = GetSectionSize(this.payload.Position - start);
         }
 
         for (int pass = 0; pass < 2; pass++)
@@ -2661,7 +2664,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
                 // A stream without selected channel samples has no header and occupies zero bytes.
                 this.FlushBits(output);
-                sectionSizes[2 + this.dcGroupCount + (pass * this.groupCount) + group] = checked((uint)(this.payload.Position - start));
+                sectionSizes[2 + this.dcGroupCount + (pass * this.groupCount) + group] = GetSectionSize(this.payload.Position - start);
             }
         }
     }
@@ -3100,6 +3103,26 @@ internal sealed class JxlEncoderCore : IDisposable
         {
             this.WriteU32(bitDepth.BitsPerSample, (0, 8), (0, 10), (0, 12), (6, 1), output);
         }
+    }
+
+    /// <summary>
+    /// Converts the byte length of one frame section to its TOC entry.
+    /// </summary>
+    /// <param name="length">The section length in bytes. The section is part of the retained payload stream.</param>
+    /// <returns>The section length that <see cref="WriteFrameHeader"/> writes to the TOC.</returns>
+    /// <exception cref="ImageFormatException">The section is longer than a TOC entry can store.</exception>
+    private static uint GetSectionSize(long length)
+    {
+        // The payload is a ChunkedMemoryStream, so its length has no int or uint bound.
+        // A TOC entry is U32(Bits(10), BitsOffset(14, 1024), BitsOffset(22, 17408), BitsOffset(30, 4211712)).
+        // Thus the largest section is 4211712 + 2^30 - 1 bytes.
+        const long maximumSectionSize = 4211712 + (1L << 30) - 1;
+        if (length > maximumSectionSize)
+        {
+            throw new ImageFormatException($"Image is too large to encode with a section of {length} bytes for JPEG XL format.");
+        }
+
+        return (uint)length;
     }
 
     /// <summary>

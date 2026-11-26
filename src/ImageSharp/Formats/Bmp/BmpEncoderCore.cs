@@ -25,26 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 internal sealed class BmpEncoderCore
 {
     /// <summary>
-    /// The mask for the alpha channel of the color for 32 bit rgba bitmaps.
-    /// </summary>
-    private const int Rgba32AlphaMask = 0xFF << 24;
-
-    /// <summary>
-    /// The mask for the red part of the color for 32 bit rgba bitmaps.
-    /// </summary>
-    private const int Rgba32RedMask = 0xFF << 16;
-
-    /// <summary>
-    /// The mask for the green part of the color for 32 bit rgba bitmaps.
-    /// </summary>
-    private const int Rgba32GreenMask = 0xFF << 8;
-
-    /// <summary>
-    /// The mask for the blue part of the color for 32 bit rgba bitmaps.
-    /// </summary>
-    private const int Rgba32BlueMask = 0xFF;
-
-    /// <summary>
     /// The color palette for an 8 bit image will have 256 entry's with 4 bytes for each entry.
     /// </summary>
     private const int ColorPaletteSize8Bit = 1024;
@@ -188,7 +168,7 @@ internal sealed class BmpEncoderCore
 
         // A row has its pixel bytes, then zero padding to a multiple of 4 bytes. A row of 1, 2 or 4-bit indices can end
         // inside a byte. That last byte holds pixels, so it is not padding.
-        int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
+        int bytesPerLine = BmpConstants.GetStride(frame.Width, bpp);
         this.padding = bytesPerLine - (int)((((uint)frame.Width * bpp) + 7) / 8);
 
         // An indexed bitmap has a color table of 2^bpp entries of 4 bytes. A direct-color bitmap has no color table.
@@ -396,10 +376,10 @@ internal sealed class BmpEncoderCore
         switch (this.colorType)
         {
             case BmpColorType.Bgra:
-                infoHeader.AlphaMask = Rgba32AlphaMask;
-                infoHeader.RedMask = Rgba32RedMask;
-                infoHeader.GreenMask = Rgba32GreenMask;
-                infoHeader.BlueMask = Rgba32BlueMask;
+                infoHeader.AlphaMask = BmpConstants.Bgra32Masks.Alpha;
+                infoHeader.RedMask = BmpConstants.Bgra32Masks.Red;
+                infoHeader.GreenMask = BmpConstants.Bgra32Masks.Green;
+                infoHeader.BlueMask = BmpConstants.Bgra32Masks.Blue;
                 infoHeader.Compression = BmpInfoCompression.BitFields;
                 break;
             case BmpColorType.Bgr565:
@@ -508,9 +488,9 @@ internal sealed class BmpEncoderCore
         if (bitFieldsSize > 0)
         {
             Span<byte> masks = buffer.Slice(infoHeaderSize, bitFieldsSize);
-            BinaryPrimitives.WriteInt32LittleEndian(masks[..4], infoHeader.RedMask);
-            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(4, 4), infoHeader.GreenMask);
-            BinaryPrimitives.WriteInt32LittleEndian(masks.Slice(8, 4), infoHeader.BlueMask);
+            BinaryPrimitives.WriteUInt32LittleEndian(masks[..4], infoHeader.RedMask);
+            BinaryPrimitives.WriteUInt32LittleEndian(masks.Slice(4, 4), infoHeader.GreenMask);
+            BinaryPrimitives.WriteUInt32LittleEndian(masks.Slice(8, 4), infoHeader.BlueMask);
         }
 
         stream.Write(buffer[..(infoHeaderSize + bitFieldsSize)]);
@@ -1007,7 +987,7 @@ internal sealed class BmpEncoderCore
         // with alpha 0. Each row is padded to a multiple of 4 bytes.
         Configuration configuration = encodingFrame.Configuration;
         int width = encodingFrame.Width;
-        int maskRowLength = (((width + 7) / 8) + 3) & ~3;
+        int maskRowLength = BmpConstants.GetStride(width, 1);
 
         using IMemoryOwner<A8> alphaBuffer = this.memoryAllocator.Allocate<A8>(width);
         Span<A8> alpha = alphaBuffer.GetSpan();

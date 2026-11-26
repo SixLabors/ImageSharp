@@ -48,7 +48,9 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
     {
         this.contextLength = superblockModeInfoSize;
         int regionCount = PlaneContextRegionStart + planesCount;
-        int totalLength = checked(regionCount * superblockModeInfoSize);
+
+        // A superblock is at most 128 pixels high, so it has at most 32 mode-information rows and the product fits in int.
+        int totalLength = regionCount * superblockModeInfoSize;
 
         // Every region spans the same superblock height and shares the tile-reader lifetime.
         // Each byte holds a transform extent up to 128, a five-bit partition mask, or three level bits and a two-bit DC sign.

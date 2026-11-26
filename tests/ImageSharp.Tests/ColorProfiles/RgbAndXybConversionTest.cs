@@ -144,9 +144,8 @@ public class RgbAndXybConversionTest
     /// Checks scalar and bulk forward conversion from a linear RGB endpoint through the public converter.
     /// </summary>
     /// <remarks>
-    /// Expected values come from libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/enc_xyb.cc, ToXYB with a linear-sRGB encoding. The numeric source includes black, fractional,
-    /// HDR and negative components. Decimal literals retain the recorded single-precision values.
+    /// Expected values come from libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153, with a linear-sRGB encoding.
+    /// The numeric source includes black, fractional, HDR and negative components. Decimal literals retain the recorded single-precision values.
     /// </remarks>
     private static void VerifyNativeLinearForward()
     {
@@ -215,9 +214,8 @@ public class RgbAndXybConversionTest
     /// Checks native inverse output before its transfer function, including negative and HDR RGB values.
     /// </summary>
     /// <remarks>
-    /// Expected values come from the same libjxl revision as the forward test: OutputEncodingInfo.SetFromMetadata
-    /// in lib/jxl/dec_xyb.cc and GetXYBStage in lib/jxl/render_pipeline/stage_xyb.cc. The custom row-major inverse
-    /// changes coefficients [0,2], [1,0] and [2,1] and supplies three distinct nonzero biases at 1000 nits.
+    /// Expected values come from the decoder XYB output of the same libjxl revision as the forward test.
+    /// The custom row-major inverse changes coefficients [0,2], [1,0] and [2,1] and supplies three distinct nonzero biases at 1000 nits.
     /// These are recorded native linear outputs, not results of an ImageSharp round trip.
     /// </remarks>
     private static void VerifyNativeLinearInverse()
@@ -379,7 +377,7 @@ public class RgbAndXybConversionTest
     /// <param name="unfused">The recorded unfused native output.</param>
     private static void VerifyNativeInverseKernel(in Xyb.InverseOperator operation, Xyb sample, Rgb expected, Rgb unfused)
     {
-        // Native XybToRgb applies the inverse absorbance matrix directly. It does not pass through XYZ.
+        // The libjxl inverse applies the inverse absorbance matrix directly. It does not pass through XYZ.
         // Keep the strict component bound here for scalar arithmetic and every available SIMD width.
         operation.Invoke(sample.X, sample.Y, sample.B, out float r, out float g, out float b);
         Rgb scalar = new(r, g, b);
@@ -436,9 +434,8 @@ public class RgbAndXybConversionTest
     /// </summary>
     /// <remarks>
     /// Expected values come from libjxl revision 91837342b24034078780b687f57f670a7def8153.
-    /// Forward conversion calls ToXYB in lib/jxl/enc_xyb.cc with JxlGetDefaultCms for each linear input profile.
-    /// Inverse conversion calls OutputEncodingInfo.MaybeSetColorEncoding in lib/jxl/dec_xyb.cc and GetXYBStage
-    /// in render_pipeline/stage_xyb.cc. All cases use an intensity target of 1000 nits and the printed native xy coordinates.
+    /// Forward conversion uses the default libjxl CMS for each linear input profile. Inverse conversion uses the libjxl decoder XYB output.
+    /// All cases use an intensity target of 1000 nits and the printed native xy coordinates.
     /// Both working spaces have unit gamma. No RGB transfer function participates in these comparisons.
     /// The forward CMS path includes native ICC tag quantization; the existing converter bound applies.
     /// </remarks>

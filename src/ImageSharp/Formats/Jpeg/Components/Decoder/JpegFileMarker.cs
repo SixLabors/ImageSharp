@@ -17,30 +17,9 @@ internal readonly struct JpegFileMarker
     /// <param name="marker">The marker</param>
     /// <param name="position">The position within the stream</param>
     public JpegFileMarker(byte marker, long position)
-        : this(marker, position, false)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JpegFileMarker"/> struct.
-    /// </summary>
-    /// <param name="marker">The marker</param>
-    /// <param name="position">The position within the stream</param>
-    /// <param name="invalid">Whether the current marker is invalid</param>
-    public JpegFileMarker(byte marker, long position, bool invalid)
     {
         this.Marker = marker;
         this.Position = position;
-        this.Invalid = invalid;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether the current marker is invalid
-    /// </summary>
-    public bool Invalid
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
     }
 
     /// <summary>

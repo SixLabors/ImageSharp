@@ -29,32 +29,30 @@ public class Av1TemporalFilterTests
     private static readonly Av1ColorFormat[] Formats = [Av1ColorFormat.Yuv420, Av1ColorFormat.Yuv422, Av1ColorFormat.Yuv444, Av1ColorFormat.Yuv400];
 
     /// <summary>
-    /// Verifies the weights and accumulators of one filter block against av1_apply_temporal_filter_c(), with the
-    /// factor order of the x64 kernels except for 4:2:2 high bit depth, which libaom sends to the C function.
+    /// Verifies the weights and accumulators of one filter block against the libaom C temporal filter, with the factor order of the x64 kernels except for
+    /// 4:2:2 high bit depth, which libaom sends to the C function.
     /// </summary>
     [Fact]
     public void ApplyFilterMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateApplyFilter, Configurations);
 
     /// <summary>
-    /// Verifies the full-weight accumulation against tf_apply_temporal_filter_self() and the normalization against
-    /// tf_normalize_filtered_frame().
+    /// Verifies the full-weight accumulation and the normalization against the libaom definitions.
     /// </summary>
     [Fact]
     public void AccumulateAndNormalizeMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateAccumulateAndNormalize, Configurations);
 
     /// <summary>
-    /// Verifies the noise estimate against av1_estimate_noise_from_single_plane_c() and
-    /// av1_highbd_estimate_noise_from_single_plane_c().
+    /// Verifies the eight-bit and high-bit-depth noise estimates against the libaom C definitions.
     /// </summary>
     [Fact]
     public void NoiseEstimateMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateNoiseEstimate, Configurations);
 
     /// <summary>
-    /// Verifies the twelve-tap MULTITAP_SHARP2 prediction against init_subpel_params() and the single-reference C
-    /// convolutions, with the saturated high-bit-depth intermediate of the x64 build.
+    /// Verifies the libaom twelve-tap sharp prediction against the libaom subpixel parameter setup and the single-reference C convolutions, with the saturated
+    /// high-bit-depth intermediate of the x64 build.
     /// </summary>
     [Fact]
     public void PredictionMatchesReference()
@@ -235,7 +233,7 @@ public class Av1TemporalFilterTests
                 Assert.Equal(expectedAccumulator, accumulator);
                 Assert.Equal(expectedCount, count);
 
-                // OD_DIVU() is exact division; the rounding adds half the count.
+                // The libaom division is exact; the rounding adds half the count.
                 ushort[] expected = new ushort[stride * height];
                 for (int i = 0; i < accumulator.Length; i++)
                 {
@@ -331,7 +329,7 @@ public class Av1TemporalFilterTests
                 int y = random.Next(0, 4) * height;
                 int x = random.Next(0, 4) * width;
 
-                // Large vectors reach the clamp of init_subpel_params() in both directions.
+                // Large vectors reach the clamp of the subpixel parameter setup in both directions.
                 int range = trial % 5 == 0 ? 3000 : 400;
                 Av1MotionVector vector = new(random.Next(-range, range + 1), random.Next(-range, range + 1));
                 if (trial % 7 == 0)
@@ -413,8 +411,8 @@ public class Av1TemporalFilterTests
     }
 
     /// <summary>
-    /// The scalar definition of av1_apply_temporal_filter_c() for one 64x64 block. The x64 kernels multiply the
-    /// combined error by the product of the distance and decay factors; the C function multiplies by each in turn.
+    /// The scalar definition of the libaom C temporal filter for one 64x64 block. The x64 kernels multiply the combined error by the product of the distance
+    /// and decay factors; the C function multiplies by each in turn.
     /// </summary>
     private static void ReferenceApplyFilter(
         int[][] planes,
@@ -465,7 +463,7 @@ public class Av1TemporalFilterTests
             double decay = 1 / ((0.5 + Math.Log((2 * noise[plane]) + 5.0)) * qDecay * strengthDecay);
             if (plane == 1)
             {
-                // compute_luma_sq_error_sum()
+                // The luma squared error sum.
                 for (int i = 0; i < height; i++)
                 {
                     for (int j = 0; j < width; j++)
@@ -541,8 +539,7 @@ public class Av1TemporalFilterTests
     }
 
     /// <summary>
-    /// The scalar definition of av1_estimate_noise_from_single_plane_c() and
-    /// av1_highbd_estimate_noise_from_single_plane_c().
+    /// The scalar definition of the eight-bit and high-bit-depth libaom noise estimates.
     /// </summary>
     private static double ReferenceNoise(ushort[] samples, int stride, int width, int height, int bitDepth, int edgeThreshold)
     {
@@ -580,9 +577,9 @@ public class Av1TemporalFilterTests
     }
 
     /// <summary>
-    /// The scalar definition of av1_enc_build_one_inter_predictor() with MULTITAP_SHARP2: init_subpel_params(),
-    /// then aom_convolve_copy(), av1_convolve_x_sr_c(), av1_convolve_y_sr_c() or av1_convolve_2d_sr_c(), with the
-    /// two-dimensional intermediate saturated to sixteen bits as the x64 kernels pack it.
+    /// The scalar definition of the libaom encoder inter prediction with the twelve-tap sharp filter: the subpixel parameter setup, then the copy, the
+    /// horizontal, the vertical or the two-dimensional C convolution, with the two-dimensional intermediate saturated to sixteen bits as the x64 kernels pack
+    /// it.
     /// </summary>
     private static int[] ReferencePrediction(
         ushort[] samples,

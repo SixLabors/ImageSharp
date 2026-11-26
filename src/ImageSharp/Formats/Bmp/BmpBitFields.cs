@@ -53,7 +53,9 @@ internal readonly partial struct BmpBitFields
         this.green = new Channel(greenMask, 8);
         this.blue = new Channel(blueMask, 16);
         this.alpha = new Channel(alphaMask, 24);
-        this.opaque = alphaMask == 0 ? 0xFF000000U : 0U;
+
+        // In Rgba32 and in the B, G, R, A layout, alpha uses bits 24 to 31. Thus the alpha mask of that layout sets alpha to 255.
+        this.opaque = alphaMask == 0 ? BmpConstants.Bgra32Masks.Alpha : 0U;
         this.IsByteRange = this.red.Bits <= 8 && this.green.Bits <= 8 && this.blue.Bits <= 8 && this.alpha.Bits <= 8;
     }
 

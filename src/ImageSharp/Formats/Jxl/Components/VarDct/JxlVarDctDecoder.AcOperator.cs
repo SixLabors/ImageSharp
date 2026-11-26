@@ -15,6 +15,14 @@ internal sealed partial class JxlVarDctDecoder
     private interface IAcMetadataOperator
     {
         /// <summary>
+        /// Gets the bits that are clear in each valid value, or zero if the rule saturates each value into its range.
+        /// </summary>
+        /// <remarks>
+        /// The row converter combines all values of a row with bitwise OR and checks these bits once after the row.
+        /// </remarks>
+        static abstract int InvalidBits { get; }
+
+        /// <summary>
         /// Establishes the permitted range for one reconstructed integer.
         /// </summary>
         /// <param name="value">The reconstructed metadata value.</param>
@@ -36,24 +44,27 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Writes four established byte-range values without touching later destination columns.
+    /// Narrows four values to bytes. The method does not write the later destination columns.
     /// </summary>
-    /// <param name="value">Four values in [-128,127], including valid sharpness indices.</param>
+    /// <param name="value">
+    /// Four values. A byte is exact for a value in [-128,127]. A sharpness value outside [0,7] gives an unspecified byte, and the row converter rejects that
+    /// row after its loop.
+    /// </param>
     /// <param name="destination">The first of four output bytes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreMetadata(Vector128<int> value, ref byte destination)
     {
-        // Use the existing native saturating pack helpers. The operator has already established the narrower range;
-        // the packs retain negative correlation values as their signed eight-bit representation.
+        // This method uses the existing native saturating pack helpers. The correlation operator clamped its range before this call. The packs keep negative
+        // correlation values as their signed eight-bit representation.
         Vector128<short> words = Vector128_.PackSignedSaturate(value, Vector128<int>.Zero);
         Vector128<sbyte> bytes = Vector128_.PackSignedSaturate(words, Vector128<short>.Zero);
         Unsafe.WriteUnaligned(ref destination, bytes.AsUInt32().ToScalar());
     }
 
     /// <summary>
-    /// Writes eight established byte-range values in their original column order.
+    /// Narrows eight values to bytes in their original column order.
     /// </summary>
-    /// <param name="value">Eight values in [-128,127].</param>
+    /// <param name="value">Eight values. A byte is exact for a value in [-128,127]. The row converter rejects other sharpness values.</param>
     /// <param name="destination">The first of eight output bytes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreMetadata(Vector256<int> value, ref byte destination)
@@ -65,9 +76,9 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Writes sixteen established byte-range values in their original column order.
+    /// Narrows sixteen values to bytes in their original column order.
     /// </summary>
-    /// <param name="value">Sixteen values in [-128,127].</param>
+    /// <param name="value">Sixteen values. A byte is exact for a value in [-128,127]. The row converter rejects other sharpness values.</param>
     /// <param name="destination">The first of sixteen output bytes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreMetadata(Vector512<int> value, ref byte destination)
@@ -81,6 +92,9 @@ internal sealed partial class JxlVarDctDecoder
     /// </summary>
     private readonly struct CorrelationOperator : IAcMetadataOperator
     {
+        /// <inheritdoc/>
+        public static int InvalidBits => 0;
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Invoke(int value) => Math.Clamp(value, sbyte.MinValue, sbyte.MaxValue);
@@ -102,57 +116,31 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Rejects out-of-range sharpness indices instead of changing their filter meaning by saturation.
+    /// Keeps the sharpness indices unchanged. The row converter rejects out-of-range indices, because saturation changes their filter meaning.
     /// </summary>
     private readonly struct SharpnessOperator : IAcMetadataOperator
     {
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Invoke(int value)
-        {
-            if ((uint)value >= SharpnessCount)
-            {
-                throw new InvalidImageContentException("The JPEG XL EPF sharpness index is outside its permitted range.");
-            }
-
-            return value;
-        }
+        /// <remarks>
+        /// SharpnessCount is a power of two. Thus a value is in [0,7] when all of its other bits are clear, and only then. This test also rejects negative
+        /// signed values.
+        /// </remarks>
+        public static int InvalidBits => ~(SharpnessCount - 1);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> Invoke(Vector128<int> value)
-        {
-            // The unsigned comparison also rejects negative signed samples. Every lane must be a valid filter index.
-            if (!Vector128.LessThanAll(value.AsUInt32(), Vector128.Create((uint)SharpnessCount)))
-            {
-                throw new InvalidImageContentException("The JPEG XL EPF sharpness index is outside its permitted range.");
-            }
-
-            return value;
-        }
+        public static int Invoke(int value) => value;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> Invoke(Vector256<int> value)
-        {
-            if (!Vector256.LessThanAll(value.AsUInt32(), Vector256.Create((uint)SharpnessCount)))
-            {
-                throw new InvalidImageContentException("The JPEG XL EPF sharpness index is outside its permitted range.");
-            }
-
-            return value;
-        }
+        public static Vector128<int> Invoke(Vector128<int> value) => value;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> Invoke(Vector512<int> value)
-        {
-            if (!Vector512.LessThanAll(value.AsUInt32(), Vector512.Create((uint)SharpnessCount)))
-            {
-                throw new InvalidImageContentException("The JPEG XL EPF sharpness index is outside its permitted range.");
-            }
+        public static Vector256<int> Invoke(Vector256<int> value) => value;
 
-            return value;
-        }
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> Invoke(Vector512<int> value) => value;
     }
 }

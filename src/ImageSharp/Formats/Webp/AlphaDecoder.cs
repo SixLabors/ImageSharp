@@ -33,9 +33,12 @@ internal class AlphaDecoder : IDisposable
     /// </summary>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="data">The (maybe compressed) alpha data.</param>
-    /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on how to decode the stream.</param>
-    /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
+    /// <param name="data">The alpha data. It can be compressed.</param>
+    /// <param name="alphaChunkHeader">
+    /// The first byte of the alpha image stream. It tells how to decode the stream. <see cref="WebpChunkParsingUtils.TryReadAlphaChunk"/> checked that it has
+    /// only defined values.
+    /// </param>
+    /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated alpha data.</param>
     public AlphaDecoder(
@@ -55,26 +58,15 @@ internal class AlphaDecoder : IDisposable
         this.LastRow = 0;
         int totalPixels = width * height;
 
-        WebpAlphaCompressionMethod compression = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03);
-        if (compression is not WebpAlphaCompressionMethod.NoCompression and not WebpAlphaCompressionMethod.WebpLosslessCompression)
-        {
-            WebpThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
-        }
-
-        this.Compressed = compression == WebpAlphaCompressionMethod.WebpLosslessCompression;
-
-        // The filtering method used. Only values between 0 and 3 are valid.
-        int filter = (alphaChunkHeader >> 2) & 0x03;
-        if (filter is < (int)WebpAlphaFilterType.None or > (int)WebpAlphaFilterType.Gradient)
-        {
-            WebpThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
-        }
+        // Header bits 0 and 1 are the compression method, and bits 2 and 3 are the filter.
+        this.Compressed = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03) == WebpAlphaCompressionMethod.WebpLosslessCompression;
 
         // The allocation is not clean. Decode() writes each decoded row and sets the other alpha values to 0, the
         // transparent fill of the other codecs. A complete decode writes every value, so it clears nothing.
         this.Alpha = memoryAllocator.Allocate<byte>(totalPixels);
-        this.AlphaFilterType = (WebpAlphaFilterType)filter;
-        this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
+        this.AlphaFilterType = (WebpAlphaFilterType)((alphaChunkHeader >> 2) & 0x03);
+        this.Vp8LDec = new Vp8LDecoder(width, height);
+        this.Vp8LDec.AllocatePixels(memoryAllocator);
 
         if (this.Compressed)
         {
@@ -195,7 +187,9 @@ internal class AlphaDecoder : IDisposable
         }
         else
         {
-            if (!this.LosslessDecoder.TryDecodeImageStream(this.Vp8LDec, this.Width, this.Height, this.segmentIntegrityHandling))
+            // The color image exists before the alpha data. Thus, in the IgnoreImageData mode, the decoder does not throw for damaged headers, and the alpha
+            // values are 0.
+            if (!this.LosslessDecoder.TryReadHeaders(this.Vp8LDec, this.segmentIntegrityHandling, true))
             {
                 // The header is damaged, so the decoder cannot decode an alpha value.
                 this.Alpha.Memory.Span.Clear();
@@ -282,11 +276,7 @@ internal class AlphaDecoder : IDisposable
             Span<byte> dst = output[(this.Width * firstRow)..];
             Span<byte> input = pixelDataAsBytes[(this.Vp8LDec.Width * firstRow)..];
 
-            if (this.Vp8LDec.Transforms.Count == 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
-            {
-                WebpThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
-            }
-
+            // Decode() uses this path only for a stream with one transform, the color indexing transform.
             Vp8LTransform transform = this.Vp8LDec.Transforms[0];
             ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
             this.AlphaApplyFilter(firstRow, lastRow, dst, this.Width);

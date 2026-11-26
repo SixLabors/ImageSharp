@@ -195,7 +195,7 @@ public class JxlDecoderTests
     /// </summary>
     private static void ValidateBlendEquations()
     {
-        // These literal results follow libjxl blending.cc and alpha.cc. Binary-exact inputs retain exact
+        // These literal results come from the libjxl blend equations. Binary-exact inputs retain exact
         // final results with either fused or separate multiply/add operations. This checks component arithmetic,
         // not encoded patch-mode coverage: the stored image fixtures currently exercise color Add and extra None.
         ReadOnlySpan<(BlendMode Mode, bool Associated, float Expected)> cases =
@@ -227,7 +227,7 @@ public class JxlDecoderTests
 
         foreach ((BlendMode mode, float expected) in weightCases)
         {
-            // Native alpha.cc recognizes the selected weight channel itself. Alpha blending returns
+            // libjxl recognizes the selected weight channel itself. Alpha blending returns
             // the combined weight. Weighted addition preserves the bottom weight without weighting it again.
             AssertBlendResult(new JxlBlending(mode, 0, false), false, true, [0.25F], [0.5F], [0.25F], [0.5F], [expected]);
         }
@@ -241,7 +241,7 @@ public class JxlDecoderTests
         ReadOnlySpan<float> backgroundWeights = [0.5F, 0F, -1F, 2F];
         ReadOnlySpan<float> foregroundWeights = [0.5F, 0F, 0F, 1.5F];
 
-        // Native alpha.cc uses a zero reciprocal for nonpositive combined weights when restoring
+        // libjxl uses a zero reciprocal for nonpositive combined weights when restoring
         // unassociated color. Pixel unassociation instead preserves stored RGB at zero alpha.
         // The last lane also proves that only the selected top weight is bounded when clamping is enabled.
         ReadOnlySpan<(BlendMode Mode, bool Associated, bool SelectedWeight, bool Clamp, float[] Expected)> cases =
@@ -472,8 +472,9 @@ public class JxlDecoderTests
         using BufferedReadStream headerBuffered = new(Configuration.Default, headerInput);
         JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered, SegmentIntegrityHandling.Strict));
         JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
-        JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict);
-        using JxlFrameSections sections = JxlFrameSections.Read(ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict, false)!;
+        using JxlFrameSections sections = JxlFrameSections.Read(
+            ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, SegmentIntegrityHandling.Strict, false, default)!;
 
         bool customThresholds = file == TestImages.Jxl.VarDctDcThresholds;
         using MemoryStream input = new(TestFile.Create(file).Bytes, false);
@@ -508,7 +509,7 @@ public class JxlDecoderTests
             -1025, -1024, -1023, 1023, 1024, 1025, -33, -32, -31, 31, 32, 33, -2, 2, int.MaxValue
         ];
 
-        // Original libjxl DequantDC produced these exact float bits with extra precision = 1.
+        // libjxl produced these exact float bits with extra precision = 1.
         // Correlation uses ratios zero and one, so fused and unfused multiply-add give the same results here.
         ReadOnlySpan<uint> expectedX =
         [
@@ -897,6 +898,39 @@ public class JxlDecoderTests
         }
 
         Assert.True(stream.CanRead);
+    }
+
+    /// <summary>
+    /// Verifies that a damaged later frame header is damaged image data. The Strict and IgnoreAncillary modes throw. The IgnoreImageData mode keeps the canvases
+    /// that the decoder decoded before the damaged frame.
+    /// </summary>
+    [Fact]
+    public void DecodeRetainsCompleteFramesBeforeDamagedFrameHeader()
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        byte[] complete = TestFile.Create(TestImages.Jxl.CroppedTrafficLight).Bytes;
+
+        // A native inspection shows that the fourth frame header starts at byte 704. Its crop width field starts at bit 36 of that header: a two-bit U32
+        // selector 0, then eight payload bits (bits 38 to 45) that store width 25. See ISO/IEC 18181-1, Table C.2. Clear only those payload bits. The field
+        // width stays the same, so each later field keeps its position. Width 0 is invalid crop syntax.
+        byte[] data = [.. complete];
+        data[708] &= 0b0011_1111;
+        data[709] &= 0b1100_0000;
+
+        foreach (SegmentIntegrityHandling handling in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        DecoderOptions ignore = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, data);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(new DecoderOptions(configuration) { MaxFrames = 3 }, complete);
+        Assert.Equal(3, actual.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
 
     /// <summary>
@@ -1538,7 +1572,7 @@ public class JxlDecoderTests
         ReadOnlySpan<int> secondValues = [10, 2, -3, -5, int.MinValue, -1, 17];
         ReadOnlySpan<int> thirdValues = [2, 2, -1, -7, int.MaxValue, -1, -103];
 
-        // libjxl InvRCTRow defines wrapping 32-bit sums and signed right shifts, including before the average in operations four and five.
+        // libjxl uses wrapping 32-bit sums and signed right shifts, also before the average in operations four and five.
         // Operation five uses the restored third channel in that average. Operation six reverses YCoCg in two successive half-shift steps.
         // Each operation below lists seven first-channel results, seven second-channel results, then seven third-channel results.
         ReadOnlySpan<int> expected =
@@ -1611,7 +1645,7 @@ public class JxlDecoderTests
             }
         }
 
-        // jxl-rs rct_impl_i16 stores wrapping signed 16-bit results. Operation five wraps the
+        // jxl-rs stores wrapping signed 16-bit results for 16-bit samples. Operation five wraps the
         // restored third value before averaging it with the first. Its second sample distinguishes
         // that rule from retaining the wide third value until the final store.
         ReadOnlySpan<short> shortFirst = [-7, short.MaxValue, short.MinValue, 9, 0, -1, 42];
@@ -1691,7 +1725,7 @@ public class JxlDecoderTests
         ReadOnlySpan<int> averages = [-17, -9, -2, 4, 9, 21, 18, 7, -3, -14, -14, 5, 19, 13, 0, -8, 3, 18, 27, 9, -15, -21, -8, 0, 17, 29, 12, -4, -9, 6, 14];
         ReadOnlySpan<int> residuals = [-3, 1, -1, 4, 0, 3, -5, 7, -9, 1, 0, 4, -3, 2, -7, 3, 1, -5, 9, -3, 5, -1, 7, 0, -3, 5, -7, 1, 3, -5, -3];
 
-        // Fixed results use libjxl's SmoothTendency equation: (4 * previous - 3 * next - average +/- 6) / 12,
+        // Fixed results use the libjxl tendency equation: (4 * previous - 3 * next - average +/- 6) / 12,
         // followed by its two parity limits, then first = average + difference / 2 and second = first - difference.
         // Division truncates toward zero. The first pair has previous = average but a nonzero tendency of -1;
         // negative odd differences and flat neighboring averages distinguish this from a sign-bit-only trend test.
@@ -1816,7 +1850,7 @@ public class JxlDecoderTests
         ReadOnlySpan<int> topValues = [int.MaxValue, int.MinValue, -2, int.MinValue, 23, 17, -int.MaxValue];
         ReadOnlySpan<int> absoluteValues = [int.MinValue, int.MaxValue, 7, 0, 19, 31, int.MaxValue];
 
-        // Native PrecomputeReferences uses gradient = left + top - topLeft, bounded between left and top.
+        // libjxl uses gradient = left + top - topLeft, bounded between left and top.
         // The first row uses top = topLeft = left, so its prediction is left. These fixed results include
         // signed 32-bit property storage. For example, abs(MinValue - MaxValue) stores -1.
         ReadOnlySpan<int> firstAbsoluteResiduals = [-1, -1, -2147483642, 7, 19, 50, -2147483618];

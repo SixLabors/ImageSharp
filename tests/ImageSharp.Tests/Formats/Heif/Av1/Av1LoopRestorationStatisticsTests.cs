@@ -20,16 +20,16 @@ public class Av1LoopRestorationStatisticsTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the moments against calc_proj_params_r0_r1_c() and the error against av1_lowbd_pixel_proj_error() and
-    /// av1_highbd_pixel_proj_error(), for every radius combination and row lengths that end in every vector tail.
+    /// Verifies the moments and the eight-bit and high-bit-depth projection errors against the scalar libaom definitions, for every radius combination and row
+    /// lengths that end in every vector tail.
     /// </summary>
     [Fact]
     public void ProjectionRowsMatchReferenceAcrossHardwareWidths()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertProjectionRows, Configurations);
 
     /// <summary>
-    /// Verifies the centered products against the accumulation of compute_stats(), with and without row downsampling,
-    /// and the sample moments against aom_var_2d_u8() and aom_var_2d_u16().
+    /// Verifies the centered products against the libaom Wiener statistics accumulation, with and without row downsampling, and the sample moments against the
+    /// libaom eight-bit and sixteen-bit two-dimensional variance.
     /// </summary>
     [Fact]
     public void WienerStatisticsMatchReferenceAcrossHardwareWidths()

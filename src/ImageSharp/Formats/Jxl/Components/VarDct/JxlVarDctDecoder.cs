@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder : IDisposable
 {
     /// <summary>
-    /// The largest threshold count encoded by a four-bit field in libjxl entropy_coder.cc DecodeBlockCtxMap.
+    /// The largest threshold count encoded by a four-bit field.
     /// </summary>
     private const int MaximumThresholds = 15;
 
@@ -26,28 +26,28 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     private const int ThresholdStride = MaximumThresholds + 1;
 
     /// <summary>
-    /// The allowed product of DC buckets and quantizer buckets in native DecodeBlockCtxMap.
+    /// The allowed product of DC buckets and quantizer buckets.
     /// </summary>
     private const int MaximumContextCombinations = 64;
 
     /// <summary>
-    /// The largest number of clustered block contexts permitted by native DecodeBlockCtxMap.
+    /// The largest permitted number of clustered block contexts.
     /// </summary>
     private const int MaximumBlockContexts = 16;
 
     /// <summary>
-    /// The fixed 2^16 denominator of global quantization scale in libjxl quantizer.h kGlobalScaleDenom.
+    /// The fixed 2^16 denominator of global quantization scale.
     /// </summary>
     private const int GlobalScaleDenominator = 1 << 16;
 
     /// <summary>
-    /// The default color-correlation denominator from libjxl chroma_from_luma.h kDefaultColorFactor.
+    /// The default color-correlation denominator.
     /// An encoded signed correlation adjustment is divided by this factor before adding the base correlation.
     /// </summary>
     private const int DefaultColorFactor = 84;
 
     /// <summary>
-    /// The inclusive absolute limit of encoded base correlation, checked by native ColorCorrelation::DecodeDC.
+    /// The inclusive absolute limit of encoded base correlation.
     /// </summary>
     private const float MaximumBaseCorrelation = 4F;
 
@@ -223,17 +223,11 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
                     throw new InvalidImageContentException("The JPEG XL block context map has too many threshold combinations.");
                 }
 
-                // Validate the product before allocating. The format permits at most 3 * 13 * 64 = 2496 map bytes.
-                // The shared entropy decoder consumes the complete map and validates its cluster numbering.
+                // The code checks the product before it allocates. The format permits a maximum of 3 * 13 * 64 = 2496 map bytes. The shared entropy decoder
+                // reads the complete map, checks its cluster numbering and returns the cluster count.
                 result.blockContextMap = allocator.Allocate<byte>(3 * JxlCoefficientOrder.OrderCount * combinations);
                 Span<byte> map = result.blockContextMap.Memory.Span;
-                JxlEntropyDecoder.ReadContextMap(ref reader, allocator, map);
-                int contexts = 1;
-                foreach (byte context in map)
-                {
-                    contexts = Math.Max(contexts, context + 1);
-                }
-
+                int contexts = JxlEntropyDecoder.ReadContextMap(ref reader, allocator, map);
                 if (contexts > MaximumBlockContexts)
                 {
                     throw new InvalidImageContentException("The JPEG XL block context map selects more than sixteen contexts.");

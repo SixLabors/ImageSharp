@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -277,15 +278,17 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 this.UndoTransforms<int>(local, transforms, predictor, sampleBitDepth, CollectionsMarshal.AsSpan(targets), cancellationToken);
             }
 
-            // Parsing no longer needs the encoded layouts. Reuse that list to validate the restored channels
-            // against their retained borrowed targets without creating a per-group layout array.
+#if DEBUG
+            // The parse does not need the encoded layouts after this point. Debug builds use that list again to compare the restored channels with their
+            // retained borrowed targets. Thus they do not create a layout array for each group.
             this.layouts.Clear();
             foreach (JxlModularChannel target in targets)
             {
                 this.layouts.Add(target.Layout);
             }
+#endif
 
-            ValidateShapes(local, CollectionsMarshal.AsSpan(this.layouts));
+            AssertShapes(local, CollectionsMarshal.AsSpan(this.layouts));
             if (separateStorage)
             {
                 // The final local palette or squeeze can already have restored selected channels in their targets.
@@ -348,7 +351,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             this.UndoTransforms<int>(this.channels, this.globalTransforms, this.globalPredictor, this.bitDepth, [], cancellationToken);
         }
 
-        ValidateShapes(this.channels, this.originalLayouts);
+        AssertShapes(this.channels, this.originalLayouts);
         this.globalTransforms.Clear();
     }
 
@@ -2186,23 +2189,21 @@ internal sealed partial class JxlModularDecoder : IDisposable
     }
 
     /// <summary>
-    /// Validates restored output layouts before exporting local samples or exposing completed frame channels.
+    /// Asserts in debug builds that the inverse transforms restored the output layouts.
     /// </summary>
     /// <param name="channels">The reconstructed output descriptors.</param>
     /// <param name="expected">The original frame layouts or the layouts of retained borrowed group targets.</param>
-    private static void ValidateShapes(List<JxlModularChannel> channels, ReadOnlySpan<JxlModularChannelLayout> expected)
+    /// <remarks>
+    /// The transform parser checks each transform against the layouts that it changes. Each inverse transform restores those layouts. Thus the restored shapes
+    /// are an internal invariant, not a stream check.
+    /// </remarks>
+    [Conditional("DEBUG")]
+    private static void AssertShapes(List<JxlModularChannel> channels, ReadOnlySpan<JxlModularChannelLayout> expected)
     {
-        if (channels.Count != expected.Length)
-        {
-            throw new InvalidImageContentException("The JPEG XL inverse transforms changed the output channel count.");
-        }
-
+        DebugGuard.IsTrue(channels.Count == expected.Length, "The JPEG XL inverse transforms changed the output channel count.");
         for (int c = 0; c < channels.Count; c++)
         {
-            if (!channels[c].Layout.HasSameShape(expected[c]))
-            {
-                throw new InvalidImageContentException("The JPEG XL inverse transforms changed the output channel dimensions.");
-            }
+            DebugGuard.IsTrue(channels[c].Layout.HasSameShape(expected[c]), "The JPEG XL inverse transforms changed the output channel dimensions.");
         }
     }
 

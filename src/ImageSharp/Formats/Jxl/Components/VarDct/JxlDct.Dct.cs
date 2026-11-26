@@ -459,7 +459,7 @@ internal static partial class JxlDct
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
     {
-        // These are IDCT1DImpl<4>'s even/odd split, two-point leaves and BTranspose stage from libjxl dct-inl.h.
+        // These are the even/odd split, the two-point leaves and the transposed butterfly stage of the four-point inverse DCT.
         // Form every input-dependent value before replacing the distinct outputs. Addition order and rounding
         // match the general network: the preceding odd coefficient is added before the first one is scaled.
         TLanes even0 = TOperator.Add(v0, v2);
@@ -502,7 +502,7 @@ internal static partial class JxlDct
         TLanes even3 = v6;
         Inverse4<TLanes, TOperator>(ref even0, ref even1, ref even2, ref even3);
 
-        // BTranspose adds each original odd coefficient to its predecessor. Separate locals retain those
+        // The transposed butterfly stage adds each original odd coefficient to its predecessor. Separate locals retain those
         // originals without a temporary span. Each lane follows the native eight-point network independently.
         TLanes odd0 = TOperator.Multiply(v1, RootTwo);
         TLanes odd1 = TOperator.Add(v3, v1);
@@ -632,8 +632,8 @@ internal static partial class JxlDct
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
     {
-        // Each lane follows the native DCT1DImpl<8> network: symmetric sum and weighted difference,
-        // two four-point children, then the adjacent-odd B stage. Retain every input before replacing outputs.
+        // Each lane follows the eight-point DCT network: symmetric sum and weighted difference,
+        // two four-point children, then the adjacent-odd butterfly stage. Retain every input before replacing outputs.
         ReadOnlySpan<float> multipliers = Multipliers8;
         TLanes even0 = TOperator.Add(v0, v7);
         TLanes even1 = TOperator.Add(v1, v6);

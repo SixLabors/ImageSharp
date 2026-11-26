@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
 
@@ -11,7 +11,7 @@ public class PngDecoderCoreTests
     [Fact]
     public void CalculateScanlineLength_WithLargeGrayscaleWidth_ReturnsExpectedLength()
     {
-        int length = PngDecoderCore.CalculateScanlineLength(536_870_913, 8, 1);
+        long length = PngHeader.CalculateScanlineLength(536_870_913, 8, 1);
 
         Assert.Equal(536_870_913, length);
     }
@@ -19,7 +19,7 @@ public class PngDecoderCoreTests
     [Fact]
     public void CalculateScanlineLength_WithLargeRgbaWidth_ReturnsExpectedLength()
     {
-        int length = PngDecoderCore.CalculateScanlineLength(33_554_432, 16, 8);
+        long length = PngHeader.CalculateScanlineLength(33_554_432, 16, 8);
 
         Assert.Equal(268_435_456, length);
     }

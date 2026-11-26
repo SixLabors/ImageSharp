@@ -21,6 +21,22 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
+    /// A value that is <see langword="true"/> if the caller keeps an image without the decoded items. In that case, the integrity mode controls if a
+    /// damaged item payload throws.
+    /// </summary>
+    private readonly bool imageExists;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1HeifItemDecoder{TPixel}"/> class.
+    /// </summary>
+    /// <param name="imageExists">
+    /// <see langword="true"/> if the caller keeps an image without the decoded items. This image is the canvas of a grid, or the color image of an alpha
+    /// item. If the value is <see langword="true"/> and the mode is <see cref="SegmentIntegrityHandling.IgnoreImageData"/>, a damaged item payload that
+    /// holds no frame gives no pixels. In all other cases, that damage throws.
+    /// </param>
+    public Av1HeifItemDecoder(bool imageExists) => this.imageExists = imageExists;
+
+    /// <summary>
     /// Gets the AV1-coded image item type.
     /// </summary>
     public Heif4CharCode Type => Heif4CharCode.Av01;
@@ -28,28 +44,29 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
     /// <summary>
     /// Decodes the encoded AV1 payload of an image item.
     /// </summary>
-    /// <param name="options">The general options governing the containing HEIF decode.</param>
+    /// <param name="options">The decoder options for the HEIF decode.</param>
     /// <param name="chromaUpsampling">The chroma reconstruction mode.</param>
-    /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
+    /// <param name="item">The HEIF item that holds the encoded payload.</param>
     /// <param name="data">The encoded AV1 payload.</param>
     /// <param name="colorProfile">
-    /// The container color description that supplies unspecified color information in the AV1 sequence header.
+    /// The container color description. It gives the color information that the AV1 sequence header does not specify.
     /// </param>
-    /// <param name="profile">The source ICC profile selected for conversion, or null to preserve source colors.</param>
-    /// <param name="alphaFrame">The native auxiliary plane, or null for an opaque image.</param>
-    /// <param name="alphaOutputSize">The complete color extent covered by the auxiliary plane.</param>
-    /// <param name="alphaRectangle">The matching region within the auxiliary presentation.</param>
-    /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
+    /// <param name="profile">The source ICC profile for the color conversion, or <see langword="null"/> to keep the source colors.</param>
+    /// <param name="alphaFrame">The native auxiliary plane, or <see langword="null"/> for an opaque image.</param>
+    /// <param name="alphaOutputSize">The full color extent that the auxiliary plane covers.</param>
+    /// <param name="alphaRectangle">The matching region in the auxiliary presentation.</param>
+    /// <param name="premultiplied"><see langword="true"/> if alpha premultiplies the source RGB values.</param>
     /// <param name="sourceRectangle">The source area of interest in luma-sample coordinates.</param>
-    /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
+    /// <param name="transform">The rotation and mirroring that the method applies in the destination region.</param>
     /// <param name="destination">
-    /// Gets the destination pixel region. The call can allocate the output image, so this method calls it only after it
-    /// has validated the item's spatial extent against the decoded sequence header.
+    /// Gets the destination pixel region. The call can allocate the output image. Thus, the method calls it only after it validates the spatial extent of
+    /// the item against the decoded sequence header. If the mode ignores damage and the payload gives no frame, the method does not call it.
     /// </param>
-    /// <param name="metadata">The metadata receiving the decoded image properties.</param>
-    /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
+    /// <param name="metadata">The metadata that receives the decoded image properties.</param>
+    /// <param name="cancellationToken">The token that cancels the payload decode.</param>
     /// <exception cref="InvalidImageContentException">
-    /// The item's spatial extent is larger than the maximum frame size of its sequence header.
+    /// The spatial extent of the item is larger than the maximum frame size of its sequence header, and the decoder cannot ignore the error. The decoder
+    /// ignores the error only if an image exists and the mode ignores image data errors.
     /// </exception>
     public void DecodeItemData(
         DecoderOptions options,
@@ -69,23 +86,40 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Span<byte> itemData = GetItemData(item, data);
-        Av1CodecConfiguration codecConfiguration = ValidateItemData(
-            options,
-            item,
-            itemData,
-            out HeifContentLightLevel? obuContentLightLevel,
-            out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
+
+        // The item graph validator validated the item properties before the decode. The codec configuration exists, and the pixel information agrees with
+        // it. The AV1 code reports damage one time, at the check site that finds it. A false or null result means that the mode ignored the damage and that
+        // the payload holds no frame. Then the item writes no pixels, and its region keeps the fill value.
+        Av1CodecConfiguration codecConfiguration = item.Av1CodecConfiguration!;
+        if (!this.TryGetItemData(options, item, data, out Span<byte> itemData)
+            || !codecConfiguration.ValidateData(
+                itemData,
+                true,
+                "AV1 image item",
+                item.ContentLightLevel,
+                item.MasteringDisplayColorVolume,
+                options,
+                this.imageExists,
+                out HeifContentLightLevel? obuContentLightLevel,
+                out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume))
+        {
+            return;
+        }
 
         byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
 
-        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling);
-        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling, this.imageExists);
+        using Av1FrameBuffer<byte>? frameBuffer = decoder.DecodeFrameBuffer(
             itemData,
             colorProfile,
             codecConfiguration,
-            out CicpProfile effectiveColorProfile,
+            out CicpProfile? effectiveColorProfile,
             item.Av1LayeredImageIndex);
+
+        if (frameBuffer is null)
+        {
+            return;
+        }
 
         // The image spatial extents property gives the size of the reconstructed image, before the clean aperture,
         // rotation, and mirror properties apply. For an AV1 item it shall equal the upscaled width and the height of
@@ -98,9 +132,11 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader!;
         if (item.Extent.Width > sequenceHeader.MaxFrameWidth || item.Extent.Height > sequenceHeader.MaxFrameHeight)
         {
-            throw new InvalidImageContentException(
-                $"AV1 image item {item.Id} declares spatial extents {item.Extent.Width}x{item.Extent.Height}, " +
-                $"which exceed the maximum frame size {sequenceHeader.MaxFrameWidth}x{sequenceHeader.MaxFrameHeight} of its sequence header.");
+            string message = $"AV1 image item {item.Id} declares spatial extents {item.Extent.Width}x{item.Extent.Height}, " +
+                $"which exceed the maximum frame size {sequenceHeader.MaxFrameWidth}x{sequenceHeader.MaxFrameHeight} of its sequence header.";
+
+            options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, message);
+            return;
         }
 
         // The container range controls the presentation. The bitstream range stays with the decoded planes.
@@ -129,49 +165,58 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
     }
 
     /// <inheritdoc/>
-    public Av1FrameBuffer<byte> DecodeAlphaItemData(
-        DecoderOptions options,
-        HeifItem item,
-        Span<byte> data,
-        CancellationToken cancellationToken)
+    public Av1FrameBuffer<byte>? DecodeAlphaItemData(DecoderOptions options, HeifItem item, Span<byte> data, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Span<byte> itemData = GetItemData(item, data);
-        Av1CodecConfiguration codecConfiguration = ValidateItemData(options, item, itemData, out _, out _);
-        if (!codecConfiguration.IsMonochrome)
+
+        // The item graph validator validated that the codec configuration of the alpha item exists and is monochrome. The AV1 code reports a damaged
+        // payload one time. A false or null result means that the mode ignored the damage and that the payload holds no frame.
+        Av1CodecConfiguration codecConfiguration = item.Av1CodecConfiguration!;
+        if (!this.TryGetItemData(options, item, data, out Span<byte> itemData)
+            || !codecConfiguration.ValidateData(
+                itemData,
+                true,
+                "AV1 image item",
+                item.ContentLightLevel,
+                item.MasteringDisplayColorVolume,
+                options,
+                this.imageExists,
+                out _,
+                out _))
         {
-            throw new InvalidImageContentException($"AV1 alpha image item {item.Id} is not monochrome.");
+            return null;
         }
 
         byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
 
-        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling);
-        return decoder.DecodeFrameBuffer(
-            itemData,
-            item.CicpProfile,
-            codecConfiguration,
-            out _,
-            item.Av1LayeredImageIndex);
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex, options.SegmentIntegrityHandling, this.imageExists);
+        return decoder.DecodeFrameBuffer(itemData, item.CicpProfile, codecConfiguration, out _, item.Av1LayeredImageIndex);
     }
 
     /// <summary>
-    /// Gets the cumulative item bytes required by an explicit AV1 spatial-layer selection.
+    /// Gets the cumulative item bytes that an explicit AV1 spatial-layer selection requires.
     /// </summary>
-    /// <param name="item">The AV1 image item containing optional layered-image properties.</param>
+    /// <param name="options">The decoder options for the HEIF decode.</param>
+    /// <param name="item">The AV1 image item that holds the optional layered-image properties.</param>
     /// <param name="data">
-    /// The logical image-item payload. It is shorter than the declared extents when the file is truncated and the
-    /// item data reader ignores image data errors.
+    /// The logical image-item payload. If the file is truncated and the item data reader ignores image data errors, the payload is shorter than the
+    /// declared extents.
+    /// </param>
+    /// <param name="itemData">
+    /// Receives the payload for final-layer decoding, or the cumulative prefix through the selected layer. Each payload has at most the bytes that
+    /// <paramref name="data"/> holds.
     /// </param>
     /// <returns>
-    /// The payload for final-layer decoding, or the cumulative prefix through the selected layer. Each is limited to
-    /// the bytes that <paramref name="data"/> holds.
+    /// <see langword="true"/> if the layers fit the item. <see langword="false"/> if the layered-image index reported an incorrect layer layout and the
+    /// mode ignores it.
     /// </returns>
-    private static Span<byte> GetItemData(HeifItem item, Span<byte> data)
+    private bool TryGetItemData(DecoderOptions options, HeifItem item, Span<byte> data, out Span<byte> itemData)
     {
+        itemData = data;
         Av1LayeredImageIndex? layeredImageIndex = item.Av1LayeredImageIndex;
         if (layeredImageIndex is null)
         {
-            return data;
+            return true;
         }
 
         // The layer sizes describe the declared item data, so the declared length validates them. The item data
@@ -183,49 +228,13 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
             declaredLength += location.Length;
         }
 
-        int payloadLength = layeredImageIndex.Value.GetPayloadLength((int)declaredLength, item.Av1LayerSelector);
-        return data[..Math.Min(payloadLength, data.Length)];
-    }
-
-    /// <summary>
-    /// Validates an AV1 item description against its encoded payload and returns the required codec configuration.
-    /// </summary>
-    /// <param name="options">The general options governing the containing HEIF decode.</param>
-    /// <param name="item">The AV1 image item being validated.</param>
-    /// <param name="data">The encoded AV1 payload.</param>
-    /// <param name="obuContentLightLevel">Receives content-light metadata found in the AV1 payload.</param>
-    /// <param name="obuMasteringDisplayColorVolume">Receives mastering-display metadata found in the AV1 payload.</param>
-    /// <returns>The validated item-associated AV1 codec configuration.</returns>
-    private static Av1CodecConfiguration ValidateItemData(
-        DecoderOptions options,
-        HeifItem item,
-        ReadOnlySpan<byte> data,
-        out HeifContentLightLevel? obuContentLightLevel,
-        out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume)
-    {
-        Av1CodecConfiguration codecConfiguration = item.Av1CodecConfiguration
-            ?? throw new InvalidImageContentException($"AV1 image item {item.Id} has no codec configuration property.");
-
-        if (item.ChannelBitDepths is not null)
+        SegmentIntegrityHandling handling = options.SegmentIntegrityHandling;
+        if (!layeredImageIndex.Value.TryGetPayloadLength((int)declaredLength, item.Av1LayerSelector, handling, this.imageExists, out int payloadLength))
         {
-            foreach (byte channelBitDepth in item.ChannelBitDepths)
-            {
-                if (channelBitDepth != (byte)codecConfiguration.BitDepth)
-                {
-                    throw new InvalidImageContentException(
-                        $"AV1 image item {item.Id} has mismatched pixel-information and codec-configuration bit depths.");
-                }
-            }
+            return false;
         }
 
-        codecConfiguration.ValidateItemData(
-            data,
-            item.ContentLightLevel,
-            item.MasteringDisplayColorVolume,
-            options,
-            out obuContentLightLevel,
-            out obuMasteringDisplayColorVolume);
-
-        return codecConfiguration;
+        itemData = data[..Math.Min(payloadLength, data.Length)];
+        return true;
     }
 }

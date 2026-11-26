@@ -20,8 +20,8 @@ public class Av1WaveletEnergyTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies every block energy against haar_ac_sad_8x8_uint8_input(), for block counts that end in every
-    /// vector tail and for eight- and twelve-bit samples.
+    /// Verifies every block energy against the libaom 8x8 Haar AC sum of absolute differences, for block counts that end in every vector tail and for eight-
+    /// and twelve-bit samples.
     /// </summary>
     [Fact]
     public void BlockEnergiesMatchReferenceAcrossHardwareWidths()
@@ -123,7 +123,7 @@ public class Av1WaveletEnergyTests
         return sad;
     }
 
-    // A transcription of analysis_53_row() with pointers as indices.
+    // A transcription of the libaom 5/3 wavelet row analysis with pointers as indices.
     private static void AnalyzeRow(int length, int[] x, int xi, int[] c, int low, int high)
     {
         int n = length >> 1;
@@ -153,7 +153,7 @@ public class Av1WaveletEnergyTests
         }
     }
 
-    // A transcription of analysis_53_col() with pointers as indices into one buffer.
+    // A transcription of the libaom 5/3 wavelet column analysis with pointers as indices into one buffer.
     private static void AnalyzeColumn(int length, int[] buffer, int xi, int low, int high)
     {
         int n = length >> 1;

@@ -657,7 +657,7 @@ internal static partial class JxlRestoration
             float sadBottom = 0F;
             for (int component = 0; component < 3; component++)
             {
-                // Native stage_epf.cc EPF1Stage compares the center cross with the crosses above, left,
+                // EPF1 compares the center cross with the crosses above, left,
                 // right and below. Thirteen positions supply all four five-sample patches for one component.
                 // Each SAD keeps its own addition order; shared differences do not change that order.
                 float above2 = this.Sample(component, -2, x);
@@ -817,7 +817,7 @@ internal static partial class JxlRestoration
             Vector128<float> sadBottom = Vector128<float>.Zero;
             for (int component = 0; component < 3; component++)
             {
-                // Native stage_epf.cc EPF1Stage compares the center cross with the crosses above, left,
+                // EPF1 compares the center cross with the crosses above, left,
                 // right and below. Thirteen positions supply all four five-sample patches for one component.
                 // Each SAD keeps its own addition order; shared differences do not change that order.
                 Vector128<float> above2 = Vector128.LoadUnsafe(ref this.Sample(component, -2, x));
@@ -977,7 +977,7 @@ internal static partial class JxlRestoration
             Vector256<float> sadBottom = Vector256<float>.Zero;
             for (int component = 0; component < 3; component++)
             {
-                // Native stage_epf.cc EPF1Stage compares the center cross with the crosses above, left,
+                // EPF1 compares the center cross with the crosses above, left,
                 // right and below. Thirteen positions supply all four five-sample patches for one component.
                 // Each SAD keeps its own addition order; shared differences do not change that order.
                 Vector256<float> above2 = Vector256.LoadUnsafe(ref this.Sample(component, -2, x));
@@ -1137,7 +1137,7 @@ internal static partial class JxlRestoration
             Vector512<float> sadBottom = Vector512<float>.Zero;
             for (int component = 0; component < 3; component++)
             {
-                // Native stage_epf.cc EPF1Stage compares the center cross with the crosses above, left,
+                // EPF1 compares the center cross with the crosses above, left,
                 // right and below. Thirteen positions supply all four five-sample patches for one component.
                 // Each SAD keeps its own addition order; shared differences do not change that order.
                 Vector512<float> above2 = Vector512.LoadUnsafe(ref this.Sample(component, -2, x));

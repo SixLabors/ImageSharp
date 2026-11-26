@@ -25,7 +25,7 @@ public partial class CompandingTests
 
     // PQ and HLG expose extended component conversion, but not the precision-selected SDR table APIs above.
     // Original libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153.
-    // TF_PQ_Base and TF_HLG_Base supply these independent fixed component equations and samples.
+    // Its PQ and HLG transfer functions supply these independent fixed component equations and samples.
     private static readonly Vector3[] NativeTransferInputs =
     [
         new(-0F, 0F, 9.999999747e-05F),

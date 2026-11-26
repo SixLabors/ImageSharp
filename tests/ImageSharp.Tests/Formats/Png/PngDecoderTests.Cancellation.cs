@@ -29,10 +29,10 @@ public partial class PngDecoderTests
 
         stream.OnWaiting(s =>
         {
-            // The signature occupies bytes 0-7 and the chunk length occupies bytes 8-11.
-            // Cancel during the type read, after BufferedReadStream has checked its token.
-            // That read completes; the next read checks cancellation after allocating chunk data.
-            if (s.Position == 12)
+            // The signature uses bytes 0-7, and the chunk length and type use bytes 8-15. The decoder reads the length and type in one read. The test cancels
+            // during the read of the chunk data, after BufferedReadStream checked its token. That read completes. The CRC read then checks the cancellation
+            // after the decoder allocated the data.
+            if (s.Position == 16)
             {
                 cts.Cancel();
                 stream.Release();
@@ -45,7 +45,7 @@ public partial class PngDecoderTests
 
         Configuration configuration = Configuration.CreateDefaultInstance();
 
-        // Read the chunk length and type separately so cancellation occurs during the type read.
+        // A small buffer makes each read of the decoder reach the stream, so the cancellation occurs inside one read.
         configuration.StreamProcessingBufferSize = 4;
         DecoderOptions options = new(configuration);
 

@@ -12,23 +12,30 @@ namespace SixLabors.ImageSharp.Compression.Ccitt;
 /// Decodes rows of 1-bit pixels from data in the two-dimensional coding scheme of ITU-T T.6.
 /// </summary>
 /// <remarks>
-/// The encoder codes each row with the changes from the row above it, and the first row with the changes from an
-/// imaginary white row. See ITU-T Recommendation T.6 (11/88), section 2.2.1, page 2: https://www.itu.int/rec/T-REC-T.6
+/// The encoder codes each row with the changes from the row above it, and the first row with the changes from an imaginary white row. See ITU-T Recommendation
+/// T.6 (11/88), section 2.2.1, page 2: https://www.itu.int/rec/T-REC-T.6
 /// <para>
-/// A row bit is 1 for a black pixel of the code and 0 for a white pixel. The photometric interpretation of the format
-/// gives the displayed colors. For example, TIFF reverses the meaning of white and black for BlackIsZero data. See
-/// TIFF 6.0 specification, section 10, page 44: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+/// A row bit is 1 for a black pixel of the code and 0 for a white pixel. The photometric interpretation of the format gives the displayed colors. For example,
+/// TIFF reverses the meaning of white and black for BlackIsZero data. See TIFF 6.0 specification, section 10, page 44:
+/// https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 /// </para>
 /// <para>
-/// The decoder does not throw for data that is not valid. It sets <see cref="IsDamaged"/>, so the caller can apply the
-/// segment integrity mode of the decode.
+/// In the Strict and IgnoreAncillary modes, the decoder throws for damaged data and for data that ends before a row. In the IgnoreImageData mode, the rows keep
+/// their decoded pixels.
 /// </para>
 /// </remarks>
 internal sealed class T6RowDecoder : IDisposable
 {
+    /// <summary>
+    /// The message for damaged data.
+    /// </summary>
+    private const string DamagedMessage = "The CCITT T.6 data is damaged or ends before the last row of the strip, tile or image.";
+
     private CcittBitReader reader;
 
     private readonly int width;
+
+    private readonly SegmentIntegrityHandling integrityHandling;
 
     /// <summary>
     /// Two rows of one byte for each pixel: the row that is decoded and the reference row above it.
@@ -57,18 +64,20 @@ internal sealed class T6RowDecoder : IDisposable
     /// <param name="byteCount">The number of bytes to read from the stream.</param>
     /// <param name="width">The number of pixels in each row.</param>
     /// <param name="allocator">The memory allocator for the decoded and the reference row.</param>
-    public T6RowDecoder(BufferedReadStream stream, CcittBitOrder bitOrder, int byteCount, int width, MemoryAllocator allocator)
+    /// <param name="integrityHandling">The segment integrity mode of the decode. It selects what happens with damaged data.</param>
+    public T6RowDecoder(
+        BufferedReadStream stream,
+        CcittBitOrder bitOrder,
+        int byteCount,
+        int width,
+        MemoryAllocator allocator,
+        SegmentIntegrityHandling integrityHandling)
     {
         this.reader = new CcittBitReader(stream, bitOrder, byteCount);
         this.width = width;
+        this.integrityHandling = integrityHandling;
         this.scanLines = allocator.Allocate<byte>(width * 2);
     }
-
-    /// <summary>
-    /// Gets a value indicating whether the data is damaged. Damaged data has a code that is not valid, a row with fewer
-    /// pixels than the width, or an end before a row.
-    /// </summary>
-    public bool IsDamaged { get; private set; }
 
     /// <summary>
     /// Gets the mode codes of ITU-T Recommendation T.6 (11/88), Table 1/T.6, page 4. The index is the next 7 code bits,
@@ -105,7 +114,7 @@ internal sealed class T6RowDecoder : IDisposable
         scanLine.Clear();
         if (!Decode2DScanline(ref this.reader, referenceScanLine, scanLine, ref this.endOfBlock) && !this.endOfBlock)
         {
-            this.IsDamaged = true;
+            this.integrityHandling.ThrowOrIgnoreImageDataError(DamagedMessage);
         }
 
         // Each pixel byte is its bit, so the decoded row is a row of 1-bit indices. A black pixel is a 1 bit.

@@ -26,9 +26,8 @@ internal sealed partial class JxlModularDecoder
     /// <remarks>
     /// The caller must complete the modular inverse transforms first. This operation keeps the original integer channels unchanged.
     /// It does not apply color conversion, pixel bounds or alpha rules. Failure releases every float plane acquired by this operation.
-    /// Conversion order follows libjxl revision 91837342b24034078780b687f57f670a7def8153, lib/jxl/dec_modular.cc:
-    /// ModularImageToDecodedRect selects SingleFromSingleAccurate for X/Y at metadata precision 23 or higher.
-    /// MultiplySum restores B with signed integer addition before its float conversion at every precision.
+    /// X and Y use the accurate conversion at metadata precision 23 or higher.
+    /// At every precision, signed integer addition restores B before its float conversion.
     /// </remarks>
     public Buffer2D<float>[] ReconstructXyb(JxlFrameHeader frame, Vector3 dcQuants, CancellationToken cancellationToken)
         => this.Uses16BitStorage
@@ -62,7 +61,7 @@ internal sealed partial class JxlModularDecoder
             y = this.allocator.Allocate2D<float>(frame.OutputSize);
             b = this.allocator.Allocate2D<float>(frame.OutputSize);
 
-            // Native SingleFromSingleAccurate selects original metadata precision, even for XYB integer channels.
+            // The metadata precision selects the accurate conversion, also for XYB integer channels.
             // Keep that decision outside row traversal. All stored planes remain float; widened products round only at their final store.
             if (this.bitDepth >= 23)
             {
@@ -82,7 +81,7 @@ internal sealed partial class JxlModularDecoder
                 ReadOnlySpan<TSample> rawB = sourceB.GetRow<TSample>(row);
                 Span<float> outputB = b.DangerousGetRowSpan(row)[..codingSize.Width];
 
-                // Modular XYB stores Y, X and B-Y. Native MultiplySum adds signed integer lanes before conversion,
+                // Modular XYB stores Y, X and B-Y. The decoder adds the signed integer lanes before conversion,
                 // including their 32-bit wrap. Converting the two operands first would lose canceling low bits above 2^24.
                 // Apply B's own factor after that sum: it need not equal the factor already applied to Y.
                 AddXybRows(rawB, rawY, sum);
@@ -133,7 +132,7 @@ internal sealed partial class JxlModularDecoder
         JxlModularChannel source, Buffer2D<float> destination, float factor, CancellationToken cancellationToken)
         where TSample : unmanaged, IBinaryInteger<TSample>
     {
-        // Native dec_modular.cc SingleFromSingleAccurate multiplies an exact integer by a widened DC factor,
+        // The accurate conversion multiplies an exact integer by a widened DC factor,
         // then rounds only the product to float. Casting the integer to float first can cross a final rounding midpoint.
         AccurateScaleOperator operation = new(factor);
         for (int row = 0; row < source.Height; row++)

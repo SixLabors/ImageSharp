@@ -9,13 +9,14 @@ internal class Av1TileDecoderStub : IAv1TileReader, IAv1TileWriter
 {
     private readonly Dictionary<int, byte[]> tileDatas = [];
 
-    public void ReadTile(Span<byte> tileData, int tileNum)
-        => this.tileDatas.Add(tileNum, tileData.ToArray());
+    public string ReadTile(Span<byte> tileData, int tileNum)
+    {
+        this.tileDatas.Add(tileNum, tileData.ToArray());
+        return null;
+    }
 
     /// <inheritdoc/>
-    public void CompleteFrame()
-    {
-    }
+    public string CompleteFrame() => null;
 
     public ReadOnlySpan<byte> GetTileData(int tileNum)
         => this.tileDatas[tileNum];

@@ -66,12 +66,8 @@ internal class Vp8LBitReader : BitReaderBase
         : base(data)
     {
         this.len = data.Memory.Length;
-        this.value = 0;
-        this.bitPos = 0;
-        this.Eos = false;
 
-        // Alpha data that ends early can be shorter than the 8-byte bit window. Load only the bytes that exist,
-        // as the stream constructor does.
+        // Data that ends early can be shorter than the 8-byte bit window. The method loads only the bytes that exist.
         int length = (int)Math.Min(this.len, sizeof(long));
         ulong currentValue = 0;
         Span<byte> dataSpan = this.Data.Memory.Span;
@@ -91,35 +87,21 @@ internal class Vp8LBitReader : BitReaderBase
     /// <param name="imageDataSize">The raw image data size in bytes.</param>
     /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
     public Vp8LBitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
-        : base(inputStream, (int)imageDataSize, memoryAllocator)
+        : this(ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator))
     {
-        long length = imageDataSize;
-
-        this.len = length;
-        this.value = 0;
-        this.bitPos = 0;
-        this.Eos = false;
-
-        if (length > sizeof(long))
-        {
-            length = sizeof(long);
-        }
-
-        ulong currentValue = 0;
-        Span<byte> dataSpan = this.Data.Memory.Span;
-        for (int i = 0; i < length; i++)
-        {
-            currentValue |= (ulong)dataSpan[i] << (8 * i);
-        }
-
-        this.value = currentValue;
-        this.pos = length;
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a bit was read past the end of buffer.
+    /// Gets a value indicating whether a read went past the end of the data. After the value becomes true, it stays true. After the end, each read returns 0,
+    /// as in libwebp.
     /// </summary>
-    public bool Eos { get; set; }
+    public bool Eos { get; private set; }
+
+    /// <summary>
+    /// Gets an upper bound of the number of bits that are not read: the bytes after the bit window and the 64 bits of the window. libwebp uses the same bound
+    /// to reject a stream that is too short for its Huffman groups.
+    /// </summary>
+    public ulong MaxBitsLeft => ((ulong)(this.len - this.pos) * 8) + Lbits;
 
     /// <summary>
     /// Reads a unsigned short value from the buffer. The bits of each byte are read in least-significant-bit-first order.
@@ -139,6 +121,7 @@ internal class Vp8LBitReader : BitReaderBase
             return (uint)val;
         }
 
+        this.SetEndOfStream();
         return 0;
     }
 
@@ -175,7 +158,7 @@ internal class Vp8LBitReader : BitReaderBase
     {
         if (this.bitPos >= Wbits)
         {
-            this.DoFillBitWindow();
+            this.ShiftBytes();
         }
     }
 
@@ -185,9 +168,6 @@ internal class Vp8LBitReader : BitReaderBase
     /// <returns>True, if end of buffer was reached.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool IsEndOfStream() => this.Eos || (this.pos == this.len && this.bitPos > Lbits);
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void DoFillBitWindow() => this.ShiftBytes();
 
     /// <summary>
     /// If not at EOS, reload up to Vp8LLbits byte-by-byte.
@@ -203,5 +183,21 @@ internal class Vp8LBitReader : BitReaderBase
             ++this.pos;
             this.bitPos -= 8;
         }
+
+        // A bit position after the window here means that the loop above stopped at the end of the data. Thus, this one comparison is the condition of
+        // IsEndOfStream.
+        if (this.bitPos > Lbits)
+        {
+            this.SetEndOfStream();
+        }
+    }
+
+    /// <summary>
+    /// Marks the end of the data. The bit position goes back to 0, so that the shifts of the later reads stay in range.
+    /// </summary>
+    private void SetEndOfStream()
+    {
+        this.Eos = true;
+        this.bitPos = 0;
     }
 }

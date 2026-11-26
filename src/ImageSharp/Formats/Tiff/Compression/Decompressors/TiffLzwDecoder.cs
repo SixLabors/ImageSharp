@@ -84,6 +84,7 @@ internal sealed class TiffLzwDecoder
     private int bitMask;
     private int maxString;
     private bool eofReached;
+    private int bytesLeft;
     private int nextData;
     private int nextBits;
 
@@ -92,12 +93,14 @@ internal sealed class TiffLzwDecoder
     /// and sets the stream, where the compressed data should be read from.
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
+    /// <param name="byteCount">The byte count of the compressed data. The stream has these bytes.</param>
     /// <exception cref="ArgumentNullException"><paramref name="stream" /> is null.</exception>
-    public TiffLzwDecoder(Stream stream)
+    public TiffLzwDecoder(Stream stream, int byteCount)
     {
         Guard.NotNull(stream, nameof(stream));
 
         this.stream = stream;
+        this.bytesLeft = byteCount;
 
         // TODO: Investigate a manner by which we can avoid this allocation.
         this.table = new LzwString[TableSize];
@@ -124,11 +127,10 @@ internal sealed class TiffLzwDecoder
     /// </summary>
     /// <param name="pixels">The pixel array to decode to.</param>
     /// <returns>
-    /// <see langword="true"/> if each code is valid and the data fills <paramref name="pixels"/>. Else
-    /// <see langword="false"/>: the decoder found a code that is not valid, or the data ended early. Then the pixels
-    /// after the decoded pixels are 0.
+    /// The count of the decoded bytes. If the decoder found a code that is not valid, or if the data ended early, the count is less than the length of
+    /// <paramref name="pixels"/>. The decoder does not change the bytes after that count.
     /// </returns>
-    public bool DecodePixels(Span<byte> pixels)
+    public int DecodePixels(Span<byte> pixels)
     {
         // Adapted from the pseudo-code example found in the TIFF 6.0 Specification, 1992.
         // See Section 13: "LZW Compression"/"LZW Decoding", page 61+
@@ -140,7 +142,13 @@ internal sealed class TiffLzwDecoder
             if (code == ClearCode)
             {
                 this.Init();
-                code = this.GetNextCode();
+
+                // A Clear code can follow a Clear code. The decoder skips these codes, as libtiff does.
+                do
+                {
+                    code = this.GetNextCode();
+                }
+                while (code == ClearCode);
 
                 if (code == EoiCode)
                 {
@@ -151,8 +159,7 @@ internal sealed class TiffLzwDecoder
                 // new table, not only have an entry. Codes 256 and 257 have no entry.
                 if (!this.IsInTable(code) || this.table[code] == null)
                 {
-                    pixels[offset..].Clear();
-                    return false;
+                    return offset;
                 }
 
                 offset += this.table[code].WriteTo(pixels, offset);
@@ -161,8 +168,7 @@ internal sealed class TiffLzwDecoder
             {
                 if (this.table[this.oldCode] == null)
                 {
-                    pixels[offset..].Clear();
-                    return false;
+                    return offset;
                 }
 
                 bool added;
@@ -185,15 +191,13 @@ internal sealed class TiffLzwDecoder
                 else
                 {
                     // A code after the next table entry is not valid data.
-                    pixels[offset..].Clear();
-                    return false;
+                    return offset;
                 }
 
                 // A full table and no clear code is not valid data. The pixels of this code stay.
                 if (!added)
                 {
-                    pixels[offset..].Clear();
-                    return false;
+                    return offset;
                 }
             }
 
@@ -205,14 +209,7 @@ internal sealed class TiffLzwDecoder
             }
         }
 
-        // The data ended before it filled the pixels. The buffer is reused, so the pixels after the data are cleared.
-        if (offset < pixels.Length)
-        {
-            pixels[offset..].Clear();
-            return false;
-        }
-
-        return true;
+        return offset;
     }
 
     /// <summary>
@@ -259,26 +256,28 @@ internal sealed class TiffLzwDecoder
             return EoiCode;
         }
 
-        int read = this.stream.ReadByte();
-        if (read < 0)
+        // The data ends at the byte count. libtiff ends the data in the same way, at the count of the bits that remain. The stream has these bytes. Thus each
+        // read gives a byte.
+        if (this.bytesLeft == 0)
         {
             this.eofReached = true;
             return EoiCode;
         }
 
-        this.nextData = (this.nextData << 8) | read;
+        this.bytesLeft--;
+        this.nextData = (this.nextData << 8) | this.stream.ReadByte();
         this.nextBits += 8;
 
         if (this.nextBits < this.bitsPerCode)
         {
-            read = this.stream.ReadByte();
-            if (read < 0)
+            if (this.bytesLeft == 0)
             {
                 this.eofReached = true;
                 return EoiCode;
             }
 
-            this.nextData = (this.nextData << 8) | read;
+            this.bytesLeft--;
+            this.nextData = (this.nextData << 8) | this.stream.ReadByte();
             this.nextBits += 8;
         }
 

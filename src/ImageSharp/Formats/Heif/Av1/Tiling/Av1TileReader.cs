@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Parses partition, mode, transform, and coefficient syntax for one AV1 tile.
 /// </summary>
-internal sealed class Av1TileReader : IAv1TileReader, IDisposable
+internal sealed class Av1TileReader : IDisposable
 {
     /// <summary>
     /// The minimum value of the first self-guided projection coefficient.
@@ -173,8 +174,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// The reference roles whose dimensions are outside the AV1 scaling range of the current frame. Bit zero is the last-frame role.
     /// </summary>
     /// <remarks>
-    /// AV1 permits prediction from a reference only when it is at most twice and at least one sixteenth of the coded frame size on each axis.
-    /// The frame header can select other references, so the reader rejects a block only when it predicts from one of these roles.
+    /// AV1 permits prediction from a reference only when it is at most twice and at least one sixteenth of the coded frame size on each axis. The frame header
+    /// can select other references, so the reader reports a block only when it predicts from one of these roles.
     /// </remarks>
     private readonly int invalidScaleReferenceMask;
 
@@ -478,12 +479,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public IAv1FrameDecoder? FrameDecoder { get; set; }
 
     /// <summary>
-    /// Gets or sets the segment integrity mode. It controls if damaged or truncated tile data throws.
+    /// Gets or sets the segment integrity mode. It controls whether damaged or truncated tile data throws.
     /// </summary>
     /// <remarks>
-    /// In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, the reader keeps every superblock that it
-    /// decodes before the damage. It decodes the damaged superblock and the rest of the tile from an empty entropy stream.
-    /// That stream gives valid syntax, so the frame state stays consistent and the frame completes. The other modes throw.
+    /// Each check of the tile syntax reports damage at the check site. In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, the reader then
+    /// continues with a value inside the valid range of the syntax element. As a result, the frame state stays consistent and the frame completes. The reader
+    /// decodes the absent data of a truncated tile from implicit zero padding. The other modes throw.
     /// </remarks>
     public SegmentIntegrityHandling IntegrityHandling { get; set; }
 
@@ -574,9 +575,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> frameBlue = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.U);
         Span<byte> frameRed = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.V);
 
-        // IgnoreImageData replaces damaged tile data with an empty entropy stream. The reader then reads implicit zero
-        // padding only, as it does at the end of truncated data, and each symbol stays inside its alphabet.
-        bool readsEmptyStream = false;
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
             int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
@@ -588,71 +586,39 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
                 Point modeInfoPosition = new(column, row);
 
-                bool parseAgain;
-                do
+                if (this.FrameDecoder is null)
                 {
-                    parseAgain = false;
-                    try
-                    {
-                        if (this.FrameDecoder is null)
-                        {
-                            // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to
-                            // clear them. Full decoding clears each written coefficient region after its inverse transform.
-                            coefficientsY.Clear();
-                            coefficientsU.Clear();
-                            coefficientsV.Clear();
-                        }
-
-                        this.FrameInfo.ClearCdef(superblockPosition);
-                        firstTransformOffset[0] = 0;
-                        firstTransformOffset[1] = 0;
-                        planeCoefficientIndices.Clear();
-                        this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
-                        this.FrameDecoder?.BeginSuperblock(superblockInfo);
-                        this.ParsePartition(
-                            ref reader,
-                            levelStorage,
-                            aboveContextStorage,
-                            leftContextStorage,
-                            coefficientsY,
-                            coefficientsU,
-                            coefficientsV,
-                            transformInfoY,
-                            transformInfoUv,
-                            decoderWorkspace,
-                            frameLuma,
-                            frameBlue,
-                            frameRed,
-                            modeInfoPosition,
-                            superBlockSize,
-                            superblockInfo,
-                            tileInfo);
-                    }
-                    catch (Exception ex) when (this.IntegrityHandling.ShouldIgnoreImageDataError(ex) && !readsEmptyStream)
-                    {
-                        // The tile data is damaged. The superblocks before this one keep their decoded state. This
-                        // superblock parses again from an empty stream. The mode-information reset removes the records
-                        // of the failed parse from the frame map. The second parse starts from the other state that the
-                        // failed parse left. This state is the adapted CDFs, the quantizer and loop filter deltas, the
-                        // restoration references and the neighbor contexts of this superblock. The failed parse wrote
-                        // each of these values from decoded syntax before the error, so the second parse gives a
-                        // deterministic result. Reconstruction clears a coefficient region only after its inverse
-                        // transform. Thus the failed parse can leave coefficients, and the code clears them here.
-                        readsEmptyStream = true;
-                        reader = new Av1SymbolDecoder(
-                            this.configuration,
-                            [],
-                            this.entropyContexts.Working,
-                            !this.FrameHeader.DisableCdfUpdate);
-
-                        this.FrameInfo.ResetModeInfos(superblockPosition);
-                        coefficientsY.Clear();
-                        coefficientsU.Clear();
-                        coefficientsV.Clear();
-                        parseAgain = true;
-                    }
+                    // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to clear them. Full decoding clears each written
+                    // coefficient region after its inverse transform.
+                    coefficientsY.Clear();
+                    coefficientsU.Clear();
+                    coefficientsV.Clear();
                 }
-                while (parseAgain);
+
+                this.FrameInfo.ClearCdef(superblockPosition);
+                firstTransformOffset[0] = 0;
+                firstTransformOffset[1] = 0;
+                planeCoefficientIndices.Clear();
+                this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
+                this.FrameDecoder?.BeginSuperblock(superblockInfo);
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
+                    modeInfoPosition,
+                    superBlockSize,
+                    superblockInfo,
+                    tileInfo);
             }
         }
 
@@ -666,17 +632,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             // reusable graph, so the tiles that follow in bitstream order still start from the unchanged base.
             this.entropyContexts.Working.SnapshotTo(this.entropyContexts.Published);
         }
-    }
-
-    /// <summary>
-    /// Completes the current coded frame.
-    /// </summary>
-    public void CompleteFrame()
-    {
-        // Tile parsing and optional incremental superblock reconstruction finish inside ReadTile. The owning AV1
-        // decoder uses this lifecycle boundary to assemble native planes. A directly created tile reader owns its
-        // neighbor-context rents, so the same boundary must return them before ObuReader releases the frame instance.
-        this.Dispose();
     }
 
     /// <summary>
@@ -963,9 +918,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ObuColorConfig colorConfig = this.SequenceHeader.ColorConfig;
         if (subSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY) == Av1BlockSize.Invalid)
         {
-            // Luma partition syntax can describe a sub-8x8 shape that has no legal representation after chroma subsampling. The parser rejects it before it
-            // publishes any block state.
-            throw new InvalidImageContentException($"The decoded AV1 block size {subSize} is invalid for the sequence chroma subsampling.");
+            // Luma partition syntax can describe a sub-8x8 shape that has no legal representation after chroma subsampling. The parser reports this shape
+            // before it publishes any block state. Damaged data then continues with a split. Its square sub-blocks are valid for each subsampling.
+            this.IntegrityHandling.ThrowOrIgnoreImageDataError($"The decoded AV1 block size {subSize} is invalid for the sequence chroma subsampling.");
+            partitionType = Av1PartitionType.Split;
+            subSize = partitionType.GetBlockSubSize(blockSize);
         }
 
         Av1BlockSize splitSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
@@ -2841,7 +2798,23 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if ((this.invalidScaleReferenceMask & usedReferenceMask) != 0)
             {
-                throw new InvalidImageContentException("An AV1 inter block predicts from a reference with dimensions outside the scaling range.");
+                // The scaled predictor cannot read such a reference inside its buffers. The frame-header parse made sure that at least one role has a valid
+                // scale. As a result, damaged data continues with the first such role in place of each invalid role.
+                this.IntegrityHandling.ThrowOrIgnoreImageDataError("An AV1 inter block predicts from a reference with dimensions outside the scaling range.");
+                Av1ReferenceFrameType validReferenceFrame =
+                    (Av1ReferenceFrameType)((int)Av1ReferenceFrameType.Last + BitOperations.TrailingZeroCount(~this.invalidScaleReferenceMask));
+
+                if ((this.invalidScaleReferenceMask & (1 << ((int)referenceFrame - (int)Av1ReferenceFrameType.Last))) != 0)
+                {
+                    referenceFrame = validReferenceFrame;
+                    modeInfo.ReferenceFrames[0] = referenceFrame;
+                }
+
+                if (isCompound && (this.invalidScaleReferenceMask & (1 << ((int)secondaryReferenceFrame - (int)Av1ReferenceFrameType.Last))) != 0)
+                {
+                    secondaryReferenceFrame = validReferenceFrame;
+                    modeInfo.ReferenceFrames[1] = secondaryReferenceFrame;
+                }
             }
 
             ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.referenceMotionVectors;
@@ -2896,7 +2869,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Av1PredictionMode.NearNewMotionVector or
                 Av1PredictionMode.NewNearMotionVector)
             {
-                // Modes containing NEARMV reserve candidate zero for NEARESTMV, so their two DRL decisions examine
+                // Modes containing NEARMV reserve candidate zero for NEARESTMV, so their two DRL decisions check
                 // pairs one/two and two/three while storing a zero-based offset from the first near candidate.
                 for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
                 {
@@ -3013,7 +2986,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             {
                 if (!motionVectors[index].IsValid)
                 {
-                    throw new InvalidImageContentException("AV1 motion-vector component is outside the permitted range.");
+                    // Damaged data continues with the zero vector, which is inside the permitted range.
+                    this.IntegrityHandling.ThrowOrIgnoreImageDataError("AV1 motion-vector component is outside the permitted range.");
+                    motionVectors[index] = default;
                 }
             }
 
@@ -3266,10 +3241,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if (!Av1IntraBlockCopy.IsValid(displacement, ref partitionInfo, tileInfo, this.SequenceHeader))
             {
-                throw new InvalidImageContentException(
+                // The block cannot copy from outside the decoded area of the tile, and no fixed vector is valid at each position. Damaged data continues as a
+                // conventional intra block with the DC mode. The rest of its syntax then uses the intra branch.
+                this.IntegrityHandling.ThrowOrIgnoreImageDataError(
                     $"Invalid AV1 intra-block-copy displacement vector at ({partitionInfo.ColumnIndex}, {partitionInfo.RowIndex}) " +
                     $"for {partitionInfo.ModeInfo.BlockSize}: reference ({reference.Row}, {reference.Column}), " +
                     $"decoded ({displacement.Row}, {displacement.Column}).");
+
+                partitionInfo.ModeInfo.UseIntraBlockCopy = false;
+                this.ReadConventionalIntraMode(ref reader, ref partitionInfo, Av1PredictionMode.DC);
+                return;
             }
 
             partitionInfo.ModeInfo.DisplacementVector = displacement;
@@ -3798,9 +3779,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int segmentId = Av1SymbolContextHelper.NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
             if (segmentId is < 0 || segmentId > lastActiveSegmentId)
             {
-                // The coded alphabet always contains eight symbols, even when the frame activates fewer segments. Thus the parser validates the reconstructed
-                // ID and rejects corrupt data here.
-                throw new InvalidImageContentException("The decoded AV1 segment identifier exceeds the active segment range.");
+                // The coded alphabet always contains eight symbols, even when the frame activates fewer segments. As a result, the parser checks the
+                // reconstructed ID here. Damaged data continues with the nearest active ID.
+                this.IntegrityHandling.ThrowOrIgnoreImageDataError("The decoded AV1 segment identifier exceeds the active segment range.");
+                segmentId = Math.Clamp(segmentId, 0, lastActiveSegmentId);
             }
 
             partitionInfo.ModeInfo.SegmentId = segmentId;

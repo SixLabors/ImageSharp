@@ -19,13 +19,13 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// Owns a decoded patch dictionary in its encoded application order.
 /// </summary>
 /// <remarks>
-/// Patch syntax follows ISO/IEC 18181-1, Section C.4.5, and libjxl's dec_patch_dictionary.cc.
+/// Patch syntax follows ISO/IEC 18181-1, Section C.4.5.
 /// References supply native samples saved before the color transform. This owner retains reference indices, not reference-plane ownership.
 /// </remarks>
 internal sealed class JxlPatches : IDisposable
 {
     /// <summary>
-    /// The ten patch contexts in libjxl's patch_dictionary_internal.h, Listing C.2.
+    /// The number of entropy contexts of the patch dictionary.
     /// </summary>
     private const int ContextCount = 10;
 
@@ -335,8 +335,8 @@ internal sealed class JxlPatches : IDisposable
                     }
                     else if (!hasAlpha)
                     {
-                        // Without a declared alpha channel, libjxl blending.cc copies the reference
-                        // for both composition orders. Weighted addition becomes ordinary addition.
+                        // Without a declared alpha channel, copy the reference for both composition orders.
+                        // Weighted addition becomes ordinary addition.
                         BlendMode colorMode = color.Mode switch
                         {
                             BlendMode.BlendAbove or BlendMode.BlendBelow => BlendMode.Replace,
@@ -495,8 +495,8 @@ internal sealed class JxlPatches : IDisposable
         ulong height = (uint)codingSize.Height;
         if (!frame.Modular)
         {
-            // Native frame_dimensions.h pads VarDCT coding planes to complete eight-sample
-            // blocks. Modular dimensions remain unpadded. Patch positions use this coding grid.
+            // VarDCT coding planes are padded to complete eight-sample blocks. Modular dimensions remain unpadded.
+            // Patch positions use this coding grid.
             width = (width + 7) & ~7UL;
             height = (height + 7) & ~7UL;
         }
@@ -648,6 +648,14 @@ internal sealed class JxlPatches : IDisposable
         for (int sourceIndex = 0; sourceIndex < sourceCount; sourceIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Reads past the section end return zeros. The loop stops at the first overread, so a damaged count cannot repeat zero reads up to the frame-size
+            // limit. The check after this loop reports the overread.
+            if (!reader.AllReadsWithinBounds)
+            {
+                break;
+            }
+
             uint referenceIndex = ReadValue<TOperator>(ref symbols, ref reader, ReferenceFrameContext, history, ref decoded);
             if (referenceIndex >= references.Length)
             {
@@ -695,7 +703,7 @@ internal sealed class JxlPatches : IDisposable
 
             long x = 0;
             long y = 0;
-            for (ulong placement = 0; placement < repetitions; placement++)
+            for (ulong placement = 0; placement < repetitions && reader.AllReadsWithinBounds; placement++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (placement == 0)
@@ -758,6 +766,10 @@ internal sealed class JxlPatches : IDisposable
                 placementCount++;
             }
         }
+
+        // The DC-global section is complete, so a read past its end is damaged data in each mode. This method reports it before the caller allocates records
+        // from counts that it read past the end.
+        reader.ThrowIfReadPastSectionEnd();
 
         // Native validates the final ANS state, not completion of a trailing LZ77 copy.
         // A fresh Reader restarts both states on the second pass; reused history is overwritten

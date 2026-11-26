@@ -22,7 +22,6 @@ internal static class TiffDecompressorsFactory
         ImageFrameMetadata metadata,
         TiffColorType colorType,
         TiffPredictor predictor,
-        FaxCompressionOptions faxOptions,
         byte[] jpegTables,
         uint oldJpegStartOfImageMarker,
         TiffFillOrder fillOrder,
@@ -34,21 +33,16 @@ internal static class TiffDecompressorsFactory
         // Fax rows and nested image headers describe the full tile width, including padding outside the visible image.
         int segmentWidth = isTiled ? tileWidth : width;
 
+        // The parser accepts only the compressions in this switch. The default case shares the WebP case. Thus each path returns a decompressor.
         switch (method)
         {
             case TiffDecoderCompressionType.None:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
                 return new NoneTiffCompression(allocator, width, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.PackBits:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
                 return new PackBitsTiffCompression(allocator, width, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Deflate:
-                DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-
                 return new DeflateTiffCompression(
                     allocator,
                     width,
@@ -62,8 +56,6 @@ internal static class TiffDecompressorsFactory
                     options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Lzw:
-                DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-
                 return new LzwTiffCompression(
                     allocator,
                     width,
@@ -77,33 +69,26 @@ internal static class TiffDecompressorsFactory
                     options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.T4:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T4TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, faxOptions, options.SegmentIntegrityHandling);
+                return new T4TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.T6:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new T6TiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.HuffmanRle:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new ModifiedHuffmanTiffCompression(allocator, GetCcittBitOrder(fillOrder), segmentWidth, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.Jpeg:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new JpegTiffCompression(
                     new(options), allocator, segmentWidth, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
 
             case TiffDecoderCompressionType.OldJpeg:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new OldJpegTiffCompression(
                     new(options), allocator, segmentWidth, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
-                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new WebpTiffCompression(options, allocator, segmentWidth, bitsPerPixel, metadata);
-
             default:
-                throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));
+                DebugGuard.IsTrue(method == TiffDecoderCompressionType.Webp, "The parser accepts no other compression.");
+                return new WebpTiffCompression(options, allocator, segmentWidth, bitsPerPixel, metadata);
         }
     }
 

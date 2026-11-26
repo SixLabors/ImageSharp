@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -28,7 +27,7 @@ internal sealed class WebpTiffCompression : TiffBaseDecompressor
     /// <param name="bitsPerPixel">The total number of bits in each TIFF source pixel.</param>
     /// <param name="metadata">The containing TIFF frame's ICC profile metadata.</param>
     public WebpTiffCompression(DecoderOptions options, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, ImageFrameMetadata metadata)
-        : base(memoryAllocator, width, bitsPerPixel, TiffPredictor.None)
+        : base(memoryAllocator, width, bitsPerPixel, options.SegmentIntegrityHandling)
     {
         this.options = options;
         this.metadata = metadata;
@@ -38,7 +37,8 @@ internal sealed class WebpTiffCompression : TiffBaseDecompressor
     public override bool DecodesPixels => true;
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    /// <remarks>The nested decoder writes the pixels. Thus the sample buffer is empty.</remarks>
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         // The IFD supplies the profile; WebP owns source sample interpretation and packs its result as the requested TPixel.
@@ -48,6 +48,7 @@ internal sealed class WebpTiffCompression : TiffBaseDecompressor
 
         this.metadata.IccProfile ??= image.Metadata.IccProfile;
         this.CopyPixels(image.Frames.RootFrame.PixelBuffer, stripHeight, pixels);
+        return buffer.Length;
     }
 
     /// <inheritdoc/>

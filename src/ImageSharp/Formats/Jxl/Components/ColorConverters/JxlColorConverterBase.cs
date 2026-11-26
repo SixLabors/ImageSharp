@@ -247,7 +247,7 @@ internal abstract partial class JxlColorConverterBase
 
         if (frame.NeedsBlending)
         {
-            // libjxl stage_blending.cc requires the selected encoding to equal the original encoding.
+            // libjxl requires the selected encoding to equal the original encoding before blending.
             // This path restores compact RGB, D65 grayscale and profiles identified as sRGB above.
             // Other ICC profiles need parsed component fields to select a direct inverse. A paired
             // ICC round trip can map gamut before blending, so it cannot substitute for that inverse.
@@ -255,9 +255,9 @@ internal abstract partial class JxlColorConverterBase
             throw new InvalidImageContentException("JPEG XL frame composition cannot reconstruct the declared original color encoding.");
         }
 
-        // Native dec_xyb.cc falls back to linear-light RGB with sRGB primaries and D65 when no direct original inverse is available.
-        // dec_cache.cc can still save a full replacement in that selected encoding. A later frame
-        // that requires original-space composition fails above before consuming this reference.
+        // When no direct original inverse is available, this decoder uses linear-light RGB with sRGB primaries and D65, as libjxl does.
+        // A full replacement can still be saved in that selected encoding.
+        // A later frame that requires original-space composition fails above before it uses this reference.
         RgbWorkingSpace srgb = KnownRgbWorkingSpaces.SRgb;
         return new GammaWorkingSpace(1F, srgb.WhitePoint, srgb.ChromaticityCoordinates);
     }
@@ -268,20 +268,12 @@ internal abstract partial class JxlColorConverterBase
     /// <param name="header">The validated compact color description and coding XYB transform.</param>
     /// <param name="workingSpace">The original working space prepared once by the frame owner.</param>
     /// <returns>The coding inverse followed by the original transfer curve.</returns>
-    /// <exception cref="InvalidImageContentException">The original RGB primaries do not produce an invertible conversion matrix.</exception>
     public static JxlColorConverterBase CreateForOriginalColor(JxlHeader header, RgbWorkingSpace workingSpace)
     {
-        try
-        {
-            return new JxlColorConverter<XybOperator>(
-                new XybOperator(header.XybTransform, workingSpace, header.ProfileColorType == JxlColorType.Luminance), workingSpace);
-        }
-        catch (ArgumentException exception)
-        {
-            // Shared inverse preparation validates its target matrix. Translate only this setup
-            // failure at the codec boundary; row arithmetic does not catch or retry conversion errors.
-            throw new InvalidImageContentException("The JPEG XL original RGB primaries do not produce an invertible conversion matrix.", exception);
-        }
+        // Before the decoder allocates pixels, JxlHeader.Read rejects compact RGB primaries that do not give an invertible matrix. The other original working
+        // spaces use sRGB primaries. Thus the inverse always exists here.
+        return new JxlColorConverter<XybOperator>(
+            new XybOperator(header.XybTransform, workingSpace, header.ProfileColorType == JxlColorType.Luminance), workingSpace);
     }
 
     /// <summary>
@@ -294,7 +286,7 @@ internal abstract partial class JxlColorConverterBase
     {
         if (header.UsesXybTransform && !frame.CodingColorTransformApplied)
         {
-            // Static spot colors follow the inverse coding transform in libjxl dec_cache.cc.
+            // Static spot colors follow the inverse coding transform.
             // Keep its linear output here; the final transfer curve follows the spot calculation.
             return new JxlColorConverter<XybOperator>(new XybOperator(header.XybTransform));
         }

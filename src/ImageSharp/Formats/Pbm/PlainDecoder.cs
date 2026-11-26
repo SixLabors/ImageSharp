@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,16 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// </summary>
 internal class PlainDecoder
 {
-    private static readonly L8 White = new(255);
-    private static readonly L8 Black = new(0);
-
     /// <summary>
     /// Decode the specified pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of pixel to encode to.</typeparam>
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel array to encode into.</param>
-    /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="stream">The stream to read the data from. The header leaves it at the first byte of the raster.</param>
     /// <param name="colorType">The ColorType to decode.</param>
     /// <param name="componentType">Data type of the pixles components.</param>
     /// <param name="maxPixelValue">The maximum sample value declared in the header. Unused for black and white.</param>
@@ -40,56 +38,51 @@ internal class PlainDecoder
         SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Header parsing can reach EOF before the first sample. The pixels keep their default value in that case.
-        bool complete = false;
-        if (stream.Position < stream.Length)
+        if (colorType == PbmColorType.BlackAndWhite)
         {
-            // Full-range inputs keep the existing byte and ushort conversion paths.
-            // Other ranges need normalized floats until the destination pixel format performs its final packing.
-            int fullRange = componentType == PbmComponentType.Short ? ushort.MaxValue : byte.MaxValue;
-            if (colorType != PbmColorType.BlackAndWhite && maxPixelValue != fullRange)
-            {
-                complete = ProcessScaled(configuration, pixels, stream, colorType, maxPixelValue, handling);
-            }
-            else if (colorType == PbmColorType.Grayscale)
-            {
-                complete = componentType == PbmComponentType.Byte
-                    ? ProcessGrayscale(configuration, pixels, stream, handling)
-                    : ProcessWideGrayscale(configuration, pixels, stream, handling);
-            }
-            else if (colorType == PbmColorType.Rgb)
-            {
-                complete = componentType == PbmComponentType.Byte
-                    ? ProcessRgb(configuration, pixels, stream, handling)
-                    : ProcessWideRgb(configuration, pixels, stream, handling);
-            }
-            else
-            {
-                complete = ProcessBlackAndWhite(configuration, pixels, stream, handling);
-            }
+            ProcessBlackAndWhite(configuration, pixels, stream, handling);
+            return;
         }
 
-        if (!complete)
+        bool isRgb = colorType == PbmColorType.Rgb;
+        bool isWide = componentType == PbmComponentType.Short;
+        using IMemoryOwner<Vector4>? vectors = PbmSampleScaler.AllocateScaledRow(configuration.MemoryAllocator, pixels.Width, isWide, maxPixelValue);
+        if (vectors is null)
         {
-            // In the IgnoreImageData mode, the decoded rows and samples stay in the image.
-            handling.ThrowOrIgnoreImageDataError(PbmConstants.TruncatedRasterMessage);
+            ProcessFullRange(configuration, pixels, stream, isRgb, isWide, handling);
+        }
+        else
+        {
+            ProcessScaled(configuration, pixels, stream, isRgb, maxPixelValue, vectors.GetSpan(), handling);
         }
     }
 
     /// <summary>
-    /// Reads one decimal sample and the whitespace and comments after it.
+    /// Reads one decimal sample and the whitespace and comments after it. The method is the end-of-data site for the plain samples. The caller reads a sample
+    /// only when the image needs it.
     /// </summary>
-    /// <param name="stream">The input stream. It is at the first byte of the sample token.</param>
+    /// <param name="stream">The input stream. It is at the first byte of the sample token, or at the end of the stream.</param>
     /// <param name="handling">The segment integrity mode.</param>
     /// <param name="value">The sample value. The value of a damaged token is not defined.</param>
     /// <param name="isValid"><see langword="true"/> if the token is a decimal number. Otherwise, <see langword="false"/>.</param>
-    /// <returns><see langword="true"/> if more raster data follows the sample. <see langword="false"/> if the stream ends.</returns>
+    /// <returns>
+    /// <see langword="true"/> if the stream holds the sample. <see langword="false"/> if the stream ends before the sample. In that case, the method reported
+    /// the truncated raster.
+    /// </returns>
     private static bool ReadSample(BufferedReadStream stream, SegmentIntegrityHandling handling, out int value, out bool isValid)
     {
-        // ReadDecimal retains a final number even when EOF immediately follows its last digit.
+        // ReadDecimal returns false at the end of the stream. If the stream ends directly after the last digit of a number, ReadDecimal keeps the number, and
+        // the token is valid. Without a digit, the stream ends before the sample.
         if (!stream.ReadDecimal(out value, out _, out isValid))
         {
-            return false;
+            if (!isValid)
+            {
+                // In the IgnoreImageData mode, the decoded rows and samples stay in the image.
+                handling.ThrowOrIgnoreImageDataError(PbmConstants.TruncatedRasterMessage);
+                return false;
+            }
+
+            return true;
         }
 
         if (!isValid)
@@ -104,25 +97,27 @@ internal class PlainDecoder
             do
             {
                 current = stream.ReadByte();
-                if (current < 0)
-                {
-                    return false;
-                }
             }
-            while (current is not (0x09 or 0x0a or 0x0d or 0x20));
+            while (current >= 0 && current is not (0x09 or 0x0a or 0x0d or 0x20));
         }
 
-        return stream.SkipWhitespaceAndComments();
+        // At the end of the stream, the next ReadSample call reports the truncation if the image needs more samples.
+        stream.SkipWhitespaceAndComments();
+        return true;
     }
 
     /// <summary>
-    /// Reads one plain PBM pixel and the whitespace and comments after it.
+    /// Reads one plain PBM pixel and the whitespace and comments after it. The method is the end-of-data site for the plain bitmap. The caller reads a pixel
+    /// only when the image needs it.
     /// </summary>
-    /// <param name="stream">The input stream. It is at the byte of the pixel.</param>
+    /// <param name="stream">The input stream. It is at the byte of the pixel, or at the end of the stream.</param>
     /// <param name="handling">The segment integrity mode.</param>
     /// <param name="isBlack"><see langword="true"/> if the byte is '1'. Otherwise, <see langword="false"/>.</param>
     /// <param name="isValid"><see langword="true"/> if the byte is '0' or '1'. Otherwise, <see langword="false"/>.</param>
-    /// <returns><see langword="true"/> if more raster data follows the pixel. <see langword="false"/> if the stream ends.</returns>
+    /// <returns>
+    /// <see langword="true"/> if the stream holds the pixel. <see langword="false"/> if the stream ends before the pixel. In that case, the method reported the
+    /// truncated raster.
+    /// </returns>
     private static bool ReadBit(BufferedReadStream stream, SegmentIntegrityHandling handling, out bool isBlack, out bool isValid)
     {
         // Each pixel is one ASCII '0' or '1' byte, and whitespace in the raster is ignored. Thus "0101" holds four
@@ -130,12 +125,21 @@ internal class PlainDecoder
         int value = stream.ReadByte();
         isBlack = value == '1';
         isValid = isBlack || value == '0';
+        if (value < 0)
+        {
+            // In the IgnoreImageData mode, the decoded rows and pixels stay in the image.
+            handling.ThrowOrIgnoreImageDataError(PbmConstants.TruncatedRasterMessage);
+            return false;
+        }
+
         if (!isValid)
         {
             handling.ThrowOrIgnoreImageDataError("PBM sample data contains a byte that is not 0 or 1.");
         }
 
-        return stream.SkipWhitespaceAndComments();
+        // At the end of the stream, the next ReadBit call reports the truncation if the image needs more pixels.
+        stream.SkipWhitespaceAndComments();
+        return true;
     }
 
     /// <summary>
@@ -156,381 +160,192 @@ internal class PlainDecoder
     }
 
     /// <summary>
-    /// Normalizes decimal samples before the destination pixel format packs them.
+    /// Decodes plain gray (PGM) and color (PPM) samples with a non-standard Maxval. A gray pixel is one decimal sample. A color pixel is three decimal samples
+    /// in red, green, blue order. Each pixel goes to the vector row in one step. If the stream ends early, the decoded samples stay in the image.
     /// </summary>
-    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <typeparam name="TPixel">The type of pixel to decode to.</typeparam>
     /// <param name="configuration">The configuration.</param>
-    /// <param name="pixels">The destination pixels.</param>
-    /// <param name="stream">The input stream at the raster.</param>
-    /// <param name="colorType">The encoded color type.</param>
+    /// <param name="pixels">The pixel buffer to decode into.</param>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="isRgb">True for red, green and blue samples. False for gray samples.</param>
     /// <param name="maxPixelValue">The declared maximum sample value.</param>
+    /// <param name="vectorRow">The vector row from <see cref="PbmSampleScaler.AllocateScaledRow"/>.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessScaled<TPixel>(
+    private static void ProcessScaled<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
         BufferedReadStream stream,
-        PbmColorType colorType,
+        bool isRgb,
         int maxPixelValue,
+        Span<Vector4> vectorRow,
         SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool isRgb = colorType == PbmColorType.Rgb;
+        int width = pixels.Width;
         int channelCount = isRgb ? 3 : 1;
-        int width = pixels.Width;
-        int height = pixels.Height;
-        using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(width);
-        Span<Vector4> vectorRow = vectors.GetSpan();
         List<int> damagedPixels = [];
 
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < pixels.Height; y++)
         {
             int count = 0;
-            int channels = 0;
-            bool hasNext = true;
-            for (int x = 0; x < width; x++)
+            int samplesRead = channelCount;
+            while (count < width && samplesRead == channelCount)
             {
-                channels = 1;
-                hasNext = ReadSample(stream, handling, out int red, out bool isValid);
-                int green = red;
-                int blue = red;
-                if (isRgb)
+                samplesRead = ReadPixel(stream, handling, isRgb, out int red, out int green, out int blue, out bool isValid);
+                if (samplesRead == 0)
                 {
-                    // Preserve available channels if the last pixel is incomplete. Missing channels remain zero.
-                    green = 0;
-                    blue = 0;
-                    if (hasNext)
-                    {
-                        channels++;
-                        hasNext = ReadSample(stream, handling, out green, out bool isGreenValid);
-                        isValid &= isGreenValid;
-                        if (hasNext)
-                        {
-                            channels++;
-                            hasNext = ReadSample(stream, handling, out blue, out bool isBlueValid);
-                            isValid &= isBlueValid;
-                        }
-                    }
+                    break;
                 }
 
                 if (!isValid)
                 {
-                    damagedPixels.Add(x);
+                    damagedPixels.Add(count);
                 }
 
-                vectorRow[x] = PbmSampleScaler.Scale(new Vector4(red, green, blue, maxPixelValue), maxPixelValue);
+                vectorRow[count] = PbmSampleScaler.Scale(red, green, blue, maxPixelValue);
                 count++;
-                if (!hasNext)
-                {
-                    break;
-                }
             }
 
-            // Do not copy the unused part of a pooled row after EOF. Earlier rows and available samples remain decoded.
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(
-                configuration,
-                vectorRow[..count],
-                pixelSpan[..count]);
+            Span<TPixel> destination = pixels.DangerousGetRowSpan(y)[..count];
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, vectorRow[..count], destination);
+            ClearDamagedPixels(destination, damagedPixels);
 
-            ClearDamagedPixels(pixelSpan, damagedPixels);
-
-            if (!hasNext)
+            // ReadSample reported the end of the data. The rows after it keep the fill value.
+            if (samplesRead < channelCount)
             {
-                // The stream can end right after the last channel of the last pixel.
-                return y == height - 1 && count == width && channels == channelCount;
+                return;
             }
         }
-
-        return true;
     }
 
     /// <summary>
-    /// Decodes 8-bit plain grayscale (PGM) pixel data.
+    /// Reads the samples of one plain pixel: one gray sample, or red, green and blue samples.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="handling">The segment integrity mode.</param>
+    /// <param name="isRgb">True for red, green and blue samples. False for gray samples.</param>
+    /// <param name="red">The red sample, or the gray sample.</param>
+    /// <param name="green">The green sample. For gray, the gray sample.</param>
+    /// <param name="blue">The blue sample. For gray, the gray sample.</param>
+    /// <param name="isValid"><see langword="true"/> if each sample that the method read is a decimal number.</param>
+    /// <returns>
+    /// The number of samples that the method read. It is less than the sample count of a pixel only when the data ends. The pixel keeps its available channels,
+    /// and its missing channels are zero.
+    /// </returns>
+    private static int ReadPixel(
+        BufferedReadStream stream,
+        SegmentIntegrityHandling handling,
+        bool isRgb,
+        out int red,
+        out int green,
+        out int blue,
+        out bool isValid)
+    {
+        green = 0;
+        blue = 0;
+        if (!ReadSample(stream, handling, out red, out isValid))
+        {
+            return 0;
+        }
+
+        if (!isRgb)
+        {
+            green = red;
+            blue = red;
+            return 1;
+        }
+
+        if (!ReadSample(stream, handling, out int value, out bool isSampleValid))
+        {
+            return 1;
+        }
+
+        green = value;
+        isValid &= isSampleValid;
+        if (!ReadSample(stream, handling, out value, out isSampleValid))
+        {
+            return 2;
+        }
+
+        blue = value;
+        isValid &= isSampleValid;
+        return 3;
+    }
+
+    /// <summary>
+    /// Decodes full-range plain gray (PGM) and color (PPM) samples: Maxval 255, or Maxval 65535. A gray pixel is one decimal sample. A color pixel is three
+    /// decimal samples in red, green, blue order. If the stream ends early, the decoded samples stay in the image.
     /// </summary>
     /// <typeparam name="TPixel">The type of pixel to decode to.</typeparam>
     /// <param name="configuration">The configuration.</param>
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="isRgb">True for red, green and blue samples. False for gray samples.</param>
+    /// <param name="isWide">True for 16-bit samples. False for 8-bit samples.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessGrayscale<TPixel>(
+    private static void ProcessFullRange<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
         BufferedReadStream stream,
+        bool isRgb,
+        bool isWide,
         SegmentIntegrityHandling handling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        int channelCount = isRgb ? 3 : 1;
+        int sampleSize = isWide ? sizeof(ushort) : sizeof(byte);
+        int fullRange = isWide ? ushort.MaxValue : byte.MaxValue;
         int width = pixels.Width;
-        int height = pixels.Height;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
-        Span<L8> rowSpan = row.GetSpan();
+        int rowSampleCount = width * channelCount;
+
+        // The row holds the samples in the binary raster layout, in native byte order. Thus the plain and the binary decoders share the row conversion.
+        using IMemoryOwner<byte> row = configuration.MemoryAllocator.Allocate<byte>(rowSampleCount * sampleSize);
+        Span<byte> rowSpan = row.GetSpan();
+        Span<ushort> wideRow = MemoryMarshal.Cast<byte, ushort>(rowSpan);
         List<int> damagedPixels = [];
 
-        bool eofReached = false;
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < pixels.Height; y++)
         {
-            int count = 0;
-            for (int x = 0; x < width; x++)
+            int sampleCount = 0;
+            for (; sampleCount < rowSampleCount; sampleCount++)
             {
-                eofReached = !ReadSample(stream, handling, out int value, out bool isValid);
-                if (!isValid)
-                {
-                    damagedPixels.Add(x);
-                }
-
-                rowSpan[x] = new L8((byte)Math.Clamp(value, 0, byte.MaxValue));
-                count++;
-                if (eofReached)
+                if (!ReadSample(stream, handling, out int value, out bool isValid))
                 {
                     break;
-                }
-            }
-
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL8(
-                configuration,
-                rowSpan[..count],
-                pixelSpan[..count]);
-
-            ClearDamagedPixels(pixelSpan, damagedPixels);
-
-            if (eofReached)
-            {
-                // The stream can end right after the last sample of the image.
-                return y == height - 1 && count == width;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Decodes 16-bit plain grayscale (PGM) pixel data.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel to decode to.</typeparam>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="pixels">The pixel buffer to decode into.</param>
-    /// <param name="stream">The stream to read the data from.</param>
-    /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessWideGrayscale<TPixel>(
-        Configuration configuration,
-        Buffer2D<TPixel> pixels,
-        BufferedReadStream stream,
-        SegmentIntegrityHandling handling)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int width = pixels.Width;
-        int height = pixels.Height;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
-        Span<L16> rowSpan = row.GetSpan();
-        List<int> damagedPixels = [];
-
-        bool eofReached = false;
-        for (int y = 0; y < height; y++)
-        {
-            int count = 0;
-            for (int x = 0; x < width; x++)
-            {
-                eofReached = !ReadSample(stream, handling, out int value, out bool isValid);
-                if (!isValid)
-                {
-                    damagedPixels.Add(x);
-                }
-
-                rowSpan[x] = new L16((ushort)Math.Clamp(value, 0, ushort.MaxValue));
-                count++;
-                if (eofReached)
-                {
-                    break;
-                }
-            }
-
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL16(
-                configuration,
-                rowSpan[..count],
-                pixelSpan[..count]);
-
-            ClearDamagedPixels(pixelSpan, damagedPixels);
-
-            if (eofReached)
-            {
-                // The stream can end right after the last sample of the image.
-                return y == height - 1 && count == width;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Decodes 8-bit plain color (PPM) pixel data.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel to decode to.</typeparam>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="pixels">The pixel buffer to decode into.</param>
-    /// <param name="stream">The stream to read the data from.</param>
-    /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessRgb<TPixel>(
-        Configuration configuration,
-        Buffer2D<TPixel> pixels,
-        BufferedReadStream stream,
-        SegmentIntegrityHandling handling)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int width = pixels.Width;
-        int height = pixels.Height;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
-        Span<Rgb24> rowSpan = row.GetSpan();
-        List<int> damagedPixels = [];
-
-        bool eofReached = false;
-        for (int y = 0; y < height; y++)
-        {
-            int count = 0;
-            int channels = 0;
-            for (int x = 0; x < width; x++)
-            {
-                // Preserve available channels if the last pixel is incomplete. Missing channels remain zero.
-                int green = 0;
-                int blue = 0;
-                channels = 1;
-                eofReached = !ReadSample(stream, handling, out int red, out bool isValid);
-                if (!eofReached)
-                {
-                    channels++;
-                    eofReached = !ReadSample(stream, handling, out green, out bool isGreenValid);
-                    isValid &= isGreenValid;
-                    if (!eofReached)
-                    {
-                        channels++;
-                        eofReached = !ReadSample(stream, handling, out blue, out bool isBlueValid);
-                        isValid &= isBlueValid;
-                    }
                 }
 
                 if (!isValid)
                 {
-                    damagedPixels.Add(x);
+                    damagedPixels.Add(sampleCount / channelCount);
                 }
 
-                rowSpan[x] = new Rgb24(
-                    (byte)Math.Clamp(red, 0, byte.MaxValue),
-                    (byte)Math.Clamp(green, 0, byte.MaxValue),
-                    (byte)Math.Clamp(blue, 0, byte.MaxValue));
-
-                count++;
-                if (eofReached)
+                // The method saturates a value that is more than the sample range.
+                value = Math.Min(value, fullRange);
+                if (isWide)
                 {
-                    break;
+                    wideRow[sampleCount] = (ushort)value;
+                }
+                else
+                {
+                    rowSpan[sampleCount] = (byte)value;
                 }
             }
 
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromRgb24(
-                configuration,
-                rowSpan[..count],
-                pixelSpan[..count]);
+            // An incomplete last pixel keeps its available channels. Its missing channels are zero.
+            int count = (sampleCount + channelCount - 1) / channelCount;
+            int rowLength = count * channelCount * sampleSize;
+            rowSpan[(sampleCount * sampleSize)..rowLength].Clear();
 
-            ClearDamagedPixels(pixelSpan, damagedPixels);
+            Span<TPixel> destination = pixels.DangerousGetRowSpan(y)[..count];
+            PbmSampleScaler.ToPixels(configuration, rowSpan[..rowLength], destination, isRgb, isWide);
+            ClearDamagedPixels(destination, damagedPixels);
 
-            if (eofReached)
+            // ReadSample reported the end of the data. The rows after it keep the fill value.
+            if (sampleCount < rowSampleCount)
             {
-                // The stream can end right after the last channel of the last pixel.
-                return y == height - 1 && count == width && channels == 3;
+                return;
             }
         }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Decodes 16-bit plain color (PPM) pixel data.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel to decode to.</typeparam>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="pixels">The pixel buffer to decode into.</param>
-    /// <param name="stream">The stream to read the data from.</param>
-    /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessWideRgb<TPixel>(
-        Configuration configuration,
-        Buffer2D<TPixel> pixels,
-        BufferedReadStream stream,
-        SegmentIntegrityHandling handling)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int width = pixels.Width;
-        int height = pixels.Height;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
-        Span<Rgb48> rowSpan = row.GetSpan();
-        List<int> damagedPixels = [];
-
-        bool eofReached = false;
-        for (int y = 0; y < height; y++)
-        {
-            int count = 0;
-            int channels = 0;
-            for (int x = 0; x < width; x++)
-            {
-                // Preserve available channels if the last pixel is incomplete. Missing channels remain zero.
-                int green = 0;
-                int blue = 0;
-                channels = 1;
-                eofReached = !ReadSample(stream, handling, out int red, out bool isValid);
-                if (!eofReached)
-                {
-                    channels++;
-                    eofReached = !ReadSample(stream, handling, out green, out bool isGreenValid);
-                    isValid &= isGreenValid;
-                    if (!eofReached)
-                    {
-                        channels++;
-                        eofReached = !ReadSample(stream, handling, out blue, out bool isBlueValid);
-                        isValid &= isBlueValid;
-                    }
-                }
-
-                if (!isValid)
-                {
-                    damagedPixels.Add(x);
-                }
-
-                rowSpan[x] = new Rgb48(
-                    (ushort)Math.Clamp(red, 0, ushort.MaxValue),
-                    (ushort)Math.Clamp(green, 0, ushort.MaxValue),
-                    (ushort)Math.Clamp(blue, 0, ushort.MaxValue));
-
-                count++;
-                if (eofReached)
-                {
-                    break;
-                }
-            }
-
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromRgb48(
-                configuration,
-                rowSpan[..count],
-                pixelSpan[..count]);
-
-            ClearDamagedPixels(pixelSpan, damagedPixels);
-
-            if (eofReached)
-            {
-                // The stream can end right after the last channel of the last pixel.
-                return y == height - 1 && count == width && channels == 3;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>
@@ -541,8 +356,7 @@ internal class PlainDecoder
     /// <param name="pixels">The pixel buffer to decode into.</param>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="handling">The segment integrity mode.</param>
-    /// <returns><see langword="true"/> if the stream holds each sample of the image. <see langword="false"/> if it ends early.</returns>
-    private static bool ProcessBlackAndWhite<TPixel>(
+    private static void ProcessBlackAndWhite<TPixel>(
         Configuration configuration,
         Buffer2D<TPixel> pixels,
         BufferedReadStream stream,
@@ -550,47 +364,37 @@ internal class PlainDecoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
-        int height = pixels.Height;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-        using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
+        using IMemoryOwner<L8> row = configuration.MemoryAllocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();
         List<int> damagedPixels = [];
 
-        bool eofReached = false;
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < pixels.Height; y++)
         {
             int count = 0;
-            for (int x = 0; x < width; x++)
+            for (; count < width; count++)
             {
-                eofReached = !ReadBit(stream, handling, out bool isBlack, out bool isValid);
-                if (!isValid)
-                {
-                    damagedPixels.Add(x);
-                }
-
-                rowSpan[x] = isBlack ? Black : White;
-                count++;
-                if (eofReached)
+                if (!ReadBit(stream, handling, out bool isBlack, out bool isValid))
                 {
                     break;
                 }
+
+                if (!isValid)
+                {
+                    damagedPixels.Add(count);
+                }
+
+                rowSpan[count] = isBlack ? BinaryDecoder.Black : BinaryDecoder.White;
             }
 
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL8(
-                configuration,
-                rowSpan[..count],
-                pixelSpan[..count]);
+            Span<TPixel> destination = pixels.DangerousGetRowSpan(y)[..count];
+            PixelOperations<TPixel>.Instance.FromL8(configuration, rowSpan[..count], destination);
+            ClearDamagedPixels(destination, damagedPixels);
 
-            ClearDamagedPixels(pixelSpan, damagedPixels);
-
-            if (eofReached)
+            // ReadBit reported the end of the data. The rows after it keep the fill value.
+            if (count < width)
             {
-                // The stream can end right after the last sample of the image.
-                return y == height - 1 && count == width;
+                return;
             }
         }
-
-        return true;
     }
 }

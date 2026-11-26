@@ -31,58 +31,17 @@ internal static class Adam7
     public static readonly int[] RowIncrement = [8, 8, 8, 4, 4, 2, 2];
 
     /// <summary>
-    /// Gets the width of the block.
+    /// Gets the number of columns of an interlaced pass.
     /// </summary>
-    /// <param name="width">The width.</param>
-    /// <param name="pass">The pass.</param>
-    /// <returns>
-    /// The <see cref="int" />
-    /// </returns>
+    /// <remarks>
+    /// The pass takes each column from <see cref="FirstColumn"/> with the step <see cref="ColumnIncrement"/>, so the count is the ceiling of (width - first
+    /// column) / step. A pass can have no columns when the width is less than 5. The calculation uses unsigned values, so a width up to 2^31-1 cannot wrap. See
+    /// PNG Third Edition, section 8.1 "Interlace methods": https://www.w3.org/TR/png-3/#8InterlaceMethods.
+    /// </remarks>
+    /// <param name="width">The width of the image or frame.</param>
+    /// <param name="pass">The pass, 0 to 6.</param>
+    /// <returns>The number of columns.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ComputeBlockWidth(int width, int pass)
-    {
-        return (width + ColumnIncrement[pass] - 1 - FirstColumn[pass]) / ColumnIncrement[pass];
-    }
-
-    /// <summary>
-    /// Gets the height of the block.
-    /// </summary>
-    /// <param name="height">The height.</param>
-    /// <param name="pass">The pass.</param>
-    /// <returns>
-    /// The <see cref="int" />
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ComputeBlockHeight(int height, int pass)
-    {
-        return (height + RowIncrement[pass] - 1 - FirstRow[pass]) / RowIncrement[pass];
-    }
-
-    /// <summary>
-    /// Returns the correct number of columns for each interlaced pass.
-    /// </summary>
-    /// <param name="width">The line width.</param>
-    /// <param name="passIndex">The current pass index.</param>
-    /// <returns>The <see cref="int"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ComputeColumns(int width, int passIndex)
-    {
-        uint w = (uint)width;
-
-        uint result = passIndex switch
-        {
-            0 => (w + 7) / 8,
-            1 => (w + 3) / 8,
-            2 => (w + 3) / 4,
-            3 => (w + 1) / 4,
-            4 => (w + 1) / 2,
-            5 => w / 2,
-            6 => w,
-            _ => Throw(passIndex)
-        };
-
-        return (int)result;
-
-        static uint Throw(int passIndex) => throw new ArgumentException($"Not a valid pass index: {passIndex}");
-    }
+        => (int)(((uint)width + (uint)(ColumnIncrement[pass] - 1 - FirstColumn[pass])) / (uint)ColumnIncrement[pass]);
 }

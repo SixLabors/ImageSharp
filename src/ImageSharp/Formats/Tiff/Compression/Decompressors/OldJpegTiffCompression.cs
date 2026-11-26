@@ -43,11 +43,13 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
         ImageFrameMetadata metadata,
         uint startOfImageMarker,
         TiffPhotometricInterpretation photometricInterpretation)
-        : base(memoryAllocator, width, bitsPerPixel, TiffPredictor.None)
+        : base(memoryAllocator, width, bitsPerPixel, options.GeneralOptions.SegmentIntegrityHandling)
     {
         this.options = options;
         this.startOfImageMarker = startOfImageMarker;
         this.metadata = metadata;
+
+        // The parser accepts only the photometric interpretations that DecodeJpegData decodes.
         this.photometricInterpretation = photometricInterpretation;
     }
 
@@ -55,7 +57,8 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
     public override bool DecodesPixels => true;
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    /// <remarks>The nested decoder writes the pixels. Thus the sample buffer is empty.</remarks>
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         long stripOffset = stream.Position;
@@ -66,6 +69,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
         // Setting the stream position to the expected position.
         // This is a workaround for some images having set the stripBytesCount not equal to the compressed jpeg data.
         stream.Position = stripOffset + byteCount;
+        return buffer.Length;
     }
 
     /// <summary>
@@ -116,10 +120,6 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
                 this.CopyPixels(decompressedBuffer, stripHeight, buffer);
                 break;
             }
-
-            default:
-                TiffThrowHelper.ThrowNotSupported($"Jpeg compressed tiff with photometric interpretation {this.photometricInterpretation} is not supported");
-                break;
         }
     }
 

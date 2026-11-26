@@ -23,15 +23,16 @@ internal static partial class JxlQuantization
     private const float MatrixExpDenominator3 = 0.210242958F;
 
     /// <summary>
-    /// Converts positive RAW table integers to relative weights without changing the format's reciprocal arithmetic.
+    /// Converts positive RAW table integers to relative weights. The conversion keeps the reciprocal arithmetic of the format.
     /// </summary>
-    /// <param name="source">One decoded RAW row, with strictly positive integers.</param>
-    /// <param name="destination">One output weight per source integer.</param>
-    /// <param name="denominator">The finite positive denominator established by matrix parsing.</param>
+    /// <param name="source">One decoded RAW row.</param>
+    /// <param name="destination">One output weight for each source integer.</param>
+    /// <param name="denominator">The finite positive denominator from the matrix parser.</param>
     /// <remarks>
-    /// This computes one divided by denominator times sample. The parser later validates and inverts retained weights.
-    /// The two divisions have separate single-precision rounding and cannot be cancelled.
+    /// This method computes 1 / (denominator * sample). Later, the parser checks and inverts the retained weights. The two divisions have separate
+    /// single-precision rounding, so the code cannot cancel them.
     /// </remarks>
+    /// <exception cref="InvalidImageContentException">A source integer is zero or negative.</exception>
     public static void ConvertRawQuantizationRow(ReadOnlySpan<int> source, Span<float> destination, float denominator)
     {
         ref int input = ref MemoryMarshal.GetReference(source);
@@ -39,23 +40,38 @@ internal static partial class JxlQuantization
         RawQuantizationOperator operation = new(denominator);
         int i = 0;
 
+        // Each width keeps the lane-wise minimum of its samples and folds it into one 128-bit vector after its loop. Then the range check runs once after the
+        // complete row, not once for each vector. An invalid sample only gives an infinite or negative weight in the output before the check rejects the row.
+        Vector128<int> minimum = Vector128.Create(int.MaxValue);
+
         // Every lane supplies one coefficient. Unaligned loads and stores preserve row order; later widths consume only the remainder.
         if (Vector512.IsHardwareAccelerated)
         {
+            Vector512<int> minimum512 = Vector512.Create(int.MaxValue);
             nuint count = (source.Length - i).Vector512Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
             {
-                operation.Invoke(Vector512.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                Vector512<int> samples = Vector512.LoadUnsafe(ref input, (nuint)i);
+                minimum512 = Vector512.Min(minimum512, samples);
+                operation.Invoke(samples).StoreUnsafe(ref output, (nuint)i);
             }
+
+            Vector256<int> minimum256 = Vector256.Min(minimum512.GetLower(), minimum512.GetUpper());
+            minimum = Vector128.Min(minimum, Vector128.Min(minimum256.GetLower(), minimum256.GetUpper()));
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
+            Vector256<int> minimum256 = Vector256.Create(int.MaxValue);
             nuint count = (source.Length - i).Vector256Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
             {
-                operation.Invoke(Vector256.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                Vector256<int> samples = Vector256.LoadUnsafe(ref input, (nuint)i);
+                minimum256 = Vector256.Min(minimum256, samples);
+                operation.Invoke(samples).StoreUnsafe(ref output, (nuint)i);
             }
+
+            minimum = Vector128.Min(minimum, Vector128.Min(minimum256.GetLower(), minimum256.GetUpper()));
         }
 
         if (Vector128.IsHardwareAccelerated)
@@ -63,40 +79,74 @@ internal static partial class JxlQuantization
             nuint count = (source.Length - i).Vector128Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
             {
-                operation.Invoke(Vector128.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                Vector128<int> samples = Vector128.LoadUnsafe(ref input, (nuint)i);
+                minimum = Vector128.Min(minimum, samples);
+                operation.Invoke(samples).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
+        int scalarMinimum = int.MaxValue;
         for (; i < source.Length; i++)
         {
-            Unsafe.Add(ref output, i) = operation.Invoke(Unsafe.Add(ref input, i));
+            int sample = Unsafe.Add(ref input, i);
+            scalarMinimum = Math.Min(scalarMinimum, sample);
+            Unsafe.Add(ref output, i) = operation.Invoke(sample);
+        }
+
+        // A RAW table that contains a nonpositive integer is invalid.
+        if (!Vector128.GreaterThanAll(Vector128.Min(minimum, Vector128.Create(scalarMinimum)), Vector128<int>.Zero))
+        {
+            throw new InvalidImageContentException("The JPEG XL RAW quantization table contains a nonpositive sample.");
         }
     }
 
     /// <summary>
-    /// Establishes the format's weight limits and replaces retained relative weights with decoder factors in place.
+    /// Applies the weight limits of the format. Then it replaces the retained relative weights with decoder factors in place.
     /// </summary>
     /// <param name="weights">The complete generated component planes.</param>
+    /// <exception cref="InvalidImageContentException">A weight is NaN or outside [1e-8,1e8).</exception>
     public static void InvertQuantizationWeights(Span<float> weights)
     {
         ref float first = ref MemoryMarshal.GetReference(weights);
         int i = 0;
+
+        // Each width keeps a lane-wise AND of its range masks and folds it into one 128-bit vector after its loop. If all bits are set, each weight in that
+        // lane is valid. Then the range check runs once after all planes. Ordered comparisons clear the mask for NaN. Thus NaN fails together with infinities
+        // and out-of-range weights.
+        Vector128<int> valid = Vector128<int>.AllBitsSet;
         if (Vector512.IsHardwareAccelerated)
         {
+            Vector512<int> valid512 = Vector512<int>.AllBitsSet;
             nuint count = (weights.Length - i).Vector512Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
-                InverseQuantizationOperator.Invoke(Vector512.LoadUnsafe(ref first, (nuint)i)).StoreUnsafe(ref first, (nuint)i);
+                Vector512<float> value = Vector512.LoadUnsafe(ref first, (nuint)i);
+                Vector512<float> inRange = Vector512.GreaterThanOrEqual(value, Vector512.Create(MinimumQuantizationWeight))
+                    & Vector512.LessThan(value, Vector512.Create(MaximumQuantizationWeight));
+
+                valid512 &= inRange.AsInt32();
+                InverseQuantizationOperator.Invoke(value).StoreUnsafe(ref first, (nuint)i);
             }
+
+            Vector256<int> valid256 = valid512.GetLower() & valid512.GetUpper();
+            valid &= valid256.GetLower() & valid256.GetUpper();
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
+            Vector256<int> valid256 = Vector256<int>.AllBitsSet;
             nuint count = (weights.Length - i).Vector256Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                InverseQuantizationOperator.Invoke(Vector256.LoadUnsafe(ref first, (nuint)i)).StoreUnsafe(ref first, (nuint)i);
+                Vector256<float> value = Vector256.LoadUnsafe(ref first, (nuint)i);
+                Vector256<float> inRange = Vector256.GreaterThanOrEqual(value, Vector256.Create(MinimumQuantizationWeight))
+                    & Vector256.LessThan(value, Vector256.Create(MaximumQuantizationWeight));
+
+                valid256 &= inRange.AsInt32();
+                InverseQuantizationOperator.Invoke(value).StoreUnsafe(ref first, (nuint)i);
             }
+
+            valid &= valid256.GetLower() & valid256.GetUpper();
         }
 
         if (Vector128.IsHardwareAccelerated)
@@ -104,13 +154,28 @@ internal static partial class JxlQuantization
             nuint count = (weights.Length - i).Vector128Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
-                InverseQuantizationOperator.Invoke(Vector128.LoadUnsafe(ref first, (nuint)i)).StoreUnsafe(ref first, (nuint)i);
+                Vector128<float> value = Vector128.LoadUnsafe(ref first, (nuint)i);
+                Vector128<float> inRange = Vector128.GreaterThanOrEqual(value, Vector128.Create(MinimumQuantizationWeight))
+                    & Vector128.LessThan(value, Vector128.Create(MaximumQuantizationWeight));
+
+                valid &= inRange.AsInt32();
+                InverseQuantizationOperator.Invoke(value).StoreUnsafe(ref first, (nuint)i);
             }
         }
 
+        bool scalarValid = true;
         for (; i < weights.Length; i++)
         {
-            Unsafe.Add(ref first, i) = InverseQuantizationOperator.Invoke(Unsafe.Add(ref first, i));
+            float value = Unsafe.Add(ref first, i);
+            scalarValid &= value >= MinimumQuantizationWeight && value < MaximumQuantizationWeight;
+            Unsafe.Add(ref first, i) = InverseQuantizationOperator.Invoke(value);
+        }
+
+        // A weight outside [1e-8,1e8) makes the table invalid. This decoder tests the complete table once.
+        // The result is the same as a test of each vector of weights.
+        if (!scalarValid || !Vector128.EqualsAll(valid, Vector128<int>.AllBitsSet))
+        {
+            throw new InvalidImageContentException("The JPEG XL quantization weight is outside its permitted range.");
         }
     }
 
@@ -120,7 +185,7 @@ internal static partial class JxlQuantization
     /// <param name="value">The prepared adjacent-band logarithm multiplied by a fraction in [0,1).</param>
     /// <returns>The positive interpolation multiplier.</returns>
     /// <remarks>
-    /// The 3/3 rational coefficients come from libjxl's FastPow2f in base/fast_math-inl.h.
+    /// The 3/3 rational coefficients come from libjxl.
     /// Encoded half-precision deltas bound adjacent factors between 1/65505 and 65505, so the exponent stays within (-16,16).
     /// Range reduction leaves a fraction in [0,1), then the IEEE exponent restores the integral power of two.
     /// This matrix operation uses single precision throughout and does not apply pixel component limits.
@@ -317,7 +382,7 @@ internal static partial class JxlQuantization
     }
 
     /// <summary>
-    /// Expands RAW integers with the encoded denominator and rejects invalid nonpositive samples.
+    /// Expands RAW integers with the encoded denominator. The row converter checks the integers once after the row.
     /// </summary>
     private readonly struct RawQuantizationOperator
     {
@@ -330,143 +395,76 @@ internal static partial class JxlQuantization
         public RawQuantizationOperator(float denominator) => this.denominator = denominator;
 
         /// <summary>
-        /// Converts one positive integer to a relative weight.
+        /// Converts one table integer to a relative weight.
         /// </summary>
-        /// <param name="sample">The decoded positive table integer.</param>
+        /// <param name="sample">The decoded table integer.</param>
         /// <returns>The reciprocal of the scaled integer.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Invoke(int sample)
-        {
-            if (sample <= 0)
-            {
-                throw new InvalidImageContentException("The JPEG XL RAW quantization table contains a nonpositive sample.");
-            }
-
-            return 1F / (this.denominator * sample);
-        }
+        public float Invoke(int sample) => 1F / (this.denominator * sample);
 
         /// <summary>
         /// Converts 4 independent RAW integer lanes to relative weights.
         /// </summary>
-        /// <param name="samples">The decoded positive table integers.</param>
+        /// <param name="samples">The decoded table integers.</param>
         /// <returns>The reciprocals of the scaled integers, in unchanged lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<float> Invoke(Vector128<int> samples)
-        {
-            if (!Vector128.GreaterThanAll(samples, Vector128<int>.Zero))
-            {
-                throw new InvalidImageContentException("The JPEG XL RAW quantization table contains a nonpositive sample.");
-            }
-
-            return Vector128<float>.One / (Vector128.Create(this.denominator) * Vector128.ConvertToSingle(samples));
-        }
+            => Vector128<float>.One / (Vector128.Create(this.denominator) * Vector128.ConvertToSingle(samples));
 
         /// <summary>
         /// Converts 8 independent RAW integer lanes to relative weights.
         /// </summary>
-        /// <param name="samples">The decoded positive table integers.</param>
+        /// <param name="samples">The decoded table integers.</param>
         /// <returns>The reciprocals of the scaled integers, in unchanged lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<float> Invoke(Vector256<int> samples)
-        {
-            if (!Vector256.GreaterThanAll(samples, Vector256<int>.Zero))
-            {
-                throw new InvalidImageContentException("The JPEG XL RAW quantization table contains a nonpositive sample.");
-            }
-
-            return Vector256<float>.One / (Vector256.Create(this.denominator) * Vector256.ConvertToSingle(samples));
-        }
+            => Vector256<float>.One / (Vector256.Create(this.denominator) * Vector256.ConvertToSingle(samples));
 
         /// <summary>
         /// Converts 16 independent RAW integer lanes to relative weights.
         /// </summary>
-        /// <param name="samples">The decoded positive table integers.</param>
+        /// <param name="samples">The decoded table integers.</param>
         /// <returns>The reciprocals of the scaled integers, in unchanged lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector512<float> Invoke(Vector512<int> samples)
-        {
-            if (!Vector512.GreaterThanAll(samples, Vector512<int>.Zero))
-            {
-                throw new InvalidImageContentException("The JPEG XL RAW quantization table contains a nonpositive sample.");
-            }
-
-            return Vector512<float>.One / (Vector512.Create(this.denominator) * Vector512.ConvertToSingle(samples));
-        }
+            => Vector512<float>.One / (Vector512.Create(this.denominator) * Vector512.ConvertToSingle(samples));
     }
 
     /// <summary>
-    /// Validates relative weights in [1e-8,1e8) and returns their decoder reciprocals.
+    /// Returns the decoder reciprocals of relative weights. The caller checks the weights once after all lanes.
     /// </summary>
     private readonly struct InverseQuantizationOperator
     {
         /// <summary>
-        /// Validates and inverts one positive finite weight.
+        /// Inverts one weight.
         /// </summary>
         /// <param name="weight">The generated relative coefficient weight.</param>
         /// <returns>The decoder coefficient multiplier.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Invoke(float weight)
-        {
-            if (!(weight >= MinimumQuantizationWeight && weight < MaximumQuantizationWeight))
-            {
-                throw new InvalidImageContentException("The JPEG XL quantization weight is outside its permitted range.");
-            }
-
-            return 1F / weight;
-        }
+        public static float Invoke(float weight) => 1F / weight;
 
         /// <summary>
-        /// Validates and inverts 4 independent weight lanes.
+        /// Inverts 4 independent weight lanes.
         /// </summary>
         /// <param name="weights">The generated relative coefficient weights.</param>
         /// <returns>The decoder coefficient multipliers.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<float> Invoke(Vector128<float> weights)
-        {
-            // Ordered comparisons reject NaN as well as infinities and weights outside the format's finite range.
-            if (!Vector128.GreaterThanOrEqualAll(weights, Vector128.Create(MinimumQuantizationWeight))
-                || !Vector128.LessThanAll(weights, Vector128.Create(MaximumQuantizationWeight)))
-            {
-                throw new InvalidImageContentException("The JPEG XL quantization weight is outside its permitted range.");
-            }
-
-            return Vector128<float>.One / weights;
-        }
+        public static Vector128<float> Invoke(Vector128<float> weights) => Vector128<float>.One / weights;
 
         /// <summary>
-        /// Validates and inverts 8 independent weight lanes.
+        /// Inverts 8 independent weight lanes.
         /// </summary>
         /// <param name="weights">The generated relative coefficient weights.</param>
         /// <returns>The decoder coefficient multipliers.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<float> Invoke(Vector256<float> weights)
-        {
-            // Ordered comparisons reject NaN as well as infinities and weights outside the format's finite range.
-            if (!Vector256.GreaterThanOrEqualAll(weights, Vector256.Create(MinimumQuantizationWeight))
-                || !Vector256.LessThanAll(weights, Vector256.Create(MaximumQuantizationWeight)))
-            {
-                throw new InvalidImageContentException("The JPEG XL quantization weight is outside its permitted range.");
-            }
-
-            return Vector256<float>.One / weights;
-        }
+        public static Vector256<float> Invoke(Vector256<float> weights) => Vector256<float>.One / weights;
 
         /// <summary>
-        /// Validates and inverts 16 independent weight lanes.
+        /// Inverts 16 independent weight lanes.
         /// </summary>
         /// <param name="weights">The generated relative coefficient weights.</param>
         /// <returns>The decoder coefficient multipliers.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<float> Invoke(Vector512<float> weights)
-        {
-            // Ordered comparisons reject NaN as well as infinities and weights outside the format's finite range.
-            if (!Vector512.GreaterThanOrEqualAll(weights, Vector512.Create(MinimumQuantizationWeight))
-                || !Vector512.LessThanAll(weights, Vector512.Create(MaximumQuantizationWeight)))
-            {
-                throw new InvalidImageContentException("The JPEG XL quantization weight is outside its permitted range.");
-            }
-
-            return Vector512<float>.One / weights;
-        }
+        public static Vector512<float> Invoke(Vector512<float> weights) => Vector512<float>.One / weights;
     }
 }

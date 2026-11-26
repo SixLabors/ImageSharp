@@ -20,22 +20,30 @@ internal class ZipExrCompression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per pixel row.</param>
-    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The witdh of one row in pixels.</param>
-    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
-        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
+    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, int width, SegmentIntegrityHandling integrityHandling)
+        : base(allocator, bytesPerRow, width, integrityHandling) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
-    protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    protected override bool DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)uncompressedBytes];
 
-        int totalRead = UndoZipCompression(stream, compressedBytes, uncompressed, uncompressedBytes);
+        if (!this.UndoZipCompression(stream, compressedBytes, uncompressed, uncompressedBytes))
+        {
+            return false;
+        }
 
         Reconstruct(uncompressed, uncompressedBytes);
         Interleave(uncompressed, uncompressedBytes, buffer);
+        return true;
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+        this.tmpBuffer.Dispose();
+        base.Dispose(disposing);
+    }
 }

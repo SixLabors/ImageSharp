@@ -123,9 +123,9 @@ public readonly struct XybTransform
         // Public matrices contain row-major coefficients. Transpose them for System.Numerics row vectors,
         // then scale relative RGB so one represents IntensityTarget nits. Compose the XYZ connection here,
         // when options prepare the transform, rather than multiplying matrices for every scalar color or bulk block.
-        // libjxl dec_xyb.cc composes the output-space matrix before InitSIMDInverseMatrix applies
-        // the intensity factor. Scaling first rounds each inverse coefficient before cancellation
-        // in the matrix product. Keep that setup order while all arithmetic remains float.
+        // Compose the output-space matrix before the intensity factor applies, as libjxl does.
+        // Scaling first rounds each inverse coefficient before cancellation in the matrix product.
+        // Keep that setup order while all arithmetic remains float.
         Matrix4x4 inverse = Matrix4x4.Transpose(source.Inverse);
         this.Inverse = (inverse * rgbToXyz) * (ReferenceIntensity / source.IntensityTarget);
 

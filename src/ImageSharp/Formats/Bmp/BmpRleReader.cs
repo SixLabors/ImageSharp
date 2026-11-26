@@ -28,7 +28,13 @@ internal ref struct BmpRleReader
     // pixels, and each pixel is 3 bytes (B, G, R).
     private const int MaxReadLength = 255 * 3;
 
+    /// <summary>
+    /// The message for RLE data that ends before the image is complete.
+    /// </summary>
+    private const string DataEndMessage = "The BMP run-length data ends before the image is complete.";
+
     private readonly BufferedReadStream stream;
+    private readonly SegmentIntegrityHandling integrityHandling;
     private readonly IMemoryOwner<byte> owner;
     private readonly Span<byte> chunk;
 
@@ -39,9 +45,10 @@ internal ref struct BmpRleReader
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpRleReader"/> struct.
     /// </summary>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data, at the start of the RLE data.</param>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> that contains the image data, at the start of the RLE data.</param>
     /// <param name="allocator">The allocator of the chunk.</param>
-    public BmpRleReader(BufferedReadStream stream, MemoryAllocator allocator)
+    /// <param name="integrityHandling">The segment integrity mode of the decode. It selects what happens when the data ends early.</param>
+    public BmpRleReader(BufferedReadStream stream, MemoryAllocator allocator, SegmentIntegrityHandling integrityHandling)
     {
         // Why this chunk size:
         // BufferedReadStream.Read copies a request of BufferSize bytes or fewer through its own buffer first. A larger
@@ -51,6 +58,7 @@ internal ref struct BmpRleReader
         // each fill takes the direct path. The size depends on the stream configuration only, never on the stream
         // length or on a value in the file.
         this.stream = stream;
+        this.integrityHandling = integrityHandling;
         this.owner = allocator.Allocate<byte>(stream.BufferSize + MaxReadLength);
         this.chunk = this.owner.GetSpan();
     }
@@ -59,18 +67,19 @@ internal ref struct BmpRleReader
     /// Reads the next <paramref name="count"/> bytes.
     /// </summary>
     /// <remarks>
-    /// When the data ends, the method returns <see langword="false"/>. The caller then stops and applies the segment
-    /// integrity mode of the decode.
+    /// In the Strict and IgnoreAncillary modes, the method throws for data that ends before the image is complete. In the IgnoreImageData mode, the method
+    /// returns <see langword="false"/>, and the caller stops and keeps the pixels that it wrote before the end.
     /// </remarks>
     /// <param name="count">The byte count. It is at most 765, the data of an RLE24 absolute run.</param>
     /// <param name="bytes">The bytes. The span is valid until the next read.</param>
-    /// <returns><see langword="true"/> if the data has <paramref name="count"/> more bytes. Else <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if the data has <paramref name="count"/> more bytes. Otherwise <see langword="false"/>.</returns>
     public bool TryRead(int count, out ReadOnlySpan<byte> bytes)
     {
         DebugGuard.MustBeLessThanOrEqualTo(count, MaxReadLength, nameof(count));
 
         if (this.length - this.position < count && !this.Fill(count))
         {
+            this.integrityHandling.ThrowOrIgnoreImageDataError(DataEndMessage);
             bytes = default;
             return false;
         }

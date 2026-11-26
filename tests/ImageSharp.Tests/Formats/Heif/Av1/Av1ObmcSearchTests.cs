@@ -26,9 +26,8 @@ public class Av1ObmcSearchTests
     private static readonly int[] Widths = [8, 16, 32, 64, 128];
 
     /// <summary>
-    /// Verifies the sum of rounded absolute differences against obmc_sad(), the signed and squared sums against
-    /// obmc_variance(), including the largest twelve-bit block where a thirty-two-bit total of the squares would
-    /// overflow, and every step of the OBMC search target against calc_target_weighted_pred().
+    /// Verifies the sum of rounded absolute differences, the signed and squared sums, and every step of the OBMC search target against the scalar libaom
+    /// definitions. The squared sums include the largest twelve-bit block, where a thirty-two-bit total of the squares would overflow.
     /// </summary>
     [Fact]
     public void SearchMeasuresMatchReference()
@@ -246,7 +245,7 @@ public class Av1ObmcSearchTests
     }
 
     /// <summary>
-    /// The scalar definition of obmc_sad().
+    /// The scalar definition of the libaom OBMC sum of absolute differences.
     /// </summary>
     private static int SumAbsoluteDifferencesReference(ushort[] prediction, int stride, int[] weightedSource, int[] mask, int width, int height)
     {
@@ -264,7 +263,7 @@ public class Av1ObmcSearchTests
     }
 
     /// <summary>
-    /// The scalar definition of the accumulation of obmc_variance(), with ROUND_POWER_OF_TWO_SIGNED().
+    /// The scalar definition of the accumulation of the libaom OBMC variance, with signed rounding by a power of two.
     /// </summary>
     private static void GetMomentsReference(
         ushort[] prediction,
@@ -303,8 +302,7 @@ public class Av1ObmcSearchTests
     }
 
     /// <summary>
-    /// Creates weighted source values over the full range of calc_target_weighted_pred(): the source
-    /// scaled by 64 * 64 minus a neighbor term of up to the same size.
+    /// Creates weighted source values over the full range of the OBMC search target: the source scaled by 64 * 64 minus a neighbor term of up to the same size.
     /// </summary>
     private static int[] CreateWeightedSource(Random random, int length, int bitDepth)
     {

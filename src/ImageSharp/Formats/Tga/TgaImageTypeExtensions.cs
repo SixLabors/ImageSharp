@@ -9,6 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 internal static class TgaImageTypeExtensions
 {
     /// <summary>
+    /// Checks if this tga image type stores color map indices.
+    /// </summary>
+    /// <param name="imageType">The tga image type.</param>
+    /// <returns><see langword="true"/> if this image type stores color map indices. Otherwise <see langword="false"/>.</returns>
+    public static bool IsColorMapped(this TgaImageType imageType)
+        => imageType is TgaImageType.ColorMapped or TgaImageType.RleColorMapped;
+
+    /// <summary>
     /// Checks if this tga image type is run length encoded.
     /// </summary>
     /// <param name="imageType">The tga image type.</param>

@@ -12,11 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 /// Used to buffer and track the bits read from the Huffman entropy encoded data.
 /// </summary>
 /// <remarks>
-/// The reader reads entropy-coded bytes from the stream into its own byte buffer before it needs them.
-/// Thus, a refill can load six bytes in one operation.
-/// The stream position is then after the last byte in this buffer, not at the next byte to decode.
-/// The scan decoders call <see cref="EndScan"/> at the end of a scan. To go back to a marker, they call
-/// <see cref="RewindToMarker"/> and do not set the stream position. Then the stream position is correct.
+/// The reader reads entropy-coded bytes from the stream into its own byte buffer before it needs them. Thus a refill can load six bytes in one operation. The
+/// stream position is then after the last byte in this buffer, not at the next byte to decode. The scan decoders call <see cref="EndScan"/> at the end of a
+/// scan. To go back to a marker, the reader calls <see cref="RewindToMarker"/>, and the scan decoders do not set the stream position. Then the stream position
+/// is correct.
 /// </remarks>
 internal unsafe struct JpegBitReader
 {
@@ -54,8 +53,22 @@ internal unsafe struct JpegBitReader
     // bits are the last bits of the buffer. If fewer valid bits remain than fill bits, the decoder used fill bits.
     private int fillBits;
 
+    // A value that tells if the Huffman decoder found bits that are not a code of the table in the current restart interval. The flag stays set until the next
+    // reset. The checkpoint at the end of the interval or scan reports it one time.
+    private bool badCodeFound;
+
     // The segment integrity mode. It controls if damaged or truncated entropy-coded data throws.
     private readonly SegmentIntegrityHandling integrityHandling;
+
+    // The number of MCUs in each restart interval. Zero or less means that the scan has no restart markers.
+    private readonly int restartInterval;
+
+    // The number of MCUs left in the current restart interval.
+    private int restartsToGo;
+
+    // A value that tells if a restart interval ended without its restart marker. The reader reports the error only when another MCU follows, because the last
+    // restart interval of a scan has no restart marker.
+    private bool restartMarkerMissing;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegBitReader"/> struct.
@@ -69,7 +82,16 @@ internal unsafe struct JpegBitReader
     /// <param name="integrityHandling">
     /// The segment integrity mode. It controls if damaged or truncated entropy-coded data throws.
     /// </param>
-    public JpegBitReader(BufferedReadStream stream, byte* entropyBuffer, int entropyBufferLength, SegmentIntegrityHandling integrityHandling)
+    /// <param name="restartInterval">
+    /// The number of MCUs in each restart interval from the DRI marker. Zero means that the scan has no restart markers. Each scan starts a new count, as
+    /// libjpeg-turbo does.
+    /// </param>
+    public JpegBitReader(
+        BufferedReadStream stream,
+        byte* entropyBuffer,
+        int entropyBufferLength,
+        SegmentIntegrityHandling integrityHandling,
+        int restartInterval)
     {
         this.stream = stream;
         this.entropyBuffer = entropyBuffer;
@@ -84,7 +106,11 @@ internal unsafe struct JpegBitReader
         this.NoData = false;
         this.eofHitCount = 0;
         this.fillBits = 0;
+        this.badCodeFound = false;
         this.integrityHandling = integrityHandling;
+        this.restartInterval = restartInterval;
+        this.restartsToGo = restartInterval;
+        this.restartMarkerMissing = false;
     }
 
     /// <summary>
@@ -155,29 +181,94 @@ internal unsafe struct JpegBitReader
         this.badData = false;
         this.NoData = false;
         this.fillBits = 0;
+        this.badCodeFound = false;
     }
 
     /// <summary>
-    /// Reports damaged or truncated entropy-coded data if the decoder used fill bits.
-    /// The scan decoder calls this method at the end of each restart interval and at the end of each Huffman-coded scan.
+    /// Reports damaged or truncated Huffman-coded data. The data is damaged if the decoder found a bad Huffman code, or if the decoder used fill bits. The
+    /// Huffman scan decoder calls this method at the end of each restart interval and at the end of each scan.
     /// </summary>
     /// <remarks>
-    /// The reader reads bytes before the decoder needs them. Thus, fill bits after the last entropy-coded byte are
-    /// usual, and they are not an error until the decoder uses them. A Huffman decoder uses them only when the
-    /// data ends early, or when an unexpected marker interrupts the data.
-    /// An arithmetic decoder can use fill bits in correct data, because the encoder can remove the last zero bytes
-    /// (ITU T.81, section D.1.8). Thus, the arithmetic scan decoder does not call this method.
+    /// The reader reads bytes before the decoder needs them. Thus fill bits after the last entropy-coded byte are normal. They are not an error until the
+    /// decoder uses them. A Huffman decoder uses them only when the data ends early, or when an unexpected marker interrupts the data. An arithmetic decoder
+    /// can use fill bits in correct data, because the encoder can remove the last zero bytes (ITU T.81, section D.1.8). Thus the arithmetic scan decoder does
+    /// not call this method.
     /// </remarks>
     /// <exception cref="InvalidImageContentException">
-    /// The decoder used fill bits, and the integrity mode does not ignore image data errors.
+    /// The data is damaged, and the integrity mode does not ignore image data errors.
     /// </exception>
-    public readonly void ThrowOrIgnoreIfFillBitsUsed()
+    public readonly void ThrowOrIgnoreIfDataDamaged()
     {
+        // The decode loop continues after a bad code, as libjpeg-turbo does. The flag keeps the throw out of the decode loop.
+        if (this.badCodeFound)
+        {
+            this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data contains a bad Huffman code.");
+        }
+
         if (this.remainingBits < this.fillBits)
         {
-            this.integrityHandling.ThrowOrIgnoreImageDataError(
-                "The JPEG entropy-coded data ends early or contains an unexpected marker.");
+            this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data ends early or contains an unexpected marker.");
         }
+    }
+
+    /// <summary>
+    /// Counts down the restart interval after each MCU. At the end of the interval, the method finds the restart marker. The scan decoders call this method
+    /// after each MCU.
+    /// </summary>
+    /// <remarks>
+    /// A restart interval that ends without its restart marker is an image data error. The method reports it when the next MCU starts, because the last
+    /// interval of a scan has no restart marker. If the interval ends at a marker that is not a restart marker, the method moves the stream back to that
+    /// marker. The decoder then decodes the next MCUs from fill bits, and the segment parser reads the marker later.
+    /// </remarks>
+    /// <returns>
+    /// <see langword="true"/> if a restart interval ended at a marker. The caller then reports the damage in the interval and resets its decode state.
+    /// Otherwise <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The data is damaged, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool HandleRestart()
+    {
+        if (this.restartInterval <= 0)
+        {
+            return false;
+        }
+
+        if (this.restartMarkerMissing)
+        {
+            // An MCU followed the restart interval that had no restart marker.
+            this.restartMarkerMissing = false;
+            this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data is missing a restart marker.");
+        }
+
+        if (--this.restartsToGo != 0)
+        {
+            return false;
+        }
+
+        // A reserved marker cannot complete a restart interval. FindNextMarker applies the recovery policy.
+        if (this.Marker == JpegConstants.Markers.XFF || this.HasReservedMarker())
+        {
+            if (!this.FindNextMarker())
+            {
+                // The stream ends before the restart marker.
+                this.restartMarkerMissing = true;
+                return false;
+            }
+        }
+
+        this.restartsToGo = this.restartInterval;
+
+        // FindNextMarker skips reserved markers. Thus, the marker is a restart marker or a segment marker.
+        if (!this.HasRestartMarker())
+        {
+            // A marker that is not a restart marker is at the end of the restart interval.
+            this.restartMarkerMissing = true;
+            this.RewindToMarker();
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -370,12 +461,12 @@ internal unsafe struct JpegBitReader
             size++;
         }
 
-        // The sentinel MaxCode[17] stops the loop. A JPEG Huffman code has a maximum of 16 bits (ITU T.81, Annex C).
-        // Thus, a size of 17 shows that the bits are not a code of the table.
-        // When the mode ignores image data errors, the decoder keeps the value from the sentinel position.
+        // The sentinel MaxCode[17] stops the loop. A JPEG Huffman code has a maximum of 16 bits (ITU T.81, Annex C). Thus a size of 17 shows that the bits are
+        // not a code of the table. The decoder keeps the value from the sentinel position. The flag replaces a throw here, and ThrowOrIgnoreIfDataDamaged
+        // reports it at the end of the restart interval or scan.
         if (size > 16)
         {
-            this.integrityHandling.ThrowOrIgnoreImageDataError("The JPEG entropy-coded data contains a bad Huffman code.");
+            this.badCodeFound = true;
         }
 
         this.remainingBits -= size;
@@ -560,7 +651,7 @@ internal unsafe struct JpegBitReader
                     this.fillBits += 8;
                 }
 
-                // At the end of the stream, libjpeg-turbo inserts zero bits (jdhuff.c, jpeg_fill_bit_buffer).
+                // At the end of the stream, the reader inserts zero bits, as libjpeg-turbo does.
                 // A value of -1 sets all 64 bits of the buffer and changes the valid bits before it, so the reader adds 0.
                 b = Math.Max(b, 0);
             }
@@ -680,7 +771,7 @@ internal unsafe struct JpegBitReader
         }
 
         // Read returns at least one byte here, because bytes remain before the stream end.
-        // Read also examines the cancellation token of the stream, one time for each EntropyBufferSize bytes.
+        // Read also checks the cancellation token of the stream, one time for each EntropyBufferSize bytes.
         // Thus, a cancellation can stop the decode inside a scan.
         // After a cancellation, the decode stops, so the stream position is not important.
         this.entropyCount = this.stream.Read(new Span<byte>(this.entropyBuffer, this.entropyBufferLength));

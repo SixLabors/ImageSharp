@@ -49,7 +49,7 @@ internal sealed partial class Av1SecondPass
     private const int MaximumGoldenIntervalCount = 15;
 
     /// <summary>
-    /// The number of frames after a key frame candidate that its test examines.
+    /// The number of frames after a key frame candidate that its test checks.
     /// </summary>
     private const int SceneCutKeyTestInterval = 16;
 

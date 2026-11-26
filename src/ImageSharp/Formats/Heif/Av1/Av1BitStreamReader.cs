@@ -30,6 +30,11 @@ internal ref struct Av1BitStreamReader
     public readonly int Length => this.data.Length;
 
     /// <summary>
+    /// Gets a value indicating whether a read went past the end of the data. Each such read returned zero.
+    /// </summary>
+    public bool HasOverrun { get; private set; }
+
+    /// <summary>
     /// Advances the read position without interpreting the skipped bits.
     /// </summary>
     /// <param name="bitCount">The number of bits to skip.</param>
@@ -56,22 +61,23 @@ internal ref struct Av1BitStreamReader
     /// <summary>
     /// Reads the next encoded bit.
     /// </summary>
+    /// <remarks>
+    /// A read past the end of the data returns zero and sets <see cref="HasOverrun"/>. As a result, the header parse has no throw site for each syntax element.
+    /// The OBU reader checks the flag one time for each OBU. The position continues past the end, so a loop that reads up to a byte boundary stops.
+    /// </remarks>
     /// <returns>Zero or one.</returns>
-    /// <exception cref="InvalidImageContentException">The syntax continues past the end of the encoded data.</exception>
     public uint ReadBit()
     {
-        int byteOffset = Av1Math.DivideBy8Floor(this.BitPosition);
-
-        // Every header syntax element reads through this method. A syntax element that runs past its OBU payload is malformed input. Thus the reader reports it
-        // as invalid content, not as a span index failure.
-        if ((uint)byteOffset >= (uint)this.data.Length)
+        int bitPosition = this.BitPosition;
+        int byteOffset = Av1Math.DivideBy8Floor(bitPosition);
+        this.BitPosition = bitPosition + 1;
+        if ((uint)byteOffset < (uint)this.data.Length)
         {
-            throw new InvalidImageContentException("The AV1 syntax exceeds its payload boundary.");
+            return (uint)((this.data[byteOffset] >> (7 - Av1Math.Modulus8(bitPosition))) & 0x01);
         }
 
-        byte shift = (byte)(7 - Av1Math.Modulus8(this.BitPosition));
-        this.BitPosition++;
-        return (uint)((this.data[byteOffset] >> shift) & 0x01);
+        this.HasOverrun = true;
+        return 0;
     }
 
     /// <summary>
@@ -79,33 +85,6 @@ internal ref struct Av1BitStreamReader
     /// </summary>
     /// <returns><see langword="true"/> for one, otherwise <see langword="false"/>.</returns>
     public bool ReadBoolean() => this.ReadLiteral(1) > 0;
-
-    /// <summary>
-    /// Reads an AV1 little-endian base-128 value from a byte-aligned position.
-    /// </summary>
-    /// <param name="length">Receives the number of encoded bytes consumed.</param>
-    /// <returns>The decoded unsigned value.</returns>
-    public ulong ReadLittleEndianBytes128(out int length)
-    {
-        DebugGuard.IsTrue((this.BitPosition & 0x07) == 0, $"Reading of Little Endian 128 value only allowed on byte alignment (offset {this.BitPosition}).");
-
-        ulong value = 0;
-        length = 0;
-        for (int shift = 0; shift < 56; shift += 7)
-        {
-            uint leb128Byte = this.ReadLiteral(8);
-            value |= (leb128Byte & 0x7FUL) << shift;
-            length++;
-            if ((leb128Byte & 0x80U) == 0)
-            {
-                return value;
-            }
-        }
-
-        // AV1 limits unsigned LEB128 fields to eight bytes. A continuation bit in the eighth byte does not describe another value byte. A reader that accepts
-        // it reads the next OBU header as part of the size field.
-        throw new InvalidImageContentException("The AV1 LEB128 value is not terminated within eight bytes.");
-    }
 
     /// <summary>
     /// Reads the AV1 unsigned-variable-length code.
@@ -227,30 +206,18 @@ internal ref struct Av1BitStreamReader
         => this.ReadBytes(tileDataSize);
 
     /// <summary>
-    /// Gets the next byte-aligned portion of the encoded data and does not advance.
-    /// </summary>
-    /// <param name="byteCount">The number of bytes to get. The caller keeps it inside the encoded data.</param>
-    /// <returns>The requested bytes.</returns>
-    public readonly ReadOnlySpan<byte> PeekBytes(int byteCount)
-    {
-        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Byte spans must start on a byte boundary.");
-        return this.data.Slice(Av1Math.DivideBy8Floor(this.BitPosition), byteCount);
-    }
-
-    /// <summary>
     /// Gets the next byte-aligned portion of the encoded data and advances past it.
     /// </summary>
-    /// <param name="byteCount">The number of bytes to read.</param>
+    /// <param name="byteCount">The number of bytes to read. The caller keeps it inside the encoded data.</param>
     /// <returns>The requested bytes.</returns>
     public Span<byte> ReadBytes(int byteCount)
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Byte spans must start on a byte boundary.");
         int byteOffset = Av1Math.DivideBy8Floor(this.BitPosition);
-        if ((uint)byteOffset > (uint)this.data.Length || (uint)byteCount > (uint)(this.data.Length - byteOffset))
-        {
-            throw new InvalidImageContentException("The AV1 payload exceeds its declared data boundary.");
-        }
 
+        // The OBU framer sets the bounds of each payload. The tile-group reader sets the bounds of each tile from the bytes that remain after a header without
+        // an overrun. As a result, the span is always inside the data.
+        DebugGuard.IsTrue(byteOffset <= this.data.Length && byteCount <= this.data.Length - byteOffset, "Byte spans must stay inside the data.");
         Span<byte> payload = this.data.Slice(byteOffset, byteCount);
         this.Skip(byteCount << 3);
         return payload;

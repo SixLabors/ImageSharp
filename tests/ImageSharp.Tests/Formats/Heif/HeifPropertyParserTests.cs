@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -27,6 +28,21 @@ public class HeifPropertyParserTests
         Assert.Equal((ushort)3, HeifPropertyParser.ParseAv1LayerSelector([0, 3]).LayerId);
         Assert.Equal(Av1LayerSelector.AllLayers, HeifPropertyParser.ParseAv1LayerSelector([255, 255]).LayerId);
         Assert.Throws<InvalidImageContentException>(() => HeifPropertyParser.ParseAv1LayerSelector([0, 4]));
+    }
+
+    /// <summary>
+    /// Verifies that a damaged pixel-information property throws in strict mode. In the IgnoreImageData mode, the parser ignores the property and returns
+    /// <see langword="null"/>. The decode then continues without the property.
+    /// </summary>
+    [Fact]
+    public void ParsePixelInformationReportsDamagedPropertyThroughImageDataMode()
+    {
+        Assert.Equal([8, 8, 8], HeifPropertyParser.ParsePixelInformation([0, 0, 0, 0, 3, 8, 8, 8], SegmentIntegrityHandling.Strict));
+
+        // The property has one channel with zero precision.
+        byte[] damaged = [0, 0, 0, 0, 1, 0];
+        Assert.Throws<InvalidImageContentException>(() => HeifPropertyParser.ParsePixelInformation(damaged, SegmentIntegrityHandling.Strict));
+        Assert.Null(HeifPropertyParser.ParsePixelInformation(damaged, SegmentIntegrityHandling.IgnoreImageData));
     }
 
     /// <summary>
@@ -58,10 +74,14 @@ public class HeifPropertyParserTests
     {
         Av1LayeredImageIndex index = new(55, 0, 0);
 
-        Assert.Equal(55, index.GetPayloadLength(72, new Av1LayerSelector(0)));
-        Assert.Equal(72, index.GetPayloadLength(72, new Av1LayerSelector(1)));
-        Assert.Equal(72, index.GetPayloadLength(72, new Av1LayerSelector(Av1LayerSelector.AllLayers)));
-        Assert.Throws<InvalidImageContentException>(() => index.GetPayloadLength(72, new Av1LayerSelector(2)));
-        Assert.Throws<InvalidImageContentException>(() => new Av1LayeredImageIndex(72, 0, 0).GetPayloadLength(72, null));
+        const SegmentIntegrityHandling strict = SegmentIntegrityHandling.Strict;
+        Assert.True(index.TryGetPayloadLength(72, new Av1LayerSelector(0), strict, false, out int firstLayerLength));
+        Assert.Equal(55, firstLayerLength);
+        Assert.True(index.TryGetPayloadLength(72, new Av1LayerSelector(1), strict, false, out int secondLayerLength));
+        Assert.Equal(72, secondLayerLength);
+        Assert.True(index.TryGetPayloadLength(72, new Av1LayerSelector(Av1LayerSelector.AllLayers), strict, false, out int allLayersLength));
+        Assert.Equal(72, allLayersLength);
+        Assert.Throws<InvalidImageContentException>(() => index.TryGetPayloadLength(72, new Av1LayerSelector(2), strict, false, out _));
+        Assert.Throws<InvalidImageContentException>(() => new Av1LayeredImageIndex(72, 0, 0).TryGetPayloadLength(72, null, strict, false, out _));
     }
 }

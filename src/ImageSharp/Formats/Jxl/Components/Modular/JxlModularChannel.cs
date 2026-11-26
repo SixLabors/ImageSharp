@@ -126,7 +126,7 @@ internal struct JxlModularChannel : IDisposable
     /// <param name="rows">Three int rows for short storage, or an empty span for int storage.</param>
     /// <returns>The wide current or preceding prediction row.</returns>
     /// <remarks>
-    /// Short samples use the same three-row int window as jxl-rs modular decode/channel.rs.
+    /// Short samples use a three-row int window.
     /// Keeping the full prediction result in that window preserves dependent arithmetic before the
     /// completed row is narrowed to storage. Int channels already supply their own wide rows.
     /// </remarks>

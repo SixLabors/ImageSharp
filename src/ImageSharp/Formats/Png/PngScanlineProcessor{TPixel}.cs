@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -86,11 +87,8 @@ internal readonly struct PngScanlineProcessor<TPixel> : IDisposable
 
         if (colorType is PngColorType.Palette)
         {
-            if (palette is null)
-            {
-                PngThrowHelper.ThrowMissingPalette();
-            }
-
+            // The decoder rejects a palette image without a palette before it creates the processor.
+            Debug.Assert(palette.HasValue, "A palette image has a palette.");
             this.table = CreatePaletteTable(allocator, palette.Value.Span, bitDepth);
         }
         else if (colorType is PngColorType.Grayscale && (bitDepth < 8 || (bitDepth == 8 && this.hasTransparentColor)))
@@ -195,8 +193,7 @@ internal readonly struct PngScanlineProcessor<TPixel> : IDisposable
         int firstColumn,
         int columnIncrement)
     {
-        // Adam7.ComputeColumns gives the column count of the pass, so the last column,
-        // firstColumn + ((columns - 1) * columnIncrement), is inside the row.
+        // Adam7.ComputeBlockWidth gives the column count of the pass, so the last column, firstColumn + ((columns - 1) * columnIncrement), is inside the row.
         DebugGuard.MustBeLessThan(firstColumn + ((columns - 1) * columnIncrement), row.Length, nameof(columns));
 
         // A pass with a column step of 1 has contiguous pixels. Adam7 pass 7 is such a pass, and it holds half of the

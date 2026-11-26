@@ -11,14 +11,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// Retains JPEG XL noise strengths and adds the format's correlated random noise to native component planes.
 /// </summary>
 /// <remarks>
-/// The arithmetic follows libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153:
-/// dec_noise.cc, xorshift128plus-inl.h and render_pipeline/stage_noise.cc.
 /// Random samples retain all 23 mantissa bits. No pixel bounds apply before the final pixel conversion.
 /// </remarks>
 internal readonly partial struct JxlNoise
 {
     /// <summary>
-    /// The two-pixel radius of the five-by-five Laplacian noise kernel in libjxl render_pipeline/stage_noise.cc.
+    /// The two-pixel radius of the five-by-five Laplacian noise kernel.
     /// </summary>
     private const int Radius = 2;
 
@@ -38,7 +36,7 @@ internal readonly partial struct JxlNoise
     private const int ColorChannels = 3;
 
     /// <summary>
-    /// The eight encoded intensity-strength samples in libjxl noise.h NoiseParams::Lut.
+    /// The eight encoded intensity-strength samples.
     /// </summary>
     private const int StrengthCount = 8;
 
@@ -65,12 +63,12 @@ internal readonly partial struct JxlNoise
     private const float CenterWeight = -3.84F;
 
     /// <summary>
-    /// The strength denominator from libjxl noise.h kNoisePrecision. Each ten-bit integer represents units of 1/1024.
+    /// The strength denominator. Each ten-bit integer represents units of 1/1024.
     /// </summary>
     private const float NoisePrecision = 1024F;
 
     /// <summary>
-    /// The strict activation threshold from libjxl NoiseParams::HasAny. Tables at or below it add no noise.
+    /// The strict activation threshold. Tables at or below it add no noise.
     /// </summary>
     private const float MinimumNoiseStrength = 1e-3F;
 
@@ -164,7 +162,7 @@ internal readonly partial struct JxlNoise
         int previousBorder = tileStorageLength;
         int nextBorder = tileStorageLength + borderLength;
 
-        // Native Random3Planes advances one RNG through all of plane zero, then one, then two for each group.
+        // One RNG advances through all of plane zero, then one, then two for each group.
         // Retain those complete groups. A three-slot horizontal ring keeps both neighbors until the center is consumed.
         // Two border strips keep the previous group's last four rows separate from the next strip under construction.
         for (int bandY = 0; bandY < size.Height;)

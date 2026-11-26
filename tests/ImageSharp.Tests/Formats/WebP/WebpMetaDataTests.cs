@@ -411,8 +411,11 @@ public class WebpMetaDataTests
 
         if (integrity is SegmentIntegrityHandling.Strict)
         {
-            Assert.Throws<InvalidIccProfileException>(() => Image.Load(options, payload));
-            Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, payload));
+            InvalidImageContentException loadException = Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
+            Assert.IsType<InvalidIccProfileException>(loadException.InnerException);
+
+            InvalidImageContentException identifyException = Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
+            Assert.IsType<InvalidIccProfileException>(identifyException.InnerException);
         }
         else
         {

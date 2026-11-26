@@ -15,12 +15,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// </summary>
 /// <remarks>
 /// Spline samples are image reconstruction data. They precede color conversion and do not apply pixel bounds or alpha rules.
-/// Parsing and reconstruction follow libjxl lib/jxl/splines.cc and jxl-rs jxl/src/features/spline.rs.
 /// </remarks>
 internal sealed partial class JxlSplines : IDisposable
 {
     /// <summary>
-    /// The six integer entropy contexts in libjxl splines.h SplineContexts.
+    /// The six integer entropy contexts.
     /// </summary>
     private const int ContextCount = 6;
 
@@ -55,7 +54,7 @@ internal sealed partial class JxlSplines : IDisposable
     private const int CoefficientContext = 5;
 
     /// <summary>
-    /// The 32 continuous-DCT coefficients in each field, as defined by libjxl splines.h QuantizedSpline.
+    /// The 32 continuous-DCT coefficients in each field.
     /// </summary>
     private const int CoefficientsPerChannel = 32;
 
@@ -65,7 +64,7 @@ internal sealed partial class JxlSplines : IDisposable
     private const int CoefficientsPerSpline = 4 * CoefficientsPerChannel;
 
     /// <summary>
-    /// The libjxl splines.cc frame control-point cap. The coded pixel count divided by two can lower this limit.
+    /// The frame control-point cap. The coded pixel count divided by two can lower this limit.
     /// </summary>
     private const int MaximumControlPoints = 1 << 20;
 
@@ -76,12 +75,12 @@ internal sealed partial class JxlSplines : IDisposable
     private const int CoordinateLimit = 1 << 23;
 
     /// <summary>
-    /// The sixteen Catmull-Rom samples per control interval in libjxl DrawCentripetalCatmullRomSpline.
+    /// The sixteen Catmull-Rom samples per control interval.
     /// </summary>
     private const int InterpolationSteps = 16;
 
     /// <summary>
-    /// The upper reconstruction work estimate from libjxl QuantizedSpline::Dequantize.
+    /// The upper reconstruction work estimate.
     /// The actual frame limit is min(1024 * outputPixels + 2^32, 2^42).
     /// </summary>
     private const ulong MaximumEstimatedArea = 1UL << 42;

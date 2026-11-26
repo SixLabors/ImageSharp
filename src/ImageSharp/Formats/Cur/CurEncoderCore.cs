@@ -37,11 +37,13 @@ internal sealed class CurEncoderCore : IconEncoderCore
     private readonly struct CurFrameMetadataProvider : IEncodingFrameMetadataProvider
     {
         /// <inheritdoc/>
-        public EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame, out ReadOnlyMemory<Color>? colorTable)
+        public EncodingFrameMetadata GetEncodingFrameMetadata(ImageFrame frame)
         {
             CurFrameMetadata metadata = frame.Metadata.GetCurMetadata();
-            colorTable = metadata.ColorTable;
             return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ToIconDirEntry(frame.Size));
         }
+
+        /// <inheritdoc/>
+        public ReadOnlyMemory<Color>? GetColorTable(ImageFrame frame) => frame.Metadata.GetCurMetadata().ColorTable;
     }
 }

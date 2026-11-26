@@ -321,6 +321,41 @@ public class ExrDecoderTests
         }
     }
 
+    /// <summary>
+    /// OpenEXR defines the compression values 0 to 13. A larger value is not valid image content.
+    /// </summary>
+    [Fact]
+    public void Identify_CompressionValueNotDefined_Throws()
+    {
+        byte[] data = ExrZipDecoderTests.BuildExr([], ExrPixelType.Half, 14, 0);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    /// <summary>
+    /// Verifies that the decoder uses 32 rows for each DWAA chunk to find the size of the offset table. Thus Identify reads the header, and Decode reports
+    /// the compression as not supported.
+    /// </summary>
+    [Fact]
+    public void Decode_DwaaCompression_ThrowsNotSupportedException()
+    {
+        // The image has an empty chunk. After the header, the stream holds 16 bytes: the offset table entry, the y coordinate and the byte count.
+        byte[] data = ExrZipDecoderTests.BuildExr([], ExrPixelType.Half, 8, 0);
+
+        // The data window is 256 x 32. One DWAA chunk holds the 32 rows, so the offset table has one 8-byte entry. With 1 row for each chunk, the table needs
+        // 256 bytes. The box2i value follows the attribute name, the type name and the 4-byte size. Its yMax value is the fourth int.
+        int dataWindow = data.AsSpan().IndexOf("dataWindow\0box2i\0"u8);
+        BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(dataWindow + 17 + 4 + 12), 31);
+
+        ImageInfo info = Image.Identify(data);
+        Assert.Equal(new Size(256, 32), info.Size);
+
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using Image<RgbaVector> image = Image.Load<RgbaVector>(data);
+        });
+    }
+
     [Theory]
     [WithFile(TestImages.Exr.B44, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_B44Compressed<TPixel>(TestImageProvider<TPixel> provider)

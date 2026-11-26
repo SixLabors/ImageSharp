@@ -45,18 +45,9 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="coefficients">The luma coefficients.</param>
     public TiffYCbCrOperator(Rational[] referenceBlackAndWhite, Rational[] coefficients)
     {
+        // The parser makes sure that each array from the file has the correct length.
         referenceBlackAndWhite ??= DefaultReferenceBlackWhite;
         coefficients ??= DefaultLuma;
-
-        if (referenceBlackAndWhite.Length != 6)
-        {
-            TiffThrowHelper.ThrowImageFormatException("reference black and white array should have 6 entry's");
-        }
-
-        if (coefficients.Length != 3)
-        {
-            TiffThrowHelper.ThrowImageFormatException("luma coefficients array should have 3 entries");
-        }
 
         float yBlack = referenceBlackAndWhite[0].ToSingle();
         float yWhite = referenceBlackAndWhite[1].ToSingle();

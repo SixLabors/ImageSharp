@@ -65,7 +65,9 @@ internal sealed class IccClut : IEquatable<IccClut>
         // nodes can use the same bounded read as every other node. No read reaches outside this array.
         int readBytes = type == IccClutDataType.UInt16 ? sizeof(ulong) : sizeof(uint);
         this.paddingBytes = Math.Max(readBytes - (outputChannelCount * sampleBytes), 0);
-        this.encodedValues = new byte[checked(values.Length + this.paddingBytes)];
+
+        // The reader slices values from one byte array, so the length is at most Array.MaxLength. Thus the padding of at most 6 bytes fits in int.
+        this.encodedValues = new byte[values.Length + this.paddingBytes];
         Span<byte> destination = this.encodedValues.AsSpan(this.paddingBytes);
         if (type == IccClutDataType.UInt16 && BitConverter.IsLittleEndian)
         {

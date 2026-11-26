@@ -79,8 +79,6 @@ internal static class Quantization
         99, 99, 99, 99, 99, 99, 99, 99
     ];
 
-    /// Ported from JPEGsnoop:
-    /// https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
     /// <summary>
     /// Estimates jpeg quality based on standard quantization table.
     /// </summary>

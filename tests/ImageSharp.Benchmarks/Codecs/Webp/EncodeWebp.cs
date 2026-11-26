@@ -11,6 +11,13 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
+/// <summary>
+/// Encodes one source image to each WebP layout with method 4 and quality 75.
+/// </summary>
+/// <remarks>
+/// Magick encodes through libwebp, the reference implementation, with the same settings. The opaque layouts encode the
+/// 2048 x 1536 photo. The alpha layout encodes the 2790 x 2776 lossless Earth image, which has transparent pixels.
+/// </remarks>
 [MarkdownExporter]
 [HtmlExporter]
 [Config(typeof(Config.Short))]
@@ -23,22 +30,28 @@ public class EncodeWebp
     // and the results measure the encoders instead of the growth of a new stream.
     private MemoryStream outputStream;
 
-    private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+    /// <summary>
+    /// Gets or sets the WebP layout that both libraries write: lossy opaque, lossy with alpha, or lossless.
+    /// </summary>
+    [Params("LossyOpaque", "LossyAlpha", "Lossless")]
+    public string Layout { get; set; }
 
-    [Params(TestImages.Png.Bike)] // The bike image will have all 3 transforms as lossless webp.
-    public string TestImage { get; set; }
-
+    /// <summary>
+    /// Loads the source image of <see cref="Layout"/> for both libraries.
+    /// </summary>
     [GlobalSetup]
     public void ReadImages()
     {
-        if (this.webp == null)
-        {
-            this.webp = Image.Load<Rgba32>(this.TestImageFullPath);
-            this.webpMagick = new MagickImage(this.TestImageFullPath);
-            this.outputStream = new MemoryStream();
-        }
+        string file = this.Layout == "LossyAlpha" ? TestImages.Webp.Lossless.Earth : TestImages.Jpeg.Baseline.Jpeg420Exif;
+        string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file);
+        this.webp = Image.Load<Rgba32>(path);
+        this.webpMagick = new MagickImage(path);
+        this.outputStream = new MemoryStream();
     }
 
+    /// <summary>
+    /// Releases the images and the stream.
+    /// </summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -47,88 +60,54 @@ public class EncodeWebp
         this.outputStream.Dispose();
     }
 
-    [Benchmark(Description = "Magick Webp Lossy")]
-    public void MagickWebpLossy()
+    [Benchmark(Baseline = true, Description = "Magick Webp")]
+    public void MagickWebp()
     {
         this.outputStream.Position = 0;
 
-        WebPWriteDefines defines = new()
-        {
-            Lossless = false,
-            Method = 4,
-            AlphaCompression = WebPAlphaCompression.None,
-            FilterStrength = 60,
-            SnsStrength = 50,
-            Pass = 1
-        };
+        // libwebp compresses alpha by default. The lossy settings match the ImageSharp settings below.
+        WebPWriteDefines defines = this.Layout == "Lossless"
+            ? new() { Lossless = true, Method = 4 }
+            : new()
+            {
+                Lossless = false,
+                Method = 4,
+                AlphaCompression = WebPAlphaCompression.Compressed,
+                FilterStrength = 60,
+                SnsStrength = 50,
+                Pass = 1
+            };
 
         this.webpMagick.Quality = 75;
         this.webpMagick.Write(this.outputStream, defines);
     }
 
-    [Benchmark(Description = "ImageSharp Webp Lossy")]
-    public void ImageSharpWebpLossy()
+    [Benchmark(Description = "ImageSharp Webp")]
+    public void ImageSharpWebp()
     {
         this.outputStream.Position = 0;
-        this.webp.Save(this.outputStream, new WebpEncoder()
-        {
-            FileFormat = WebpFileFormatType.Lossy,
-            Method = WebpEncodingMethod.Level4,
-            UseAlphaCompression = false,
-            FilterStrength = 60,
-            SpatialNoiseShaping = 50,
-            EntropyPasses = 1
-        });
+        WebpEncoder encoder = this.Layout == "Lossless"
+            ? new()
+            {
+                FileFormat = WebpFileFormatType.Lossless,
+                Method = WebpEncodingMethod.Level4,
+                NearLossless = false,
+                Quality = 75,
+
+                // This is equal to exact = false in libwebp, which is the default.
+                TransparentColorMode = TransparentColorMode.Clear
+            }
+            : new()
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Method = WebpEncodingMethod.Level4,
+                Quality = 75,
+                UseAlphaCompression = true,
+                FilterStrength = 60,
+                SpatialNoiseShaping = 50,
+                EntropyPasses = 1
+            };
+
+        this.webp.Save(this.outputStream, encoder);
     }
-
-    [Benchmark(Baseline = true, Description = "Magick Webp Lossless")]
-    public void MagickWebpLossless()
-    {
-        this.outputStream.Position = 0;
-        WebPWriteDefines defines = new()
-        {
-            Lossless = true,
-            Method = 4,
-        };
-
-        this.webpMagick.Quality = 75;
-        this.webpMagick.Write(this.outputStream, defines);
-    }
-
-    [Benchmark(Description = "ImageSharp Webp Lossless")]
-    public void ImageSharpWebpLossless()
-    {
-        this.outputStream.Position = 0;
-        this.webp.Save(this.outputStream, new WebpEncoder()
-        {
-            FileFormat = WebpFileFormatType.Lossless,
-            Method = WebpEncodingMethod.Level4,
-            NearLossless = false,
-            Quality = 75,
-
-            // This is equal to exact = false in libwebp, which is the default.
-            TransparentColorMode = TransparentColorMode.Clear
-        });
-    }
-
-    /* Results 12.11.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
-    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
-    .NET SDK 11.0.100-preview.7.26381.103
-      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
-      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
-
-    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
-    WarmupCount=3
-
-    | Method                     | TestImage    | Mean      | Error     | StdDev   | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated  | Alloc Ratio |
-    |--------------------------- |------------- |----------:|----------:|---------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
-    | 'Magick Webp Lossy'        | Png/Bike.png |  13.87 ms |  2.173 ms | 0.119 ms |  0.08 |    0.00 |         - |         - |         - |    2.83 KB |        0.59 |
-    | 'ImageSharp Webp Lossy'    | Png/Bike.png |  41.50 ms |  3.320 ms | 0.182 ms |  0.25 |    0.00 |         - |         - |         - |  285.93 KB |       59.41 |
-    | 'Magick Webp Lossless'     | Png/Bike.png | 166.12 ms | 23.937 ms | 1.312 ms |  1.00 |    0.01 |         - |         - |         - |    4.81 KB |        1.00 |
-    | 'ImageSharp Webp Lossless' | Png/Bike.png | 105.27 ms | 59.800 ms | 3.278 ms |  0.63 |    0.02 | 2200.0000 | 2200.0000 | 2200.0000 | 4815.18 KB |    1,000.56 |
-
-    Allocated reports managed memory only.
-    Ratio uses Magick Webp Lossless as the baseline for every method, including lossy encoding.
-    */
 }

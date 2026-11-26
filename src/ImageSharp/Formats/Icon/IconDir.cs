@@ -17,6 +17,11 @@ internal struct IconDir
     public const int Size = 3 * sizeof(ushort);
 
     /// <summary>
+    /// The minimum length in bytes of the start of an ICO or CUR file: the directory header and the first directory entry.
+    /// </summary>
+    public const int MinHeaderSize = Size + IconDirEntry.Size;
+
+    /// <summary>
     /// Reserved. Must always be 0.
     /// </summary>
     public ushort Reserved;
@@ -59,6 +64,36 @@ internal struct IconDir
     /// <returns>The parsed icon directory header.</returns>
     public static IconDir Parse(ReadOnlySpan<byte> data)
         => MemoryMarshal.Cast<byte, IconDir>(data)[0];
+
+    /// <summary>
+    /// Parses the directory and its first entry at the start of an ICO or CUR file. Then it checks the values that the ICO and CUR format detectors share.
+    /// </summary>
+    /// <param name="header">The start of the file.</param>
+    /// <param name="type">The expected file type.</param>
+    /// <param name="entry">The first directory entry, or the default value if the method returns <see langword="false"/>.</param>
+    /// <returns>
+    /// <see langword="true"/> if the header holds a directory of <paramref name="type"/> with at least one entry, and the first payload starts after the
+    /// complete directory. Otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool TryParseFirstEntry(ReadOnlySpan<byte> header, IconFileType type, out IconDirEntry entry)
+    {
+        entry = default;
+        if (header.Length < MinHeaderSize)
+        {
+            return false;
+        }
+
+        IconDir dir = Parse(header);
+        if (dir.Reserved is not 0 || dir.Type != type || dir.Count is 0)
+        {
+            return false;
+        }
+
+        entry = IconDirEntry.Parse(header[Size..]);
+
+        // The first payload must start after the complete directory, also if the caller gave only the detection prefix.
+        return entry.Reserved is 0 && entry.BytesInRes is not 0 && entry.ImageOffset >= Size + (dir.Count * IconDirEntry.Size);
+    }
 
     /// <summary>
     /// Writes the icon directory header to the destination stream.

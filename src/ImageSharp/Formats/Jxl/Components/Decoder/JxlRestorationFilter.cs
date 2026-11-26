@@ -113,12 +113,14 @@ internal sealed class JxlRestorationFilter
     public float ModularSigma { get; private set; } = 1F;
 
     /// <summary>
-    /// Reads the filter group in the order defined by libjxl's loop_filter.cc.
+    /// Reads the filter group in its encoded field order.
     /// </summary>
     /// <param name="reader">The frame bit reader.</param>
     /// <param name="modular">Whether the frame uses modular coding.</param>
-    /// <returns>The parsed parameters or the shared immutable defaults.</returns>
-    public static JxlRestorationFilter Read(ref JxlBitReader reader, bool modular)
+    /// <param name="handling">The policy for a damaged frame header after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame.</param>
+    /// <returns>The parsed parameters or the shared immutable defaults, or null if the mode ignores invalid parameters.</returns>
+    public static JxlRestorationFilter? Read(ref JxlBitReader reader, bool modular, SegmentIntegrityHandling handling, bool imageExists)
     {
         if (reader.ReadBoolean())
         {
@@ -146,7 +148,8 @@ internal sealed class JxlRestorationFilter
             if (MathF.Abs(denominator.X) < MinimumGaborishNormalization || MathF.Abs(denominator.Y) < MinimumGaborishNormalization
                 || MathF.Abs(denominator.Z) < MinimumGaborishNormalization)
             {
-                throw new InvalidImageContentException("The JPEG XL Gaborish weights have an invalid normalization divisor.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL Gaborish weights have an invalid normalization divisor.");
+                return null;
             }
         }
 
@@ -193,7 +196,8 @@ internal sealed class JxlRestorationFilter
                 result.ModularSigma = reader.ReadHalf();
                 if (result.ModularSigma < MinimumModularSigma)
                 {
-                    throw new InvalidImageContentException("The JPEG XL modular filter sigma is too small.");
+                    handling.ThrowOrIgnoreImageDataError(imageExists, "The JPEG XL modular filter sigma is too small.");
+                    return null;
                 }
             }
         }

@@ -92,7 +92,8 @@ public partial class ImageFrame
         Guard.MustBeGreaterThan(height, 0, nameof(height));
         Guard.MustBeGreaterThanOrEqualTo(rowStride, width, nameof(rowStride));
 
-        long requiredLength = checked(((long)(height - 1) * rowStride) + width);
+        // The product of two int values plus an int value always fits in long.
+        long requiredLength = ((long)(height - 1) * rowStride) + width;
         Guard.MustBeGreaterThanOrEqualTo(data.Length, requiredLength, nameof(data));
 
         ImageFrame<TPixel> image = new(configuration, width, height);

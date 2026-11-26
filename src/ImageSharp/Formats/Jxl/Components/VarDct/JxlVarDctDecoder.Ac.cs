@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder
 {
     /// <summary>
-    /// The log2 tile width in DC blocks. Native chroma_from_luma.h kColorTileDim covers 64 coding pixels, or eight blocks.
+    /// The log2 tile width in DC blocks. A color tile covers 64 coding pixels, or eight blocks.
     /// </summary>
     private const int ColorTileShift = 3;
 
@@ -29,12 +29,12 @@ internal sealed partial class JxlVarDctDecoder
     private const byte FirstBlockFlag = 1;
 
     /// <summary>
-    /// The largest decoded AC quantizer: native DecodeAcMetadata clamps its raw integer to [0,255], then adds one.
+    /// The largest decoded AC quantizer. The decoder clamps the raw integer to [0,255] and then adds one.
     /// </summary>
     private const int MaximumAcQuantizer = 256;
 
     /// <summary>
-    /// The eight valid EPF sharpness indices from native DecodeAcMetadata. Values outside [0,7] are invalid.
+    /// The eight valid EPF sharpness indices. Values outside [0,7] are invalid.
     /// </summary>
     private const int SharpnessCount = 8;
 
@@ -85,13 +85,20 @@ internal sealed partial class JxlVarDctDecoder
     public uint UsedStrategies { get; private set; }
 
     /// <summary>
-    /// Reads one DC group's correlation maps, transform records and sharpness through the shared modular decoder.
+    /// Reads the correlation maps, the transform records and the sharpness of one DC group with the shared modular decoder.
     /// </summary>
-    /// <param name="reader">The bounded section reader after this group's modular extra-channel data.</param>
-    /// <param name="modular">The frame's shared modular tree, transforms and reusable entropy workspace.</param>
-    /// <param name="group">The validated DC group index in row-major order.</param>
-    /// <param name="cancellationToken">The token checked during entropy decoding and map traversal.</param>
-    public void ReadAcMetadata(ref JxlBitReader reader, JxlModularDecoder modular, int group, CancellationToken cancellationToken)
+    /// <param name="reader">The bounded section reader after the modular extra-channel data of this group.</param>
+    /// <param name="modular">The shared modular tree, transforms and reusable entropy workspace of the frame.</param>
+    /// <param name="group">The checked DC group index in row-major order.</param>
+    /// <param name="handling">The policy for damaged transform records after the image exists.</param>
+    /// <param name="imageExists">Whether the decoder created the image before this frame. Before that, each record error throws.</param>
+    /// <param name="cancellationToken">The token that the method checks during the entropy decoding and the map traversal.</param>
+    /// <remarks>
+    /// If the mode ignores a damaged record, each block of the group that has no transform gets a DCT8 transform with quantizer one. Thus no later stage reads
+    /// a map cell that this method did not write.
+    /// </remarks>
+    public void ReadAcMetadata(
+        ref JxlBitReader reader, JxlModularDecoder modular, int group, SegmentIntegrityHandling handling, bool imageExists, CancellationToken cancellationToken)
     {
         Rectangle rectangle = this.GetDcGroupRectangle(group);
         int area = rectangle.Width * rectangle.Height;
@@ -112,11 +119,11 @@ internal sealed partial class JxlVarDctDecoder
         Rectangle colorRectangle = new(rectangle.X >> ColorTileShift, rectangle.Y >> ColorTileShift, colorSize.Width, colorSize.Height);
         Buffer2DRegion<sbyte> outputCorrelationX = this.CorrelationX.GetSubRegion(colorRectangle);
         Buffer2DRegion<sbyte> outputCorrelationB = this.CorrelationB.GetSubRegion(colorRectangle);
-        for (int y = 0; y < colorSize.Height; y++)
+        for (int tileY = 0; tileY < colorSize.Height; tileY++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ConvertCorrelationRow(targets[0].Region.DangerousGetRowSpan(y), outputCorrelationX.DangerousGetRowSpan(y));
-            ConvertCorrelationRow(targets[1].Region.DangerousGetRowSpan(y), outputCorrelationB.DangerousGetRowSpan(y));
+            ConvertCorrelationRow(targets[0].Region.DangerousGetRowSpan(tileY), outputCorrelationX.DangerousGetRowSpan(tileY));
+            ConvertCorrelationRow(targets[1].Region.DangerousGetRowSpan(tileY), outputCorrelationB.DangerousGetRowSpan(tileY));
         }
 
         Buffer2DRegion<byte> outputStrategies = this.Strategies.GetSubRegion(rectangle);
@@ -127,13 +134,14 @@ internal sealed partial class JxlVarDctDecoder
         ReadOnlySpan<byte> widths = JxlCoefficientOrder.StrategyWidths;
         ReadOnlySpan<byte> heights = JxlCoefficientOrder.StrategyHeights;
         int record = 0;
-
-        for (int y = 0; y < rectangle.Height; y++)
+        string? error = null;
+        int y = 0;
+        for (; y < rectangle.Height && error is null; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Sharpness belongs to every block, including continuations of a transform that started on an earlier row.
-            // Validate before narrowing. Saturation here would conceal a malformed sharpness field.
+            // Sharpness belongs to each block, also to the continuations of a transform that started on an earlier row. The converter narrows the row and then
+            // rejects an index outside [0,7]. It does not saturate an index, because saturation hides a malformed sharpness field.
             ConvertSharpnessRow(targets[3].Region.DangerousGetRowSpan(y), outputSharpness.DangerousGetRowSpan(y));
             Span<byte> strategyRow = outputStrategies.DangerousGetRowSpan(y);
             for (int x = 0; x < rectangle.Width; x++)
@@ -145,20 +153,23 @@ internal sealed partial class JxlVarDctDecoder
 
                 if (record >= count)
                 {
-                    throw new InvalidImageContentException("The JPEG XL AC metadata has too few transform records.");
+                    error = "The JPEG XL AC metadata has too few transform records.";
+                    break;
                 }
 
                 int strategy = strategyRecords[record];
                 if ((uint)strategy >= JxlCoefficientOrder.StrategyCount)
                 {
-                    throw new InvalidImageContentException("The JPEG XL AC transform strategy is invalid.");
+                    error = "The JPEG XL AC transform strategy is invalid.";
+                    break;
                 }
 
                 int width = widths[strategy];
                 int height = heights[strategy];
                 if (!this.is444 && (width != 1 || height != 1))
                 {
-                    throw new InvalidImageContentException("The JPEG XL multiblock transform is incompatible with chroma subsampling.");
+                    error = "The JPEG XL multiblock transform is incompatible with chroma subsampling.";
+                    break;
                 }
 
                 // A transform must fit both the padded frame grid and its AC group. DC groups are larger and cannot
@@ -169,30 +180,68 @@ internal sealed partial class JxlVarDctDecoder
                 int groupBottom = ((absoluteY / this.acGroupBlockDimension) + 1) * this.acGroupBlockDimension;
                 if (absoluteX + width > Math.Min(rectangle.Right, groupRight) || absoluteY + height > Math.Min(rectangle.Bottom, groupBottom))
                 {
-                    throw new InvalidImageContentException("The JPEG XL AC transform exceeds its block grid or group boundary.");
+                    error = "The JPEG XL AC transform exceeds its block grid or group boundary.";
+                    break;
                 }
 
-                int quantizer = 1 + Math.Clamp(quantizerRecords[record], 0, MaximumAcQuantizer - 1);
+                // The code checks each covered row before the fill writes a row. Thus a rejected transform leaves no partial footprint.
+                bool overlaps = false;
+                for (int row = y; row < y + height; row++)
+                {
+                    overlaps |= outputStrategies.DangerousGetRowSpan(row).Slice(x, width).ContainsAnyExcept(InvalidStrategy);
+                }
+
+                if (overlaps)
+                {
+                    error = "The JPEG XL AC transforms overlap.";
+                    break;
+                }
+
+                // The code marks each covered block. Then the later record traversal can skip continuations and find overlaps.
                 byte packedStrategy = (byte)(strategy << 1);
                 for (int row = y; row < y + height; row++)
                 {
-                    Span<byte> covered = outputStrategies.DangerousGetRowSpan(row).Slice(x, width);
-                    if (covered.ContainsAnyExcept(InvalidStrategy))
-                    {
-                        throw new InvalidImageContentException("The JPEG XL AC transforms overlap.");
-                    }
-
-                    // Mark every covered block so later record traversal can skip continuations and detect overlap.
-                    covered.Fill(packedStrategy);
+                    outputStrategies.DangerousGetRowSpan(row).Slice(x, width).Fill(packedStrategy);
                 }
 
                 strategyRow[x] |= FirstBlockFlag;
 
                 // AC coefficient decoding and EPF read quantization only at transform origins, as in native decoding.
-                outputQuantization.DangerousGetRowSpan(y)[x] = quantizer;
+                outputQuantization.DangerousGetRowSpan(y)[x] = 1 + Math.Clamp(quantizerRecords[record], 0, MaximumAcQuantizer - 1);
                 this.UsedStrategies |= 1U << strategy;
                 record++;
             }
+        }
+
+        if (error is not null)
+        {
+            // Before the image exists, damaged transform records are structural errors, and the decoder throws. After that, they are damaged image data. The
+            // IgnoreImageData mode continues, because the rows after the damaged row still need their sharpness. Each block without a transform gets a DCT8
+            // origin (strategy zero, FirstBlockFlag) with quantizer one.
+            handling.ThrowOrIgnoreImageDataError(imageExists, error);
+
+            // The loop increment moved y past the damaged row. That row already has its sharpness.
+            for (int row = y; row < rectangle.Height; row++)
+            {
+                ConvertSharpnessRow(targets[3].Region.DangerousGetRowSpan(row), outputSharpness.DangerousGetRowSpan(row));
+            }
+
+            for (int row = 0; row < rectangle.Height; row++)
+            {
+                Span<byte> strategyRow = outputStrategies.DangerousGetRowSpan(row);
+                Span<int> quantizerRow = outputQuantization.DangerousGetRowSpan(row);
+                for (int x = 0; x < strategyRow.Length; x++)
+                {
+                    if (strategyRow[x] == InvalidStrategy)
+                    {
+                        strategyRow[x] = FirstBlockFlag;
+                        quantizerRow[x] = 1;
+                    }
+                }
+            }
+
+            this.UsedStrategies |= 1;
+            return;
         }
 
         // The encoded count can exceed the number of placed transforms. Both reference decoders permit unused pairs;
@@ -251,11 +300,12 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Converts one metadata row with a selected scalar and SIMD rule, preserving column order while narrowing.
+    /// Converts one metadata row with a selected scalar and SIMD rule. The narrowing keeps the column order.
     /// </summary>
-    /// <typeparam name="TOperator">The correlation saturation or sharpness validation rule.</typeparam>
+    /// <typeparam name="TOperator">The correlation saturation rule or the sharpness check rule.</typeparam>
     /// <param name="source">The reconstructed integer row.</param>
     /// <param name="destination">The output bytes, with at least the source length.</param>
+    /// <exception cref="InvalidImageContentException">A value has one or more invalid bits of the operator set.</exception>
     private static void ConvertMetadataRow<TOperator>(ReadOnlySpan<int> source, Span<byte> destination)
         where TOperator : struct, IAcMetadataOperator
     {
@@ -263,24 +313,47 @@ internal sealed partial class JxlVarDctDecoder
         ref byte output = ref MemoryMarshal.GetReference(destination);
         int i = 0;
 
+        // A rule with invalid bits combines all values with bitwise OR. Each width folds its lanes into one 128-bit vector after its loop. Thus the range check
+        // runs once after the row, not once for each vector. InvalidBits is a JIT-time constant for each operator, so the saturating rule does no combine work.
+        Vector128<int> combined = Vector128<int>.Zero;
+
         // One integer lane represents one column. The operator establishes the byte range before narrowing.
         // Unaligned row origins are supported. Each store writes only four, eight or sixteen populated bytes.
         if (Vector512.IsHardwareAccelerated)
         {
+            Vector512<int> combined512 = Vector512<int>.Zero;
             nuint count = (source.Length - i).Vector512Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
             {
-                StoreMetadata(TOperator.Invoke(Vector512.LoadUnsafe(ref input, (nuint)i)), ref Unsafe.Add(ref output, i));
+                Vector512<int> value = Vector512.LoadUnsafe(ref input, (nuint)i);
+                if (TOperator.InvalidBits != 0)
+                {
+                    combined512 |= value;
+                }
+
+                StoreMetadata(TOperator.Invoke(value), ref Unsafe.Add(ref output, i));
             }
+
+            Vector256<int> combined256 = combined512.GetLower() | combined512.GetUpper();
+            combined |= combined256.GetLower() | combined256.GetUpper();
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
+            Vector256<int> combined256 = Vector256<int>.Zero;
             nuint count = (source.Length - i).Vector256Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
             {
-                StoreMetadata(TOperator.Invoke(Vector256.LoadUnsafe(ref input, (nuint)i)), ref Unsafe.Add(ref output, i));
+                Vector256<int> value = Vector256.LoadUnsafe(ref input, (nuint)i);
+                if (TOperator.InvalidBits != 0)
+                {
+                    combined256 |= value;
+                }
+
+                StoreMetadata(TOperator.Invoke(value), ref Unsafe.Add(ref output, i));
             }
+
+            combined |= combined256.GetLower() | combined256.GetUpper();
         }
 
         if (Vector128.IsHardwareAccelerated)
@@ -288,14 +361,37 @@ internal sealed partial class JxlVarDctDecoder
             nuint count = (source.Length - i).Vector128Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
             {
-                StoreMetadata(TOperator.Invoke(Vector128.LoadUnsafe(ref input, (nuint)i)), ref Unsafe.Add(ref output, i));
+                Vector128<int> value = Vector128.LoadUnsafe(ref input, (nuint)i);
+                if (TOperator.InvalidBits != 0)
+                {
+                    combined |= value;
+                }
+
+                StoreMetadata(TOperator.Invoke(value), ref Unsafe.Add(ref output, i));
             }
         }
 
         // The remaining columns use the same range rule. Preserve signed correlation bytes by keeping their low eight bits.
+        int scalarCombined = 0;
         for (; i < source.Length; i++)
         {
-            destination[i] = (byte)TOperator.Invoke(source[i]);
+            int value = source[i];
+            if (TOperator.InvalidBits != 0)
+            {
+                scalarCombined |= value;
+            }
+
+            destination[i] = (byte)TOperator.Invoke(value);
+        }
+
+        // Only the sharpness rule has invalid bits. An index outside [0,7] is invalid.
+        if (TOperator.InvalidBits != 0)
+        {
+            Vector128<int> invalid = (combined | Vector128.Create(scalarCombined)) & Vector128.Create(TOperator.InvalidBits);
+            if (invalid != Vector128<int>.Zero)
+            {
+                throw new InvalidImageContentException("The JPEG XL EPF sharpness index is outside its permitted range.");
+            }
         }
     }
 }

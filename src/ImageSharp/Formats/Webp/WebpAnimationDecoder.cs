@@ -5,8 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
-using SixLabors.ImageSharp.Formats.Webp.Lossless;
-using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -122,38 +120,20 @@ internal class WebpAnimationDecoder : IDisposable
             ? Color.Transparent
             : features.AnimationBackgroundColor;
 
-        bool ignoreMetadata = this.skipMetadata;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
-        while (Math.Min(containerEnd, stream.Length) - stream.Position >= WebpConstants.ChunkHeaderSize)
+        while (frameCount < this.maxFrames && this.TryReadToNextFrame(stream, buffer, metadata, containerEnd))
         {
-            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-            switch (chunkType)
+            ImageFrameMetadata frameMetadata = new();
+            if (!TryReadFrameInfo(stream, frameMetadata, containerEnd, this.segmentIntegrityHandling, frameCount > 0))
             {
-                case WebpChunkType.FrameData:
-
-                    ImageFrameMetadata frameMetadata = new();
-                    ReadFrameInfo(stream, frameMetadata, containerEnd, this.segmentIntegrityHandling);
-                    framesMetadata.Add(frameMetadata);
-
-                    frameCount++;
-                    break;
-                case WebpChunkType.Iccp:
-                case WebpChunkType.Xmp:
-                case WebpChunkType.Exif:
-                    this.ReadOptionalChunk(stream, chunkType, this.metadata, ignoreMetadata, containerEnd);
-                    break;
-                default:
-
-                    // Unknown chunks still consume their payload and padding before the next header.
-                    WebpChunkParsingUtils.SkipChunk(stream, buffer, containerEnd);
-                    break;
-            }
-
-            if (frameCount == this.maxFrames)
-            {
+                // A later frame header is damaged, and the mode ignores the error. The position of the next chunk is not known, so Identify keeps the frames
+                // before it, as Decode does.
                 break;
             }
+
+            framesMetadata.Add(frameMetadata);
+            frameCount++;
         }
 
         return new ImageInfo(new Size((int)width, (int)height), this.metadata, framesMetadata);
@@ -200,38 +180,20 @@ internal class WebpAnimationDecoder : IDisposable
         this.webpMetadata.BackgroundColor = backgroundColor;
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
 
-        bool ignoreMetadata = this.skipMetadata;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         try
         {
-            while (Math.Min(containerEnd, stream.Length) - stream.Position >= WebpConstants.ChunkHeaderSize)
+            while (frameCount < this.maxFrames && this.TryReadToNextFrame(stream, buffer, metadata, containerEnd))
             {
-                WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-                switch (chunkType)
+                if (!this.TryReadFrame(stream, ref image, ref prevFrameData, width, height, backgroundPixel, colorProfileConverter, containerEnd))
                 {
-                    case WebpChunkType.FrameData:
-
-                        this.ReadFrame(stream, ref image, ref prevFrameData, width, height, backgroundPixel, colorProfileConverter, containerEnd);
-
-                        frameCount++;
-                        break;
-                    case WebpChunkType.Iccp:
-                    case WebpChunkType.Xmp:
-                    case WebpChunkType.Exif:
-                        this.ReadOptionalChunk(stream, chunkType, this.metadata, ignoreMetadata, containerEnd);
-                        break;
-                    default:
-
-                        // Unknown chunks still consume their payload and padding before the next header.
-                        WebpChunkParsingUtils.SkipChunk(stream, buffer, containerEnd);
-                        break;
-                }
-
-                if (frameCount == this.maxFrames)
-                {
+                    // A later frame header is damaged, and the mode ignores the error. The position of the next chunk is not known, so the decode keeps the
+                    // frames before it and stops.
                     break;
                 }
+
+                frameCount++;
             }
 
             if (image is null)
@@ -249,42 +211,80 @@ internal class WebpAnimationDecoder : IDisposable
     }
 
     /// <summary>
-    /// Reads frame information from the specified stream and updates the provided frame metadata.
+    /// Moves the stream to the size field of the next ANMF chunk. Decode and Identify use this one frame walker.
     /// </summary>
-    /// <param name="stream">The stream from which to read the frame information. Must support reading and seeking.</param>
-    /// <param name="frameMetadata">The metadata updated from the frame header.</param>
+    /// <remarks>
+    /// The walker reads the metadata chunks on the way and skips each other chunk, with its payload and padding.
+    /// </remarks>
+    /// <param name="stream">The stream positioned at the next chunk header.</param>
+    /// <param name="buffer">The four-byte scratch buffer.</param>
+    /// <param name="metadata">The image metadata.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
-    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls a frame that ends at EOF.</param>
-    private static void ReadFrameInfo(
-        BufferedReadStream stream,
-        ImageFrameMetadata frameMetadata,
-        long containerEnd,
-        SegmentIntegrityHandling segmentIntegrityHandling)
+    /// <returns><see langword="true"/> if the stream is at the size field of an ANMF chunk. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadToNextFrame(BufferedReadStream stream, Span<byte> buffer, ImageMetadata metadata, long containerEnd)
     {
-        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd, segmentIntegrityHandling);
-        SetFrameMetadata(frameMetadata, frameData);
+        SegmentIntegrityHandling handling = this.segmentIntegrityHandling;
+        while (WebpChunkParsingUtils.TryReadNextChunkType(stream, buffer, metadata, this.skipMetadata, containerEnd, handling, out WebpChunkType chunkType))
+        {
+            if (chunkType == WebpChunkType.FrameData)
+            {
+                return true;
+            }
 
-        // Size of the frame header chunk.
-        const int chunkHeaderSize = 16;
+            WebpChunkParsingUtils.SkipChunk(stream, buffer, containerEnd);
+        }
 
-        // IgnoreImageData permits a frame that ends at EOF. Stop at EOF in that case.
-        uint remaining = frameData.DataSize - chunkHeaderSize;
-        stream.Position = Math.Min(stream.Position + remaining + (frameData.DataSize & 1), stream.Length);
+        return false;
     }
 
     /// <summary>
-    /// Reads an individual webp frame.
+    /// Reads frame information from the specified stream and updates the provided frame metadata.
     /// </summary>
+    /// <param name="stream">The stream from which to read the frame information. The stream must support read and seek operations.</param>
+    /// <param name="frameMetadata">The metadata updated from the frame header.</param>
+    /// <param name="containerEnd">The end of the RIFF payload.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls a frame that ends at EOF.</param>
+    /// <param name="imageExists">A value that tells if Identify read a frame before this frame.</param>
+    /// <returns><see langword="true"/> if the frame header is valid. Otherwise <see langword="false"/>.</returns>
+    private static bool TryReadFrameInfo(
+        BufferedReadStream stream,
+        ImageFrameMetadata frameMetadata,
+        long containerEnd,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        bool imageExists)
+    {
+        if (!WebpFrameData.TryParse(stream, containerEnd, segmentIntegrityHandling, imageExists, out WebpFrameData frameData))
+        {
+            return false;
+        }
+
+        SetFrameMetadata(frameMetadata, frameData);
+
+        // IgnoreImageData permits a frame that ends at EOF. Stop at EOF in that case.
+        uint remaining = frameData.DataSize - WebpFrameData.HeaderSize;
+        stream.Position = Math.Min(stream.Position + remaining + (frameData.DataSize & 1), stream.Length);
+        return true;
+    }
+
+    /// <summary>
+    /// Reads one webp frame.
+    /// </summary>
+    /// <remarks>
+    /// The method checks each frame header and the headers of the image data before it adds a frame. Before the image exists, the method throws for damaged
+    /// headers in each mode. After that, the integrity mode decides, and the method returns <see langword="false"/> when the mode ignores the error. The frame
+    /// decoders apply the integrity mode to damage in the frame pixel data.
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+    /// <param name="stream">The stream that holds the image. It cannot be null.</param>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="prevFrameData">The previous frame data.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="backgroundColor">The default background color of the canvas in.</param>
+    /// <param name="backgroundColor">The default background color of the canvas.</param>
     /// <param name="colorProfileConverter">The optional converter for the embedded ICC profile.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
-    private void ReadFrame<TPixel>(
+    /// <returns><see langword="true"/> if the decoder added the frame. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadFrame<TPixel>(
         BufferedReadStream stream,
         ref Image<TPixel>? image,
         ref WebpFrameData? prevFrameData,
@@ -295,62 +295,99 @@ internal class WebpAnimationDecoder : IDisposable
         long containerEnd)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        WebpFrameData frameData = WebpFrameData.Parse(stream, containerEnd, this.segmentIntegrityHandling);
-
-        // Nested chunks must fit inside this ANMF payload. Bytes in the next frame cannot complete this frame.
-        long frameEnd = stream.Position + frameData.DataSize - 16;
-        if (frameEnd - stream.Position < WebpConstants.ChunkHeaderSize || !new Rectangle(0, 0, (int)width, (int)height).Contains(frameData.Bounds))
+        bool imageExists = image is not null;
+        if (!WebpFrameData.TryParse(stream, containerEnd, this.segmentIntegrityHandling, imageExists, out WebpFrameData frameData))
         {
-            WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP animation frame bounds or missing image chunk.");
+            return false;
         }
 
-        Span<byte> buffer = stackalloc byte[4];
-
-        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-        bool hasAlpha = false;
-        byte alphaChunkHeader = 0;
-        if (chunkType is WebpChunkType.Alpha)
+        if (!new Rectangle(0, 0, (int)width, (int)height).Contains(frameData.Bounds))
         {
-            alphaChunkHeader = this.ReadAlphaData(stream, frameEnd);
-            hasAlpha = true;
-            if (frameEnd - stream.Position < WebpConstants.ChunkHeaderSize)
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "The WebP animation frame is outside the canvas.");
+            return false;
+        }
+
+        // The ALPH data of the previous frame does not belong to this frame.
+        this.alphaData?.Dispose();
+        this.alphaData = null;
+
+        // The frame payload holds an optional ALPH chunk and then a VP8 or VP8L chunk. Nested chunks must fit inside this ANMF payload. Bytes in the next
+        // frame cannot complete this frame. A stream that ends before the image chunk header also misses the image chunk.
+        long frameEnd = stream.Position + frameData.DataSize - WebpFrameData.HeaderSize;
+        Span<byte> buffer = stackalloc byte[4];
+        WebpChunkType chunkType;
+        byte alphaChunkHeader = 0;
+        while (true)
+        {
+            if (frameEnd - stream.Position < WebpConstants.ChunkHeaderSize || stream.RemainingBytes < WebpConstants.ChunkHeaderSize)
             {
-                WebpThrowHelper.ThrowInvalidImageContentException("Missing WebP frame image chunk after alpha data.");
+                this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "Missing WebP frame image chunk.");
+                return false;
             }
 
             chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
+            if (chunkType != WebpChunkType.Alpha || this.alphaData is not null)
+            {
+                break;
+            }
+
+            if (!WebpChunkParsingUtils.TryReadAlphaChunk(
+                stream,
+                buffer,
+                this.memoryAllocator,
+                frameEnd,
+                this.segmentIntegrityHandling,
+                imageExists,
+                out this.alphaData,
+                out alphaChunkHeader))
+            {
+                return false;
+            }
         }
 
-        WebpImageInfo? webpInfo = null;
-        WebpFeatures features = new();
-        switch (chunkType)
+        if (chunkType is not WebpChunkType.Vp8 and not WebpChunkType.Vp8L)
         {
-            case WebpChunkType.Vp8:
-                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, frameEnd, this.segmentIntegrityHandling);
-                features.Alpha = hasAlpha;
-                features.AlphaChunkHeader = alphaChunkHeader;
-                break;
-            case WebpChunkType.Vp8L:
-                if (hasAlpha)
-                {
-                    WebpThrowHelper.ThrowNotSupportedException("Alpha channel is not supported for lossless webp images.");
-                }
-
-                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, frameEnd, this.segmentIntegrityHandling);
-                break;
-            default:
-                WebpThrowHelper.ThrowImageFormatException("Read unexpected chunk type, should be VP8 or VP8L");
-                break;
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "Read unexpected chunk type, should be VP8 or VP8L");
+            return false;
         }
 
-        using WebpImageInfo frameInfo = webpInfo!;
+        if (chunkType == WebpChunkType.Vp8L && this.alphaData is not null)
+        {
+            // VP8L data holds its own alpha, so a frame with an ALPH chunk and a VP8L chunk is not valid. The libwebp demuxer also rejects this frame. See the
+            // WebP Container Specification, section "Extended File Format" (https://developers.google.com/speed/webp/docs/riff_container).
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "A WebP frame with a VP8L image chunk must not have an ALPH chunk.");
+            return false;
+        }
+
+        WebpFeatures features = new() { Alpha = this.alphaData is not null, AlphaChunkHeader = alphaChunkHeader };
+        if (!WebpChunkParsingUtils.TryReadImageChunk(
+            chunkType,
+            this.memoryAllocator,
+            stream,
+            buffer,
+            features,
+            frameEnd,
+            this.segmentIntegrityHandling,
+            imageExists,
+            out WebpImageInfo? webpInfo))
+        {
+            return false;
+        }
+
+        using WebpImageInfo frameInfo = webpInfo;
         if (frameInfo.Width != frameData.Width || frameInfo.Height != frameData.Height)
         {
-            WebpThrowHelper.ThrowInvalidImageContentException("WebP frame dimensions do not match its image chunk.");
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "WebP frame dimensions do not match its image chunk.");
+            return false;
+        }
+
+        // As for a still image, the decoder reads the headers of the image data before it creates the canvas or the frame.
+        if (!frameInfo.TryReadImageHeaders(this.memoryAllocator, this.configuration, this.segmentIntegrityHandling, imageExists))
+        {
+            return false;
         }
 
         ImageFrame<TPixel> currentFrame;
-        bool hasPreviousFrame = image is not null;
         if (image is null)
         {
             image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
@@ -384,8 +421,8 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         Rectangle interest = frameData.Bounds;
-        bool blend = hasPreviousFrame && frameData.BlendingMethod == FrameBlendMode.Over;
-        using Buffer2D<TPixel> pixelData = this.DecodeImageFrameData<TPixel>(frameData, webpInfo, colorProfileConverter);
+        bool blend = imageExists && frameData.BlendingMethod == FrameBlendMode.Over;
+        using Buffer2D<TPixel> pixelData = this.DecodeImageFrameData<TPixel>(frameData, frameInfo, colorProfileConverter);
         DrawDecodedImageFrameOnCanvas(pixelData, currentFrame, interest, blend);
 
         prevFrameData = frameData;
@@ -397,6 +434,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         // IgnoreImageData permits a frame that ends at EOF. Stop at EOF in that case.
         stream.Position = Math.Min(frameEnd + (frameData.DataSize & 1), stream.Length);
+        return true;
     }
 
     /// <summary>
@@ -413,79 +451,11 @@ internal class WebpAnimationDecoder : IDisposable
     }
 
     /// <summary>
-    /// Reads metadata within RIFF and applies the ancillary recovery policy to complete chunks.
-    /// </summary>
-    /// <param name="stream">The stream positioned at the chunk size.</param>
-    /// <param name="chunkType">The metadata chunk type.</param>
-    /// <param name="imageMetadata">The destination metadata.</param>
-    /// <param name="ignoreMetadata">Whether to skip metadata contents.</param>
-    /// <param name="containerEnd">The end of the RIFF payload.</param>
-    private void ReadOptionalChunk(
-        BufferedReadStream stream,
-        WebpChunkType chunkType,
-        ImageMetadata imageMetadata,
-        bool ignoreMetadata,
-        long containerEnd)
-    {
-        switch (chunkType)
-        {
-            case WebpChunkType.Iccp:
-
-                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
-                // precede the frame data, and we cannot safely skip it without successfully reading its size.
-                // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
-                // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(
-                    stream,
-                    imageMetadata,
-                    this.segmentIntegrityHandling,
-                    containerEnd);
-                break;
-            case WebpChunkType.Exif:
-                this.segmentIntegrityHandling.ExecuteAncillarySegmentAction(
-                    () => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata, containerEnd, this.segmentIntegrityHandling));
-                break;
-            case WebpChunkType.Xmp:
-                this.segmentIntegrityHandling.ExecuteAncillarySegmentAction(
-                    () => WebpChunkParsingUtils.ReadXmpProfile(stream, imageMetadata, ignoreMetadata, containerEnd, this.segmentIntegrityHandling));
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Reads the ALPH chunk data.
-    /// </summary>
-    /// <param name="stream">The stream to read from.</param>
-    /// <param name="containerEnd">The end of the ANMF payload.</param>
-    private byte ReadAlphaData(BufferedReadStream stream, long containerEnd)
-    {
-        this.alphaData?.Dispose();
-        this.alphaData = null;
-
-        // Alpha data is image data, so an ALPH chunk that ends at EOF follows the image data integrity policy.
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, stackalloc byte[4], containerEnd, 1, this.segmentIntegrityHandling);
-
-        // IgnoreImageData permits a chunk that ends at EOF. Stop at EOF in that case.
-        long chunkEnd = Math.Min(stream.Position + alphaChunkSize + (alphaChunkSize & 1), stream.Length);
-
-        byte alphaChunkHeader = (byte)stream.ReadByte();
-        this.alphaData = WebpChunkParsingUtils.ReadAlphaData(
-            stream,
-            this.memoryAllocator,
-            (int)(alphaChunkSize - 1),
-            this.segmentIntegrityHandling);
-
-        stream.Position = chunkEnd;
-
-        return alphaChunkHeader;
-    }
-
-    /// <summary>
-    /// Decodes the either lossy or lossless webp image data.
+    /// Decodes the lossy or lossless webp image data.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frameData">The frame data.</param>
-    /// <param name="webpInfo">The webp information.</param>
+    /// <param name="webpInfo">The webp information. <see cref="WebpImageInfo.TryReadImageHeaders"/> read its headers.</param>
     /// <param name="colorProfileConverter">The optional converter for the embedded ICC profile.</param>
     /// <returns>A decoded image.</returns>
     private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo, ColorProfileConverter? colorProfileConverter)
@@ -496,30 +466,7 @@ internal class WebpAnimationDecoder : IDisposable
         try
         {
             Buffer2D<TPixel> decodeBuffer = decodedFrame.PixelBuffer;
-            if (webpInfo.IsLossless)
-            {
-                WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
-                losslessDecoder.Decode(
-                    decodeBuffer,
-                    (int)webpInfo.Width,
-                    (int)webpInfo.Height,
-                    colorProfileConverter,
-                    this.segmentIntegrityHandling);
-            }
-            else
-            {
-                WebpLossyDecoder lossyDecoder =
-                    new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(
-                    decodeBuffer,
-                    (int)webpInfo.Width,
-                    (int)webpInfo.Height,
-                    webpInfo,
-                    this.alphaData,
-                    colorProfileConverter,
-                    this.segmentIntegrityHandling);
-            }
-
+            webpInfo.Decode(decodeBuffer, this.alphaData, colorProfileConverter, this.segmentIntegrityHandling);
             return decodeBuffer;
         }
         catch

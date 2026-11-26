@@ -131,8 +131,7 @@ public class Av1VarianceStatisticTests
     }
 
     /// <summary>
-    /// Mirrors aom_calc_variance_stat_c() and aom_highbd_calc_variance_stat_c(): a padded copy with repeated edges,
-    /// then the 1-2-1 by 1-2-1 smoothing.
+    /// Mirrors the eight-bit and high-bit-depth libaom variance statistics: a padded copy with repeated edges, then the 1-2-1 by 1-2-1 smoothing.
     /// </summary>
     /// <typeparam name="T">The sample type.</typeparam>
     /// <param name="source">The samples, starting at the block origin.</param>

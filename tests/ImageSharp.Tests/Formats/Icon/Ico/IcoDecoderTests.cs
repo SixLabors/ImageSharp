@@ -525,9 +525,8 @@ public class IcoDecoderTests
     }
 
     /// <summary>
-    /// Verifies that a non-empty resource cannot begin at the exclusive end of its containing icon stream.
-    /// In strict mode the decoder reports the invalid range. With the default options the decoder skips the entry,
-    /// and the file has no other entry to decode, so it still throws.
+    /// Verifies that a non-empty resource cannot start at the exclusive end of the icon stream that contains it. The directory check finds the invalid range
+    /// before an entry decodes, so the decoder reports it in each mode.
     /// </summary>
     [Fact]
     public void EntryAtEndOfStream_ThrowsInvalidResourceRange()

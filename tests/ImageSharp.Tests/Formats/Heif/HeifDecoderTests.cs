@@ -419,7 +419,8 @@ public class HeifDecoderTests
 
         DecoderOptions strictOptions = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict, SkipMetadata = true };
 
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(strictOptions, data));
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(strictOptions, data));
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
 
         // Recovery retains the available profile bytes and continues reading the image properties.
         DecoderOptions ignoreOptions = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary, SkipMetadata = true };
@@ -595,6 +596,42 @@ public class HeifDecoderTests
     }
 
     /// <summary>
+    /// Verifies that a grid tile without item data throws in strict mode. The decoder finds this error when it reads the tile, after it allocates the canvas.
+    /// With the default options, the other tiles decode as in the valid file. The pixels of the tile keep the fill value.
+    /// </summary>
+    [Fact]
+    public void DecodeKeepsValidGridTilesWhenTileHasNoItemData()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.PerceptualIccGridAvif).Bytes;
+        byte[] data = [.. source];
+        uint tileId = FindFirstItemReferenceDestinationId(data, Heif4CharCode.Dimg);
+
+        // Set the extent_length of each extent of the first tile to 0. See ISO/IEC 14496-12, section 8.11.3 "Item location box". Then the item has no data.
+        List<(int Offset, int Size)> lengthFields = [];
+        GetItemPayloadRanges(data, tileId, lengthFields);
+        foreach ((int offset, int size) in lengthFields)
+        {
+            data.AsSpan(offset, size).Clear();
+        }
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, data);
+        });
+
+        // The dimg references give the tiles in row order, so the first tile covers the top-left corner.
+        Size tileSize = ReadItemSpatialExtents(source, tileId);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        Assert.True(expected.Width > tileSize.Width && expected.Height > tileSize.Height);
+        using Image<Rgba32> blank = new(tileSize.Width, tileSize.Height);
+        expected.Mutate(x => x.DrawImage(blank, Point.Empty, PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Src, 1F));
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Verifies that strict validation rejects a malformed descriptive metadata relationship.
     /// </summary>
     [Fact]
@@ -710,6 +747,28 @@ public class HeifDecoderTests
         int pitmSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(pitmOffset));
         data = InsertBytes(data, metaOffset + metaSize, data.AsSpan(pitmOffset, pitmSize));
         IncrementBoxSize(data, metaOffset, pitmSize);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    /// <summary>
+    /// Verifies that the metadata box and the image spatial extents property accept only version 0.
+    /// </summary>
+    /// <param name="boxType">The full box whose version the test changes.</param>
+    [Theory]
+    [InlineData(Heif4CharCode.Meta)]
+    [InlineData(Heif4CharCode.Ispe)]
+    public void IdentifyRejectsUnsupportedFullBoxVersion(Heif4CharCode boxType)
+    {
+        byte[] data = CreateAv1Container();
+        byte[] typeBytes = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(typeBytes, (uint)boxType);
+        int typeOffset = data.AsSpan().IndexOf(typeBytes);
+        Assert.True(typeOffset >= 0);
+
+        // The version byte of the full-box header follows the box type.
+        Assert.Equal(0, data[typeOffset + 4]);
+        data[typeOffset + 4] = 1;
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
     }
@@ -1234,8 +1293,11 @@ public class HeifDecoderTests
     /// </summary>
     /// <param name="data">The complete HEIF container.</param>
     /// <param name="itemId">The item whose extents are selected.</param>
+    /// <param name="lengthFields">
+    /// The list that receives the offset and the width of the extent_length field of each selected extent. A <see langword="null"/> list receives nothing.
+    /// </param>
     /// <returns>The item's extents in file order.</returns>
-    private static List<Range> GetItemPayloadRanges(ReadOnlySpan<byte> data, uint itemId)
+    private static List<Range> GetItemPayloadRanges(ReadOnlySpan<byte> data, uint itemId, List<(int Offset, int Size)> lengthFields = null)
     {
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         Assert.True(metaOffset >= 0);
@@ -1286,9 +1348,11 @@ public class HeifDecoderTests
             {
                 _ = ReadVariableUnsigned(data, extentIndexSize, ref offset);
                 ulong extentOffset = ReadVariableUnsigned(data, extentOffsetSize, ref offset);
+                int lengthField = offset;
                 ulong extentLength = ReadVariableUnsigned(data, extentLengthSize, ref offset);
                 if (currentItemId == itemId)
                 {
+                    lengthFields?.Add((lengthField, extentLengthSize));
                     int start = checked((int)(baseOffset + extentOffset));
                     extents.Add(new Range(start, checked(start + (int)extentLength)));
                 }

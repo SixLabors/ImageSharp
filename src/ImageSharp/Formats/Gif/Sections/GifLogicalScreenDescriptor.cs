@@ -90,16 +90,7 @@ internal readonly struct GifLogicalScreenDescriptor
     }
 
     public static GifLogicalScreenDescriptor Parse(ReadOnlySpan<byte> buffer)
-    {
-        GifLogicalScreenDescriptor result = MemoryMarshal.Cast<byte, GifLogicalScreenDescriptor>(buffer)[0];
-
-        if (result.GlobalColorTableSize > 255 * 4)
-        {
-            throw new ImageFormatException($"Invalid gif colormap size '{result.GlobalColorTableSize}'");
-        }
-
-        return result;
-    }
+        => MemoryMarshal.Cast<byte, GifLogicalScreenDescriptor>(buffer)[0];
 
     public static byte GetPackedValue(bool globalColorTableFlag, int colorResolution, bool sortFlag, int globalColorTableSize)
     {

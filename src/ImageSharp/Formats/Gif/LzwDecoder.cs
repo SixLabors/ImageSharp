@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -17,6 +18,11 @@ internal sealed class LzwDecoder : IDisposable
     /// The max decoder pixel stack size.
     /// </summary>
     private const int MaxStackSize = 4096;
+
+    /// <summary>
+    /// The smallest LZW minimum code size that the decoder accepts.
+    /// </summary>
+    private const int MinimumLzwBits = 2;
 
     /// <summary>
     /// The maximum bits for a lzw code.
@@ -84,14 +90,14 @@ internal sealed class LzwDecoder : IDisposable
     /// </summary>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
     /// <param name="stream">The stream to read from.</param>
-    /// <param name="minCodeSize">The minimum code size.</param>
+    /// <param name="minCodeSize">The minimum code size that <see cref="TryReadMinCodeSize"/> read.</param>
     /// <param name="integrityHandling">The segment integrity mode. It controls if damaged or truncated LZW data throws.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
     public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize, SegmentIntegrityHandling integrityHandling)
     {
-        this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+        DebugGuard.MustBeBetweenOrEqualTo(minCodeSize, MinimumLzwBits, MaximumLzwBits, nameof(minCodeSize));
+
+        this.stream = stream;
         this.integrityHandling = integrityHandling;
-        Guard.IsTrue(IsValidMinCodeSize(minCodeSize), nameof(minCodeSize), "Invalid minimum code size.");
 
         this.prefixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
         this.suffixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
@@ -118,22 +124,45 @@ internal sealed class LzwDecoder : IDisposable
     }
 
     /// <summary>
-    /// Gets a value indicating whether the minimum code size is valid.
+    /// Receives each index that the LZW loop takes from the pixel stack.
     /// </summary>
-    /// <param name="minCodeSize">The minimum code size.</param>
-    /// <returns>
-    /// <see langword="true"/> if the minimum code size is valid; otherwise, <see langword="false"/>.
-    /// </returns>
-    public static bool IsValidMinCodeSize(int minCodeSize)
+    private interface IIndexSink
     {
-        // It is possible to specify a larger LZW minimum code size than the palette length in bits
-        // which may leave a gap in the codes where no colors are assigned.
-        // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || 1 << minCodeSize > MaxStackSize)
+        /// <summary>
+        /// Stores or discards the index at the top of the pixel stack.
+        /// </summary>
+        /// <param name="indices">The destination indices.</param>
+        /// <param name="position">The position of the index in <paramref name="indices"/>.</param>
+        /// <param name="pixelStack">The pixel stack.</param>
+        /// <param name="top">The position of the index in <paramref name="pixelStack"/>.</param>
+        public static abstract void Store(Span<byte> indices, int position, Span<int> pixelStack, int top);
+    }
+
+    /// <summary>
+    /// Reads the LZW minimum code size of a frame and checks it.
+    /// </summary>
+    /// <remarks>
+    /// GIF89a section 22 puts the LZW minimum code size byte after the color table of a frame and before the data sub-blocks. The value must leave room for the
+    /// clear code and the end code in a table of 4096 codes with 12-bit codes. A larger value is possible for a small palette, so the decoder does not compare
+    /// it to the palette. See http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression.
+    /// </remarks>
+    /// <param name="stream">The stream that is at the LZW minimum code size byte.</param>
+    /// <param name="integrityHandling">The segment integrity mode. It controls if a missing or invalid value throws.</param>
+    /// <param name="minCodeSize">The minimum code size, or the byte that is not valid.</param>
+    /// <returns>
+    /// <see langword="true"/> if the value is valid. <see langword="false"/> if the byte is missing or not valid, and the mode ignores image data errors. The
+    /// caller then does not decode the frame indices.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The byte is missing or not valid, and the integrity mode does not ignore image data errors.
+    /// </exception>
+    public static bool TryReadMinCodeSize(BufferedReadStream stream, SegmentIntegrityHandling integrityHandling, out int minCodeSize)
+    {
+        minCodeSize = stream.ReadByte();
+        if (minCodeSize is < MinimumLzwBits or > MaximumLzwBits)
         {
-            // Don't attempt to decode the frame indices.
-            // Theoretically we could determine a min code size from the length of the provided
-            // color palette but we won't bother since the image is most likely corrupted.
+            // The end of the stream gives -1, so the same check finds a missing byte.
+            integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW minimum code size is missing or not valid.");
             return false;
         }
 
@@ -161,170 +190,7 @@ internal sealed class LzwDecoder : IDisposable
     public bool DecodePixelRow(Span<byte> indices)
     {
         indices.Clear();
-
-        if (this.isEndOfData)
-        {
-            // An earlier call reached the end of the data. This row keeps zero indices.
-            return true;
-        }
-
-        // Get span values from the owners.
-        Span<int> prefix = this.prefixOwner.GetSpan();
-        Span<int> suffix = this.suffixOwner.GetSpan();
-        Span<int> pixelStack = this.pixelStackOwner.GetSpan();
-        Span<byte> buffer = this.bufferOwner.GetSpan();
-
-        // Cache frequently accessed instance fields into locals.
-        // This helps avoid repeated field loads inside the tight loop.
-        BufferedReadStream stream = this.stream;
-        int top = this.top;
-        int bits = this.bits;
-        int codeSize = this.codeSize;
-        int codeMask = this.codeMask;
-        int minCodeSize = this.minCodeSize;
-        int availableCode = this.availableCode;
-        int oldCode = this.oldCode;
-        int first = this.first;
-        int data = this.data;
-        int count = this.count;
-        int bufferIndex = this.bufferIndex;
-        int code = this.code;
-        int clearCode = this.clearCode;
-        int endCode = this.endCode;
-
-        int i = 0;
-        while (i < indices.Length)
-        {
-            if (top == 0)
-            {
-                if (bits < codeSize)
-                {
-                    // Load bytes until there are enough bits for a code.
-                    if (count == 0)
-                    {
-                        // Read a new data block.
-                        count = ReadBlock(stream, buffer);
-                        if (count == 0)
-                        {
-                            // A block terminator, a short block or the end of the stream came before the last index.
-                            this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
-                            this.isEndOfData = true;
-                            break;
-                        }
-
-                        bufferIndex = 0;
-                    }
-
-                    data += buffer[bufferIndex] << bits;
-                    bits += 8;
-                    bufferIndex++;
-                    count--;
-                    continue;
-                }
-
-                // Get the next code
-                code = data & codeMask;
-                data >>= codeSize;
-                bits -= codeSize;
-
-                // Interpret the code
-                if (code > availableCode)
-                {
-                    // The code is not in the table and is not the next code to add. The data is damaged at this code,
-                    // so the decoder cannot decode a later code safely. The frame stops.
-                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data contains a code that is not valid.");
-                    return false;
-                }
-
-                if (code == endCode)
-                {
-                    // The end code came before the last index.
-                    this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW data ends before the frame is complete.");
-                    this.isEndOfData = true;
-                    break;
-                }
-
-                if (code == clearCode)
-                {
-                    // Reset the decoder
-                    codeSize = minCodeSize + 1;
-                    codeMask = (1 << codeSize) - 1;
-                    availableCode = clearCode + 2;
-                    oldCode = NullCode;
-                    continue;
-                }
-
-                if (oldCode == NullCode)
-                {
-                    // This first code has no previous string to extend. With a tolerated minimum size of 12,
-                    // the next available code is 4098, beyond the 4096-entry tables. The decoder reports the damaged
-                    // data before it reads a table entry. It cannot decode a later code safely, so the frame stops.
-                    if (code >= MaxStackSize)
-                    {
-                        this.integrityHandling.ThrowOrIgnoreImageDataError("The GIF LZW code exceeds the code table bounds.");
-                        return false;
-                    }
-
-                    pixelStack[top++] = suffix[code];
-                    oldCode = code;
-                    first = code;
-                    continue;
-                }
-
-                int inCode = code;
-                if (code == availableCode)
-                {
-                    pixelStack[top++] = first;
-                    code = oldCode;
-                }
-
-                while (code > clearCode && top < MaxStackSize)
-                {
-                    pixelStack[top++] = suffix[code];
-                    code = prefix[code];
-                }
-
-                int suffixCode = suffix[code];
-                first = suffixCode;
-                pixelStack[top++] = suffixCode;
-
-                // Fix for GIFs that have "deferred clear code" as per:
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
-                if (availableCode < MaxStackSize)
-                {
-                    prefix[availableCode] = oldCode;
-                    suffix[availableCode] = first;
-                    availableCode++;
-                    if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
-                    {
-                        codeSize++;
-                        codeMask = (1 << codeSize) - 1;
-                    }
-                }
-
-                oldCode = inCode;
-            }
-
-            // Pop a pixel off the pixel stack.
-            top--;
-
-            // Clear missing pixels.
-            indices[i++] = (byte)pixelStack[top];
-        }
-
-        // Write back the local values to the instance fields.
-        this.top = top;
-        this.bits = bits;
-        this.codeSize = codeSize;
-        this.codeMask = codeMask;
-        this.availableCode = availableCode;
-        this.oldCode = oldCode;
-        this.first = first;
-        this.data = data;
-        this.count = count;
-        this.bufferIndex = bufferIndex;
-        this.code = code;
-        return true;
+        return this.DecodeIndices<StoreIndices>(indices, indices.Length);
     }
 
     /// <summary>
@@ -343,11 +209,25 @@ internal sealed class LzwDecoder : IDisposable
     /// <exception cref="InvalidImageContentException">
     /// The LZW data is damaged or truncated, and the integrity mode does not ignore image data errors.
     /// </exception>
-    public bool SkipIndices(int length)
+    public bool SkipIndices(int length) => this.DecodeIndices<DiscardIndices>(default, length);
+
+    /// <summary>
+    /// Decodes the next indices from the stream. The sink stores each index in the destination or discards it.
+    /// </summary>
+    /// <remarks>
+    /// The sink is a struct type argument, so the JIT compiles one copy of the loop for each sink and inlines the sink. The store copy writes each index to the
+    /// row. The discard copy does not read the pixel stack.
+    /// </remarks>
+    /// <typeparam name="TSink">The sink that stores or discards each index.</typeparam>
+    /// <param name="indices">The destination indices. The discard sink does not use them.</param>
+    /// <param name="length">The number of indices to decode. For the store sink, it is the length of <paramref name="indices"/>.</param>
+    /// <returns>The value that <see cref="DecodePixelRow"/> and <see cref="SkipIndices"/> document.</returns>
+    private bool DecodeIndices<TSink>(Span<byte> indices, int length)
+        where TSink : struct, IIndexSink
     {
         if (this.isEndOfData)
         {
-            // An earlier call reached the end of the data.
+            // An earlier call reached the end of the data. The row keeps zero indices, or the skip reads no data.
             return true;
         }
 
@@ -488,10 +368,9 @@ internal sealed class LzwDecoder : IDisposable
                 oldCode = inCode;
             }
 
-            // Pop a pixel off the pixel stack.
+            // The loop removes the index at the top of the pixel stack. Then the sink stores the index or discards it.
             top--;
-
-            // Skip missing pixels.
+            TSink.Store(indices, i, pixelStack, top);
             i++;
         }
 
@@ -551,5 +430,31 @@ internal sealed class LzwDecoder : IDisposable
         this.suffixOwner.Dispose();
         this.pixelStackOwner.Dispose();
         this.bufferOwner.Dispose();
+    }
+
+    /// <summary>
+    /// Writes each index to the destination row.
+    /// </summary>
+    private readonly struct StoreIndices : IIndexSink
+    {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store(Span<byte> indices, int position, Span<int> pixelStack, int top)
+        {
+            // DecodePixelRow passes the row length as the loop length, so the position is always inside the row. The write does not need a bounds check.
+            Unsafe.Add(ref MemoryMarshal.GetReference(indices), (uint)position) = (byte)pixelStack[top];
+        }
+    }
+
+    /// <summary>
+    /// Discards each index. The skip path does not read the pixel stack.
+    /// </summary>
+    private readonly struct DiscardIndices : IIndexSink
+    {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store(Span<byte> indices, int position, Span<int> pixelStack, int top)
+        {
+        }
     }
 }

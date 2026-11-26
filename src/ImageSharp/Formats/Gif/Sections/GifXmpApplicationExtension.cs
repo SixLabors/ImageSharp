@@ -43,9 +43,13 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="allocator">The memory allocator.</param>
+    /// <param name="integrityHandling">The segment integrity mode. It controls if a truncated packet throws.</param>
     /// <param name="profile">The profile, or null when the packet is empty.</param>
     /// <returns>Whether the application extension was read in full.</returns>
-    public static bool TryReadProfile(BufferedReadStream stream, MemoryAllocator allocator, out XmpProfile? profile)
+    /// <exception cref="InvalidImageContentException">
+    /// The data ends inside the packet, and the integrity mode does not ignore ancillary errors.
+    /// </exception>
+    public static bool TryReadProfile(BufferedReadStream stream, MemoryAllocator allocator, SegmentIntegrityHandling integrityHandling, out XmpProfile? profile)
     {
         profile = null;
         using ChunkedMemoryStream bytes = new(allocator);
@@ -59,7 +63,8 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
 
         if (value < 0)
         {
-            throw new InvalidImageContentException("Unexpected end of stream while reading gif XMP data");
+            integrityHandling.ThrowOrIgnoreAncillaryError("Unexpected end of stream while reading gif XMP data");
+            return false;
         }
 
         long packetLength = bytes.Length - (TrailerLength - 1);

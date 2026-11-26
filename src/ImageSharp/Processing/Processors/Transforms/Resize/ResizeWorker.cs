@@ -78,7 +78,8 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             targetWorkingRect.Width,
             workingBufferLimitHintInBytes);
 
-        this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
+        // The product of the band count and the band height can exceed int. A long product cannot wrap.
+        this.workerHeight = (int)Math.Min(this.sourceRectangle.Height, (long)numberOfWindowBands * this.windowBandHeight);
 
         this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
             this.workerHeight,
@@ -86,8 +87,19 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             preferContiguosImageBuffers: true,
             options: AllocationOptions.Clean);
 
-        this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
-        this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
+        try
+        {
+            this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
+            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
+        }
+        catch
+        {
+            // The caller receives no worker when the construction fails, so it cannot call Dispose.
+            // This code releases the owners that the constructor allocated before the failure.
+            this.tempRowBuffer?.Dispose();
+            this.transposedFirstPassBuffer.Dispose();
+            throw;
+        }
 
         this.currentWindow = new RowInterval(0, this.workerHeight);
     }

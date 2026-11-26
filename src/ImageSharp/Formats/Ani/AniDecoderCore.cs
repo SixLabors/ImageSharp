@@ -258,8 +258,10 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
 
         // RIFF size excludes the initial identifier and size field. Some real-world ANI files incorrectly
         // include those eight bytes, so the physical stream length remains the hard read boundary.
-        long declaredEnd = checked(containerStart + 8 + declaredSize);
-        long containerEnd = Math.Min(declaredEnd, stream.Length);
+        // The full header read puts containerStart + 8 inside the stream. Thus the remaining length cannot be negative, and the
+        // declared end is added only when it is less than the stream length.
+        long remaining = stream.Length - containerStart - 8;
+        long containerEnd = declaredSize < remaining ? containerStart + 8 + declaredSize : stream.Length;
         bool headerFound = false;
 
         while (stream.Position + AniConstants.ChunkHeaderSize <= containerEnd)
@@ -808,13 +810,15 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// <returns>The exclusive payload boundary.</returns>
     private static long GetChunkDataEnd(BufferedReadStream stream, uint size, long containerEnd)
     {
-        long end = checked(stream.Position + size);
-        if (end > containerEnd)
+        // The caller reads the chunk header inside the container, so the position is not after the container end.
+        // Thus the subtraction cannot overflow, and the sum is calculated only when it is inside the container.
+        long position = stream.Position;
+        if (size > containerEnd - position)
         {
             throw new InvalidImageContentException("An ANI RIFF chunk extends beyond its containing list.");
         }
 
-        return end;
+        return position + size;
     }
 
     /// <summary>

@@ -124,7 +124,9 @@ internal abstract class IconEncoderCore
             }
 
             long imageStart = stream.Position;
-            entries[i].Entry.ImageOffset = checked((uint)(imageStart - basePosition));
+
+            // The directory is less than 1 MiB and the end check below bounds each earlier payload, so this offset fits in uint.
+            entries[i].Entry.ImageOffset = (uint)(imageStart - basePosition);
             ref EncodingFrameMetadata encodingMetadata = ref entries[i];
             Image<TPixel>? encodingImage = null;
 
@@ -203,7 +205,13 @@ internal abstract class IconEncoderCore
                 encodingImage?.Dispose();
             }
 
-            encodingMetadata.Entry.BytesInRes = checked((uint)(stream.Position - imageStart));
+            // ImageOffset and BytesInRes are 32-bit fields. If the payload ends inside that range, its length and the next offset fit too.
+            if (stream.Position - basePosition > uint.MaxValue)
+            {
+                throw new ImageFormatException("ICO and CUR resources cannot be larger than 4294967295 bytes.");
+            }
+
+            encodingMetadata.Entry.BytesInRes = (uint)(stream.Position - imageStart);
         }
 
         // Backpatch the reserved directory after every relative offset and payload length has been measured.

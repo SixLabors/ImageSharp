@@ -3,13 +3,12 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Applies a <see cref="SegmentIntegrityHandling"/> mode to the errors that a decoder finds. Each decoder and each
-/// part of a decoder uses these methods, so all formats apply the same policy.
+/// Applies a <see cref="SegmentIntegrityHandling"/> mode to the errors that a decoder finds. The check that finds the error calls one of these methods and then
+/// returns or stops, so all formats apply the same policy.
 /// </summary>
 internal static class SegmentIntegrityHandlingExtensions
 {
@@ -97,6 +96,27 @@ internal static class SegmentIntegrityHandlingExtensions
     }
 
     /// <summary>
+    /// Reports damaged image data that the decoder can find before or after it creates the image, for example a damaged frame header. Before the image exists,
+    /// the decoder has no pixels to keep, so the method throws in each mode. After that, the method acts as
+    /// <see cref="ThrowOrIgnoreImageDataError(SegmentIntegrityHandling, string)"/>: in the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, it
+    /// returns, and the caller keeps the frames or pixels that it decoded.
+    /// </summary>
+    /// <param name="handling">The segment integrity mode of the decode.</param>
+    /// <param name="imageExists">A value that tells if the decoder created the image before the damaged data.</param>
+    /// <param name="message">The exception message.</param>
+    /// <exception cref="InvalidImageContentException">
+    /// The image does not exist, or the mode is not <see cref="SegmentIntegrityHandling.IgnoreImageData"/>.
+    /// </exception>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static void ThrowOrIgnoreImageDataError(this SegmentIntegrityHandling handling, bool imageExists, string message)
+    {
+        if (!imageExists || !handling.IgnoresImageDataErrors())
+        {
+            ThrowInvalidImageContentException(message);
+        }
+    }
+
+    /// <summary>
     /// Reports damaged image data that another exception describes. In the <see cref="SegmentIntegrityHandling.Strict"/>
     /// and <see cref="SegmentIntegrityHandling.IgnoreAncillary"/> modes, the method throws. In the
     /// <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, it returns, and the caller keeps the pixels that it
@@ -114,75 +134,6 @@ internal static class SegmentIntegrityHandlingExtensions
             ThrowInvalidImageContentException(message, innerException);
         }
     }
-
-    /// <summary>
-    /// Gets a value that tells if the mode ignores an exception from the parse of an ancillary segment.
-    /// </summary>
-    /// <remarks>
-    /// The method is a catch filter. An ancillary segment can use a feature that the decoder does not support. The
-    /// decoder does not need the segment for the pixels, so a <see cref="NotSupportedException"/> is also recoverable.
-    /// </remarks>
-    /// <param name="handling">The segment integrity mode of the decode.</param>
-    /// <param name="exception">The exception from the parse.</param>
-    /// <returns><see langword="true"/> if the caller can continue without the segment data. Otherwise <see langword="false"/>.</returns>
-    public static bool ShouldIgnoreAncillaryError(this SegmentIntegrityHandling handling, Exception exception)
-        => handling.IgnoresAncillaryErrors()
-            && (IsDamagedDataError(exception) || exception is NotSupportedException);
-
-    /// <summary>
-    /// Gets a value that tells if the mode ignores an exception from the decode of image data.
-    /// </summary>
-    /// <remarks>
-    /// The method is a catch filter. A <see cref="NotSupportedException"/> is not damage: the data uses a feature that the
-    /// decoder does not support. Thus the filter lets it pass in each mode.
-    /// </remarks>
-    /// <param name="handling">The segment integrity mode of the decode.</param>
-    /// <param name="exception">The exception from the decode.</param>
-    /// <returns><see langword="true"/> if the caller can keep the pixels that it decoded. Otherwise <see langword="false"/>.</returns>
-    public static bool ShouldIgnoreImageDataError(this SegmentIntegrityHandling handling, Exception exception)
-        => handling.IgnoresImageDataErrors() && IsDamagedDataError(exception);
-
-    /// <summary>
-    /// Runs the parse of an ancillary segment. The mode controls if a recoverable error from the parse throws.
-    /// </summary>
-    /// <param name="handling">The segment integrity mode of the decode.</param>
-    /// <param name="action">The parse of the segment.</param>
-    public static void ExecuteAncillarySegmentAction(this SegmentIntegrityHandling handling, Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (Exception ex) when (handling.ShouldIgnoreAncillaryError(ex))
-        {
-            // The mode ignores this error. The decoder continues without the segment data.
-        }
-    }
-
-    /// <summary>
-    /// Runs the decode of image data. The mode controls if a recoverable error from the decode throws.
-    /// </summary>
-    /// <param name="handling">The segment integrity mode of the decode.</param>
-    /// <param name="action">The decode of the image data.</param>
-    public static void ExecuteImageDataSegmentAction(this SegmentIntegrityHandling handling, Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (Exception ex) when (handling.ShouldIgnoreImageDataError(ex))
-        {
-            // The mode ignores this error. The decoder keeps the pixels that it decoded.
-        }
-    }
-
-    /// <summary>
-    /// Gets a value that tells if an exception reports damaged or truncated data.
-    /// </summary>
-    /// <param name="exception">The exception.</param>
-    /// <returns><see langword="true"/> if the exception reports damaged or truncated data. Otherwise <see langword="false"/>.</returns>
-    private static bool IsDamagedDataError(Exception exception)
-        => exception is ImageFormatException or InvalidIccProfileException or InvalidOperationException;
 
     /// <summary>
     /// Throws an <see cref="InvalidImageContentException"/>.

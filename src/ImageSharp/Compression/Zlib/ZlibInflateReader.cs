@@ -28,19 +28,20 @@ internal sealed class ZlibInflateReader : IDisposable
     public DeflateStream? CompressedStream { get; private set; }
 
     /// <summary>
-    /// Sets the length of the next segment of compressed input and, on first
-    /// call, parses the zlib header.
+    /// Sets the length of the next segment of compressed input. On the first call, the method also parses the zlib header.
     /// </summary>
     /// <param name="bytes">The remaining data length for the current segment.</param>
-    /// <param name="isCriticalChunk">Whether to throw on a malformed zlib header.</param>
-    /// <returns>The <see cref="bool"/>.</returns>
+    /// <returns>
+    /// <see langword="true"/> if the inflate stream is ready. <see langword="false"/> if the zlib header is missing or not valid. The caller applies its own
+    /// integrity policy.
+    /// </returns>
     [MemberNotNullWhen(true, nameof(CompressedStream))]
-    public bool AllocateNewBytes(int bytes, bool isCriticalChunk)
+    public bool AllocateNewBytes(int bytes)
     {
         this.segmentStream.SetCurrentSegmentLength(bytes);
         if (this.CompressedStream is null)
         {
-            return this.InitializeInflateStream(isCriticalChunk);
+            return this.InitializeInflateStream();
         }
 
         return true;
@@ -53,7 +54,7 @@ internal sealed class ZlibInflateReader : IDisposable
     }
 
     [MemberNotNullWhen(true, nameof(CompressedStream))]
-    private bool InitializeInflateStream(bool isCriticalChunk)
+    private bool InitializeInflateStream()
     {
         // Read the zlib header : http://tools.ietf.org/html/rfc1950
         // CMF(Compression Method and flags)
@@ -78,24 +79,15 @@ internal sealed class ZlibInflateReader : IDisposable
             // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
             int cinfo = (cmf & 0xF0) >> 4;
 
+            // RFC 1950, section 2.2, does not allow a CINFO value of more than 7.
             if (cinfo > 7)
             {
-                if (isCriticalChunk)
-                {
-                    // Values of CINFO above 7 are not allowed in RFC1950.
-                    // CINFO is not defined in this specification for CM not equal to 8.
-                    throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
-                }
-
                 return false;
             }
         }
-        else if (isCriticalChunk)
-        {
-            throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
-        }
         else
         {
+            // RFC 1950 defines only compression method 8 (deflate).
             return false;
         }
 

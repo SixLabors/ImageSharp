@@ -97,8 +97,9 @@ internal static class MemoryGroupExtensions
         Guard.MustBeGreaterThanOrEqualTo(sourceStride, width, nameof(sourceStride));
         Guard.MustBeGreaterThanOrEqualTo(targetStride, width, nameof(targetStride));
 
-        long sourceRequired = height == 0 ? 0 : checked(((long)(height - 1) * sourceStride) + width);
-        long targetRequired = height == 0 ? 0 : checked(((long)(height - 1) * targetStride) + width);
+        // The product of two int values plus an int value always fits in long.
+        long sourceRequired = height == 0 ? 0 : ((long)(height - 1) * sourceStride) + width;
+        long targetRequired = height == 0 ? 0 : ((long)(height - 1) * targetStride) + width;
         Guard.MustBeGreaterThanOrEqualTo(source.TotalLength, sourceRequired, nameof(source));
         Guard.MustBeGreaterThanOrEqualTo(target.Length, targetRequired, nameof(target));
 
@@ -112,8 +113,8 @@ internal static class MemoryGroupExtensions
 
         for (int y = 0; y < height; y++)
         {
-            int rowStart = checked(y * targetStride);
-            Span<T> destinationRow = target.Slice(rowStart, width);
+            // The target length check above keeps every row start inside the int span length.
+            Span<T> destinationRow = target.Slice(y * targetStride, width);
             CopyFromCursorToSpan(ref sourceCursor, destinationRow);
 
             // Trailing padding after the last row is optional, so only skip between rows.
@@ -153,8 +154,9 @@ internal static class MemoryGroupExtensions
         Guard.MustBeGreaterThanOrEqualTo(sourceStride, width, nameof(sourceStride));
         Guard.MustBeGreaterThanOrEqualTo(targetStride, width, nameof(targetStride));
 
-        long sourceRequired = height == 0 ? 0 : checked(((long)(height - 1) * sourceStride) + width);
-        long targetRequired = height == 0 ? 0 : checked(((long)(height - 1) * targetStride) + width);
+        // The product of two int values plus an int value always fits in long.
+        long sourceRequired = height == 0 ? 0 : ((long)(height - 1) * sourceStride) + width;
+        long targetRequired = height == 0 ? 0 : ((long)(height - 1) * targetStride) + width;
         Guard.MustBeGreaterThanOrEqualTo(source.TotalLength, sourceRequired, nameof(source));
         Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, targetRequired, nameof(target));
 

@@ -267,7 +267,7 @@ internal partial class ResizeKernelMap : IDisposable
 
         // The weights are stored for kernelLength taps, rounded up to a multiple of 4 for the 4-tap steps of the
         // horizontal operators.
-        int paddedLength = (kernelLength + 3) & ~3;
+        long paddedLength = ((long)kernelLength + 3) & ~3L;
 
         // The number of weight rows that one kernel of the period needs in a periodic map. Without aligned starts,
         // all copies of a kernel use one row.
@@ -284,7 +284,7 @@ internal partial class ResizeKernelMap : IDisposable
                 maxShift = Math.Max(maxShift, Math.Min(left, sourceSize - kernelLength) & 3);
             }
 
-            paddedLength = (kernelLength + maxShift + 3) & ~3;
+            paddedLength = ((long)kernelLength + maxShift + 3) & ~3L;
 
             // A periodic copy of a kernel has the same weights, and starts sourcePeriod samples after the kernel it
             // copies. Its shift is start % 4. If sourcePeriod is not a multiple of 4, the shift changes from one
@@ -293,6 +293,14 @@ internal partial class ResizeKernelMap : IDisposable
             // periods: 1, 2 or 4. So each kernel of the period needs that number of rows, one for each shift.
             // PeriodicKernelMap calculates the weights of each kernel one time, and copies them to its other rows.
             shiftVariants = 4 / Numerics.GreatestCommonDivisor(sourcePeriod, 4);
+        }
+
+        // A kernel is at most as long as the source, but each weight row stores 4 floats for each tap in one int length.
+        // A very wide source can make the row longer, so the row length is checked before the allocation.
+        long rowLength = paddedLength * 4;
+        if (rowLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)rowLength, int.MaxValue);
         }
 
         // If 'cornerInterval' is too big compared to 'period', we can't apply the periodic optimization.
@@ -316,7 +324,7 @@ internal partial class ResizeKernelMap : IDisposable
             scale,
             radius,
             kernelLength,
-            paddedLength,
+            (int)paddedLength,
             alignKernelStarts,
             period,
             cornerInterval,
@@ -331,7 +339,7 @@ internal partial class ResizeKernelMap : IDisposable
             scale,
             radius,
             kernelLength,
-            paddedLength,
+            (int)paddedLength,
             alignKernelStarts);
 
         result.Initialize(in sampler);

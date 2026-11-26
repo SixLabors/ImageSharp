@@ -116,10 +116,14 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             targetWorkingRect.Width,
             workingBufferLimitHintInBytes);
 
-        this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
+        this.workerHeight = (int)Math.Min(this.sourceRectangle.Height, (long)numberOfWindowBands * this.windowBandHeight);
 
-        // The first pass writes every pixel of a window row before the vertical pass reads it, so the buffer needs no clear.
-        this.firstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.workerHeight * targetWorkingRect.Width);
+        // The minimum of two window bands can be more than the working-buffer limit. Then the element count can be more than int allows.
+        long firstPassLength = (long)this.workerHeight * targetWorkingRect.Width;
+        if (firstPassLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)firstPassLength, int.MaxValue);
+        }
 
         // The horizontal operators read PaddedLength taps. The taps after the length of each kernel have the weight zero,
         // but a kernel at the end of the row reads up to PaddedLength - MaxDiameter pixels after the row. These pixels
@@ -130,10 +134,32 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         // 4 pixels (64 bytes), so that the second row starts on a 64-byte boundary when the first row does.
         // The memory allocator does not align its buffers, so the buffer has 15 more floats. The rows start at the
         // first 64-byte boundary in the buffer, 0 to 15 floats after its start.
+        // A very wide source can make the two rows longer than int allows, so the length is checked in long.
         int padding = horizontalKernelMap.PaddedLength - horizontalKernelMap.MaxDiameter;
-        this.tempRowStride = ((this.sourceRectangle.Width + padding + 3) & ~3) * 4;
-        this.tempRowsBuffer = configuration.MemoryAllocator.Allocate<float>((this.tempRowStride * 2) + 15, AllocationOptions.Clean);
-        this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
+        long tempRowStride = (((long)this.sourceRectangle.Width + padding + 3) & ~3L) * 4;
+        long tempRowsLength = (tempRowStride * 2) + 15;
+        if (tempRowsLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)tempRowsLength, int.MaxValue);
+        }
+
+        this.tempRowStride = (int)tempRowStride;
+
+        // The first pass writes every pixel of a window row before the vertical pass reads it, so the buffer needs no clear.
+        this.firstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>((int)firstPassLength);
+        try
+        {
+            this.tempRowsBuffer = configuration.MemoryAllocator.Allocate<float>((int)tempRowsLength, AllocationOptions.Clean);
+            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
+        }
+        catch
+        {
+            // The caller receives no worker when the construction fails, so it cannot call Dispose.
+            // This code releases the owners that the constructor allocated before the failure.
+            this.tempRowsBuffer?.Dispose();
+            this.firstPassBuffer.Dispose();
+            throw;
+        }
 
         this.currentWindow = new RowInterval(0, this.workerHeight);
     }

@@ -156,7 +156,8 @@ public sealed class Buffer2D<T> : IDisposable
         Guard.MustBeGreaterThan(height, 0, nameof(height));
         Guard.MustBeGreaterThanOrEqualTo(stride, width, nameof(stride));
 
-        long requiredLength = checked(((long)(height - 1) * stride) + width);
+        // The product of two int values plus an int value always fits in long.
+        long requiredLength = ((long)(height - 1) * stride) + width;
         Guard.IsTrue(memory.Length >= requiredLength, nameof(memory), "The length of the input memory is less than the specified buffer size");
 
         MemoryGroup<T> memorySource = MemoryGroup<T>.Wrap(memory);
@@ -180,8 +181,8 @@ public sealed class Buffer2D<T> : IDisposable
             return false;
         }
 
-        int logicalLength = checked((int)((long)this.Width * this.Height));
-        memory = this.MemoryGroup[0][..logicalLength];
+        // One tightly packed segment holds all Width x Height values, and a segment length is an int.
+        memory = this.MemoryGroup[0][..(this.Width * this.Height)];
         return true;
     }
 
@@ -200,8 +201,8 @@ public sealed class Buffer2D<T> : IDisposable
         bool sameDimensions = this.Width == destination.Width && this.Height == destination.Height;
         int destinationStride = sameDimensions ? destination.RowStride : this.RowStride;
 
-        // Different dimensions use source logical layout. This supports SwapOrCopyContent,
-        // where metadata is swapped after data copy.
+        // Different dimensions use the source logical layout. This supports SwapOrCopyContent,
+        // where the destination takes the source size and stride after the copy.
         this.FastMemoryGroup.CopyTo(
             this.RowStride,
             destination.FastMemoryGroup,
@@ -216,7 +217,8 @@ public sealed class Buffer2D<T> : IDisposable
     /// <param name="destination">The destination span.</param>
     internal void CopyTo(Span<T> destination)
     {
-        long requiredLength = checked(((long)(this.Height - 1) * this.RowStride) + this.Width);
+        // The product of two int values plus an int value always fits in long.
+        long requiredLength = ((long)(this.Height - 1) * this.RowStride) + this.Width;
         Guard.MustBeGreaterThanOrEqualTo(destination.Length, requiredLength, nameof(destination));
 
         this.FastMemoryGroup.CopyTo(
@@ -243,7 +245,8 @@ public sealed class Buffer2D<T> : IDisposable
     {
         Guard.MustBeGreaterThanOrEqualTo(sourceStride, this.Width, nameof(sourceStride));
 
-        long requiredLength = checked(((long)(this.Height - 1) * sourceStride) + this.Width);
+        // The product of two int values plus an int value always fits in long.
+        long requiredLength = ((long)(this.Height - 1) * sourceStride) + this.Width;
         Guard.MustBeGreaterThanOrEqualTo(source.Length, requiredLength, nameof(source));
 
         // Copy row by row so padded source rows map correctly into the destination logical rows.
@@ -302,8 +305,9 @@ public sealed class Buffer2D<T> : IDisposable
             return this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
         }
 
-        int rowStart = checked(y * this.RowStride);
-        return this.FastMemoryGroup[0].Span.Slice(rowStart, this.Width);
+        // Only WrapMemory makes a RowStride that is not Width. It requires one segment of at least (Height - 1) x RowStride + Width values,
+        // so every row start fits in int.
+        return this.FastMemoryGroup[0].Span.Slice(y * this.RowStride, this.Width);
     }
 
     internal bool DangerousTryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
@@ -312,10 +316,12 @@ public sealed class Buffer2D<T> : IDisposable
         DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
         int stride = this.Width + padding;
+
+        // A strided buffer is one segment with an int length. See DangerousGetRowSpan.
         long rowStart = y * (long)this.RowStride;
         Span<T> slice = this.RowStride == this.Width
             ? this.FastMemoryGroup.GetRemainingSliceOfBuffer(rowStart)
-            : this.FastMemoryGroup[0].Span[checked((int)rowStart)..];
+            : this.FastMemoryGroup[0].Span[(int)rowStart..];
 
         if (slice.Length < stride)
         {
@@ -330,9 +336,10 @@ public sealed class Buffer2D<T> : IDisposable
     [MethodImpl(InliningOptions.ShortMethod)]
     internal ref T GetElementUnsafe(int x, int y)
     {
+        // A strided buffer is one segment with an int length. See DangerousGetRowSpan.
         Span<T> span = this.RowStride == this.Width
             ? this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width)
-            : this.FastMemoryGroup[0].Span.Slice(checked(y * this.RowStride), this.Width);
+            : this.FastMemoryGroup[0].Span.Slice(y * this.RowStride, this.Width);
 
         return ref span[x];
     }
@@ -350,8 +357,8 @@ public sealed class Buffer2D<T> : IDisposable
 
         if (this.RowStride != this.Width)
         {
-            int rowStart = checked(y * this.RowStride);
-            return this.FastMemoryGroup[0].Slice(rowStart, this.Width);
+            // A strided buffer is one segment with an int length. See DangerousGetRowSpan.
+            return this.FastMemoryGroup[0].Slice(y * this.RowStride, this.Width);
         }
 
         return this.FastMemoryGroup.View.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
@@ -381,47 +388,52 @@ public sealed class Buffer2D<T> : IDisposable
 
     /// <summary>
     /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
-    /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
+    /// copies the contents of 'source' to 'destination' otherwise (2). In case 2 'source' keeps its own size and stride.
     /// </summary>
     /// <param name="destination">The destination buffer.</param>
     /// <param name="source">The source buffer.</param>
     /// <exception cref="InvalidMemoryOperationException">Attempt to copy/swap incompatible buffers.</exception>
     internal static bool SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
     {
-        bool swapped = false;
         if (MemoryGroup<T>.CanSwapContent(destination.FastMemoryGroup, source.FastMemoryGroup))
         {
             (destination.FastMemoryGroup, source.FastMemoryGroup) = (source.FastMemoryGroup, destination.FastMemoryGroup);
             destination.FastMemoryGroup.RecreateViewAfterSwap();
             source.FastMemoryGroup.RecreateViewAfterSwap();
-            swapped = true;
+            (destination.Size, source.Size) = (source.Size, destination.Size);
+            (destination.RowStride, source.RowStride) = (source.RowStride, destination.RowStride);
+            return true;
         }
-        else
+
+        // CopyTo keeps the destination stride when the dimensions are equal. Otherwise it writes the source layout.
+        // Only the destination takes a new layout. The source keeps its own memory, so it keeps its own size and stride.
+        // A size change needs a destination that can hold the source layout. The check on the source length keeps the
+        // existing behavior: a resize of wrapped memory that cannot hold the old layout throws.
+        bool sameDimensions = source.Width == destination.Width && source.Height == destination.Height;
+        if (!sameDimensions
+            && (destination.FastMemoryGroup.TotalLength < GetRequiredLength(source.Width, source.Height, source.RowStride)
+            || source.FastMemoryGroup.TotalLength < GetRequiredLength(destination.Width, destination.Height, destination.RowStride)))
         {
-            long sourceLayoutLength = GetRequiredLength(source.Width, source.Height, source.RowStride);
-            long destinationLayoutLength = GetRequiredLength(destination.Width, destination.Height, destination.RowStride);
-
-            bool destinationCanRepresentSource = destination.FastMemoryGroup.TotalLength >= sourceLayoutLength;
-            bool sourceCanRepresentDestination = source.FastMemoryGroup.TotalLength >= destinationLayoutLength;
-            if (!destinationCanRepresentSource || !sourceCanRepresentDestination)
-            {
-                throw new InvalidMemoryOperationException(
-                    "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
-            }
-
-            source.CopyTo(destination);
+            throw new InvalidMemoryOperationException(
+                "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
         }
 
-        (destination.Size, source.Size) = (source.Size, destination.Size);
-        (destination.RowStride, source.RowStride) = (source.RowStride, destination.RowStride);
-        return swapped;
+        source.CopyTo(destination);
+        if (!sameDimensions)
+        {
+            destination.Size = source.Size;
+            destination.RowStride = source.RowStride;
+        }
+
+        return false;
     }
 
     [MethodImpl(InliningOptions.ColdPath)]
     private void ThrowYOutOfRangeException(int y)
         => throw new ArgumentOutOfRangeException($"DangerousGetRowSpan({y}). Y was out of range. Height={this.Height}");
 
+    // The product of two int values plus an int value always fits in long.
     [MethodImpl(InliningOptions.ShortMethod)]
     private static long GetRequiredLength(int width, int height, int stride)
-        => checked(((long)(height - 1) * stride) + width);
+        => ((long)(height - 1) * stride) + width;
 }

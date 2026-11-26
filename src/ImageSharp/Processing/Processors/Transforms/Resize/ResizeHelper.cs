@@ -17,9 +17,11 @@ internal static class ResizeHelper
         int width,
         int sizeLimitHintInBytes)
     {
+        // A wide destination with a tall kernel can make the window size more than int allows. A long product cannot wrap or become zero,
+        // and the quotient is not more than the int limit hint.
         int sizeLimitHint = sizeLimitHintInBytes / sizeof(Vector4);
-        int sizeOfOneWindow = windowBandHeight * width;
-        return Math.Max(2, sizeLimitHint / sizeOfOneWindow);
+        long sizeOfOneWindow = (long)windowBandHeight * width;
+        return (int)Math.Max(2, sizeLimitHint / sizeOfOneWindow);
     }
 
     /// <summary>

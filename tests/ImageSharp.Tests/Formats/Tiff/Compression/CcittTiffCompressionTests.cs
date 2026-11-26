@@ -66,11 +66,11 @@ public class CcittTiffCompressionTests
     [Theory]
     [InlineData(0, 16)]
     [InlineData(16, 0)]
-    public void Decode_TiledCcittWithZeroTileDimension_ThrowsImageFormatException(uint tileWidth, uint tileLength)
+    public void Decode_TiledCcittWithZeroTileDimension_ThrowsInvalidImageContentException(uint tileWidth, uint tileLength)
     {
         byte[] tiff = CreateTiledFaxTiff(tileWidth, tileLength);
 
-        ImageFormatException exception = Assert.Throws<ImageFormatException>(() => Image.Load(tiff));
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load(tiff));
 
         Assert.Equal("TIFF tile dimensions must be positive.", exception.Message);
     }

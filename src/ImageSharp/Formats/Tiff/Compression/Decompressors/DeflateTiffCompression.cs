@@ -19,21 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </remarks>
 internal sealed class DeflateTiffCompression : TiffBaseDecompressor
 {
-    private readonly bool isBigEndian;
-
-    private readonly TiffColorType colorType;
-
-    private readonly bool isTiled;
-
-    private readonly int tileWidth;
-
-    private readonly int tileHeight;
-
-    /// <summary>
-    /// The segment integrity mode of the decode. It selects what happens with damaged data.
-    /// </summary>
-    private readonly SegmentIntegrityHandling integrityHandling;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
     /// </summary>
@@ -58,80 +43,45 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
         int tileWidth,
         int tileHeight,
         SegmentIntegrityHandling integrityHandling)
-        : base(memoryAllocator, width, bitsPerPixel, predictor)
+        : base(memoryAllocator, width, bitsPerPixel, integrityHandling, predictor, colorType, isBigEndian, isTiled, tileWidth, tileHeight)
     {
-        this.integrityHandling = integrityHandling;
-        this.colorType = colorType;
-        this.isBigEndian = isBigEndian;
-        this.isTiled = isTiled;
-        this.tileWidth = tileWidth;
-        this.tileHeight = tileHeight;
     }
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        long pos = stream.Position;
         int totalRead = 0;
-        using (ZlibInflateReader deframeStream = new(
-            stream,
-            () =>
-            {
-                int left = (int)(byteCount - (stream.Position - pos));
-                return left > 0 ? left : 0;
-            }))
-        {
-            // The header check does not throw. A bad header gives no data, and the integrity mode below decides what
-            // that does.
-            if (deframeStream.AllocateNewBytes(byteCount, false))
-            {
-                DeflateStream? dataStream = deframeStream.CompressedStream;
 
-                try
+        // The strip or tile is one segment of byteCount bytes. Thus no data follows it.
+        using ZlibInflateReader deframeStream = new(stream);
+
+        // The header check does not throw. A bad header gives no data. The base class reports the missing samples.
+        if (deframeStream.AllocateNewBytes(byteCount))
+        {
+            DeflateStream? dataStream = deframeStream.CompressedStream;
+
+            try
+            {
+                while (totalRead < buffer.Length)
                 {
-                    while (totalRead < buffer.Length)
+                    int bytesRead = dataStream.Read(buffer[totalRead..]);
+                    if (bytesRead <= 0)
                     {
-                        int bytesRead = dataStream.Read(buffer[totalRead..]);
-                        if (bytesRead <= 0)
-                        {
-                            break;
-                        }
-
-                        totalRead += bytesRead;
+                        break;
                     }
+
+                    totalRead += bytesRead;
                 }
-                catch (InvalidDataException ex)
-                {
-                    // The inflater throws for deflate data that is not valid. In the IgnoreImageData mode, the bytes
-                    // before the error stay, and the code below clears the rest.
-                    this.integrityHandling.ThrowOrIgnoreImageDataError("The TIFF deflate data is damaged.", ex);
-                }
+            }
+            catch (InvalidDataException)
+            {
+                // The inflater throws for deflate data that is not valid. The inflate stops here. The bytes before the error are the decoded samples. The base
+                // class reports the missing samples.
             }
         }
 
-        // The buffer holds the samples of this strip or tile only. A bad header, deflate data that is not valid, or data
-        // that ends early gives fewer bytes. In the IgnoreImageData mode, the strip or tile keeps the inflated bytes.
-        // The buffer is reused, so the bytes after them are cleared. In the other modes, damaged data throws.
-        if (totalRead < buffer.Length)
-        {
-            this.integrityHandling.ThrowOrIgnoreImageDataError(
-                "The TIFF deflate data is damaged or ends before the strip or tile is complete.");
-            buffer[totalRead..].Clear();
-        }
-
-        if (this.Predictor == TiffPredictor.Horizontal)
-        {
-            if (this.isTiled)
-            {
-                // When the image is tiled, undoing the horizontal predictor will be done for each tile row.
-                HorizontalPredictor.UndoTile(buffer, this.tileWidth, this.tileHeight, this.colorType, this.isBigEndian);
-            }
-            else
-            {
-                HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
-            }
-        }
+        return totalRead;
     }
 
     /// <inheritdoc/>

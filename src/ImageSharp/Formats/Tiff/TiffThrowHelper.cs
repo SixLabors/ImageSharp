@@ -14,10 +14,6 @@ internal static class TiffThrowHelper
     public static Exception ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
 
     [DoesNotReturn]
-    public static Exception NotSupportedDecompressor(string compressionType)
-        => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
-
-    [DoesNotReturn]
     public static Exception NotSupportedCompressor(string compressionType)
         => throw new NotSupportedException($"Not supported encoder compression method: {compressionType}");
 
@@ -29,7 +25,4 @@ internal static class TiffThrowHelper
 
     [DoesNotReturn]
     public static void ThrowNotSupported(string message) => throw new NotSupportedException(message);
-
-    [DoesNotReturn]
-    public static void ThrowArgumentException(string message) => throw new ArgumentException(message);
 }

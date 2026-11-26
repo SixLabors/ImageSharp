@@ -44,16 +44,14 @@ internal sealed class TiffJpegSpectralConverter<TPixel> : SpectralConverter<TPix
     /// <param name="data">
     /// The <see cref="IRawJpegData"/> containing the color space information.
     /// </param>
-    /// <exception cref="InvalidImageContentException">
-    /// Thrown when the <paramref name="interpretation"/> is not supported for JPEG decoding.
-    /// </exception>
     private static JpegColorSpace GetJpegColorSpace(TiffPhotometricInterpretation interpretation, IRawJpegData data) => interpretation switch
     {
         TiffPhotometricInterpretation.Rgb => JpegColorSpace.RGB,
 
         // TIFF stores conventional ink values, including K. YCCK changes only the representation of the other three channels.
         TiffPhotometricInterpretation.Separated => data.ColorSpace == JpegColorSpace.Ycck ? JpegColorSpace.TiffYccK : JpegColorSpace.TiffCmyk,
-        TiffPhotometricInterpretation.YCbCr => JpegColorSpace.YCbCr,
-        _ => throw new InvalidImageContentException($"Invalid TIFF photometric interpretation for JPEG decoding: {interpretation}"),
+
+        // The parser allows Rgb, Separated and YCbCr here. The gray interpretations use GrayJpegSpectralConverter.
+        _ => JpegColorSpace.YCbCr,
     };
 }

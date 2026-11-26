@@ -14,21 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 internal sealed class LzwTiffCompression : TiffBaseDecompressor
 {
-    private readonly bool isBigEndian;
-
-    private readonly TiffColorType colorType;
-
-    private readonly bool isTiled;
-
-    private readonly int tileWidth;
-
-    private readonly int tileHeight;
-
-    /// <summary>
-    /// The segment integrity mode of the decode. It selects what happens with damaged data.
-    /// </summary>
-    private readonly SegmentIntegrityHandling integrityHandling;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.
     /// </summary>
@@ -53,42 +38,17 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
         int tileWidth,
         int tileHeight,
         SegmentIntegrityHandling integrityHandling)
-        : base(memoryAllocator, width, bitsPerPixel, predictor)
+        : base(memoryAllocator, width, bitsPerPixel, integrityHandling, predictor, colorType, isBigEndian, isTiled, tileWidth, tileHeight)
     {
-        this.integrityHandling = integrityHandling;
-        this.colorType = colorType;
-        this.isBigEndian = isBigEndian;
-        this.isTiled = isTiled;
-        this.tileWidth = tileWidth;
-        this.tileHeight = tileHeight;
     }
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        // The buffer holds the samples of this strip or tile only. In the IgnoreImageData mode, the strip or tile keeps
-        // the samples before a code that is not valid or before the end of the data. The decoder clears the other
-        // samples. In the other modes, damaged data throws.
-        TiffLzwDecoder decoder = new(stream);
-        if (!decoder.DecodePixels(buffer))
-        {
-            this.integrityHandling.ThrowOrIgnoreImageDataError(
-                "The TIFF LZW data is damaged or ends before the strip or tile is complete.");
-        }
-
-        if (this.Predictor == TiffPredictor.Horizontal)
-        {
-            if (this.isTiled)
-            {
-                // When the image is tiled, undoing the horizontal predictor will be done for each tile row.
-                HorizontalPredictor.UndoTile(buffer, this.tileWidth, this.tileHeight, this.colorType, this.isBigEndian);
-            }
-            else
-            {
-                HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
-            }
-        }
+        // The decoder stops before a code that is not valid, or at the end of the data. The base class reports the samples after that point.
+        TiffLzwDecoder decoder = new(stream, byteCount);
+        return decoder.DecodePixels(buffer);
     }
 
     /// <inheritdoc/>

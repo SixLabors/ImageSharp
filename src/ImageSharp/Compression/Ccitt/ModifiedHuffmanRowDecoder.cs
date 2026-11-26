@@ -1,31 +1,38 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Compression.Ccitt;
 
 /// <summary>
-/// Decodes rows of 1-bit pixels from TIFF compression 2 data. The data has the Modified Huffman run codes of ITU-T T.4,
-/// but no EOL codes. Each row starts on a byte boundary of the compressed data. See TIFF 6.0 specification, section 10,
-/// pages 43-44: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+/// Decodes rows of 1-bit pixels from TIFF compression 2 data. The data has the Modified Huffman run codes of ITU-T T.4, but no EOL codes. Each row starts on a
+/// byte boundary of the compressed data. See TIFF 6.0 specification, section 10, pages 43-44: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 /// </summary>
 /// <remarks>
 /// <para>
-/// A row bit is 1 for a black pixel of the code and 0 for a white pixel. The photometric interpretation of the format
-/// gives the displayed colors. For example, TIFF reverses the meaning of white and black for BlackIsZero data. See
-/// TIFF 6.0 specification, section 10, page 44: https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
+/// A row bit is 1 for a black pixel of the code and 0 for a white pixel. The photometric interpretation of the format gives the displayed colors. For example,
+/// TIFF reverses the meaning of white and black for BlackIsZero data. See TIFF 6.0 specification, section 10, page 44:
+/// https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 /// </para>
 /// <para>
-/// The decoder does not throw for data that is not valid. It sets <see cref="IsDamaged"/>, so the caller can apply the
-/// segment integrity mode of the decode.
+/// In the Strict and IgnoreAncillary modes, the decoder throws for damaged data and for data that ends before a row. In the IgnoreImageData mode, the rows keep
+/// their decoded pixels.
 /// </para>
 /// </remarks>
 internal sealed class ModifiedHuffmanRowDecoder
 {
+    /// <summary>
+    /// The message for damaged data.
+    /// </summary>
+    private const string DamagedMessage = "The CCITT Modified Huffman data is damaged or ends before the last row of the strip, tile or image.";
+
     private CcittBitReader reader;
 
     private readonly int width;
+
+    private readonly SegmentIntegrityHandling integrityHandling;
 
     private bool isFirstRow = true;
 
@@ -36,17 +43,13 @@ internal sealed class ModifiedHuffmanRowDecoder
     /// <param name="bitOrder">The order of the code bits in each byte.</param>
     /// <param name="byteCount">The number of bytes to read from the stream.</param>
     /// <param name="width">The number of pixels in each row.</param>
-    public ModifiedHuffmanRowDecoder(BufferedReadStream stream, CcittBitOrder bitOrder, int byteCount, int width)
+    /// <param name="integrityHandling">The segment integrity mode of the decode. It selects what happens with damaged data.</param>
+    public ModifiedHuffmanRowDecoder(BufferedReadStream stream, CcittBitOrder bitOrder, int byteCount, int width, SegmentIntegrityHandling integrityHandling)
     {
         this.reader = new CcittBitReader(stream, bitOrder, byteCount);
         this.width = width;
+        this.integrityHandling = integrityHandling;
     }
-
-    /// <summary>
-    /// Gets a value indicating whether the data is damaged. Damaged data has a code that is not valid, a row with fewer
-    /// pixels than the width, or an end before a row.
-    /// </summary>
-    public bool IsDamaged { get; private set; }
 
     /// <summary>
     /// Decodes the next row. The first pixel goes to the most significant bit of the first byte. When the data ends
@@ -67,7 +70,7 @@ internal sealed class ModifiedHuffmanRowDecoder
         // decoder does. No run code starts with 8 zero bits, so this changes no valid data.
         if (!this.reader.SkipEolCodes(out bool skippedRow))
         {
-            this.IsDamaged = true;
+            this.integrityHandling.ThrowOrIgnoreImageDataError(DamagedMessage);
             return;
         }
 
@@ -75,7 +78,7 @@ internal sealed class ModifiedHuffmanRowDecoder
         // stays 0.
         if (skippedRow)
         {
-            this.IsDamaged = true;
+            this.integrityHandling.ThrowOrIgnoreImageDataError(DamagedMessage);
             return;
         }
 
@@ -92,7 +95,7 @@ internal sealed class ModifiedHuffmanRowDecoder
                 this.reader.End();
             }
 
-            this.IsDamaged = true;
+            this.integrityHandling.ThrowOrIgnoreImageDataError(DamagedMessage);
         }
     }
 }

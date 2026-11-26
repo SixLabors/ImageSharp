@@ -82,10 +82,37 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         }
     }
 
+    /// <summary>
+    /// A later IFD of the file uses a layout that the decoder does not support. The Strict mode throws. The IgnoreImageData mode keeps the frames of the IFDs
+    /// before that IFD. These frames are the same as the frames of a decode that stops before that IFD.
+    /// </summary>
+    /// <param name="provider">The multi-page image with different frame variants.</param>
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
-    public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
+    public void Decode_UnsupportedLaterFrame_FollowsImageDataPolicy<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        byte[] data = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using Image<TPixel> image = Image.Load<TPixel>(strict, data);
+        });
+
+        // IFD 2 uses compression 34712 (JPEG 2000). Thus the default mode keeps the frames of IFDs 0 and 1.
+        using Image<TPixel> actual = Image.Load<TPixel>(data);
+        Assert.Equal(2, actual.Frames.Count);
+
+        DecoderOptions firstFrames = new(Configuration.Default)
+        {
+            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict,
+            MaxFrames = (uint)actual.Frames.Count
+        };
+
+        using Image<TPixel> expected = Image.Load<TPixel>(firstFrames, data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
 
     /// <summary>
     /// Checks the existing sixteen-bit CMYK sample against an independent decoder.
@@ -1094,8 +1121,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         TiffFrameMetadata metadata = TiffFrameMetadata.Parse(tags);
         TiffDecoderCore decoder = new(new DecoderOptions(Configuration.Default));
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => decoder.VerifyAndParse(tags, metadata));
-        Assert.Equal("WebP compression is not supported with planar configuration", exception.Message);
+        TiffDirectoryStatus status = decoder.VerifyAndParse(tags, metadata, null, out _, out string message);
+        Assert.Equal(TiffDirectoryStatus.Unsupported, status);
+        Assert.Equal("WebP compression is not supported with planar configuration", message);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/1891
@@ -1149,7 +1177,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
     public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Assert.Throws<ImageFormatException>(
+        => Assert.Throws<InvalidImageContentException>(
             () =>
             {
                 using (provider.GetImage(TiffDecoder.Instance))
@@ -1255,7 +1283,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
 
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, data));
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
     }
 
     /// <summary>
@@ -1267,10 +1296,12 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
 
-        Assert.Throws<InvalidIccProfileException>(() =>
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
         });
+
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
     }
 
     /// <summary>

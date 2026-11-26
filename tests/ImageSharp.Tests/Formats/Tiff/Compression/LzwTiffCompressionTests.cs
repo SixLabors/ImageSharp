@@ -95,6 +95,35 @@ public class LzwTiffCompressionTests
         Assert.Equal(new byte[] { 1, 2, 3, 0, 0 }, buffer);
     }
 
+    /// <summary>
+    /// A Clear code can follow a Clear code. The decoder skips the second Clear code, as libtiff does.
+    /// </summary>
+    [Fact]
+    public void Decompress_RepeatedClearCodes_DecodesData()
+    {
+        // The data holds the 9-bit codes Clear, Clear, 1, 2, 3 and EndOfInformation. The first bit is the most significant bit.
+        byte[] inputData = [0x80, 0x40, 0x00, 0x20, 0x20, 0x1C, 0x04];
+        using MemoryStream memoryStream = new(inputData);
+        using BufferedReadStream stream = new(Configuration.Default, memoryStream);
+        byte[] buffer = new byte[3];
+
+        using LzwTiffCompression decompressor = new(
+            Configuration.Default.MemoryAllocator,
+            3,
+            8,
+            TiffColorType.BlackIsZero8,
+            TiffPredictor.None,
+            false,
+            false,
+            0,
+            0,
+            SegmentIntegrityHandling.Strict);
+
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, TestContext.Current.CancellationToken);
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, buffer);
+    }
+
     private static BufferedReadStream CreateCompressedStream(byte[] inputData)
     {
         Stream compressedStream = new MemoryStream();

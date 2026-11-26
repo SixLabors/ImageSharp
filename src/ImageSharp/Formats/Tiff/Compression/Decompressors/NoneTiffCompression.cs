@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 internal sealed class NoneTiffCompression : TiffBaseDecompressor
 {
-    private readonly SegmentIntegrityHandling integrityHandling;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="NoneTiffCompression" /> class.
     /// </summary>
@@ -22,24 +20,19 @@ internal sealed class NoneTiffCompression : TiffBaseDecompressor
     /// <param name="bitsPerPixel">The bits per pixel.</param>
     /// <param name="integrityHandling">The policy for incomplete image data.</param>
     public NoneTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, SegmentIntegrityHandling integrityHandling)
-        : base(memoryAllocator, width, bitsPerPixel)
+        : base(memoryAllocator, width, bitsPerPixel, integrityHandling)
     {
-        this.integrityHandling = integrityHandling;
     }
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        // The caller supplies only the rows needed for this read. Respect both the declared byte count and end of file.
-        int bytesRead = stream.Read(buffer, 0, Math.Min(buffer.Length, byteCount));
-        if (bytesRead < buffer.Length)
-        {
-            this.integrityHandling.ThrowOrIgnoreImageDataError("TIFF strip or tile contains incomplete image data.");
-
-            // The buffer is reused. Missing samples must not retain bytes from a previous strip, row, or pooled allocation.
-            buffer[bytesRead..].Clear();
-        }
+        // The caller supplies only the rows that this read needs. The stream has the bytes of the byte count. Thus the read fills the buffer if the byte count
+        // is not less than the buffer length.
+        int count = Math.Min(buffer.Length, byteCount);
+        stream.ReadExactly(buffer[..count]);
+        return count;
     }
 
     /// <inheritdoc/>

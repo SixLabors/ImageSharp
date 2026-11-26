@@ -16,11 +16,6 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
     private readonly CcittBitOrder bitOrder;
 
     /// <summary>
-    /// The segment integrity mode of the decode. It selects what happens with damaged data.
-    /// </summary>
-    private readonly SegmentIntegrityHandling integrityHandling;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="T6TiffCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
@@ -34,14 +29,13 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
         int width,
         int bitsPerPixel,
         SegmentIntegrityHandling integrityHandling)
-        : base(allocator, width, bitsPerPixel)
+        : base(allocator, width, bitsPerPixel, integrityHandling)
     {
         this.bitOrder = bitOrder;
-        this.integrityHandling = integrityHandling;
     }
 
     /// <inheritdoc/>
-    protected override void Decompress<TPixel>(
+    protected override int Decompress<TPixel>(
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         // The sample rows hold 1 for a black pixel of the code. The TIFF color decoder applies the photometric
@@ -50,19 +44,16 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
 
         // Each sample row holds 1 bit for each pixel and starts on a byte boundary.
         int rowBytes = (this.Width + 7) / 8;
-        using T6RowDecoder decoder = new(stream, this.bitOrder, byteCount, this.Width, this.Allocator);
+
+        // The row decoder reports damaged data where it finds it. In the IgnoreImageData mode, the strip or tile keeps the decoded rows. The other rows stay 0.
+        // Thus each byte of the buffer has a defined value.
+        using T6RowDecoder decoder = new(stream, this.bitOrder, byteCount, this.Width, this.Allocator, this.IntegrityHandling);
         for (int y = 0; y < stripHeight; y++)
         {
             decoder.DecodeRow(buffer.Slice(y * rowBytes, rowBytes));
         }
 
-        // In the IgnoreImageData mode, the strip or tile keeps the decoded rows, and the other rows stay 0. In the other
-        // modes, damaged data throws.
-        if (decoder.IsDamaged)
-        {
-            this.integrityHandling.ThrowOrIgnoreImageDataError(
-                "The TIFF CCITT T.6 data is damaged or ends before the strip or tile is complete.");
-        }
+        return buffer.Length;
     }
 
     /// <inheritdoc/>

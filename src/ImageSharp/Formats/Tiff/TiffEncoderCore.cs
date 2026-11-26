@@ -463,20 +463,22 @@ internal sealed class TiffEncoderCore
     /// <returns>The marker to write the next IFD offset (if present).</returns>
     private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries, long ifdOffsetMarker)
     {
-        if (entries.Count == 0)
-        {
-            TiffThrowHelper.ThrowArgumentException("There must be at least one entry per IFD.");
-        }
-
+        // The entries collector always adds the image size entries and the layout entries. Thus a directory is never empty.
         if (entries.Count > ushort.MaxValue)
         {
-            TiffThrowHelper.ThrowArgumentException("The TIFF directory contains too many entries.");
+            TiffThrowHelper.ThrowImageFormatException("The TIFF directory contains too many entries.");
         }
 
         // Classic TIFF stores offsets in four bytes. If the end of the directory fits, its start fits too.
         long directoryOffset = writer.Position;
         int directoryLength = 6 + (entries.Count * 12);
-        uint dataOffset = checked((uint)(directoryOffset + directoryLength));
+        long directoryEnd = directoryOffset + directoryLength;
+        if (directoryEnd > uint.MaxValue)
+        {
+            TiffThrowHelper.ThrowImageFormatException("The TIFF data exceeds the 4 GB offset range of classic TIFF.");
+        }
+
+        uint dataOffset = (uint)directoryEnd;
         this.frameMarkers.Add((ifdOffsetMarker, (uint)directoryOffset));
 
         List<byte[]> largeDataBlocks = [];
@@ -511,6 +513,12 @@ internal sealed class TiffEncoderCore
                 else
                 {
                     // Numeric arrays and strings still need byte-order or text encoding before their out-of-line data is written.
+                    // A numeric array can encode to more bytes than a byte array can hold, so the length is checked first.
+                    if (length > Array.MaxLength)
+                    {
+                        InvalidMemoryOperationException.ThrowAllocationOverLimitException(length, Array.MaxLength);
+                    }
+
                     raw = new byte[length];
                     int sz = ExifWriter.WriteValue(entry, raw, 0);
                     DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
@@ -520,8 +528,13 @@ internal sealed class TiffEncoderCore
                 writer.Write(dataOffset, buffer);
 
                 // The next value must start on an even byte offset that fits in four bytes.
-                uint paddedLength = (uint)raw.Length + ((uint)raw.Length & 1);
-                dataOffset = checked(dataOffset + paddedLength);
+                ulong nextOffset = dataOffset + (ulong)raw.Length + ((uint)raw.Length & 1);
+                if (nextOffset > uint.MaxValue)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("The TIFF data exceeds the 4 GB offset range of classic TIFF.");
+                }
+
+                dataOffset = (uint)nextOffset;
             }
         }
 

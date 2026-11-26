@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,11 +18,19 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeMultiframe_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb);
 
+    /// <summary>
+    /// IFD 2 of the file uses compression 34712 (JPEG 2000). The default mode keeps the frames before that IFD. Thus the test uses the Strict mode to prove
+    /// that the image with that IFD cannot load for the encode.
+    /// </summary>
+    /// <param name="provider">The multi-page image with different frame variants.</param>
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeMultiframe_NotSupport<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-            => Assert.Throws<NotSupportedException>(() => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb));
+    {
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance, options));
+    }
 
     [Theory]
     [WithFile(MultiframeDeflateWithPreview, PixelTypes.Rgba32)]

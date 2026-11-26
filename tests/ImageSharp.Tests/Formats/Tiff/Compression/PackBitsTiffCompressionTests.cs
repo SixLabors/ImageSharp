@@ -66,6 +66,27 @@ public class PackBitsTiffCompressionTests
         Assert.Equal(new byte[] { 0x15, 0x32, 0x00, 0x00 }, buffer);
     }
 
+    /// <summary>
+    /// A run that is longer than the rest of the strip writes the part that fits, as libtiff does. Only missing output is damage. Thus the Strict mode does not
+    /// throw.
+    /// </summary>
+    /// <param name="inputData">The compressed data.</param>
+    /// <param name="expectedResult">The expected strip.</param>
+    [Theory]
+    [InlineData(new byte[] { 0xFE, 0x2A }, new byte[] { 0x2A, 0x2A })] // A repeat run of three bytes. The strip has space for two bytes.
+    [InlineData(new byte[] { 0x02, 0x15, 0x32, 0x40 }, new byte[] { 0x15, 0x32 })] // A literal run of three bytes. The strip has space for two bytes.
+    public void Decompress_RunLongerThanStrip_WritesPartThatFits(byte[] inputData, byte[] expectedResult)
+    {
+        using MemoryStream memoryStream = new(inputData);
+        using BufferedReadStream stream = new(Configuration.Default, memoryStream);
+        byte[] buffer = new byte[expectedResult.Length];
+
+        using PackBitsTiffCompression decompressor = new(MemoryAllocator.Create(), default, default, SegmentIntegrityHandling.Strict);
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedResult, buffer);
+    }
+
     [Theory]
     [InlineData(new byte[] { 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0xAA, 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0x22, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA }, new byte[] { 0xFE, 0xAA, 0x02, 0x80, 0x00, 0x2A, 0xFD, 0xAA, 0x03, 0x80, 0x00, 0x2A, 0x22, 0xF7, 0xAA })] // Apple PackBits sample
     public void Compress_Works(byte[] inputData, byte[] expectedResult)

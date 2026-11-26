@@ -1103,6 +1103,68 @@ public class BmpDecoderTests
     }
 
     /// <summary>
+    /// The decoder throws in each mode for header data that ends before the header is complete. It throws before it allocates the pixels. In this test, the
+    /// file ends before the three BI_BITFIELDS masks that come after the info header.
+    /// </summary>
+    [Fact]
+    public void BmpDecoder_HeaderDataEndsEarly_ThrowsInvalidImageContentException()
+    {
+        byte[] data = CreateBitmap(1, 1, 32, BitFieldsCompression, [], [], []);
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// The pixel data starts after the headers. The decoder throws in each mode for an offset inside the headers.
+    /// </summary>
+    [Fact]
+    public void BmpDecoder_PixelOffsetInsideHeaders_ThrowsInvalidImageContentException()
+    {
+        byte[] data = CreateBitmap(1, 1, 24, RgbCompression, [], [], [0, 0, 255, 0]);
+
+        // The file header stores the pixel data offset at byte 10. Offset 34 is inside the 40-byte info header.
+        BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(10), 34);
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// BI_BITFIELDS is valid only at 16 and 32 bits. The decoder throws in each mode for a 24-bit BI_BITFIELDS header.
+    /// </summary>
+    [Fact]
+    public void BmpDecoder_BitFields24Bit_ThrowsInvalidImageContentException()
+    {
+        uint[] masks = [BmpConstants.Bgra32Masks.Red, BmpConstants.Bgra32Masks.Green, BmpConstants.Bgra32Masks.Blue];
+        byte[] data = CreateBitmap(1, 1, 24, BitFieldsCompression, masks, [], [0, 0, 255, 0]);
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
     /// RGB and bit-field data that ends before the last row throws in the Strict and IgnoreAncillary modes. In the
     /// IgnoreImageData mode, the image has its declared size and keeps the rows decoded before the end.
     /// </summary>
@@ -1183,6 +1245,28 @@ public class BmpDecoderTests
         Assert.Equal(new Size(1, 2), actual.Size);
         Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
         Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
+    }
+
+    /// <summary>
+    /// Verifies that a Windows BITMAPINFOHEADER with the compression value 100 or 101 is not supported. ImageSharp uses these values for the OS/2 RLE24 and
+    /// Huffman 1D compressions. A Windows header does not define them.
+    /// </summary>
+    /// <param name="compression">The compression value of the header.</param>
+    /// <param name="bitsPerPixel">The bit count that the OS/2 header allows for the compression.</param>
+    [Theory]
+    [InlineData(100, 24)]
+    [InlineData(101, 1)]
+    public void BmpDecoder_WindowsHeaderWithOs2Compression_ThrowsNotSupportedException(int compression, short bitsPerPixel)
+    {
+        // A 1x1 bitmap. As RLE24 data, the bytes are a run of 1 red pixel and the end of bitmap command. The header check occurs before the decoder reads the
+        // pixel data.
+        byte[] data = CreateBitmap(1, 1, bitsPerPixel, compression, [], [], [1, 0, 0, 255, 0, 1]);
+
+        Assert.Throws<NotSupportedException>(() => Image.Identify(data));
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
     }
 
     /// <summary>

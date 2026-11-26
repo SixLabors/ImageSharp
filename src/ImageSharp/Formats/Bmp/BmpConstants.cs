@@ -50,6 +50,18 @@ internal static class BmpConstants
     }
 
     /// <summary>
+    /// Gets the byte count of a stored row. A stored row starts on a four-byte boundary, so the pixel bits round up to a multiple of 32. See BITMAPINFOHEADER,
+    /// "Calculating Surface Stride": https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
+    /// </summary>
+    /// <remarks>
+    /// The bit count uses 64-bit arithmetic, so a wide row does not overflow before the division by 8.
+    /// </remarks>
+    /// <param name="width">The pixel count of the row.</param>
+    /// <param name="bitsPerPixel">The bit count of one pixel.</param>
+    /// <returns>The byte count of the row, with its padding.</returns>
+    public static int GetStride(int width, int bitsPerPixel) => (int)(((((long)width * bitsPerPixel) + 31) & ~31L) >> 3);
+
+    /// <summary>
     /// The channel masks of a 16-bit bitmap with the 5-5-5 layout. A 16-bit BI_RGB bitmap has the layout of the color
     /// masks. The 5-5-5-1 layout adds the alpha mask.
     /// </summary>
@@ -95,6 +107,33 @@ internal static class BmpConstants
         /// The blue mask: bits 0 to 4.
         /// </summary>
         public const int Blue = 0x001F;
+    }
+
+    /// <summary>
+    /// The channel masks of a 32-bit bitmap that stores each pixel as the bytes B, G, R, A. A 32-bit BI_RGB bitmap has the layout of the color masks. The masks
+    /// are unsigned, because the alpha mask sets the sign bit.
+    /// </summary>
+    public static class Bgra32Masks
+    {
+        /// <summary>
+        /// The red mask: bits 16 to 23.
+        /// </summary>
+        public const uint Red = 0x00FF0000;
+
+        /// <summary>
+        /// The green mask: bits 8 to 15.
+        /// </summary>
+        public const uint Green = 0x0000FF00;
+
+        /// <summary>
+        /// The blue mask: bits 0 to 7.
+        /// </summary>
+        public const uint Blue = 0x000000FF;
+
+        /// <summary>
+        /// The alpha mask: bits 24 to 31.
+        /// </summary>
+        public const uint Alpha = 0xFF000000;
     }
 
     /// <summary>

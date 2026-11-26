@@ -36,7 +36,7 @@ internal struct BmpInfoHeader
     public const int AdobeV3Size = 52;
 
     /// <summary>
-    /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks (including the alpha channel) are part of the info header instead of following it.
+    /// The size of the Adobe variant of the BITMAPINFOHEADER V3. The color masks and the alpha mask are in the info header.
     /// </summary>
     public const int AdobeV3WithAlphaSize = 56;
 
@@ -77,10 +77,10 @@ internal struct BmpInfoHeader
         int yPelsPerMeter = 0,
         int clrUsed = 0,
         int clrImportant = 0,
-        int redMask = 0,
-        int greenMask = 0,
-        int blueMask = 0,
-        int alphaMask = 0,
+        uint redMask = 0,
+        uint greenMask = 0,
+        uint blueMask = 0,
+        uint alphaMask = 0,
         BmpColorSpace csType = 0,
         int redX = 0,
         int redY = 0,
@@ -197,25 +197,25 @@ internal struct BmpInfoHeader
     /// <summary>
     /// Gets or sets red color mask. This is used with the BITFIELDS decoding.
     /// </summary>
-    public int RedMask { get; set; }
+    public uint RedMask { get; set; }
 
     /// <summary>
     /// Gets or sets green color mask. This is used with the BITFIELDS decoding.
     /// </summary>
-    public int GreenMask { get; set; }
+    public uint GreenMask { get; set; }
 
     /// <summary>
     /// Gets or sets blue color mask. This is used with the BITFIELDS decoding.
     /// </summary>
-    public int BlueMask { get; set; }
+    public uint BlueMask { get; set; }
 
     /// <summary>
-    /// Gets or sets alpha color mask. This is not used yet.
+    /// Gets or sets alpha color mask.
     /// </summary>
-    public int AlphaMask { get; set; }
+    public uint AlphaMask { get; set; }
 
     /// <summary>
-    /// Gets or sets the Color space type. Not used yet.
+    /// Gets or sets the color space type.
     /// </summary>
     public BmpColorSpace CsType { get; set; }
 
@@ -365,10 +365,10 @@ internal struct BmpInfoHeader
             yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
             clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
             clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)),
-            redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
-            greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
-            blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
-            alphaMask: withAlpha ? BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)) : 0);
+            redMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(40, 4)),
+            greenMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(44, 4)),
+            blueMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(48, 4)),
+            alphaMask: withAlpha ? BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(52, 4)) : 0);
 
     /// <summary>
     /// Parses a OS/2 version 2 bitmap header (64 bytes). Only the first 40 bytes are parsed which are
@@ -409,9 +409,8 @@ internal struct BmpInfoHeader
                 infoHeader.Compression = BmpInfoCompression.Rle24;
                 break;
             default:
-                BmpThrowHelper.ThrowInvalidImageContentException(
-                    "Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8, RLE24 and Huffman 1D.");
-
+                // No Windows compression value is negative. Thus the header check of the decoder rejects this value as a compression that it does not know.
+                infoHeader.Compression = (BmpInfoCompression)(-1);
                 break;
         }
 
@@ -443,10 +442,10 @@ internal struct BmpInfoHeader
         yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
         clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
         clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)),
-        redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
-        greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
-        blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
-        alphaMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)),
+        redMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(40, 4)),
+        greenMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(44, 4)),
+        blueMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(48, 4)),
+        alphaMask: BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(52, 4)),
         csType: (BmpColorSpace)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(56, 4)),
         redX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(60, 4)),
         redY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(64, 4)),
@@ -467,16 +466,8 @@ internal struct BmpInfoHeader
     /// <param name="data">The data to parse.</param>
     /// <returns>The parsed header.</returns>
     /// <seealso href="https://docs.microsoft.com/de-de/windows/win32/api/wingdi/ns-wingdi-bitmapv5header?redirectedfrom=MSDN"/>
-    /// <exception cref="ArgumentException">Invalid size.</exception>
-    public static BmpInfoHeader ParseV5(ReadOnlySpan<byte> data)
-    {
-        if (data.Length < SizeV5)
-        {
-            throw new ArgumentException($"Must be {SizeV5} bytes. Was {data.Length} bytes.", nameof(data));
-        }
-
-        return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
-    }
+    /// <remarks>The decoder passes a buffer of <see cref="MaxHeaderSize"/> bytes, so the data has the full header.</remarks>
+    public static BmpInfoHeader ParseV5(ReadOnlySpan<byte> data) => MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
 
     /// <summary>
     /// Writes a bitmap version 3 (Microsoft Windows NT) header to a buffer (40 bytes).
@@ -551,10 +542,10 @@ internal struct BmpInfoHeader
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
-        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(40, 4), this.RedMask);
-        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(44, 4), this.GreenMask);
-        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(48, 4), this.BlueMask);
-        BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(52, 4), this.AlphaMask);
+        BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(40, 4), this.RedMask);
+        BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(44, 4), this.GreenMask);
+        BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(48, 4), this.BlueMask);
+        BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(52, 4), this.AlphaMask);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(56, 4), (int)this.CsType);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(60, 4), this.RedX);
         BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(64, 4), this.RedY);

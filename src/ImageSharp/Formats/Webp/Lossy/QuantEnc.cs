@@ -74,7 +74,7 @@ internal static unsafe class QuantEnc
                 }
             }
 
-            // Since we always examine Intra16 first, we can overwrite *rd directly.
+            // The search always checks Intra16 first, so it can overwrite *rd directly.
             rdCur.SetRdScore(lambda);
 
             if (mode == 0 || rdCur.Score < rdBest.Score)
@@ -127,7 +127,7 @@ internal static unsafe class QuantEnc
         }
 
         rdBest.InitScore();
-        rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
+        rdBest.H = 211;  // '211' is the value of LossyUtils.Vp8BitCost(0, 145)
         rdBest.SetRdScore(dqm.LambdaMode);
         it.StartI4();
 
@@ -865,7 +865,7 @@ internal static unsafe class QuantEnc
             for (nuint i = 1; i < 16; i++)
             {
                 // omit DC, we're only interested in AC
-                score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;
+                score += Unsafe.Add(ref levelsRef, offset + i) != 0 ? 1 : 0;
                 if (score > thresh)
                 {
                     return false;

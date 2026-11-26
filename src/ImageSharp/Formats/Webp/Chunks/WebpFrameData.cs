@@ -120,22 +120,41 @@ internal readonly struct WebpFrameData
     /// <summary>
     /// Reads the animation frame header.
     /// </summary>
+    /// <remarks>
+    /// The header has 16 bytes: five 24-bit values and one flags byte. Before the image exists, the method throws in each mode for a frame that does not fit in
+    /// the container. After that, the integrity mode decides, and the method returns <see langword="false"/> when the mode ignores the error.
+    /// </remarks>
     /// <param name="stream">The stream to read from.</param>
-    /// <param name="containerEnd">The end of the RIFF payload containing this frame.</param>
+    /// <param name="containerEnd">The end of the RIFF payload that contains this frame.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls a frame that ends at EOF.</param>
-    /// <returns>Animation frame data.</returns>
-    public static WebpFrameData Parse(BufferedReadStream stream, long containerEnd, SegmentIntegrityHandling segmentIntegrityHandling)
+    /// <param name="imageExists">A value that tells if the decoder created the image before this frame.</param>
+    /// <param name="frameData">The animation frame data.</param>
+    /// <returns><see langword="true"/> if the stream holds the header. Otherwise <see langword="false"/>.</returns>
+    public static bool TryParse(
+        BufferedReadStream stream,
+        long containerEnd,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        bool imageExists,
+        out WebpFrameData frameData)
     {
         Span<byte> buffer = stackalloc byte[4];
 
-        // The frame payload holds the frame image data. A frame that ends at EOF is truncated image data.
-        return new WebpFrameData(
-            dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 16, segmentIntegrityHandling),
+        // The frame payload holds the frame image data. A frame that ends at EOF is truncated image data. The size check keeps the 16-byte header in the
+        // stream, so the reads below do not end early.
+        if (!WebpChunkParsingUtils.TryReadChunkSize(stream, buffer, containerEnd, HeaderSize, segmentIntegrityHandling, imageExists, out uint dataSize))
+        {
+            frameData = default;
+            return false;
+        }
+
+        frameData = new WebpFrameData(
+            dataSize: dataSize,
             x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             width: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             height: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             duration: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
             flags: stream.ReadByte());
+        return true;
     }
 }

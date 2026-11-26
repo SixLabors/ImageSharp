@@ -450,7 +450,9 @@ internal class Vp8LEncoder : IDisposable
                 if (useNearLossless)
                 {
                     this.AllocateTransformBuffer(width, height);
-                    NearLosslessEnc.ApplyNearLossless(width, height, this.nearLosslessQuality, bgra, bgra, width);
+
+                    // The encoder reads the working copy, so the adjusted pixels go there.
+                    NearLosslessEnc.ApplyNearLossless(width, height, this.nearLosslessQuality, bgra, encodedData, width);
                 }
             }
 

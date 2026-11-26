@@ -12,18 +12,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 /// </summary>
 internal class Vp8LDecoder : IDisposable
 {
+    // The header parse changes Width to the packed width of a color-indexed image. The pixel data needs the full image size.
+    private readonly int pixelCount;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LDecoder"/> class.
     /// </summary>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="memoryAllocator">Used for allocating memory for the pixel data output.</param>
-    public Vp8LDecoder(int width, int height, MemoryAllocator memoryAllocator)
+    public Vp8LDecoder(int width, int height)
     {
         this.Width = width;
         this.Height = height;
+        this.pixelCount = width * height;
         this.Metadata = new Vp8LMetadata();
-        this.Pixels = memoryAllocator.Allocate<uint>(width * height, AllocationOptions.Clean);
     }
 
     /// <summary>
@@ -49,12 +51,24 @@ internal class Vp8LDecoder : IDisposable
     /// <summary>
     /// Gets the pixel data.
     /// </summary>
-    public IMemoryOwner<uint> Pixels { get; }
+    public IMemoryOwner<uint> Pixels { get; private set; }
+
+    /// <summary>
+    /// Allocates the pixel data for the decode of the image stream.
+    /// </summary>
+    /// <remarks>
+    /// The header parse needs no pixel data, and it runs before the decoder creates the image. The decoder calls this method after it creates
+    /// the image. Thus the pixel data comes after the image buffer.
+    /// </remarks>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    public void AllocatePixels(MemoryAllocator memoryAllocator)
+        => this.Pixels = memoryAllocator.Allocate<uint>(this.pixelCount, AllocationOptions.Clean);
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.Pixels.Dispose();
+        // A damaged image can stop after the header parse, before AllocatePixels runs. Then the pixel data does not exist.
+        this.Pixels?.Dispose();
         this.Metadata?.HuffmanImage?.Dispose();
 
         if (this.Transforms != null)

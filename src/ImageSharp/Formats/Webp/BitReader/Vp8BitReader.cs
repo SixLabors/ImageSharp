@@ -63,7 +63,7 @@ internal class Vp8BitReader : BitReaderBase
 
         this.ImageDataSize = imageDataSize;
         this.PartitionLength = partitionLength;
-        this.InitBitreader(partitionLength, startPos);
+        this.IsStartValid = this.InitBitreader(partitionLength, startPos);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ internal class Vp8BitReader : BitReaderBase
     {
         this.ImageDataSize = (uint)imageData.Memory.Length;
         this.PartitionLength = partitionLength;
-        this.InitBitreader(partitionLength, startPos);
+        this.IsStartValid = this.InitBitreader(partitionLength, startPos);
     }
 
     public int Pos => (int)this.pos;
@@ -92,7 +92,11 @@ internal class Vp8BitReader : BitReaderBase
 
     public uint PartitionLength { get; }
 
-    public uint Remaining { get; set; }
+    /// <summary>
+    /// Gets a value indicating whether the first value of the partition is not larger than the range. RFC 6386, section 7.2, keeps the value less than the
+    /// range at all times. Thus, a partition that starts with 0xFF is not valid, and libwebp rejects it.
+    /// </summary>
+    public bool IsStartValid { get; }
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public int GetBit(int prob)
@@ -126,7 +130,7 @@ internal class Vp8BitReader : BitReaderBase
         return bit ? 1 : 0;
     }
 
-    // Simplified version of VP8GetBit() for prob=0x80 (note shift is always 1 here)
+    // Simplified version of GetBit for prob=0x80 (note shift is always 1 here)
     public int GetSigned(int v)
     {
         if (this.bits < 0)
@@ -173,7 +177,15 @@ internal class Vp8BitReader : BitReaderBase
         return this.ReadValue(1) != 0 ? -value : value;
     }
 
-    private void InitBitreader(uint size, int pos = 0)
+    /// <summary>
+    /// Sets the reader to the start of a partition and loads the first bytes.
+    /// </summary>
+    /// <param name="size">The partition size.</param>
+    /// <param name="pos">The start of the partition in the data.</param>
+    /// <returns>
+    /// <see langword="true"/> if the first value is not larger than the range. Otherwise <see langword="false"/>.
+    /// </returns>
+    private bool InitBitreader(uint size, int pos = 0)
     {
         long posPlusSize = pos + size;
         this.range = 255 - 1;
@@ -185,6 +197,9 @@ internal class Vp8BitReader : BitReaderBase
         this.bufferMax = (uint)(size > 8 ? posPlusSize - 8 + 1 : pos);
 
         this.LoadNewBytes();
+
+        // The range field holds Range - 1. Thus, the first 8 bits of the value must be 254 or less.
+        return (this.value >> this.bits) <= this.range;
     }
 
     [MethodImpl(InliningOptions.ColdPath)]

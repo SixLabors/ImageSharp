@@ -119,7 +119,7 @@ internal class Vp8BitWriter : BitWriterBase
                     byte[] tab;
                     if (v < 3 + (8 << 1))
                     {
-                        // VP8Cat3  (3b)
+                        // Cat3 (3b)
                         this.PutBit(0, p.Probabilities[8]);
                         this.PutBit(0, p.Probabilities[9]);
                         v -= 3 + (8 << 0);
@@ -128,7 +128,7 @@ internal class Vp8BitWriter : BitWriterBase
                     }
                     else if (v < 3 + (8 << 2))
                     {
-                        // VP8Cat4  (4b)
+                        // Cat4 (4b)
                         this.PutBit(0, p.Probabilities[8]);
                         this.PutBit(1, p.Probabilities[9]);
                         v -= 3 + (8 << 1);
@@ -137,7 +137,7 @@ internal class Vp8BitWriter : BitWriterBase
                     }
                     else if (v < 3 + (8 << 3))
                     {
-                        // VP8Cat5  (5b)
+                        // Cat5 (5b)
                         this.PutBit(1, p.Probabilities[8]);
                         this.PutBit(0, p.Probabilities[10]);
                         v -= 3 + (8 << 2);
@@ -146,7 +146,7 @@ internal class Vp8BitWriter : BitWriterBase
                     }
                     else
                     {
-                        // VP8Cat6 (11b)
+                        // Cat6 (11b)
                         this.PutBit(1, p.Probabilities[8]);
                         this.PutBit(1, p.Probabilities[10]);
                         v -= 3 + (8 << 3);
@@ -184,7 +184,7 @@ internal class Vp8BitWriter : BitWriterBase
         long neededSize = this.pos + extraSize;
 
         // Compare against the current capacity and grow from it, so the buffer only reallocates
-        // when it is actually full and grows geometrically (libwebp tracks this as max_pos).
+        // when it is actually full and grows geometrically.
         if (neededSize <= this.Buffer.Length)
         {
             return;

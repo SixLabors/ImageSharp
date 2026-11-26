@@ -19,7 +19,7 @@ internal class Vp8Decoder : IDisposable
     private Vp8MacroBlock leftMacroBlock;
 
     // Reuse the four 64-byte chroma planes for each upsampling block.
-    private readonly IMemoryOwner<byte> upsamplingBuffer;
+    private IMemoryOwner<byte> upsamplingBuffer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8Decoder"/> class.
@@ -28,13 +28,11 @@ internal class Vp8Decoder : IDisposable
     /// <param name="pictureHeader">The picture header.</param>
     /// <param name="segmentHeader">The segment header.</param>
     /// <param name="probabilities">The probabilities.</param>
-    /// <param name="memoryAllocator">Used for allocating memory for the pixel data output and the temporary buffers.</param>
     public Vp8Decoder(
         Vp8FrameHeader frameHeader,
         Vp8PictureHeader pictureHeader,
         Vp8SegmentHeader segmentHeader,
-        Vp8Proba probabilities,
-        MemoryAllocator memoryAllocator)
+        Vp8Proba probabilities)
     {
         this.FilterHeader = new Vp8FilterHeader();
         this.FrameHeader = frameHeader;
@@ -70,32 +68,6 @@ internal class Vp8Decoder : IDisposable
                 this.FilterStrength[i, j] = new Vp8FilterInfo();
             }
         }
-
-        uint width = pictureHeader.Width;
-        uint height = pictureHeader.Height;
-
-        int extraRows = WebpConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
-        int extraY = extraRows * this.CacheYStride;
-        int extraUv = extraRows / 2 * this.CacheUvStride;
-        this.YuvBuffer = memoryAllocator.Allocate<byte>((WebpConstants.Bps * 17) + (WebpConstants.Bps * 9) + extraY);
-        this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY, AllocationOptions.Clean);
-        int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
-        this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize);
-        this.CacheV = memoryAllocator.Allocate<byte>(cacheUvSize);
-        this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
-        this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
-        this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
-        this.upsamplingBuffer = memoryAllocator.Allocate<byte>(UpsamplingBufferSize);
-        this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4), AllocationOptions.Clean);
-
-#if DEBUG
-        // Filling those buffers with 205, is only useful for debugging,
-        // so the default values are the same as the reference libwebp implementation.
-        this.YuvBuffer.Memory.Span.Fill(205);
-        this.CacheY.Memory.Span.Fill(205);
-        this.CacheU.Memory.Span.Fill(205);
-        this.CacheV.Memory.Span.Fill(205);
-#endif
 
         this.Vp8BitReaders = new Vp8BitReader[WebpConstants.MaxNumPartitions];
     }
@@ -221,15 +193,15 @@ internal class Vp8Decoder : IDisposable
     /// </summary>
     public Vp8FilterInfo[,] FilterStrength { get; }
 
-    public IMemoryOwner<byte> YuvBuffer { get; }
+    public IMemoryOwner<byte> YuvBuffer { get; private set; }
 
     public Vp8TopSamples[] YuvTopSamples { get; }
 
-    public IMemoryOwner<byte> CacheY { get; }
+    public IMemoryOwner<byte> CacheY { get; private set; }
 
-    public IMemoryOwner<byte> CacheU { get; }
+    public IMemoryOwner<byte> CacheU { get; private set; }
 
-    public IMemoryOwner<byte> CacheV { get; }
+    public IMemoryOwner<byte> CacheV { get; private set; }
 
     public int CacheYOffset { get; set; }
 
@@ -239,16 +211,16 @@ internal class Vp8Decoder : IDisposable
 
     public int CacheUvStride { get; }
 
-    public IMemoryOwner<byte> TmpYBuffer { get; }
+    public IMemoryOwner<byte> TmpYBuffer { get; private set; }
 
-    public IMemoryOwner<byte> TmpUBuffer { get; }
+    public IMemoryOwner<byte> TmpUBuffer { get; private set; }
 
-    public IMemoryOwner<byte> TmpVBuffer { get; }
+    public IMemoryOwner<byte> TmpVBuffer { get; private set; }
 
     /// <summary>
     /// Gets the pixel buffer where the decoded pixel data will be stored.
     /// </summary>
-    public IMemoryOwner<byte> Pixels { get; }
+    public IMemoryOwner<byte> Pixels { get; private set; }
 
     /// <summary>
     /// Gets the reusable workspace used while upsampling YUV rows.
@@ -282,7 +254,7 @@ internal class Vp8Decoder : IDisposable
             if (this.SegmentHeader.UseSegment)
             {
                 baseLevel = this.SegmentHeader.FilterStrength[s];
-                if (!this.SegmentHeader.Delta)
+                if (!this.SegmentHeader.AbsoluteDelta)
                 {
                     baseLevel += hdr.FilterLevel;
                 }
@@ -346,17 +318,56 @@ internal class Vp8Decoder : IDisposable
         }
     }
 
+    /// <summary>
+    /// Allocates the buffers that the macroblock decode uses: the YUV work buffer, the row caches, the temporary rows, the upsampling workspace
+    /// and the output pixels.
+    /// </summary>
+    /// <remarks>
+    /// The header parse needs none of these buffers, and it runs before the decoder creates the image. The decoder calls this method after it
+    /// creates the image. Thus the large buffers come after the image buffer.
+    /// </remarks>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    public void AllocateBuffers(MemoryAllocator memoryAllocator)
+    {
+        uint width = this.PictureHeader.Width;
+        uint height = this.PictureHeader.Height;
+
+        int extraRows = WebpConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
+        int extraY = extraRows * this.CacheYStride;
+        int extraUv = extraRows / 2 * this.CacheUvStride;
+        this.YuvBuffer = memoryAllocator.Allocate<byte>((WebpConstants.Bps * 17) + (WebpConstants.Bps * 9) + extraY);
+        this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY, AllocationOptions.Clean);
+        int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
+        this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize);
+        this.CacheV = memoryAllocator.Allocate<byte>(cacheUvSize);
+        this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.upsamplingBuffer = memoryAllocator.Allocate<byte>(UpsamplingBufferSize);
+        this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4), AllocationOptions.Clean);
+
+#if DEBUG
+        // Filling those buffers with 205, is only useful for debugging,
+        // so the default values are the same as the reference libwebp implementation.
+        this.YuvBuffer.Memory.Span.Fill(205);
+        this.CacheY.Memory.Span.Fill(205);
+        this.CacheU.Memory.Span.Fill(205);
+        this.CacheV.Memory.Span.Fill(205);
+#endif
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.YuvBuffer.Dispose();
-        this.CacheY.Dispose();
-        this.CacheU.Dispose();
-        this.CacheV.Dispose();
-        this.TmpYBuffer.Dispose();
-        this.TmpUBuffer.Dispose();
-        this.TmpVBuffer.Dispose();
-        this.upsamplingBuffer.Dispose();
-        this.Pixels.Dispose();
+        // A damaged frame can stop after the header parse, before AllocateBuffers runs. Then the buffers do not exist.
+        this.YuvBuffer?.Dispose();
+        this.CacheY?.Dispose();
+        this.CacheU?.Dispose();
+        this.CacheV?.Dispose();
+        this.TmpYBuffer?.Dispose();
+        this.TmpUBuffer?.Dispose();
+        this.TmpVBuffer?.Dispose();
+        this.upsamplingBuffer?.Dispose();
+        this.Pixels?.Dispose();
     }
 }

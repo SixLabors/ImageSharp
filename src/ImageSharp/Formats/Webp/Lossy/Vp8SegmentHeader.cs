@@ -4,8 +4,11 @@
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 /// <summary>
-/// Segment features.
+/// The segment features of a VP8 frame.
 /// </summary>
+/// <remarks>
+/// See RFC 6386, section 9.3 "Segment-Based Adjustments": https://datatracker.ietf.org/doc/html/rfc6386#section-9.3.
+/// </remarks>
 internal class Vp8SegmentHeader
 {
     private const int NumMbSegments = 4;
@@ -15,10 +18,13 @@ internal class Vp8SegmentHeader
     /// </summary>
     public Vp8SegmentHeader()
     {
-        this.Quantizer = new byte[NumMbSegments];
-        this.FilterStrength = new byte[NumMbSegments];
+        this.Quantizer = new sbyte[NumMbSegments];
+        this.FilterStrength = new sbyte[NumMbSegments];
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the frame uses segments.
+    /// </summary>
     public bool UseSegment { get; set; }
 
     /// <summary>
@@ -27,18 +33,21 @@ internal class Vp8SegmentHeader
     public bool UpdateMap { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether to use delta values for quantizer and filter.
-    /// If this value is false, absolute values are used.
+    /// Gets or sets a value indicating whether the segment quantizer and filter values are absolute values. If the value is <see langword="false"/>, each value
+    /// is a delta to the frame value.
     /// </summary>
-    public bool Delta { get; set; }
+    /// <remarks>
+    /// A frame that does not update the segment data keeps the absolute mode, as libwebp does.
+    /// </remarks>
+    public bool AbsoluteDelta { get; set; } = true;
 
     /// <summary>
-    /// Gets quantization changes.
+    /// Gets the quantizer of each segment. The 7-bit value has a sign, so a delta can be negative.
     /// </summary>
-    public byte[] Quantizer { get; }
+    public sbyte[] Quantizer { get; }
 
     /// <summary>
-    /// Gets the filter strength for segments.
+    /// Gets the filter strength of each segment. The 6-bit value has a sign, so a delta can be negative.
     /// </summary>
-    public byte[] FilterStrength { get; }
+    public sbyte[] FilterStrength { get; }
 }

@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -69,6 +70,16 @@ internal sealed class WebpLosslessDecoder
     private static readonly int NumCodeLengthCodes = CodeLengthCodeOrder.Length;
 
     /// <summary>
+    /// The image data integrity mode of the current header read. <see cref="TryReadHeaders"/> sets it before it reads the headers.
+    /// </summary>
+    private SegmentIntegrityHandling segmentIntegrityHandling;
+
+    /// <summary>
+    /// A value that tells if the decoder created the image before the current headers. <see cref="TryReadHeaders"/> sets it before it reads the headers.
+    /// </summary>
+    private bool imageExists;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WebpLosslessDecoder"/> class.
     /// </summary>
     /// <param name="bitReader">Bitreader to read from the stream.</param>
@@ -89,28 +100,23 @@ internal sealed class WebpLosslessDecoder
     private static ReadOnlySpan<byte> LiteralMap => [0, 1, 1, 1, 0];
 
     /// <summary>
-    /// Decodes the lossless webp image from the stream.
+    /// Decodes the pixels of the lossless webp image. The caller reads the headers with <see cref="TryReadHeaders"/> before it calls this method.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="decoder">The decoder that holds the headers.</param>
     /// <param name="pixels">The pixel buffer to store the decoded data.</param>
     /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
     /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated image data.</param>
     public void Decode<TPixel>(
+        Vp8LDecoder decoder,
         Buffer2D<TPixel> pixels,
         int width,
-        int height,
         ColorProfileConverter colorProfileConverter,
         SegmentIntegrityHandling segmentIntegrityHandling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Vp8LDecoder decoder = new(width, height, this.memoryAllocator);
-        if (!this.TryDecodeImageStream(decoder, width, height, segmentIntegrityHandling))
-        {
-            // The header is damaged, so the decoder cannot decode a pixel. The pixel buffer keeps its fill value.
-            return;
-        }
+        decoder.AllocatePixels(this.memoryAllocator);
 
         // DecodePixelValues writes only the complete rows. The other rows keep their fill value.
         int rows = this.DecodeImageRows(decoder, segmentIntegrityHandling, "The WebP lossless image data is damaged or ends before the last pixel.");
@@ -121,47 +127,51 @@ internal sealed class WebpLosslessDecoder
     /// Reads the transforms, the color cache and the entropy codes of the main image stream.
     /// </summary>
     /// <remarks>
-    /// These headers come before all pixels. If they are damaged, the decoder cannot decode a pixel.
+    /// These headers come before all pixels. If they are damaged, the decoder cannot decode a pixel. As in libwebp, the decoder reads them before it creates
+    /// the image. The bit reader keeps the end-of-data state, so one check after the headers finds headers that end early.
     /// </remarks>
-    /// <param name="decoder">The decoder.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
+    /// <param name="decoder">The decoder. Its width and height are the size of the image.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged headers.</param>
+    /// <param name="imageExists">
+    /// A value that tells if the decoder created the image before these headers. Before the image exists, the method throws for damaged headers in each mode.
+    /// </param>
     /// <returns>
-    /// <see langword="true"/> if the headers are valid. <see langword="false"/> if they are damaged and the mode
-    /// ignores image data errors.
+    /// <see langword="true"/> if the headers are valid. <see langword="false"/> if they are damaged, the image exists and the mode ignores image data errors.
     /// </returns>
-    /// <exception cref="ImageFormatException">
-    /// The headers are damaged, and the mode does not ignore image data errors.
+    /// <exception cref="InvalidImageContentException">
+    /// The headers are damaged, and the image does not exist or the mode does not ignore image data errors.
     /// </exception>
-    public bool TryDecodeImageStream(Vp8LDecoder decoder, int width, int height, SegmentIntegrityHandling segmentIntegrityHandling)
+    public bool TryReadHeaders(Vp8LDecoder decoder, SegmentIntegrityHandling segmentIntegrityHandling, bool imageExists)
     {
-        try
+        this.segmentIntegrityHandling = segmentIntegrityHandling;
+        this.imageExists = imageExists;
+        if (!this.TryReadImageStreamHeaders(decoder, decoder.Width, decoder.Height, true))
         {
-            this.DecodeImageStream(decoder, width, height, true);
-            return true;
-        }
-        catch (Exception ex) when (segmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
-        {
-            // The Strict and IgnoreAncillary modes do not catch the exception, so the original exception and its stack
-            // trace stay.
             return false;
         }
+
+        if (this.bitReader.IsEndOfStream())
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "The WebP lossless headers end before their last field.");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
     /// Decodes the entropy-coded pixels of the main image stream into the pixel buffer of the decoder.
     /// </summary>
     /// <remarks>
-    /// libwebp reports an error when the data ends before the last pixel, or when a read goes past the end.
-    /// The method keeps the pixels that it decodes before the damage.
+    /// libwebp reports an error when the data ends before the last pixel, or when a read goes past the end. The method keeps the pixels that it decodes before
+    /// the damage.
     /// </remarks>
-    /// <param name="decoder">The decoder. <see cref="TryDecodeImageStream"/> read its headers.</param>
+    /// <param name="decoder">The decoder. <see cref="TryReadHeaders"/> read its headers.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated data.</param>
     /// <param name="message">The exception message for damaged or truncated data.</param>
     /// <returns>
-    /// The number of complete rows. The color indexing transform packs the pixels of a row. Thus, the width of the
-    /// decoder can be less than the image width, but each packed row is one image row.
+    /// The number of complete rows. The color indexing transform packs the pixels of a row. Thus, the width of the decoder can be less than the image width,
+    /// but each packed row is one image row.
     /// </returns>
     /// <exception cref="InvalidImageContentException">
     /// The data is damaged or truncated, and the mode does not ignore image data errors.
@@ -177,7 +187,19 @@ internal sealed class WebpLosslessDecoder
         return decodedPixels / decoder.Width;
     }
 
-    public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
+    /// <summary>
+    /// Reads the headers of an image stream: the transforms of the main stream, the color cache and the entropy codes.
+    /// </summary>
+    /// <remarks>
+    /// Each check reports damage through the integrity mode at the place where it finds the damage. The method then returns <see langword="false"/>, and each
+    /// caller returns <see langword="false"/> too.
+    /// </remarks>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="xSize">The width of the image stream.</param>
+    /// <param name="ySize">The height of the image stream.</param>
+    /// <param name="isLevel0">A value that tells if the stream is the main image stream.</param>
+    /// <returns><see langword="true"/> if the headers are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadImageStreamHeaders(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
     {
         int transformXSize = xSize;
         int transformYSize = ySize;
@@ -186,15 +208,15 @@ internal sealed class WebpLosslessDecoder
         {
             decoder.Transforms = new List<Vp8LTransform>(WebpConstants.MaxNumberOfTransforms);
 
-            // Next bit indicates, if a transformation is present.
+            // The next bit tells if a transform is present. TryReadTransformation rejects a transform type that it read before, so the stream has at most the
+            // four transform types.
             while (this.bitReader.ReadBit())
             {
-                if (numberOfTransformsPresent > WebpConstants.MaxNumberOfTransforms)
+                if (!this.TryReadTransformation(transformXSize, transformYSize, decoder))
                 {
-                    WebpThrowHelper.ThrowImageFormatException($"The maximum number of transforms of {WebpConstants.MaxNumberOfTransforms} was exceeded");
+                    return false;
                 }
 
-                this.ReadTransformation(transformXSize, transformYSize, decoder);
                 if (decoder.Transforms[numberOfTransformsPresent].TransformType == Vp8LTransformType.ColorIndexingTransform)
                 {
                     transformXSize = LosslessUtils.SubSampleSize(transformXSize, decoder.Transforms[numberOfTransformsPresent].Bits);
@@ -221,12 +243,17 @@ internal sealed class WebpLosslessDecoder
             bool colorCacheBitsIsValid = colorCacheBits is >= 1 and <= WebpConstants.MaxColorCacheBits + 1;
             if (!colorCacheBitsIsValid)
             {
-                WebpThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
+                this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "Invalid color cache bits found");
+                return false;
             }
         }
 
         // Read the Huffman codes (may recurse).
-        this.ReadHuffmanCodes(decoder, transformXSize, transformYSize, colorCacheBits, isLevel0);
+        if (!this.TryReadHuffmanCodes(decoder, transformXSize, transformYSize, colorCacheBits, isLevel0))
+        {
+            return false;
+        }
+
         decoder.Metadata.ColorCacheSize = colorCacheSize;
 
         // Finish setting up the color-cache.
@@ -242,25 +269,40 @@ internal sealed class WebpLosslessDecoder
         }
 
         UpdateDecoder(decoder, transformXSize, transformYSize);
-        if (isLevel0)
+        return true;
+    }
+
+    /// <summary>
+    /// Decodes a sub-image stream: the entropy image, the transform data or the color map.
+    /// </summary>
+    /// <remarks>
+    /// The end of the data does not stop the sub-image here. The bit reader keeps the end-of-data state, so the check after the headers in
+    /// <see cref="TryReadHeaders"/> reports it.
+    /// </remarks>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="xSize">The width of the sub-image.</param>
+    /// <param name="ySize">The height of the sub-image.</param>
+    /// <param name="pixelData">The decoded sub-image. The caller owns it.</param>
+    /// <returns><see langword="true"/> if the sub-image is valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryDecodeSubImage(Vp8LDecoder decoder, int xSize, int ySize, [NotNullWhen(true)] out IMemoryOwner<uint> pixelData)
+    {
+        pixelData = null;
+        if (!this.TryReadImageStreamHeaders(decoder, xSize, ySize, false))
         {
-            // level 0 complete.
-            return null;
+            return false;
         }
 
         // Use the Huffman trees to decode the LZ77 encoded data.
-        IMemoryOwner<uint> pixelData = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
-        try
+        IMemoryOwner<uint> data = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
+        if (this.DecodeImageData(decoder, data.GetSpan()) < decoder.Width * decoder.Height && !this.bitReader.IsEndOfStream())
         {
-            this.DecodeImageDataOrThrow(decoder, pixelData.GetSpan());
-        }
-        catch
-        {
-            pixelData.Dispose();
-            throw;
+            data.Dispose();
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "The WebP lossless sub-image has a code that is not valid.");
+            return false;
         }
 
-        return pixelData;
+        pixelData = data;
+        return true;
     }
 
     /// <summary>
@@ -459,23 +501,6 @@ internal sealed class WebpLosslessDecoder
         return decodedPixels;
     }
 
-    /// <summary>
-    /// Decodes the entropy coded pixels of a sub-image, and throws for a code that is not valid.
-    /// </summary>
-    /// <remarks>
-    /// The end of the data does not throw here. The end of the data is sticky in the bit reader, so the caller
-    /// that decodes the main pixels or alpha values reports it.
-    /// </remarks>
-    /// <param name="decoder">The decoder.</param>
-    /// <param name="pixelData">The pixel data to decode to.</param>
-    public void DecodeImageDataOrThrow(Vp8LDecoder decoder, Span<uint> pixelData)
-    {
-        if (this.DecodeImageData(decoder, pixelData) < decoder.Width * decoder.Height && !this.bitReader.IsEndOfStream())
-        {
-            WebpThrowHelper.ThrowImageFormatException("Webp parsing error");
-        }
-    }
-
     private static void AdvanceByOne(
         ref int col,
         ref int row,
@@ -503,7 +528,16 @@ internal sealed class WebpLosslessDecoder
         }
     }
 
-    private void ReadHuffmanCodes(Vp8LDecoder decoder, int xSize, int ySize, int colorCacheBits, bool allowRecursion)
+    /// <summary>
+    /// Reads the entropy image, if present, and the Huffman codes of each group.
+    /// </summary>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="xSize">The width of the image stream.</param>
+    /// <param name="ySize">The height of the image stream.</param>
+    /// <param name="colorCacheBits">The color cache bits.</param>
+    /// <param name="allowRecursion">A value that tells if the stream can have an entropy image.</param>
+    /// <returns><see langword="true"/> if the codes are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadHuffmanCodes(Vp8LDecoder decoder, int xSize, int ySize, int colorCacheBits, bool allowRecursion)
     {
         int maxAlphabetSize = 0;
         int numHTreeGroups = 1;
@@ -519,7 +553,11 @@ internal sealed class WebpLosslessDecoder
             int huffmanYSize = LosslessUtils.SubSampleSize(ySize, huffmanPrecision);
             int huffmanPixels = huffmanXSize * huffmanYSize;
 
-            IMemoryOwner<uint> huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
+            if (!this.TryDecodeSubImage(decoder, huffmanXSize, huffmanYSize, out IMemoryOwner<uint> huffmanImage))
+            {
+                return false;
+            }
+
             Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
             decoder.Metadata.HuffmanSubSampleBits = huffmanPrecision;
 
@@ -554,6 +592,14 @@ internal sealed class WebpLosslessDecoder
             }
         }
 
+        // Each Huffman group has five codes, and each code needs at least 4 bits.
+        // libwebp rejects a stream with fewer bits left before it allocates the tables.
+        if (this.bitReader.MaxBitsLeft < (ulong)numHTreeGroupsMax * 20)
+        {
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "The WebP lossless data ends before the Huffman codes of each group.");
+            return false;
+        }
+
         int tableSize = TableSize[colorCacheBits];
         HuffmanCode[] huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
         HTreeGroup[] hTreeGroups = new HTreeGroup[numHTreeGroups];
@@ -575,10 +621,9 @@ internal sealed class WebpLosslessDecoder
                     alphabetSize += 1 << colorCacheBits;
                 }
 
-                int size = this.ReadHuffmanCode(alphabetSize, codeLengths, huffmanTable);
-                if (size == 0)
+                if (!this.TryReadHuffmanCode(alphabetSize, codeLengths, huffmanTable, out int size))
                 {
-                    WebpThrowHelper.ThrowImageFormatException("Huffman table size is zero");
+                    return false;
                 }
 
                 // TODO: Avoid allocation.
@@ -636,10 +681,20 @@ internal sealed class WebpLosslessDecoder
         decoder.Metadata.NumHTreeGroups = numHTreeGroups;
         decoder.Metadata.HTreeGroups = hTreeGroups;
         decoder.Metadata.HuffmanTables = huffmanTables;
+        return true;
     }
 
-    private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, Span<HuffmanCode> table)
+    /// <summary>
+    /// Reads one Huffman code and builds its table.
+    /// </summary>
+    /// <param name="alphabetSize">The alphabet size.</param>
+    /// <param name="codeLengths">The code lengths.</param>
+    /// <param name="table">The table to build.</param>
+    /// <param name="size">The size of the built table.</param>
+    /// <returns><see langword="true"/> if the code is valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadHuffmanCode(int alphabetSize, int[] codeLengths, Span<HuffmanCode> table, out int size)
     {
+        size = 0;
         bool simpleCode = this.bitReader.ReadBit();
         codeLengths.AsSpan(0, alphabetSize).Clear();
 
@@ -666,28 +721,41 @@ internal sealed class WebpLosslessDecoder
         }
         else
         {
-            // (ii) Normal Code Length Code:
-            // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
-            // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
+            // (ii) Normal Code Length Code: num_code_lengths gives the number of code lengths. The other code lengths, in the order of CodeLengthCodeOrder,
+            // are 0. The 4-bit count plus 4 is at most 19, the number of code length codes.
             int[] codeLengthCodeLengths = new int[NumCodeLengthCodes];
             uint numCodes = this.bitReader.ReadValue(4) + 4;
-            if (numCodes > NumCodeLengthCodes)
-            {
-                WebpThrowHelper.ThrowImageFormatException("Bitstream error, numCodes has an invalid value");
-            }
-
             for (int i = 0; i < numCodes; i++)
             {
                 codeLengthCodeLengths[CodeLengthCodeOrder[i]] = (int)this.bitReader.ReadValue(3);
             }
 
-            this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
+            if (!this.TryReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths))
+            {
+                return false;
+            }
         }
 
-        return HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
+        // Code lengths that do not build a complete code give a table size of 0. libwebp rejects them.
+        size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
+        if (size == 0)
+        {
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "Huffman table size is zero");
+            return false;
+        }
+
+        return true;
     }
 
-    private void ReadHuffmanCodeLengths(Span<HuffmanCode> table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
+    /// <summary>
+    /// Reads the code lengths of a Huffman code with the code length code.
+    /// </summary>
+    /// <param name="table">The scratch table for the code length code.</param>
+    /// <param name="codeLengthCodeLengths">The code lengths of the code length code.</param>
+    /// <param name="numSymbols">The alphabet size.</param>
+    /// <param name="codeLengths">The code lengths to read.</param>
+    /// <returns><see langword="true"/> if the code lengths are valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadHuffmanCodeLengths(Span<HuffmanCode> table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
     {
         int maxSymbol;
         int symbol = 0;
@@ -695,13 +763,24 @@ internal sealed class WebpLosslessDecoder
         int size = HuffmanUtils.BuildHuffmanTable(table, WebpConstants.LengthTableBits, codeLengthCodeLengths, NumCodeLengthCodes);
         if (size == 0)
         {
-            WebpThrowHelper.ThrowImageFormatException("Error building huffman table");
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "Error building huffman table");
+            return false;
         }
 
         if (this.bitReader.ReadBit())
         {
             int lengthNBits = 2 + (2 * (int)this.bitReader.ReadValue(3));
             maxSymbol = 2 + (int)this.bitReader.ReadValue(lengthNBits);
+
+            // The code lengths cannot name more symbols than the alphabet has. libwebp rejects the stream.
+            if (maxSymbol > numSymbols)
+            {
+                this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(
+                    this.imageExists,
+                    "The maximum symbol of the code lengths is larger than the alphabet size");
+
+                return false;
+            }
         }
         else
         {
@@ -738,7 +817,9 @@ internal sealed class WebpLosslessDecoder
                 int repeat = (int)(this.bitReader.ReadValue(extraBits) + repeatOffset);
                 if (symbol + repeat > numSymbols)
                 {
-                    return;
+                    // A repeat past the alphabet leaves the code lengths incomplete. libwebp rejects the stream.
+                    this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "A repeated code length runs past the alphabet size");
+                    return false;
                 }
 
                 int length = usePrev ? prevCodeLen : 0;
@@ -748,15 +829,18 @@ internal sealed class WebpLosslessDecoder
                 }
             }
         }
+
+        return true;
     }
 
     /// <summary>
-    /// Reads the transformations, if any are present.
+    /// Reads one transform.
     /// </summary>
     /// <param name="xSize">The width of the image.</param>
     /// <param name="ySize">The height of the image.</param>
-    /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
-    private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
+    /// <param name="decoder">The decoder that stores the transforms.</param>
+    /// <returns><see langword="true"/> if the transform is valid. Otherwise <see langword="false"/>.</returns>
+    private bool TryReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
     {
         Vp8LTransformType transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
         Vp8LTransform transform = new(transformType, xSize, ySize);
@@ -764,7 +848,8 @@ internal sealed class WebpLosslessDecoder
         // Each transform is allowed to be used only once.
         if (decoder.Transforms.Any(decoderTransform => decoderTransform.TransformType == transform.TransformType))
         {
-            WebpThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(this.imageExists, "Each transform can only be present once");
+            return false;
         }
 
         switch (transformType)
@@ -793,7 +878,12 @@ internal sealed class WebpLosslessDecoder
                     transform.Bits = 3;
                 }
 
-                using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
+                if (!this.TryDecodeSubImage(decoder, (int)numColors, 1, out IMemoryOwner<uint> colorMap))
+                {
+                    return false;
+                }
+
+                using (colorMap)
                 {
                     int finalNumColors = 1 << (8 >> transform.Bits);
                     IMemoryOwner<uint> newColorMap = this.memoryAllocator.Allocate<uint>(finalNumColors, AllocationOptions.Clean);
@@ -810,11 +900,17 @@ internal sealed class WebpLosslessDecoder
                 transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
                 int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
                 int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
-                transform.Data = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
+                if (!this.TryDecodeSubImage(decoder, blockWidth, blockHeight, out IMemoryOwner<uint> transformData))
+                {
+                    return false;
+                }
+
+                transform.Data = transformData;
                 break;
         }
 
         decoder.Transforms.Add(transform);
+        return true;
     }
 
     /// <summary>
@@ -881,11 +977,9 @@ internal sealed class WebpLosslessDecoder
         int mask = hdr.HuffmanMask;
         Span<HTreeGroup> htreeGroup = pos < last ? GetHTreeGroupForPos(hdr, col, row) : null;
 
-        // A code that is not valid sets isValid and leaves the loop with break. The loop uses if statements, not a
-        // switch statement, because break in a switch section cannot leave the loop. Thus, the loop condition does
-        // not test isValid for each symbol.
-        bool isValid = true;
-        while (!this.bitReader.Eos && pos < last)
+        // A code that is not valid leaves the loop with break before the last value. The loop uses if statements, not a switch statement, because break in a
+        // switch section cannot leave the loop. As in libwebp, the loop stops at the end of the data.
+        while (!this.bitReader.IsEndOfStream() && pos < last)
         {
             // Only update when changing tile.
             if ((col & mask) == 0)
@@ -924,7 +1018,6 @@ internal sealed class WebpLosslessDecoder
                 if (pos < dist || end - pos < length)
                 {
                     // The reference starts before the first value or ends after the last value.
-                    isValid = false;
                     break;
                 }
 
@@ -950,19 +1043,17 @@ internal sealed class WebpLosslessDecoder
             else
             {
                 // The code is not valid.
-                isValid = false;
                 break;
             }
-
-            this.bitReader.Eos = this.bitReader.IsEndOfStream();
         }
 
         // Process the remaining rows corresponding to last row-block.
         // The method keeps the complete rows that it decodes before any damage. The caller clears the other rows.
         dec.ExtractPalettedAlphaRows(row > lastRow ? lastRow : row);
 
-        // As in libwebp, a code that is not valid, or data that ends before the last value, is damage.
-        if (!isValid || (this.bitReader.Eos && pos < end))
+        // Each stream uses one end-of-data rule, as in DecodeImageRows and libwebp.
+        // Values that are not decoded, or a read past the end of the data, are damage.
+        if (pos < end || this.bitReader.IsEndOfStream())
         {
             segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The WebP alpha data is damaged or ends before the last value.");
         }

@@ -12,7 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 internal static class LossyUtils
 {
-    // Note: method name in libwebp reference implementation is called VP8SSE16x16.
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse16x16(Span<byte> a, Span<byte> b)
     {
@@ -29,7 +28,6 @@ internal static class LossyUtils
         return Vp8_SseNxN(a, b, 16, 16);
     }
 
-    // Note: method name in libwebp reference implementation is called VP8SSE16x8.
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse16x8(Span<byte> a, Span<byte> b)
     {
@@ -46,7 +44,6 @@ internal static class LossyUtils
         return Vp8_SseNxN(a, b, 16, 8);
     }
 
-    // Note: method name in libwebp reference implementation is called VP8SSE4x4.
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse4x4(Span<byte> a, Span<byte> b)
     {
@@ -1256,7 +1253,7 @@ internal static class LossyUtils
             // The exact value is (2. + (20091 + 35468) / 65536).
             // After the second pass, maximum interval is [-3794, 3794], assuming
             // an input in [-2048, 2047] interval. We then need to add a dst value in the [0, 255] range.
-            // In the worst case scenario, the input to clip_8b() can be as large as [-60713, 60968].
+            // In the worst case scenario, the input to Clip8B can be as large as [-60713, 60968].
             tmpOffset = 0;
             int dstOffset = 0;
             for (int i = 0; i < 4; i++)

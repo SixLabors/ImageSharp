@@ -51,33 +51,41 @@ internal sealed class WebpLossyDecoder
     }
 
     /// <summary>
-    /// Decodes the lossy webp image from the stream.
+    /// Reads the VP8 frame headers of the first partition and the sizes of the token partitions.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="pixels">The pixel buffer to store the decoded data.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
+    /// <remarks>
+    /// The decoder cannot decode a macroblock without these headers. As in libwebp, the decoder reads them before it creates the image.
+    /// </remarks>
     /// <param name="info">Information about the image.</param>
-    /// <param name="alphaData">The ALPH chunk data.</param>
-    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
-    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated image data.</param>
-    public void Decode<TPixel>(
-        Buffer2D<TPixel> pixels,
-        int width,
-        int height,
-        WebpImageInfo info,
-        IMemoryOwner<byte> alphaData,
-        ColorProfileConverter colorProfileConverter,
-        SegmentIntegrityHandling segmentIntegrityHandling)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged headers.</param>
+    /// <param name="imageExists">
+    /// A value that tells if the decoder created the image before these headers. Before the image exists, the method throws for damaged headers in each mode.
+    /// </param>
+    /// <param name="decoder">The decoder that holds the headers, or <see langword="null"/>. The caller owns it.</param>
+    /// <returns>
+    /// <see langword="true"/> if the headers are valid. <see langword="false"/> if they are damaged, the image exists and the mode ignores image data errors.
+    /// </returns>
+    /// <exception cref="InvalidImageContentException">
+    /// The headers are damaged, and the image does not exist or the mode does not ignore image data errors.
+    /// </exception>
+    public bool TryReadHeaders(WebpImageInfo info, SegmentIntegrityHandling segmentIntegrityHandling, bool imageExists, out Vp8Decoder decoder)
     {
+        decoder = null;
+
+        // libwebp rejects a first partition that cannot start the bit reader.
+        if (!this.bitReader.IsStartValid)
+        {
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "The VP8 first partition starts with a value that is not valid.");
+            return false;
+        }
+
         // Paragraph 9.2: color space and clamp type follow.
         sbyte colorSpace = (sbyte)this.bitReader.ReadValue(1);
         sbyte clampType = (sbyte)this.bitReader.ReadValue(1);
         Vp8PictureHeader pictureHeader = new()
         {
-            Width = (uint)width,
-            Height = (uint)height,
+            Width = info.Width,
+            Height = info.Height,
             XScale = info.XScale,
             YScale = info.YScale,
             ColorSpace = colorSpace,
@@ -88,51 +96,85 @@ internal sealed class WebpLossyDecoder
         Vp8Proba proba = new();
         Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
 
-        using Vp8Decoder decoder = new(
+        Vp8Decoder vp8Decoder = new(
             info.Vp8FrameHeader,
             pictureHeader,
             vp8SegmentHeader,
-            proba,
-            this.memoryAllocator);
-        Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
+            proba);
 
-        // Paragraph 9.4: Parse the filter specs.
-        this.ParseFilterHeader(decoder);
-        decoder.PrecomputeFilterStrengths();
-
-        // Paragraph 9.5: Parse partitions.
-        // The decoder cannot decode a macroblock without the partition sizes, so the pixel buffer keeps its fill value.
-        if (!this.ParsePartitions(decoder, segmentIntegrityHandling))
+        try
         {
-            return;
+            // Paragraph 9.4: The method parses the filter specs.
+            this.ParseFilterHeader(vp8Decoder);
+            vp8Decoder.PrecomputeFilterStrengths();
+
+            // Paragraph 9.5: The method parses the partitions.
+            if (!this.ParsePartitions(vp8Decoder, segmentIntegrityHandling, imageExists))
+            {
+                vp8Decoder.Dispose();
+                return false;
+            }
+
+            // Paragraph 9.6: The method parses the dequantization indices.
+            this.ParseDequantizationIndices(vp8Decoder);
+
+            // The decoder does not use the value of update probabilities.
+            this.bitReader.ReadBool();
+
+            // Paragraph 13.4: The method parses the probabilities.
+            this.ParseProbabilities(vp8Decoder);
+
+            // libwebp rejects frame headers that end before their last field. The bit reader keeps the end-of-data state, so one check covers all headers.
+            if (this.bitReader.Eof)
+            {
+                segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "The VP8 frame header ends before its last field.");
+                vp8Decoder.Dispose();
+                return false;
+            }
+        }
+        catch
+        {
+            vp8Decoder.Dispose();
+            throw;
         }
 
-        // Paragraph 9.6: Dequantization Indices.
-        this.ParseDequantizationIndices(decoder);
+        decoder = vp8Decoder;
+        return true;
+    }
 
-        // Ignore the value of update probabilities.
-        this.bitReader.ReadBool();
-
-        // Paragraph 13.4: Parse probabilities.
-        this.ParseProbabilities(decoder);
-
-        // libwebp rejects frame headers that end before their last field. The decoder then cannot decode a macroblock,
-        // so the pixel buffer keeps its fill value. The end of the data is sticky, so one check covers all headers.
-        if (this.bitReader.Eof)
-        {
-            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 frame header ends before its last field.");
-            return;
-        }
+    /// <summary>
+    /// Decodes the macroblocks of the lossy webp image. The caller reads the headers with <see cref="TryReadHeaders"/> before it calls this method.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="decoder">The decoder that holds the headers.</param>
+    /// <param name="pixels">The pixel buffer to store the decoded data.</param>
+    /// <param name="info">Information about the image.</param>
+    /// <param name="alphaData">The ALPH chunk data, or <see langword="null"/> when the image has no ALPH chunk.</param>
+    /// <param name="colorProfileConverter">The selected source ICC converter, if available.</param>
+    /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls damaged or truncated image data.</param>
+    public void Decode<TPixel>(
+        Vp8Decoder decoder,
+        Buffer2D<TPixel> pixels,
+        WebpImageInfo info,
+        IMemoryOwner<byte> alphaData,
+        ColorProfileConverter colorProfileConverter,
+        SegmentIntegrityHandling segmentIntegrityHandling)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int width = (int)info.Width;
+        decoder.AllocateBuffers(this.memoryAllocator);
+        Vp8Io io = InitializeVp8Io(decoder);
 
         // Select the native YCbCr converter once from the embedded source profile.
         WebpColorConverterBase colorConverter = WebpColorConverterBase.GetYCbCrConverter(colorProfileConverter);
         int decodedRows = this.ParseFrame(decoder, io, colorConverter, segmentIntegrityHandling);
 
-        if (info.Features?.Alpha == true)
+        // As in libwebp, only ALPH data adds alpha. A VP8X alpha flag without an ALPH chunk gives opaque pixels.
+        if (alphaData is not null)
         {
             using AlphaDecoder alphaDecoder = new(
                 width,
-                height,
+                (int)info.Height,
                 alphaData,
                 info.Features.AlphaChunkHeader,
                 this.memoryAllocator,
@@ -1117,6 +1159,8 @@ internal sealed class WebpLossyDecoder
         {
             int bit1 = br.GetBit(p[8]);
             int bit0 = br.GetBit(p[9 + bit1]);
+
+            // Two bits give a category from 0 to 3, so the switch below sets the table in each case.
             int cat = (2 * bit1) + bit0;
             v = 0;
             byte[] tab = null;
@@ -1133,9 +1177,6 @@ internal sealed class WebpLossyDecoder
                     break;
                 case 3:
                     tab = WebpConstants.Cat6;
-                    break;
-                default:
-                    WebpThrowHelper.ThrowImageFormatException("VP8 parsing error");
                     break;
             }
 
@@ -1160,29 +1201,30 @@ internal sealed class WebpLossyDecoder
         {
             vp8SegmentHeader.UpdateMap = this.bitReader.ReadBool();
             bool updateData = this.bitReader.ReadBool();
+            bool hasValue;
             if (updateData)
             {
-                vp8SegmentHeader.Delta = this.bitReader.ReadBool();
-                bool hasValue;
+                vp8SegmentHeader.AbsoluteDelta = this.bitReader.ReadBool();
                 for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
                 {
                     hasValue = this.bitReader.ReadBool();
-                    vp8SegmentHeader.Quantizer[i] = (byte)(hasValue ? this.bitReader.ReadSignedValue(7) : 0);
+                    vp8SegmentHeader.Quantizer[i] = (sbyte)(hasValue ? this.bitReader.ReadSignedValue(7) : 0);
                 }
 
                 for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
                 {
                     hasValue = this.bitReader.ReadBool();
-                    vp8SegmentHeader.FilterStrength[i] = (byte)(hasValue ? this.bitReader.ReadSignedValue(6) : 0);
+                    vp8SegmentHeader.FilterStrength[i] = (sbyte)(hasValue ? this.bitReader.ReadSignedValue(6) : 0);
                 }
+            }
 
-                if (vp8SegmentHeader.UpdateMap)
+            // The segment map probabilities follow update_map, with or without new segment data. See RFC 6386, section 9.3.
+            if (vp8SegmentHeader.UpdateMap)
+            {
+                for (int s = 0; s < proba.Segments.Length; ++s)
                 {
-                    for (int s = 0; s < proba.Segments.Length; ++s)
-                    {
-                        hasValue = this.bitReader.ReadBool();
-                        proba.Segments[s] = hasValue ? this.bitReader.ReadValue(8) : 255;
-                    }
+                    hasValue = this.bitReader.ReadBool();
+                    proba.Segments[s] = hasValue ? this.bitReader.ReadValue(8) : 255;
                 }
             }
         }
@@ -1241,10 +1283,12 @@ internal sealed class WebpLossyDecoder
     /// </summary>
     /// <param name="dec">The decoder.</param>
     /// <param name="segmentIntegrityHandling">The image data integrity mode. It controls partitions that end early.</param>
-    /// <returns><see langword="true"/> when the partition sizes are in the data. Otherwise, <see langword="false"/>.</returns>
-    private bool ParsePartitions(Vp8Decoder dec, SegmentIntegrityHandling segmentIntegrityHandling)
+    /// <param name="imageExists">A value that tells if the decoder created the image before these partitions.</param>
+    /// <returns><see langword="true"/> when the partitions can start. Otherwise, <see langword="false"/>.</returns>
+    private bool ParsePartitions(Vp8Decoder dec, SegmentIntegrityHandling segmentIntegrityHandling, bool imageExists)
     {
-        uint size = this.bitReader.Remaining - this.bitReader.PartitionLength;
+        // The bit reader holds the data after the 10-byte frame header, and the first partition is at its start.
+        uint size = this.bitReader.ImageDataSize - this.bitReader.PartitionLength;
         int startIdx = (int)this.bitReader.PartitionLength;
         Span<byte> sz = this.bitReader.Data.Slice(startIdx);
         int sizeLeft = (int)size;
@@ -1255,7 +1299,7 @@ internal sealed class WebpLossyDecoder
         int lastPartMul3 = lastPart * 3;
         if (sizeLeft < lastPartMul3)
         {
-            segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The VP8 data ends before the token partition sizes.");
+            segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "The VP8 data ends before the token partition sizes.");
             return false;
         }
 
@@ -1276,6 +1320,16 @@ internal sealed class WebpLossyDecoder
         }
 
         dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
+
+        // libwebp rejects a partition that starts with a value larger than the range.
+        for (int p = 0; p <= lastPart; ++p)
+        {
+            if (!dec.Vp8BitReaders[p].IsStartValid)
+            {
+                segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, "A VP8 token partition starts with a value that is not valid.");
+                return false;
+            }
+        }
 
         // libwebp rejects data in which the last partition is empty. The macroblock loop keeps the rows that
         // the other partitions can decode.
@@ -1308,7 +1362,7 @@ internal sealed class WebpLossyDecoder
             if (vp8SegmentHeader.UseSegment)
             {
                 q = vp8SegmentHeader.Quantizer[i];
-                if (!vp8SegmentHeader.Delta)
+                if (!vp8SegmentHeader.AbsoluteDelta)
                 {
                     q += baseQ0;
                 }
@@ -1378,8 +1432,9 @@ internal sealed class WebpLossyDecoder
         }
     }
 
-    private static Vp8Io InitializeVp8Io(Vp8Decoder dec, Vp8PictureHeader pictureHeader)
+    private static Vp8Io InitializeVp8Io(Vp8Decoder dec)
     {
+        Vp8PictureHeader pictureHeader = dec.PictureHeader;
         Vp8Io io = default;
         io.Width = (int)pictureHeader.Width;
         io.Height = (int)pictureHeader.Height;

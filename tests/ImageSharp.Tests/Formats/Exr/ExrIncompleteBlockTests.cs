@@ -97,6 +97,30 @@ public class ExrIncompleteBlockTests
     }
 
     /// <summary>
+    /// B44 compresses only HALF channels. A B44 block stores the samples of a FLOAT channel without change. Thus a FLOAT block with a smaller byte count ends
+    /// before its samples are complete. The Strict and IgnoreAncillary modes throw. The IgnoreImageData mode keeps the fill value for the rows of the block.
+    /// </summary>
+    [Fact]
+    public void Decode_CompressedFloatB44Block_FollowsImageDataPolicy()
+    {
+        // The 256x1 FLOAT block holds 1024 bytes. The chunk declares 8 bytes. Thus the block is not a raw block.
+        byte[] data = ExrZipDecoderTests.BuildExr(new byte[8], ExrPixelType.Float, (byte)ExrCompression.B44, 0);
+
+        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, data);
+        AssertRedPrefix(actual, 0);
+    }
+
+    /// <summary>
     /// Asserts that the first pixels are opaque red and that all other pixels keep the fill value, transparent black.
     /// </summary>
     /// <param name="image">The decoded 256x1 image.</param>

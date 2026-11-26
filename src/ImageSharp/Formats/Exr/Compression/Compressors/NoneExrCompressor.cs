@@ -15,12 +15,10 @@ internal class NoneExrCompressor : ExrBaseCompressor
     /// </summary>
     /// <param name="output">The output stream to write the compressed image data to.</param>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="bytesPerBlock">Bytes per row block.</param>
     /// <param name="bytesPerRow">Bytes per pixel row.</param>
-    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The witdh of one row in pixels.</param>
-    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
-        : base(output, allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
+    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerRow, int width)
+        : base(output, allocator, bytesPerRow, width)
     {
     }
 

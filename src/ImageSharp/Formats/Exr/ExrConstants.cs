@@ -72,16 +72,6 @@ internal static class ExrConstants
         /// The attribute that gives the width of the screen window.
         /// </summary>
         public const string ScreenWindowWidth = "screenWindowWidth";
-
-        /// <summary>
-        /// The attribute that describes tile dimensions and resolution levels.
-        /// </summary>
-        public const string Tiles = "tiles";
-
-        /// <summary>
-        /// The attribute that gives the number of pixel-data chunks in an image part.
-        /// </summary>
-        public const string ChunkCount = "chunkCount";
     }
 
     /// <summary>

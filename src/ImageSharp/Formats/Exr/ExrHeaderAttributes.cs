@@ -25,9 +25,6 @@ internal class ExrHeaderAttributes
     /// <param name="aspectRatio">The aspect ratio.</param>
     /// <param name="screenWindowWidth">Width of the screen window.</param>
     /// <param name="screenWindowCenter">The screen window center.</param>
-    /// <param name="tileXSize">Size of the tile in x dimension.</param>
-    /// <param name="tileYSize">Size of the tile in y dimension.</param>
-    /// <param name="chunkCount">The chunk count.</param>
     public ExrHeaderAttributes(
         IList<ExrChannelInfo> channels,
         RgbPrimariesChromaticityCoordinates primaries,
@@ -38,10 +35,7 @@ internal class ExrHeaderAttributes
         ExrLineOrder lineOrder,
         float aspectRatio,
         float screenWindowWidth,
-        PointF screenWindowCenter,
-        uint? tileXSize = null,
-        uint? tileYSize = null,
-        int? chunkCount = null)
+        PointF screenWindowCenter)
     {
         this.Channels = channels;
         this.Primaries = primaries;
@@ -53,9 +47,6 @@ internal class ExrHeaderAttributes
         this.AspectRatio = aspectRatio;
         this.ScreenWindowWidth = screenWindowWidth;
         this.ScreenWindowCenter = screenWindowCenter;
-        this.TileXSize = tileXSize;
-        this.TileYSize = tileYSize;
-        this.ChunkCount = chunkCount;
     }
 
     /// <summary>
@@ -107,19 +98,4 @@ internal class ExrHeaderAttributes
     /// Gets or sets the screen window center.
     /// </summary>
     public PointF ScreenWindowCenter { get; set; }
-
-    /// <summary>
-    /// Gets or sets the number of horizontal tiles.
-    /// </summary>
-    public uint? TileXSize { get; set; }
-
-    /// <summary>
-    /// Gets or sets the number of vertical tiles.
-    /// </summary>
-    public uint? TileYSize { get; set; }
-
-    /// <summary>
-    /// Gets or sets the chunk count. Indicates the number of chunks in this part. Required if the multipart bit (12) is set.
-    /// </summary>
-    public int? ChunkCount { get; set; }
 }

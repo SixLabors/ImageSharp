@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression;
@@ -14,83 +13,39 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 internal static class ExrDecompressorFactory
 {
     /// <summary>
-    /// Creates a decomprssor for a specific EXR compression type.
+    /// Creates a decompressor for an EXR compression method. This method owns the list of supported compression methods.
     /// </summary>
     /// <param name="method">The compression method.</param>
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="width">The width in pixels of the image.</param>
     /// <param name="bytesPerBlock">The bytes per block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    /// <param name="rowsPerBlock">The rows per block.</param>
-    /// <param name="channelCount">The number of image channels.</param>
-    /// <param name="pixelType">The pixel type.</param>
+    /// <param name="channels">The channels of a row, in the order of the row.</param>
     /// <param name="integrityHandling">The policy for incomplete image data.</param>
     /// <returns>Decompressor for EXR image data.</returns>
+    /// <exception cref="NotSupportedException">The decoder does not support the compression method.</exception>
     public static ExrBaseDecompressor Create(
         ExrCompression method,
         MemoryAllocator memoryAllocator,
         int width,
         uint bytesPerBlock,
         uint bytesPerRow,
-        uint rowsPerBlock,
-        int channelCount,
-        ExrPixelType pixelType,
+        IList<ExrChannelInfo> channels,
         SegmentIntegrityHandling integrityHandling) => method switch
         {
-            ExrCompression.None => new NoneExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
-            ExrCompression.Zips => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
-            ExrCompression.Zip => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
+            // The base decompressor reads the blocks that have no compression.
+            ExrCompression.None => new ExrBaseDecompressor(memoryAllocator, bytesPerRow, width, integrityHandling),
+            ExrCompression.Zips => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width, integrityHandling),
+            ExrCompression.Zip => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width, integrityHandling),
             ExrCompression.RunLengthEncoded => new RunLengthExrCompression(
                 memoryAllocator,
                 bytesPerBlock,
                 bytesPerRow,
-                rowsPerBlock,
                 width,
-                pixelType == ExrPixelType.Half ? 2 : 4,
+                channels[^1].PixelType == ExrPixelType.Half ? 2 : 4,
                 integrityHandling),
-
-            // The B44 decoder needs one HALF sample for every channel in each row.
-            ExrCompression.B44 when pixelType == ExrPixelType.Half
-                && (ulong)width * (uint)channelCount * sizeof(ushort) == bytesPerRow => new B44ExrCompression(
-                memoryAllocator,
-                bytesPerBlock,
-                bytesPerRow,
-                rowsPerBlock,
-                width,
-                channelCount,
-                integrityHandling),
-
-            // The base decompressor still reads blocks stored without compression.
-            ExrCompression.B44 => new RawB44Decompressor(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
-            ExrCompression.Pxr24 => new Pxr24Compression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount, pixelType),
-            _ => throw ExrThrowHelper.NotSupportedDecompressor(nameof(method)),
+            ExrCompression.B44 => new B44ExrCompression(memoryAllocator, bytesPerRow, width, channels, integrityHandling),
+            ExrCompression.Pxr24 => new Pxr24Compression(memoryAllocator, bytesPerBlock, bytesPerRow, width, channels, integrityHandling),
+            _ => throw ExrThrowHelper.NotSupportedDecompressor(method.ToString()),
         };
-
-    /// <summary>
-    /// Reads raw blocks from a B44 image whose channel layout the compressed decoder cannot handle.
-    /// </summary>
-    private sealed class RawB44Decompressor : ExrBaseDecompressor
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RawB44Decompressor"/> class.
-        /// </summary>
-        /// <param name="allocator">The memory allocator.</param>
-        /// <param name="bytesPerBlock">The maximum decoded bytes per block.</param>
-        /// <param name="bytesPerRow">The decoded bytes per row.</param>
-        /// <param name="rowsPerBlock">The maximum rows per block.</param>
-        /// <param name="width">The image width in pixels.</param>
-        public RawB44Decompressor(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
-            : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
-        {
-        }
-
-        /// <inheritdoc/>
-        protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
-            => ExrThrowHelper.ThrowNotSupported("The B44 EXR block has an unsupported channel layout.");
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-        }
-    }
 }

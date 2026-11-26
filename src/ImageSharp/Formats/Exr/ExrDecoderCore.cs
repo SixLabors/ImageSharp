@@ -25,6 +25,21 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 internal sealed class ExrDecoderCore : ImageDecoderCore
 {
     /// <summary>
+    /// The mask of the file version in the version field.
+    /// </summary>
+    private const uint VersionMask = 0xFF;
+
+    /// <summary>
+    /// The version field flags of the tiled (0x200), deep (0x800) and multi-part (0x1000) files. The decoder reads only single-part scanline files.
+    /// </summary>
+    private const uint UnsupportedFlags = 0x200 | 0x800 | 0x1000;
+
+    /// <summary>
+    /// The number of compression methods that OpenEXR defines. A larger value is not valid.
+    /// </summary>
+    private const int CompressionMethodCount = 14;
+
+    /// <summary>
     /// Reusable buffer.
     /// </summary>
     private InlineArray8<byte> buffer;
@@ -48,6 +63,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// The exr specific metadata.
     /// </summary>
     private ExrMetadata exrMetadata;
+
+    /// <summary>
+    /// The decode plane of each channel: 0 for R and Y, 1 for G, 2 for B and 3 for A. Other channels have -1. The decoder skips their samples.
+    /// </summary>
+    private int[] channelPlanes;
+
+    /// <summary>
+    /// A value that shows whether the image has an A channel.
+    /// </summary>
+    private bool hasAlpha;
+
+    /// <summary>
+    /// A value that shows whether the image has a Y channel.
+    /// </summary>
+    private bool hasLuminance;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExrDecoderCore"/> class.
@@ -96,6 +126,26 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private ExrHeaderAttributes HeaderAttributes { get; set; }
 
     /// <summary>
+    /// Gets or sets the decoded bytes of a row. A row holds the samples of every channel.
+    /// </summary>
+    private uint BytesPerRow { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of rows in a scanline chunk.
+    /// </summary>
+    private uint RowsPerBlock { get; set; }
+
+    /// <summary>
+    /// Gets or sets the decoded bytes of a full scanline chunk. The header check proves that this value fits in an int.
+    /// </summary>
+    private uint BytesPerBlock { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of scanline chunks.
+    /// </summary>
+    private uint ChunkCount { get; set; }
+
+    /// <summary>
     /// Gets or sets the earliest valid stream position for a scanline chunk.
     /// </summary>
     private long MinimumChunkOffset { get; set; }
@@ -106,30 +156,33 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.ReadExrHeader(stream);
         ColorProfileConverter colorConverter = ExrColorConverter.Create(this.exrMetadata, false);
 
-        if (!this.IsSupportedCompression())
-        {
-            ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
-        }
+        // The factory owns the list of supported compression methods. The decoder creates the decompressor and the decode buffers before it allocates the
+        // image. Thus an unsupported compression method does not allocate pixels.
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
+            this.Compression,
+            this.memoryAllocator,
+            this.Width,
+            this.BytesPerBlock,
+            this.BytesPerRow,
+            this.Channels,
+            this.Options.SegmentIntegrityHandling);
+
+        // An EXR file can omit color channels. The decoder clears the planes one time. Thus the planes of missing channels stay black in all rows.
+        using IMemoryOwner<float> planeBuffer = this.memoryAllocator.Allocate<float>(this.Width * 4, AllocationOptions.Clean);
+        using IMemoryOwner<byte> blockBuffer = this.memoryAllocator.Allocate<byte>((int)this.BytesPerBlock);
 
         Image<TPixel> image = null;
         try
         {
             image = new Image<TPixel>(this.configuration, this.Width, this.Height, this.metadata);
-            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-
-            switch (this.PixelType)
-            {
-                case ExrPixelType.Half:
-                case ExrPixelType.Float:
-                    this.DecodeFloatingPointPixelData(stream, pixels, colorConverter, cancellationToken);
-                    break;
-                case ExrPixelType.UnsignedInt:
-                    this.DecodeUnsignedIntPixelData(stream, pixels, colorConverter, cancellationToken);
-                    break;
-                default:
-                    ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
-                    break;
-            }
+            this.DecodePixelData(
+                stream,
+                image.GetRootFramePixelBuffer(),
+                decompressor,
+                planeBuffer.GetSpan(),
+                blockBuffer.GetSpan(),
+                colorConverter,
+                cancellationToken);
 
             return image;
         }
@@ -143,127 +196,155 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        ExrHeaderAttributes header = this.ReadExrHeader(stream);
+        this.ReadExrHeader(stream);
 
-        return new ImageInfo(new Size(header.DataWindow.XMax, header.DataWindow.YMax), this.metadata);
+        return new ImageInfo(new Size(this.Width, this.Height), this.metadata);
     }
 
     /// <summary>
-    /// Decodes image data with floating point pixel data.
+    /// Decodes the scanline chunks of the image.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="pixels">The pixel buffer.</param>
+    /// <param name="decompressor">The decompressor for the stored compression method.</param>
+    /// <param name="planes">The cleared R, G, B and A planes of one row, each <see cref="Width"/> samples long.</param>
+    /// <param name="block">The reusable buffer for the decoded bytes of one chunk.</param>
     /// <param name="colorConverter">The conversion from stored linear RGB to sRGB working pixels.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeFloatingPointPixelData<TPixel>(
-        BufferedReadStream stream, Buffer2D<TPixel> pixels, ColorProfileConverter colorConverter, CancellationToken cancellationToken)
+    private void DecodePixelData<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        ExrBaseDecompressor decompressor,
+        Span<float> planes,
+        Span<byte> block,
+        ColorProfileConverter colorConverter,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool hasAlpha = this.HasAlpha();
-        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
-        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
-        if (bytesPerBlock > int.MaxValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
-        }
-
         int width = this.Width;
-        int height = this.Height;
-        int channelCount = this.Channels.Count;
+        int bytesPerRow = (int)this.BytesPerRow;
+        uint rowsPerBlock = this.RowsPerBlock;
+        IList<ExrChannelInfo> channels = this.Channels;
+        int[] channelPlanes = this.channelPlanes;
+        bool hasAlpha = this.hasAlpha;
+        bool hasLuminance = this.hasLuminance;
+        bool isUnsignedInt = this.PixelType == ExrPixelType.UnsignedInt;
 
-        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
-        using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
-        using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
-        Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-        Span<float> redPixelData = rowBuffer.GetSpan()[..width];
-        Span<float> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
-        Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
-        Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
+        // The planes hold the 32-bit sample of each channel. A UINT plane holds the bits of the UINT samples.
+        Span<float> redPixelData = planes[..width];
+        Span<float> greenPixelData = planes.Slice(width, width);
+        Span<float> bluePixelData = planes.Slice(width * 2, width);
+        Span<float> alphaPixelData = planes.Slice(width * 3, width);
         InlineArray16<Vector4> colorStorage = default;
         Span<Vector4> colors = colorStorage;
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
-            this.Compression,
-            this.memoryAllocator,
-            width,
-            (uint)bytesPerBlock,
-            (uint)bytesPerRow,
-            rowsPerBlock,
-            channelCount,
-            this.PixelType,
-            this.Options.SegmentIntegrityHandling);
+        // A UINT image without an A channel is opaque. Its alpha plane holds the bits of uint.MaxValue.
+        if (isUnsignedInt && !hasAlpha)
+        {
+            MemoryMarshal.Cast<float, uint>(alphaPixelData).Fill(uint.MaxValue);
+        }
 
         // The offset table holds one entry for each chunk, in increasing y order. See "OpenEXR File Layout",
         // section "Component Four: Offset Tables", "Scan Lines".
-        uint chunkCount = (uint)((height + rowsPerBlock - 1) / rowsPerBlock);
-        for (uint chunk = 0; chunk < chunkCount; chunk++)
+        for (uint chunk = 0; chunk < this.ChunkCount; chunk++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            uint rowStart = chunk * rowsPerBlock;
+            int rowsInBlock = (int)Math.Min(rowsPerBlock, (uint)this.Height - rowStart);
+            uint uncompressedBytes = (uint)(bytesPerRow * rowsInBlock);
             ulong chunkOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
-            // In the IgnoreImageData mode, the decoder skips a chunk with a damaged header. Its rows keep the fill value.
-            if (!this.TryReadChunkHeader(stream, chunkOffset, out uint rowStartIndex, out uint compressedBytesCount))
+            // In the IgnoreImageData mode, the decoder skips a chunk that has a damaged header or a damaged block. The rows of this chunk keep the fill value.
+            if (this.TryReadChunkHeader(stream, chunkOffset, rowStart, uncompressedBytes, out uint compressedBytes) &&
+                decompressor.Decompress(stream, compressedBytes, uncompressedBytes, block))
             {
-                stream.Position = nextRowOffsetPosition;
-                continue;
-            }
-
-            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
-            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
-
-            // The decoder does not convert a damaged block. Its rows keep the fill value, as the rows of a skipped chunk do.
-            if (!this.TryDecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData))
-            {
-                stream.Position = nextRowOffsetPosition;
-                continue;
-            }
-
-            int offset = 0;
-            for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
-            {
-                // A block that ends early in the IgnoreImageData mode decodes only a prefix of some rows.
-                // The decoder does not convert the other pixels, so they keep the fill value.
-                int rowWidth = decompressor.GetCompletePixelCount((int)(rowIndex - rowStartIndex));
-                if (rowWidth == 0)
+                for (int row = 0; row < rowsInBlock; row++)
                 {
-                    break;
-                }
+                    // In the IgnoreImageData mode, a block that ends early decodes only the first pixels of some rows. The decoder does not convert the other
+                    // pixels. Thus they keep the fill value.
+                    int rowWidth = decompressor.GetCompletePixelCount(row);
+                    if (rowWidth == 0)
+                    {
+                        break;
+                    }
 
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
-                {
-                    ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += ReadFloatChannelData(
-                        stream,
-                        channel,
-                        decompressedPixelData[offset..],
-                        redPixelData,
-                        greenPixelData,
-                        bluePixelData,
-                        alphaPixelData,
-                        width);
-                }
+                    // A row holds the samples of every channel in the order of the channel list. The decoder skips the samples of a channel without a plane.
+                    ReadOnlySpan<byte> rowData = block.Slice(row * bytesPerRow, bytesPerRow);
+                    int offset = 0;
+                    for (int channel = 0; channel < channels.Count; channel++)
+                    {
+                        bool isHalf = channels[channel].PixelType == ExrPixelType.Half;
+                        int plane = channelPlanes[channel];
+                        if (plane >= 0)
+                        {
+                            Span<float> planeData = planes.Slice(plane * width, width);
+                            if (isHalf)
+                            {
+                                ReadPixelRowChannelHalfSingle(rowData[offset..], planeData, width);
+                            }
+                            else
+                            {
+                                ReadPixelRowChannelSingle(rowData[offset..], planeData, width);
+                            }
+                        }
 
-                for (int x = 0; x < rowWidth; x += colors.Length)
-                {
-                    int count = Math.Min(colors.Length, rowWidth - x);
-                    Span<Vector4> block = colors[..count];
-                    Span<TPixel> destination = pixelRow.Slice(x, count);
+                        offset += width * (isHalf ? sizeof(ushort) : sizeof(float));
+                    }
 
-                    // Keep native precision through color conversion. The typed destination is packed
-                    // only after its linear samples have been restored to the working transfer curve.
-                    SimdUtils.InterleaveFloatPlanes(
-                        redPixelData.Slice(x, count),
-                        greenPixelData.Slice(x, count),
-                        bluePixelData.Slice(x, count),
-                        hasAlpha ? alphaPixelData.Slice(x, count) : [],
-                        block);
+                    // The Y channel uses the red plane. Gray pixels have the same value in R, G and B.
+                    if (hasLuminance)
+                    {
+                        redPixelData.CopyTo(greenPixelData);
+                        redPixelData.CopyTo(bluePixelData);
+                    }
 
-                    colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowStart + row);
+                    if (isUnsignedInt)
+                    {
+                        for (int x = 0; x < rowWidth; x += colors.Length)
+                        {
+                            int count = Math.Min(colors.Length, rowWidth - x);
+                            Span<Vector4> colorBlock = colors[..count];
+
+                            // Interleave the UINT component bits, but do not convert their values. The shared interleaver only shuffles and stores these
+                            // temporary float views.
+                            SimdUtils.InterleaveFloatPlanes(
+                                redPixelData.Slice(x, count),
+                                greenPixelData.Slice(x, count),
+                                bluePixelData.Slice(x, count),
+                                alphaPixelData.Slice(x, count),
+                                colorBlock);
+
+                            // Normalize the native UINT samples with the existing tensor conversions. Both spans start at the same address. Each vector load
+                            // comes before its store.
+                            Span<float> components = MemoryMarshal.Cast<Vector4, float>(colorBlock);
+                            TensorPrimitives.ConvertTruncating<uint, float>(MemoryMarshal.Cast<Vector4, uint>(colorBlock), components);
+                            TensorPrimitives.Multiply(components, 1F / uint.MaxValue, components);
+                            colorConverter.Convert(this.configuration, colorBlock, pixelRow.Slice(x, count), PixelAlphaRepresentation.Associated);
+                        }
+                    }
+                    else
+                    {
+                        for (int x = 0; x < rowWidth; x += colors.Length)
+                        {
+                            int count = Math.Min(colors.Length, rowWidth - x);
+                            Span<Vector4> colorBlock = colors[..count];
+
+                            // Keep the native precision through the color conversion. The converter packs the typed destination only after it restores the
+                            // linear samples to the working transfer curve.
+                            SimdUtils.InterleaveFloatPlanes(
+                                redPixelData.Slice(x, count),
+                                greenPixelData.Slice(x, count),
+                                bluePixelData.Slice(x, count),
+                                hasAlpha ? alphaPixelData.Slice(x, count) : [],
+                                colorBlock);
+
+                            colorConverter.Convert(this.configuration, colorBlock, pixelRow.Slice(x, count), PixelAlphaRepresentation.Associated);
+                        }
+                    }
                 }
             }
 
@@ -272,153 +353,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes image data with unsigned int pixel data.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="stream">The stream to read from.</param>
-    /// <param name="pixels">The pixel buffer.</param>
-    /// <param name="colorConverter">The conversion from stored linear RGB to sRGB working pixels.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeUnsignedIntPixelData<TPixel>(
-        BufferedReadStream stream, Buffer2D<TPixel> pixels, ColorProfileConverter colorConverter, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        bool hasAlpha = this.HasAlpha();
-        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
-        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
-        if (bytesPerBlock > int.MaxValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
-        }
-
-        int width = this.Width;
-        int height = this.Height;
-        int channelCount = this.Channels.Count;
-
-        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
-        using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
-        using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
-        Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-        Span<uint> redPixelData = rowBuffer.GetSpan()[..width];
-        Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
-        Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
-        Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
-        InlineArray16<Vector4> colorStorage = default;
-        Span<Vector4> colors = colorStorage;
-
-        if (!hasAlpha)
-        {
-            alphaPixelData.Fill(uint.MaxValue);
-        }
-
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
-            this.Compression,
-            this.memoryAllocator,
-            width,
-            (uint)bytesPerBlock,
-            (uint)bytesPerRow,
-            rowsPerBlock,
-            channelCount,
-            this.PixelType,
-            this.Options.SegmentIntegrityHandling);
-
-        // The offset table holds one entry for each chunk, in increasing y order. See "OpenEXR File Layout",
-        // section "Component Four: Offset Tables", "Scan Lines".
-        uint chunkCount = (uint)((height + rowsPerBlock - 1) / rowsPerBlock);
-        for (uint chunk = 0; chunk < chunkCount; chunk++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            ulong chunkOffset = this.ReadUnsignedLong(stream);
-            long nextRowOffsetPosition = stream.Position;
-
-            // In the IgnoreImageData mode, the decoder skips a chunk with a damaged header. Its rows keep the fill value.
-            if (!this.TryReadChunkHeader(stream, chunkOffset, out uint rowStartIndex, out uint compressedBytesCount))
-            {
-                stream.Position = nextRowOffsetPosition;
-                continue;
-            }
-
-            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
-            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
-
-            // The decoder does not convert a damaged block. Its rows keep the fill value, as the rows of a skipped chunk do.
-            if (!this.TryDecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData))
-            {
-                stream.Position = nextRowOffsetPosition;
-                continue;
-            }
-
-            int offset = 0;
-            for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
-            {
-                // A block that ends early in the IgnoreImageData mode decodes only a prefix of some rows.
-                // The decoder does not convert the other pixels, so they keep the fill value.
-                int rowWidth = decompressor.GetCompletePixelCount((int)(rowIndex - rowStartIndex));
-                if (rowWidth == 0)
-                {
-                    break;
-                }
-
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
-                {
-                    ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadUnsignedIntChannelData(
-                        stream,
-                        channel,
-                        decompressedPixelData[offset..],
-                        redPixelData,
-                        greenPixelData,
-                        bluePixelData,
-                        alphaPixelData,
-                        width);
-                }
-
-                for (int x = 0; x < rowWidth; x += colors.Length)
-                {
-                    int count = Math.Min(colors.Length, rowWidth - x);
-                    Span<Vector4> block = colors[..count];
-                    Span<TPixel> destination = pixelRow.Slice(x, count);
-
-                    // Interleave the UINT component bits without converting their values. The
-                    // shared interleaver only shuffles and stores these temporary float views.
-                    SimdUtils.InterleaveFloatPlanes(
-                        MemoryMarshal.Cast<uint, float>(redPixelData.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(greenPixelData.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(bluePixelData.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(alphaPixelData.Slice(x, count)),
-                        block);
-
-                    // Normalize the native UINT samples with the existing tensor conversions.
-                    // Both spans start at the same address; each vector load precedes its store.
-                    Span<float> components = MemoryMarshal.Cast<Vector4, float>(block);
-                    TensorPrimitives.ConvertTruncating<uint, float>(MemoryMarshal.Cast<Vector4, uint>(block), components);
-                    TensorPrimitives.Multiply(components, 1F / uint.MaxValue, components);
-                    colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
-                }
-            }
-
-            stream.Position = nextRowOffsetPosition;
-        }
-    }
-
-    /// <summary>
-    /// Reads the header of one scanline chunk and checks it against the stream and the data window.
-    /// A damaged chunk header goes to <see cref="SegmentIntegrityHandlingExtensions.ThrowOrIgnoreImageDataError(SegmentIntegrityHandling, string)"/>.
+    /// Reads the header of one scanline chunk. The method compares the header with the stream, the data window and the block sizes. This method owns the block
+    /// size checks. The method reports a damaged chunk header through
+    /// <see cref="SegmentIntegrityHandlingExtensions.ThrowOrIgnoreImageDataError(SegmentIntegrityHandling, string)"/>.
     /// </summary>
     /// <param name="stream">The stream containing the image data.</param>
     /// <param name="chunkOffset">The chunk offset from the offset table.</param>
-    /// <param name="rowStartIndex">The first row of the chunk, relative to the data window.</param>
+    /// <param name="rowStart">The first row of the chunk, relative to the data window.</param>
+    /// <param name="uncompressedBytes">The decoded byte count of the rows of the chunk.</param>
     /// <param name="compressedBytes">The declared byte count of the chunk pixel data.</param>
     /// <returns>
-    /// <see langword="true"/> if the stream is at the chunk pixel data. <see langword="false"/> if the chunk header is
-    /// damaged and the decoder ignores image data errors.
+    /// <see langword="true"/> if the stream is at the chunk pixel data, and all the pixel data is in the stream.
+    /// <see langword="false"/> if the chunk header is damaged and the decoder ignores image data errors.
     /// </returns>
-    private bool TryReadChunkHeader(BufferedReadStream stream, ulong chunkOffset, out uint rowStartIndex, out uint compressedBytes)
+    private bool TryReadChunkHeader(BufferedReadStream stream, ulong chunkOffset, uint rowStart, uint uncompressedBytes, out uint compressedBytes)
     {
-        rowStartIndex = 0;
         compressedBytes = 0;
 
         // A chunk starts after the offset table. It needs 8 bytes for its y coordinate and its byte count.
@@ -430,201 +379,27 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         stream.Position = (long)chunkOffset;
+        int y = this.ReadSignedInteger(stream);
+        compressedBytes = this.ReadUnsignedInteger(stream);
 
-        // Chunk coordinates are signed and absolute. Pixel rows are relative to the data window.
-        rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
-        if (rowStartIndex >= this.Height)
+        // The y coordinate of a chunk is the first row of the chunk at its index in the offset table.
+        if (y != this.HeaderAttributes.DataWindow.YMin + (long)rowStart)
         {
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("EXR chunk row index is outside the data window.");
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("EXR chunk y coordinate does not match its offset table entry.");
             return false;
         }
 
-        compressedBytes = this.ReadUnsignedInteger(stream);
+        // The packed data is not larger than the decoded data of a full chunk. The packed data ends in the stream. NONE stores each block without change.
+        if (compressedBytes > this.BytesPerBlock ||
+            !stream.IsReadRangeValid(stream.Position, compressedBytes) ||
+            (this.Compression == ExrCompression.None && compressedBytes != uncompressedBytes))
+        {
+            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("EXR chunk byte count is not valid for the chunk or the stream.");
+            return false;
+        }
+
         return true;
     }
-
-    /// <summary>
-    /// Decompresses a block according to the configured image-data integrity policy.
-    /// </summary>
-    /// <param name="decompressor">The decompressor for the stored compression type.</param>
-    /// <param name="stream">The encoded block stream.</param>
-    /// <param name="compressedBytes">The declared compressed byte count.</param>
-    /// <param name="uncompressedBytes">The expected byte count for the rows in this block.</param>
-    /// <param name="buffer">The reusable decompressed pixel buffer.</param>
-    /// <returns>
-    /// <see langword="true"/> if the buffer holds the block samples. <see langword="false"/> if the block is damaged and
-    /// the decoder ignores image data errors. The caller must then not convert the buffer.
-    /// </returns>
-    /// <remarks>
-    /// In the IgnoreImageData mode, the RLE and B44 decompressors keep the complete pixels of a block that ends early.
-    /// <see cref="ExrBaseDecompressor.GetCompletePixelCount(int)"/> gives these pixels.
-    /// </remarks>
-    private bool TryDecompressBlock(
-        ExrBaseDecompressor decompressor,
-        BufferedReadStream stream,
-        uint compressedBytes,
-        uint uncompressedBytes,
-        Span<byte> buffer)
-    {
-        try
-        {
-            decompressor.Decompress(stream, compressedBytes, uncompressedBytes, buffer);
-            return true;
-        }
-        catch (Exception ex) when (this.Options.SegmentIntegrityHandling.ShouldIgnoreImageDataError(ex))
-        {
-            // The Strict and IgnoreAncillary modes do not catch the exception, so the original exception and its stack
-            // trace stay.
-            // The offset table locates the next block independently of this damaged payload. The caller discards the
-            // whole failed block, so partial output or pooled bytes cannot become pixels.
-            return false;
-        }
-        catch (InvalidDataException ex)
-        {
-            // DeflateStream throws InvalidDataException for damaged ZIP data. The integrity handling reports it as
-            // InvalidImageContentException in the Strict and IgnoreAncillary modes.
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The ZIP compressed EXR block is damaged.", ex);
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Reads float image channel data.
-    /// </summary>
-    /// <param name="stream">The stream to read from.</param>
-    /// <param name="channel">The channel info.</param>
-    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
-    /// <param name="redPixelData">The red channel pixel data.</param>
-    /// <param name="greenPixelData">The green channel pixel data.</param>
-    /// <param name="bluePixelData">The blue channel pixel data.</param>
-    /// <param name="alphaPixelData">The alpha channel pixel data.</param>
-    /// <param name="width">The width of a row in pixels.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadFloatChannelData(
-        BufferedReadStream stream,
-        ExrChannelInfo channel,
-        ReadOnlySpan<byte> decompressedPixelData,
-        Span<float> redPixelData,
-        Span<float> greenPixelData,
-        Span<float> bluePixelData,
-        Span<float> alphaPixelData,
-        int width)
-    {
-        switch (channel.ChannelName)
-        {
-            case ExrConstants.ChannelNames.Red:
-                return ReadChannelData(channel, decompressedPixelData, redPixelData, width);
-
-            case ExrConstants.ChannelNames.Blue:
-                return ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
-
-            case ExrConstants.ChannelNames.Green:
-                return ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
-
-            case ExrConstants.ChannelNames.Alpha:
-                return ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
-
-            case ExrConstants.ChannelNames.Luminance:
-                int bytesRead = ReadChannelData(channel, decompressedPixelData, redPixelData, width);
-                redPixelData.CopyTo(bluePixelData);
-                redPixelData.CopyTo(greenPixelData);
-
-                return bytesRead;
-
-            default:
-                // Skip unknown channel.
-                int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
-                stream.Position += width * channelDataSizeInBytes;
-                return channelDataSizeInBytes;
-        }
-    }
-
-    /// <summary>
-    /// Reads UINT image channel data.
-    /// </summary>
-    /// <param name="stream">The stream to read from.</param>
-    /// <param name="channel">The channel info.</param>
-    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
-    /// <param name="redPixelData">The red channel pixel data.</param>
-    /// <param name="greenPixelData">The green channel pixel data.</param>
-    /// <param name="bluePixelData">The blue channel pixel data.</param>
-    /// <param name="alphaPixelData">The alpha channel pixel data.</param>
-    /// <param name="width">The width of a row in pixels.</param>
-    /// <returns>The bytes read.</returns>
-    private int ReadUnsignedIntChannelData(
-        BufferedReadStream stream,
-        ExrChannelInfo channel,
-        ReadOnlySpan<byte> decompressedPixelData,
-        Span<uint> redPixelData,
-        Span<uint> greenPixelData,
-        Span<uint> bluePixelData,
-        Span<uint> alphaPixelData,
-        int width)
-    {
-        switch (channel.ChannelName)
-        {
-            case ExrConstants.ChannelNames.Red:
-                return ReadChannelData(channel, decompressedPixelData, redPixelData, width);
-
-            case ExrConstants.ChannelNames.Blue:
-                return ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
-
-            case ExrConstants.ChannelNames.Green:
-                return ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
-
-            case ExrConstants.ChannelNames.Alpha:
-                return ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
-
-            case ExrConstants.ChannelNames.Luminance:
-                int bytesRead = ReadChannelData(channel, decompressedPixelData, redPixelData, width);
-                redPixelData.CopyTo(bluePixelData);
-                redPixelData.CopyTo(greenPixelData);
-                return bytesRead;
-
-            default:
-                // Skip unknown channel.
-                int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
-                stream.Position += this.Width * channelDataSizeInBytes;
-                return channelDataSizeInBytes;
-        }
-    }
-
-    /// <summary>
-    /// Reads the channel data for pixel type HALF or FLOAT.
-    /// </summary>
-    /// <param name="channel">The channel info.</param>
-    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
-    /// <param name="pixelData">The pixel data as float.</param>
-    /// <param name="width">The width in pixel of a row.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(
-        ExrChannelInfo channel,
-        ReadOnlySpan<byte> decompressedPixelData,
-        Span<float> pixelData,
-        int width) => channel.PixelType switch
-    {
-        ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
-        ExrPixelType.Float => ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width),
-        _ => 0,
-    };
-
-    /// <summary>
-    /// Reads the channel data for pixel type UINT.
-    /// </summary>
-    /// <param name="channel">The channel info.</param>
-    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
-    /// <param name="pixelData">The pixel data as uint.</param>
-    /// <param name="width">The width in pixels.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(
-        ExrChannelInfo channel,
-        ReadOnlySpan<byte> decompressedPixelData,
-        Span<uint> pixelData,
-        int width) => channel.PixelType switch
-    {
-        ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
-        _ => 0,
-    };
 
     /// <summary>
     /// Reads a pixel row with the pixel data being 16 bit half values.
@@ -632,8 +407,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="decompressedPixelData">The decompressed pixel data.</param>
     /// <param name="channelData">The channel data as float.</param>
     /// <param name="width">The width of a row in pixels.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelHalfSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static void ReadPixelRowChannelHalfSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -642,18 +416,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             channelData[x] = HalfTypeHelper.Unpack(shortValue);
             offset += 2;
         }
-
-        return offset;
     }
 
     /// <summary>
-    /// Reads a pixel row with 32 bit float pixel data.
+    /// Reads a pixel row with 32 bit FLOAT or UINT pixel data. The method copies the sample bits without change.
     /// </summary>
     /// <param name="decompressedPixelData">The decompressed pixel data.</param>
     /// <param name="channelData">The pixel data as float.</param>
     /// <param name="width">The width in pixels of a row.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static void ReadPixelRowChannelSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -662,61 +433,86 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             channelData[x] = Unsafe.As<int, float>(ref intValue);
             offset += 4;
         }
-
-        return offset;
     }
 
     /// <summary>
-    /// Reads a pixel row with the pixel typ UINT.
+    /// Makes sure that the channel list is valid. Then the method calculates the channel layout: the decode plane of each channel, the pixel type and the image
+    /// data type.
     /// </summary>
-    /// <param name="decompressedPixelData">The decompressed pixel bytes.</param>
-    /// <param name="channelData">The uint pixel data.</param>
-    /// <param name="width">The width of a row in pixels.</param>
-    /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelUnsignedInt(ReadOnlySpan<byte> decompressedPixelData, Span<uint> channelData, int width)
+    private void ValidateChannels()
     {
-        int offset = 0;
-        for (int x = 0; x < width; x++)
+        IList<ExrChannelInfo> channels = this.Channels;
+
+        // A file needs at least one channel.
+        if (channels.Count == 0)
         {
-            channelData[x] = BinaryPrimitives.ReadUInt32LittleEndian(decompressedPixelData.Slice(offset, 4));
-            offset += 4;
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR channel list has no channels.");
         }
 
-        return offset;
-    }
-
-    /// <summary>
-    /// Validates that all image channels have the same type and are among the supported pixel types.
-    /// </summary>
-    /// <returns>The pixel type.</returns>
-    private ExrPixelType ValidateChannels()
-    {
-        if (this.Channels.Count == 0)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("At least one channel of pixel data is expected!");
-        }
-
-        // Find pixel the type of any channel which is R, G, B or A.
+        int[] channelPlanes = new int[channels.Count];
         ExrPixelType? pixelType = null;
-        for (int i = 0; i < this.Channels.Count; i++)
+        bool hasRed = false;
+        bool hasGreen = false;
+        bool hasBlue = false;
+        bool hasAlpha = false;
+        bool hasLuminance = false;
+        for (int i = 0; i < channels.Count; i++)
         {
-            if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance, StringComparison.Ordinal))
+            ExrChannelInfo channel = channels[i];
+
+            // OpenEXR defines the pixel types 0 (UINT), 1 (HALF) and 2 (FLOAT).
+            if ((uint)channel.PixelType > (uint)ExrPixelType.Float)
             {
-                if (!pixelType.HasValue)
-                {
-                    pixelType = this.Channels[i].PixelType;
-                }
-                else
-                {
-                    if (pixelType != this.Channels[i].PixelType)
-                    {
-                        ExrThrowHelper.ThrowNotSupported("Pixel channel data is expected to be the same for all channels.");
-                    }
-                }
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR channel has a pixel type that is not valid.");
+            }
+
+            // A sampling factor less than 1 is not valid.
+            if (channel.XSampling < 1 || channel.YSampling < 1)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR channel has an x or y sampling factor below 1.");
+            }
+
+            // The decoder reads only channels with one sample for each pixel.
+            if (channel.XSampling != 1 || channel.YSampling != 1)
+            {
+                ExrThrowHelper.ThrowNotSupported("EXR channels with x or y sampling other than 1 are not supported.");
+            }
+
+            switch (channel.ChannelName)
+            {
+                case ExrConstants.ChannelNames.Red:
+                    channelPlanes[i] = 0;
+                    hasRed = true;
+                    break;
+                case ExrConstants.ChannelNames.Green:
+                    channelPlanes[i] = 1;
+                    hasGreen = true;
+                    break;
+                case ExrConstants.ChannelNames.Blue:
+                    channelPlanes[i] = 2;
+                    hasBlue = true;
+                    break;
+                case ExrConstants.ChannelNames.Alpha:
+                    channelPlanes[i] = 3;
+                    hasAlpha = true;
+                    break;
+                case ExrConstants.ChannelNames.Luminance:
+                    channelPlanes[i] = 0;
+                    hasLuminance = true;
+                    break;
+                default:
+                    // The row holds the samples of the other channels too. The decoder skips them.
+                    channelPlanes[i] = -1;
+                    continue;
+            }
+
+            if (!pixelType.HasValue)
+            {
+                pixelType = channel.PixelType;
+            }
+            else if (pixelType != channel.PixelType)
+            {
+                ExrThrowHelper.ThrowNotSupported("Pixel channel data is expected to be the same for all channels.");
             }
         }
 
@@ -725,96 +521,45 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowNotSupported("Pixel channel data is unknown! Only R, G, B, A and Y are supported.");
         }
 
-        return pixelType.Value;
+        this.channelPlanes = channelPlanes;
+        this.hasAlpha = hasAlpha;
+        this.hasLuminance = hasLuminance;
+        this.PixelType = pixelType.Value;
+
+        if (hasRed && hasGreen && hasBlue)
+        {
+            this.ImageDataType = hasAlpha ? ExrImageDataType.Rgba : ExrImageDataType.Rgb;
+        }
+        else if (hasLuminance && channels.Count == 1)
+        {
+            this.ImageDataType = ExrImageDataType.Gray;
+        }
+        else
+        {
+            this.ImageDataType = ExrImageDataType.Unknown;
+        }
     }
 
     /// <summary>
-    /// Determines the type image from the channel information.
-    /// </summary>
-    /// <returns>The image data type.</returns>
-    private ExrImageDataType DetermineImageDataType()
-    {
-        bool hasRedChannel = false;
-        bool hasGreenChannel = false;
-        bool hasBlueChannel = false;
-        bool hasAlphaChannel = false;
-        bool hasLuminance = false;
-        foreach (ExrChannelInfo channelInfo in this.Channels)
-        {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
-            {
-                hasAlphaChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("R", StringComparison.Ordinal))
-            {
-                hasRedChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("G", StringComparison.Ordinal))
-            {
-                hasGreenChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("B", StringComparison.Ordinal))
-            {
-                hasBlueChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
-            {
-                hasLuminance = true;
-            }
-        }
-
-        if (hasRedChannel && hasGreenChannel && hasBlueChannel && hasAlphaChannel)
-        {
-            return ExrImageDataType.Rgba;
-        }
-
-        if (hasRedChannel && hasGreenChannel && hasBlueChannel)
-        {
-            return ExrImageDataType.Rgb;
-        }
-
-        if (hasLuminance && this.Channels.Count == 1)
-        {
-            return ExrImageDataType.Gray;
-        }
-
-        return ExrImageDataType.Unknown;
-    }
-
-    /// <summary>
-    /// Reads the exr image header.
+    /// Reads the EXR image header. Then the method calculates the image size and the channel layout.
     /// <see href="https://openexr.com/en/latest/OpenEXRFileLayout.html#header-attributes-all-files/"/>
     /// </summary>
     /// <param name="stream">The stream.</param>
-    /// <returns>The image header attributes.</returns>
-    private ExrHeaderAttributes ReadExrHeader(BufferedReadStream stream)
+    private void ReadExrHeader(BufferedReadStream stream)
     {
         // Skip over the magick bytes, we already know its an EXR image.
         stream.Skip(4);
 
-        // Read version number.
-        byte version = (byte)stream.ReadByte();
-        if (version != 2)
+        // The low byte of the version field holds the file version. The other bytes hold the feature flags.
+        uint versionAndFlags = this.ReadUnsignedInteger(stream);
+        if ((versionAndFlags & VersionMask) != 2)
         {
             ExrThrowHelper.ThrowNotSupportedVersion();
         }
 
-        // Next three bytes contain info's about the image.
-        byte flagsByte0 = (byte)stream.ReadByte();
-        if ((flagsByte0 & (1 << 1)) != 0)
+        if ((versionAndFlags & UnsupportedFlags) != 0)
         {
-            ExrThrowHelper.ThrowNotSupported("Decoding tiled exr images is not supported yet!");
-        }
-
-        // Discard the next two bytes.
-        int bytesRead = stream.Read(this.buffer, 0, 2);
-        if (bytesRead != 2)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for exr file!");
+            ExrThrowHelper.ThrowNotSupported("Decoding tiled, deep or multi-part EXR images is not supported.");
         }
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
@@ -828,8 +573,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         long width = (long)dataWindow.XMax - dataWindow.XMin + 1;
         long height = (long)dataWindow.YMax - dataWindow.YMin + 1;
 
-        // Decoding stages each row as four color planes, so the width must be bounded
-        // before later width * 4 buffer sizing can overflow.
+        // The decoder keeps each row as four color planes. This limit on the width prevents an overflow of the width * 4 buffer sizes.
         if (width > int.MaxValue / 4 || height > int.MaxValue)
         {
             ExrThrowHelper.ThrowInvalidImageContentException("EXR DataWindow dimensions exceed the maximum allowed size.");
@@ -839,20 +583,32 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Height = (int)height;
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
-        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        long chunkCount = (this.Height + rowsPerBlock - 1) / rowsPerBlock;
-        long offsetTableByteCount = chunkCount * sizeof(ulong);
+        this.ValidateChannels();
 
-        // The scanline offset table sits between the header and pixel chunks; proving it
-        // fits in the stream keeps all later chunk offsets on the pixel-data side.
+        // The decoder holds the decoded bytes of one chunk in a buffer. Thus the size of a full chunk must fit in an int. The width limit and the channel count
+        // keep the products less than ulong.MaxValue.
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
+        }
+
+        this.BytesPerRow = (uint)bytesPerRow;
+        this.RowsPerBlock = rowsPerBlock;
+        this.BytesPerBlock = (uint)bytesPerBlock;
+        this.ChunkCount = (uint)(((long)this.Height + rowsPerBlock - 1) / rowsPerBlock);
+        long offsetTableByteCount = this.ChunkCount * sizeof(ulong);
+
+        // The scanline offset table is between the header and the pixel chunks. If the table is in the stream, all later chunk offsets
+        // point after the table.
         if (stream.Position > stream.Length || offsetTableByteCount > stream.Length - stream.Position)
         {
             ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk offset table is outside the bounds of the stream.");
         }
 
         this.MinimumChunkOffset = stream.Position + offsetTableByteCount;
-        this.PixelType = this.ValidateChannels();
-        this.ImageDataType = this.DetermineImageDataType();
 
         this.metadata = new ImageMetadata();
 
@@ -862,8 +618,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.exrMetadata.Compression = this.Compression;
         this.exrMetadata.Primaries = this.HeaderAttributes.Primaries;
         this.exrMetadata.WhitePoint = this.HeaderAttributes.WhitePoint;
-
-        return this.HeaderAttributes;
     }
 
     /// <summary>
@@ -884,9 +638,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         float? screenWindowCenterX = null;
         float? screenWindowCenterY = null;
         float? screenWindowWidth = null;
-        uint? tileXSize = null;
-        uint? tileYSize = null;
-        int? chunkCount = null;
         RgbPrimariesChromaticityCoordinates primaries = KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates;
         CieXyChromaticityCoordinates whitePoint = KnownIlluminants.D65Chromaticity;
         while (!attribute.Equals(ExrAttribute.EmptyAttribute))
@@ -897,16 +648,23 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     channels = this.ReadChannelList(stream, attribute.Length);
                     break;
                 case ExrConstants.AttributeNames.Compression:
-                    compression = (ExrCompression)stream.ReadByte();
-                    break;
-                case ExrConstants.AttributeNames.Chromaticities:
-                    // The attribute stores eight little-endian floats, not an ICC profile or a transfer curve.
-                    // Validate its extent before reading so malformed color metadata cannot shift the next attribute.
-                    if (attribute.Type != ExrConstants.AttibuteTypes.Chromaticities || attribute.Length != 8 * sizeof(float))
+                {
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.Compression, 1);
+                    byte value = this.ReadBytes(stream, 1)[0];
+
+                    // A value outside the defined compression methods is not valid.
+                    if (value >= CompressionMethodCount)
                     {
-                        ExrThrowHelper.ThrowInvalidImageContentException("EXR chromaticities must contain eight float values.");
+                        ExrThrowHelper.ThrowInvalidImageContentException("EXR compression attribute has a value that is not valid.");
                     }
 
+                    compression = (ExrCompression)value;
+                    break;
+                }
+
+                case ExrConstants.AttributeNames.Chromaticities:
+                    // The attribute stores eight little-endian floats, not an ICC profile or a transfer curve.
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.Chromaticities, 8 * sizeof(float));
                     primaries = new RgbPrimariesChromaticityCoordinates(
                         new(this.ReadSingle(stream), this.ReadSingle(stream)),
                         new(this.ReadSingle(stream), this.ReadSingle(stream)),
@@ -915,30 +673,29 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     whitePoint = new CieXyChromaticityCoordinates(this.ReadSingle(stream), this.ReadSingle(stream));
                     break;
                 case ExrConstants.AttributeNames.DataWindow:
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.BoxInt, 4 * sizeof(int));
                     dataWindow = this.ReadBoxInteger(stream);
                     break;
                 case ExrConstants.AttributeNames.DisplayWindow:
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.BoxInt, 4 * sizeof(int));
                     displayWindow = this.ReadBoxInteger(stream);
                     break;
                 case ExrConstants.AttributeNames.LineOrder:
-                    lineOrder = (ExrLineOrder)stream.ReadByte();
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.LineOrder, 1);
+                    lineOrder = (ExrLineOrder)this.ReadBytes(stream, 1)[0];
                     break;
                 case ExrConstants.AttributeNames.PixelAspectRatio:
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.Float, sizeof(float));
                     aspectRatio = this.ReadSingle(stream);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowCenter:
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.TwoFloat, 2 * sizeof(float));
                     screenWindowCenterX = this.ReadSingle(stream);
                     screenWindowCenterY = this.ReadSingle(stream);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowWidth:
+                    ValidateAttribute(attribute, ExrConstants.AttibuteTypes.Float, sizeof(float));
                     screenWindowWidth = this.ReadSingle(stream);
-                    break;
-                case ExrConstants.AttributeNames.Tiles:
-                    tileXSize = this.ReadUnsignedInteger(stream);
-                    tileYSize = this.ReadUnsignedInteger(stream);
-                    break;
-                case ExrConstants.AttributeNames.ChunkCount:
-                    chunkCount = this.ReadSignedInteger(stream);
                     break;
                 default:
                     // Skip unknown attribute bytes.
@@ -949,44 +706,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             attribute = this.ReadAttribute(stream);
         }
 
-        if (!displayWindow.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the displayWindow attribute is missing!");
-        }
+        // Each scanline image has these attributes. See "OpenEXR File Layout", section "Header Attributes (All Files)".
+        string missingAttribute =
+            channels is null ? ExrConstants.AttributeNames.Channels :
+            !compression.HasValue ? ExrConstants.AttributeNames.Compression :
+            !dataWindow.HasValue ? ExrConstants.AttributeNames.DataWindow :
+            !displayWindow.HasValue ? ExrConstants.AttributeNames.DisplayWindow :
+            !lineOrder.HasValue ? ExrConstants.AttributeNames.LineOrder :
+            !aspectRatio.HasValue ? ExrConstants.AttributeNames.PixelAspectRatio :
+            !screenWindowCenterX.HasValue ? ExrConstants.AttributeNames.ScreenWindowCenter :
+            !screenWindowWidth.HasValue ? ExrConstants.AttributeNames.ScreenWindowWidth :
+            null;
 
-        if (!dataWindow.HasValue)
+        if (missingAttribute is not null)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the dataWindow attribute is missing!");
-        }
-
-        if (channels is null)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the channels attribute is missing!");
-        }
-
-        if (!compression.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the compression attribute is missing!");
-        }
-
-        if (!lineOrder.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the lineOrder attribute is missing!");
-        }
-
-        if (!aspectRatio.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the aspectRatio attribute is missing!");
-        }
-
-        if (!screenWindowWidth.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the screenWindowWidth attribute is missing!");
-        }
-
-        if (!screenWindowCenterX.HasValue || !screenWindowCenterY.HasValue)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the screenWindowCenter attribute is missing!");
+            ExrThrowHelper.ThrowInvalidImageContentException($"Invalid exr image header, the {missingAttribute} attribute is missing!");
         }
 
         ExrHeaderAttributes header = new(
@@ -999,11 +733,23 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             lineOrder.Value,
             aspectRatio.Value,
             screenWindowWidth.Value,
-            new PointF(screenWindowCenterX.Value, screenWindowCenterY.Value),
-            tileXSize,
-            tileYSize,
-            chunkCount);
+            new PointF(screenWindowCenterX.Value, screenWindowCenterY.Value));
         return header;
+    }
+
+    /// <summary>
+    /// Makes sure that a known attribute has the correct type and size before the decoder reads its value. If the size is wrong, all later attribute reads
+    /// start at the wrong position.
+    /// </summary>
+    /// <param name="attribute">The attribute.</param>
+    /// <param name="type">The type of the attribute.</param>
+    /// <param name="size">The size in bytes of a value of the type.</param>
+    private static void ValidateAttribute(ExrAttribute attribute, string type, int size)
+    {
+        if (attribute.Length != size || !attribute.Type.Equals(type, StringComparison.Ordinal))
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException($"EXR {attribute.Name} attribute must have the type {type} and a size of {size} bytes.");
+        }
     }
 
     /// <summary>
@@ -1056,10 +802,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             attributeSize -= bytesRead;
         }
 
-        // Last byte should be a null byte.
-        if (stream.ReadByte() == -1)
+        // An empty channel name ends the list.
+        if (this.ReadBytes(stream, 1)[0] != 0)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read the exr channel list!");
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR channel list does not end with a null byte.");
         }
 
         return channels;
@@ -1079,14 +825,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         ExrPixelType pixelType = (ExrPixelType)this.ReadSignedInteger(stream);
         bytesRead += 4;
 
-        byte pLinear = (byte)stream.ReadByte();
-
-        // Next 3 bytes are reserved bytes and not use.
-        if (stream.Read(this.buffer, 0, 3) != 3)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read exr channel info!");
-        }
-
+        // The pLinear byte comes before 3 reserved bytes. The decoder does not use the reserved bytes.
+        byte pLinear = this.ReadBytes(stream, 4)[0];
         bytesRead += 4;
 
         int xSampling = this.ReadSignedInteger(stream);
@@ -1128,96 +868,47 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Determines whether the compression is supported.
-    /// </summary>
-    /// <returns> True if the compression is supported; otherwise, false>. </returns>
-    private bool IsSupportedCompression() => this.Compression switch
-    {
-        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or
-            ExrCompression.B44 or ExrCompression.Pxr24 => true,
-        _ => false,
-    };
-
-    /// <summary>
-    /// Determines whether this image  has alpha channel.
-    /// </summary>
-    /// <returns> True if this image has a alpha channel; otherwise, false. </returns>
-    private bool HasAlpha()
-    {
-        foreach (ExrChannelInfo channelInfo in this.Channels)
-        {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Reads a unsigned long value from the stream.
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <returns>The unsigned long value.</returns>
-    private ulong ReadUnsignedLong(BufferedReadStream stream)
-    {
-        int bytesRead = stream.Read(this.buffer, 0, 8);
-        if (bytesRead != 8)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a unsigned long from the stream!");
-        }
-
-        return BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
-    }
+    private ulong ReadUnsignedLong(BufferedReadStream stream) => BinaryPrimitives.ReadUInt64LittleEndian(this.ReadBytes(stream, sizeof(ulong)));
 
     /// <summary>
     /// Reads a unsigned integer value from the stream.
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <returns>The integer value.</returns>
-    private uint ReadUnsignedInteger(BufferedReadStream stream)
-    {
-        int bytesRead = stream.Read(this.buffer, 0, 4);
-        if (bytesRead != 4)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a unsigned int from the stream!");
-        }
-
-        return BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
-    }
+    private uint ReadUnsignedInteger(BufferedReadStream stream) => BinaryPrimitives.ReadUInt32LittleEndian(this.ReadBytes(stream, sizeof(uint)));
 
     /// <summary>
     /// Reads a signed integer value from the stream.
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <returns>The integer value.</returns>
-    private int ReadSignedInteger(BufferedReadStream stream)
-    {
-        int bytesRead = stream.Read(this.buffer, 0, 4);
-        if (bytesRead != 4)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a signed int from the stream!");
-        }
-
-        return BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
-    }
+    private int ReadSignedInteger(BufferedReadStream stream) => BinaryPrimitives.ReadInt32LittleEndian(this.ReadBytes(stream, sizeof(int)));
 
     /// <summary>
     /// Reads a float value from the stream.
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <returns>The float value.</returns>
-    private float ReadSingle(BufferedReadStream stream)
+    private float ReadSingle(BufferedReadStream stream) => BinaryPrimitives.ReadSingleLittleEndian(this.ReadBytes(stream, sizeof(float)));
+
+    /// <summary>
+    /// Reads the next bytes of the stream into the reusable buffer. This method owns the check that each read is complete.
+    /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="count">The number of bytes to read. The value is at most 8.</param>
+    /// <returns>The bytes. The next read replaces them.</returns>
+    private Span<byte> ReadBytes(BufferedReadStream stream, int count)
     {
-        int bytesRead = stream.Read(this.buffer, 0, 4);
-        if (bytesRead != 4)
+        Span<byte> bytes = ((Span<byte>)this.buffer)[..count];
+        if (stream.Read(bytes) != count)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a float value from the stream!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a value from the EXR stream.");
         }
 
-        int intValue = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
-
-        return Unsafe.As<int, float>(ref intValue);
+        return bytes;
     }
 }

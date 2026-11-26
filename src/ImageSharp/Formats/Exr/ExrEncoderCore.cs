@@ -111,6 +111,25 @@ internal sealed class ExrEncoderCore
             screenWindowWidth,
             screenWindowCenter);
 
+        // A block buffer holds the rows of one chunk. Thus its size must fit in an int. A row is not larger than a block.
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            throw new ImageFormatException("Image is too large to encode in EXR format.");
+        }
+
+        // The factory owns the list of supported compression methods. The encoder creates the compressor before it writes the header. Thus an unsupported
+        // compression method writes nothing to the stream.
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
+            this.Compression,
+            this.memoryAllocator,
+            stream,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
+            width);
+
         // Write magick bytes.
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, ExrConstants.MagickBytes);
         stream.Write(this.buffer[..4]);
@@ -129,70 +148,49 @@ internal sealed class ExrEncoderCore
 
         // The offset table has one entry per chunk. ZIP stores up to sixteen rows in each chunk;
         // single-row compression stores one row. Reserve exactly that many offsets before pixel data.
-        int blockCount = ((height - 1) / (int)ExrUtils.RowsPerBlock(this.Compression)) + 1;
+        int blockCount = ((height - 1) / (int)rowsPerBlock) + 1;
         ulong startOfRowOffsetData = (ulong)stream.Position;
         stream.Position += (long)sizeof(ulong) * blockCount;
 
         // Write pixel data.
-        switch (this.pixelType)
-        {
-            case ExrPixelType.Half:
-            case ExrPixelType.Float:
-            {
-                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(
-                    stream, pixels, width, height, channels, this.Compression, colorConverter, cancellationToken);
+        ulong[] rowOffsets = this.EncodePixelData(
+            stream, pixels, compressor, (uint)bytesPerRow, rowsPerBlock, (int)bytesPerBlock, colorConverter, cancellationToken);
 
-                stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, rowOffsets);
-                break;
-            }
-
-            case ExrPixelType.UnsignedInt:
-            {
-                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(
-                    stream, pixels, width, height, channels, this.Compression, colorConverter, cancellationToken);
-
-                stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, rowOffsets);
-                break;
-            }
-        }
+        stream.Position = (long)startOfRowOffsetData;
+        this.WriteRowOffsets(stream, rowOffsets);
     }
 
     /// <summary>
-    /// Encodes and writes pixel data with float pixel data to the stream.
+    /// Encodes and writes the pixel data to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="pixels">The pixel bufer.</param>
-    /// <param name="width">The width of the image in pixels.</param>
-    /// <param name="height">The height of the image in pixels.</param>
-    /// <param name="channels">The imagechannels.</param>
-    /// <param name="compression">The compression to use.</param>
+    /// <param name="compressor">The compressor for the selected compression method.</param>
+    /// <param name="bytesPerRow">The bytes of a row.</param>
+    /// <param name="rowsPerBlock">The maximum number of rows in a chunk.</param>
+    /// <param name="bytesPerBlock">The bytes of a full chunk.</param>
     /// <param name="colorConverter">The conversion from sRGB working pixels to linear EXR samples.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The array of pixel row offsets.</returns>
-    private ulong[] EncodeFloatingPointPixelData<TPixel>(
+    private ulong[] EncodePixelData<TPixel>(
         Stream stream,
         Buffer2D<TPixel> pixels,
-        int width,
-        int height,
-        List<ExrChannelInfo> channels,
-        ExrCompression compression,
+        ExrBaseCompressor compressor,
+        uint bytesPerRow,
+        uint rowsPerBlock,
+        int bytesPerBlock,
         ColorProfileConverter colorConverter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
-        uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
-        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
-        if (bytesPerRow > uint.MaxValue || bytesPerBlock > int.MaxValue)
-        {
-            throw new ImageFormatException("Image is too large to encode in EXR format.");
-        }
+        int width = pixels.Width;
+        int height = pixels.Height;
+        bool isUnsignedInt = this.pixelType == ExrPixelType.UnsignedInt;
 
+        // The planes hold the 32-bit sample of each channel. A UINT plane holds the bits of the UINT samples.
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
-        using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
+        using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>(bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
@@ -200,132 +198,8 @@ internal sealed class ExrEncoderCore
         Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
         InlineArray16<Vector4> colorStorage = default;
         Span<Vector4> colors = colorStorage;
-
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
-            compression,
-            this.memoryAllocator,
-            stream,
-            (uint)bytesPerBlock,
-            (uint)bytesPerRow,
-            rowsPerBlock,
-            width);
-
-        ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
-        for (uint y = 0; y < height; y += rowsPerBlock)
-        {
-            rowOffsets[y / rowsPerBlock] = (ulong)stream.Position;
-
-            // Write row index.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
-            stream.Write(this.buffer[..4]);
-
-            // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
-            long pixelDataSizePos = stream.Position;
-            stream.Position = pixelDataSizePos + 4;
-
-            uint rowsInBlockCount = 0;
-            for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
-            {
-                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int x = 0; x < width; x += colors.Length)
-                {
-                    int count = Math.Min(colors.Length, width - x);
-                    Span<Vector4> block = colors[..count];
-                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
-
-                    // The typed source supplies its own range and alpha rules. Retain the converted
-                    // float precision until EXR's selected channel storage rounds each component.
-                    SimdUtils.DeinterleaveFloatPlanes(
-                        block,
-                        redBuffer.Slice(x, count),
-                        greenBuffer.Slice(x, count),
-                        blueBuffer.Slice(x, count),
-                        alphaBuffer.Slice(x, count));
-                }
-
-                // Write pixel data to row block buffer.
-                Span<byte> rowBlockSpan = rowBlocks.Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
-                switch (this.pixelType)
-                {
-                    case ExrPixelType.Float:
-                        WriteSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
-                        break;
-                    case ExrPixelType.Half:
-                        WriteHalfSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
-                        break;
-                }
-
-                rowsInBlockCount++;
-            }
-
-            // Write compressed pixel row data to the stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlocks, (int)rowsInBlockCount);
-            long positionAfterPixelData = stream.Position;
-
-            // Write pixel row data size.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, compressedBytes);
-            stream.Position = pixelDataSizePos;
-            stream.Write(this.buffer[..4]);
-            stream.Position = positionAfterPixelData;
-
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        return rowOffsets;
-    }
-
-    /// <summary>
-    /// Encodes and writes pixel data with the unsigned int pixel type to the stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="pixels">The pixel bufer.</param>
-    /// <param name="width">The width of the image in pixels.</param>
-    /// <param name="height">The height of the image in pixels.</param>
-    /// <param name="channels">The imagechannels.</param>
-    /// <param name="compression">The compression to use.</param>
-    /// <param name="colorConverter">The conversion from sRGB working pixels to linear EXR samples.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The array of pixel row offsets.</returns>
-    private ulong[] EncodeUnsignedIntPixelData<TPixel>(
-        Stream stream,
-        Buffer2D<TPixel> pixels,
-        int width,
-        int height,
-        List<ExrChannelInfo> channels,
-        ExrCompression compression,
-        ColorProfileConverter colorConverter,
-        CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
-        uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
-        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
-        if (bytesPerRow > uint.MaxValue || bytesPerBlock > int.MaxValue)
-        {
-            throw new ImageFormatException("Image is too large to encode in EXR format.");
-        }
-
-        using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
-        using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
-        Span<uint> redBuffer = rgbBuffer.GetSpan()[..width];
-        Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
-        Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
-        Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
-        Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
-        InlineArray16<Vector4> colorStorage = default;
-        Span<Vector4> colors = colorStorage;
         PixelOperations<Rgba128> unsignedPixelOperations = PixelOperations<Rgba128>.Instance;
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
-            compression,
-            this.memoryAllocator,
-            stream,
-            (uint)bytesPerBlock,
-            (uint)bytesPerRow,
-            rowsPerBlock,
-            width);
-
         ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
@@ -343,34 +217,63 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int x = 0; x < width; x += colors.Length)
+                if (isUnsignedInt)
                 {
-                    int count = Math.Min(colors.Length, width - x);
-                    Span<Vector4> block = colors[..count];
-                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
+                    for (int x = 0; x < width; x += colors.Length)
+                    {
+                        int count = Math.Min(colors.Length, width - x);
+                        Span<Vector4> block = colors[..count];
+                        colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
 
-                    // The source TPixel supplied its color and alpha. This final pack rounds the
-                    // converted samples directly to EXR's selected UINT storage, without an intermediate pixel pack.
-                    Span<Rgba128> packed = MemoryMarshal.Cast<Vector4, Rgba128>(block);
-                    unsignedPixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, packed);
+                        // The source TPixel supplied its color and alpha. This last pack rounds the converted samples directly to the selected UINT storage of
+                        // the EXR file. It does not use an intermediate pixel pack.
+                        Span<Rgba128> packed = MemoryMarshal.Cast<Vector4, Rgba128>(block);
+                        unsignedPixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, packed);
 
-                    // The deinterleaver copies component bits without float arithmetic. View the
-                    // uint storage as float lanes only for its shared SIMD shuffles and stores.
-                    SimdUtils.DeinterleaveFloatPlanes(
-                        block,
-                        MemoryMarshal.Cast<uint, float>(redBuffer.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(greenBuffer.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(blueBuffer.Slice(x, count)),
-                        MemoryMarshal.Cast<uint, float>(alphaBuffer.Slice(x, count)));
+                        // The deinterleaver copies the component bits and does no float arithmetic. The planes hold the uint bits as float lanes only for the
+                        // shared SIMD shuffles and stores of the deinterleaver.
+                        SimdUtils.DeinterleaveFloatPlanes(
+                            block,
+                            redBuffer.Slice(x, count),
+                            greenBuffer.Slice(x, count),
+                            blueBuffer.Slice(x, count),
+                            alphaBuffer.Slice(x, count));
+                    }
+                }
+                else
+                {
+                    for (int x = 0; x < width; x += colors.Length)
+                    {
+                        int count = Math.Min(colors.Length, width - x);
+                        Span<Vector4> block = colors[..count];
+                        colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
+
+                        // The typed source supplies its own range and alpha rules. Keep the converted float precision until the selected channel storage of the
+                        // EXR file rounds each component.
+                        SimdUtils.DeinterleaveFloatPlanes(
+                            block,
+                            redBuffer.Slice(x, count),
+                            greenBuffer.Slice(x, count),
+                            blueBuffer.Slice(x, count),
+                            alphaBuffer.Slice(x, count));
+                    }
                 }
 
-                // Write row data to row block buffer.
+                // Write the pixel data to the row block buffer. FLOAT and UINT samples both store their 32 bits without change.
                 Span<byte> rowBlockSpan = rowBlocks.Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
-                WriteUnsignedIntRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
+                if (this.pixelType == ExrPixelType.Half)
+                {
+                    WriteHalfSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
+                }
+                else
+                {
+                    WriteSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
+                }
+
                 rowsInBlockCount++;
             }
 
-            // Write pixel row data compressed to the stream.
+            // Write the compressed pixel row data to the stream.
             uint compressedBytes = compressor.CompressRowBlock(rowBlocks, (int)rowsInBlockCount);
             long positionAfterPixelData = stream.Position;
 
@@ -507,49 +410,6 @@ internal sealed class ExrEncoderCore
         {
             WriteHalfSingleToBuffer(buffer.Slice(offset, 2), redBuffer[x]);
             offset += 2;
-        }
-    }
-
-    /// <summary>
-    /// Writes a row of pixels with unsigned int pixel data to a buffer.
-    /// </summary>
-    /// <param name="buffer">The buffer to write to.</param>
-    /// <param name="width">The width of the row in pixels.</param>
-    /// <param name="alphaBuffer">The alpha channel buffer.</param>
-    /// <param name="blueBuffer">The blue channel buffer.</param>
-    /// <param name="greenBuffer">The green channel buffer.</param>
-    /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteUnsignedIntRow(
-        Span<byte> buffer,
-        int width,
-        ReadOnlySpan<uint> alphaBuffer,
-        ReadOnlySpan<uint> blueBuffer,
-        ReadOnlySpan<uint> greenBuffer,
-        ReadOnlySpan<uint> redBuffer)
-    {
-        int offset = 0;
-        for (int x = 0; x < width; x++)
-        {
-            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), alphaBuffer[x]);
-            offset += 4;
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), blueBuffer[x]);
-            offset += 4;
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), greenBuffer[x]);
-            offset += 4;
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), redBuffer[x]);
-            offset += 4;
         }
     }
 
@@ -785,12 +645,4 @@ internal sealed class ExrEncoderCore
         ushort valueAsShort = HalfTypeHelper.Pack(value);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer, valueAsShort);
     }
-
-    /// <summary>
-    /// Writes one unsigned int to a buffer.
-    /// </summary>
-    /// <param name="buffer">The buffer to write to.</param>
-    /// <param name="value">The uint value to write.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static void WriteUnsignedIntToBuffer(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 }

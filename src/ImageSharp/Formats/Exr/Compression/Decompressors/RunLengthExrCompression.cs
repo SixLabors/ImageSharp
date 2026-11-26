@@ -13,8 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
-    private readonly SegmentIntegrityHandling integrityHandling;
-    private readonly int bytesPerSample;
+
+    /// <summary>
+    /// The number of bytes in each sample of the last channel of a row. A pixel is complete when this sample is complete.
+    /// </summary>
+    private readonly int lastChannelBytesPerSample;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RunLengthExrCompression" /> class.
@@ -22,54 +25,48 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The width of one row in pixels.</param>
-    /// <param name="bytesPerSample">The number of bytes in each source sample.</param>
+    /// <param name="lastChannelBytesPerSample">The number of bytes in each sample of the last channel of a row.</param>
     /// <param name="integrityHandling">The policy for incomplete image data.</param>
     public RunLengthExrCompression(
         MemoryAllocator allocator,
         uint bytesPerBlock,
         uint bytesPerRow,
-        uint rowsPerBlock,
         int width,
-        int bytesPerSample,
+        int lastChannelBytesPerSample,
         SegmentIntegrityHandling integrityHandling)
-        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
+        : base(allocator, bytesPerRow, width, integrityHandling)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
-        this.bytesPerSample = bytesPerSample;
-        this.integrityHandling = integrityHandling;
+        this.lastChannelBytesPerSample = lastChannelBytesPerSample;
     }
 
     /// <inheritdoc/>
-    protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    /// <remarks>
+    /// The chunk header check proves that all <paramref name="compressedBytes"/> bytes are in the stream. Thus each read in this method gets all its bytes.
+    /// </remarks>
+    protected override bool DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)uncompressedBytes];
         int written = 0;
         while (compressedBytes > 0 && written < uncompressed.Length)
         {
-            int header = stream.ReadByte();
-            if (header < 0)
-            {
-                break;
-            }
-
+            int run = (sbyte)stream.ReadByte();
             compressedBytes--;
-            int run = (sbyte)header;
             if (run < 0)
             {
                 int count = -run;
 
                 // Read only bytes inside this block and keep the part of the literal run that fits.
                 int available = (int)Math.Min(compressedBytes, (uint)Math.Min(count, uncompressed.Length - written));
-                int read = stream.ReadAtLeast(uncompressed.Slice(written, available), available, throwOnEndOfStream: false);
-                written += read;
-                if (read != count)
+                stream.ReadExactly(uncompressed.Slice(written, available));
+                written += available;
+                if (available != count)
                 {
                     break;
                 }
 
-                compressedBytes -= (uint)read;
+                compressedBytes -= (uint)available;
             }
             else
             {
@@ -78,14 +75,9 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
                     break;
                 }
 
-                int value = stream.ReadByte();
-                if (value < 0)
-                {
-                    break;
-                }
-
+                byte value = (byte)stream.ReadByte();
                 int count = Math.Min(run + 1, uncompressed.Length - written);
-                uncompressed.Slice(written, count).Fill((byte)value);
+                uncompressed.Slice(written, count).Fill(value);
                 written += count;
                 if (count != run + 1)
                 {
@@ -99,20 +91,19 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
         if (written != uncompressed.Length || compressedBytes != 0)
         {
             // In the IgnoreImageData mode, the code below keeps the complete samples of the block.
-            this.integrityHandling.ThrowOrIgnoreImageDataError("The RLE EXR block has an invalid decompressed length.");
+            this.IntegrityHandling.ThrowOrIgnoreImageDataError("The RLE EXR block has an invalid decompressed length.");
         }
 
         if (written == uncompressed.Length)
         {
             Reconstruct(uncompressed, uncompressedBytes);
             Interleave(uncompressed, uncompressedBytes, buffer);
-            return;
+            return true;
         }
 
-        // EXR stores the even bytes first, then the odd bytes. A complete sample needs bytes from both halves.
+        // EXR stores the even bytes first, then the odd bytes. A complete byte pair needs bytes from both halves.
         int halfLength = uncompressed.Length / 2;
         int completeBytes = Math.Max(0, written - halfLength) * 2;
-        completeBytes -= completeBytes % this.bytesPerSample;
 
         if (completeBytes > 0)
         {
@@ -125,18 +116,22 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
             }
         }
 
-        // Clear the output from the first incomplete sample to the end of the current block.
+        // Clear the output from the first incomplete byte pair to the end of the current block.
         buffer[completeBytes..uncompressed.Length].Clear();
 
-        // A row holds the samples of each channel in turn, and each channel has the same sample size. Thus a pixel is
-        // complete when its sample of the last channel is complete. The complete pixels are the complete rows, then a
-        // prefix of the next row.
+        // A row holds the samples of each channel in turn. In each row, the samples of the other channels come before the samples of the last channel. Thus a
+        // pixel is complete when its sample of the last channel is complete. The complete pixels are the complete rows, then the first pixels of the next row.
         int bytesPerRow = (int)this.BytesPerRow;
-        int lastChannelStart = bytesPerRow - (this.Width * this.bytesPerSample);
-        int partialRowPixels = Math.Max(0, (completeBytes % bytesPerRow) - lastChannelStart) / this.bytesPerSample;
+        int lastChannelStart = bytesPerRow - (this.Width * this.lastChannelBytesPerSample);
+        int partialRowPixels = Math.Max(0, (completeBytes % bytesPerRow) - lastChannelStart) / this.lastChannelBytesPerSample;
         this.SetIncompleteBlock(completeBytes / bytesPerRow, 1, partialRowPixels);
+        return true;
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+        this.tmpBuffer.Dispose();
+        base.Dispose(disposing);
+    }
 }

@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -21,17 +22,8 @@ public class ExrDecoderSecurityTests
     /// <summary>
     /// EXR-1 — EXR DataWindow Integer Overflow Produces Negative Image Dimensions (DoS)
     ///
-    /// Width and Height are computed from attacker-controlled DataWindow attributes
-    /// using unchecked int subtraction:
-    ///   this.Width = XMax - XMin + 1  // overflows to -2147483647
-    ///
-    /// The negative Width is then passed to the Image&lt;TPixel&gt; constructor, which calls
-    /// Guard.MustBeGreaterThan(width, 0) → ArgumentOutOfRangeException.
-    ///
-    /// After a fix this should throw InvalidImageContentException instead.
-    ///
-    /// Affected file:
-    ///   src/ImageSharp/Formats/Exr/ExrDecoderCore.cs lines 600–601
+    /// The decoder computes Width and Height from the DataWindow attribute as XMax - XMin + 1. A data window wider than
+    /// int.MaxValue pixels is damaged image content, so the decoder throws InvalidImageContentException.
     /// </summary>
     [Fact]
     public void Decode_DataWindowOverflow_NegativeWidth_Throws()
@@ -48,20 +40,9 @@ public class ExrDecoderSecurityTests
     /// <summary>
     /// EXR-2 — EXR Row Offset Table Unvalidated Seek (DoS)
     ///
-    /// Row offsets are read from the file and used unconditionally to seek the stream:
-    ///   ulong rowOffset = this.ReadUnsignedLong(stream);
-    ///   stream.Position = (long)rowOffset;   // no bounds check
-    ///
-    /// A crafted offset of 0xFFFFFFFFFFFFFFFF casts to −1 as long, causing
-    /// an ArgumentOutOfRangeException when setting stream.Position.
-    ///
     /// A chunk offset outside the stream is damaged image data. In the Strict and IgnoreAncillary modes, the decoder
     /// throws InvalidImageContentException. With the default options, the decoder skips the chunk without a seek.
     /// The rows of the chunk keep the fill value.
-    ///
-    /// Affected file:
-    ///   src/ImageSharp/Formats/Exr/ExrDecoderCore.cs lines 170–175 (scanline)
-    ///                                                   lines 243–248 (tile)
     /// </summary>
     [Fact]
     public void Decode_CraftedRowOffsets_OutOfBounds_RespectsIntegrityHandling()
@@ -138,13 +119,8 @@ public class ExrDecoderSecurityTests
     /// <summary>
     /// EXR-3 — Oversized EXR RGBA row sizing is rejected as invalid image content.
     ///
-    /// With 4 RGBA HALF channels and Width = 2^29, the decoded row staging and
-    /// bytes-per-row arithmetic both exceed the supported buffer sizing limits.
-    /// The decoder must reject this as InvalidImageContentException before any allocation.
-    ///
-    /// Affected file:
-    ///   src/ImageSharp/Formats/Exr/ExrDecoderCore.cs lines 142–150, 215–223
-    ///   src/ImageSharp/Formats/Exr/ExrUtils.cs CalculateBytesPerRow
+    /// With 4 RGBA HALF channels and a width of 2^29, the row buffers and the bytes per row are larger than the
+    /// supported buffer size. The decoder throws InvalidImageContentException before it allocates a buffer.
     /// </summary>
     [Fact]
     public void Decode_RgbaRowSizingExceedsBufferLimits_Throws()
@@ -168,6 +144,27 @@ public class ExrDecoderSecurityTests
         using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+    }
+
+    /// <summary>
+    /// OpenEXR defines only the pixel types 0 (UINT), 1 (HALF) and 2 (FLOAT). Another pixel type is not valid image content. The decoder reports this error
+    /// in the header, before it allocates the 4096x4096 image. This image needs more than the 1 MB allocation limit.
+    /// </summary>
+    [Fact]
+    public void Decode_InvalidPixelType_ThrowsBeforeImageAllocation()
+    {
+        // One "R" channel with pixel type 7. OpenEXR defines only the types 0 (UINT), 1 (HALF) and 2 (FLOAT).
+        byte[] channelData = [0x52, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00];
+
+        // The offset table holds one 8-byte entry for each of the 4096 rows.
+        byte[] data = BuildExrWithChannels(0, 0, 4095, 4095, channelData, new byte[4096 * sizeof(ulong)]);
+
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 1 });
+        DecoderOptions options = new(configuration);
+
+        using MemoryStream stream = new(data);
+        Assert.Throws<InvalidImageContentException>(() => ExrDecoder.Instance.Decode<Rgba32>(options, stream));
     }
 
     [Fact]

@@ -27,9 +27,6 @@ internal static class ExrThrowHelper
     public static void ThrowInvalidImageHeader() => throw new InvalidImageContentException("Invalid EXR image header");
 
     [DoesNotReturn]
-    public static void ThrowInvalidImageHeader(string msg) => throw new InvalidImageContentException(msg);
-
-    [DoesNotReturn]
     public static Exception NotSupportedCompressor(string compressionType)
         => throw new NotSupportedException($"Not supported encoder compression method: {compressionType}");
 }

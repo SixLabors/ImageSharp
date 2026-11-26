@@ -16,9 +16,15 @@ internal class Pxr24Compression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
-    private readonly int channelCount;
+    /// <summary>
+    /// The pixel type of each channel of a row, in the order of the row.
+    /// </summary>
+    private readonly ExrPixelType[] channelTypes;
 
-    private readonly ExrPixelType pixelType;
+    /// <summary>
+    /// The number of packed bytes of a row before decompression.
+    /// </summary>
+    private readonly uint packedBytesPerRow;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Pxr24Compression" /> class.
@@ -26,44 +32,58 @@ internal class Pxr24Compression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per pixel row.</param>
-    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The witdh of one row in pixels.</param>
-    /// <param name="channelCount">The number of channels for a pixel.</param>
-    /// <param name="pixelType">The pixel type.</param>
+    /// <param name="channels">The channels of a row, in the order of the row.</param>
+    /// <param name="integrityHandling">The segment integrity mode of the decode.</param>
     public Pxr24Compression(
         MemoryAllocator allocator,
         uint bytesPerBlock,
         uint bytesPerRow,
-        uint rowsPerBlock,
         int width,
-        int channelCount,
-        ExrPixelType pixelType)
-        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
+        IList<ExrChannelInfo> channels,
+        SegmentIntegrityHandling integrityHandling)
+        : base(allocator, bytesPerRow, width, integrityHandling)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
-        this.channelCount = channelCount;
-        this.pixelType = pixelType;
+        this.channelTypes = new ExrPixelType[channels.Count];
+
+        // PXR24 keeps 4 bytes of a UINT sample and 2 bytes of a HALF sample. It keeps only the 3 high bytes of a FLOAT sample. Thus a packed row has one byte
+        // less for each FLOAT sample.
+        uint packedBytesPerRow = bytesPerRow;
+        for (int i = 0; i < channels.Count; i++)
+        {
+            ExrPixelType pixelType = channels[i].PixelType;
+            this.channelTypes[i] = pixelType;
+            if (pixelType == ExrPixelType.Float)
+            {
+                packedBytesPerRow -= (uint)width;
+            }
+        }
+
+        this.packedBytesPerRow = packedBytesPerRow;
     }
 
     /// <inheritdoc/>
-    protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    protected override bool DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         uint rowCount = uncompressedBytes / this.BytesPerRow;
-        uint packedBytes = this.pixelType == ExrPixelType.Float ? (uncompressedBytes / 4) * 3 : uncompressedBytes;
+        uint packedBytes = rowCount * this.packedBytesPerRow;
         Span<byte> uncompressed = this.tmpBuffer.GetSpan()[..(int)packedBytes];
-        Span<ushort> outputBufferHalf = MemoryMarshal.Cast<byte, ushort>(buffer);
-        Span<uint> outputBufferFloat = MemoryMarshal.Cast<byte, uint>(buffer);
-        Span<uint> outputBufferUint = MemoryMarshal.Cast<byte, uint>(buffer);
 
-        UndoZipCompression(stream, compressedBytes, uncompressed, packedBytes);
+        if (!this.UndoZipCompression(stream, compressedBytes, uncompressed, packedBytes))
+        {
+            return false;
+        }
 
+        // A row holds the samples of each channel in turn. Each channel uses its own sample type. The output of a channel starts at a byte offset. A HALF
+        // channel before a 4-byte channel can put that offset 2 bytes after a 4-byte boundary. Thus each channel writes to its own byte slice.
         int lastIn = 0;
         int outputOffset = 0;
         for (uint y = 0; y < rowCount; y++)
         {
-            for (int c = 0; c < this.channelCount; c++)
+            for (int c = 0; c < this.channelTypes.Length; c++)
             {
-                switch (this.pixelType)
+                switch (this.channelTypes[c])
                 {
                     case ExrPixelType.UnsignedInt:
                     {
@@ -76,6 +96,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                         int offsetT3 = lastIn;
                         lastIn += this.Width;
 
+                        Span<uint> output = MemoryMarshal.Cast<byte, uint>(buffer.Slice(outputOffset, this.Width * sizeof(uint)));
                         uint pixel = 0;
                         for (int x = 0; x < this.Width; x++)
                         {
@@ -86,14 +107,15 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8) | t3;
 
                             pixel += diff;
-                            outputBufferUint[outputOffset] = pixel;
+                            output[x] = pixel;
 
                             offsetT0++;
                             offsetT1++;
                             offsetT2++;
                             offsetT3++;
-                            outputOffset++;
                         }
+
+                        outputOffset += output.Length * sizeof(uint);
 
                         break;
                     }
@@ -105,6 +127,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                         int offsetT1 = lastIn;
                         lastIn += this.Width;
 
+                        Span<ushort> output = MemoryMarshal.Cast<byte, ushort>(buffer.Slice(outputOffset, this.Width * sizeof(ushort)));
                         uint pixel = 0;
                         for (int x = 0; x < this.Width; x++)
                         {
@@ -113,12 +136,13 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 8) | t1;
 
                             pixel += diff;
-                            outputBufferHalf[outputOffset] = (ushort)pixel;
+                            output[x] = (ushort)pixel;
 
                             offsetT0++;
                             offsetT1++;
-                            outputOffset++;
                         }
+
+                        outputOffset += output.Length * sizeof(ushort);
 
                         break;
                     }
@@ -132,6 +156,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                         int offsetT2 = lastIn;
                         lastIn += this.Width;
 
+                        Span<uint> output = MemoryMarshal.Cast<byte, uint>(buffer.Slice(outputOffset, this.Width * sizeof(uint)));
                         uint pixel = 0;
                         for (int x = 0; x < this.Width; x++)
                         {
@@ -141,21 +166,28 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8);
 
                             pixel += diff;
-                            outputBufferFloat[outputOffset] = pixel;
+                            output[x] = pixel;
 
                             offsetT0++;
                             offsetT1++;
                             offsetT2++;
-                            outputOffset++;
                         }
+
+                        outputOffset += output.Length * sizeof(uint);
 
                         break;
                     }
                 }
             }
         }
+
+        return true;
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+        this.tmpBuffer.Dispose();
+        base.Dispose(disposing);
+    }
 }

@@ -8,7 +8,32 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 internal static class ExrUtils
 {
     /// <summary>
-    /// Calcualtes the required bytes for a pixel row.
+    /// The DWAA compression value.
+    /// </summary>
+    private const ExrCompression Dwaa = (ExrCompression)8;
+
+    /// <summary>
+    /// The DWAB compression value.
+    /// </summary>
+    private const ExrCompression Dwab = (ExrCompression)9;
+
+    /// <summary>
+    /// The HTJ2K256 compression value.
+    /// </summary>
+    private const ExrCompression Htj2k256 = (ExrCompression)10;
+
+    /// <summary>
+    /// The HTJ2K32 compression value.
+    /// </summary>
+    private const ExrCompression Htj2k32 = (ExrCompression)11;
+
+    /// <summary>
+    /// The LJ2K compression value.
+    /// </summary>
+    private const ExrCompression Lj2k = (ExrCompression)12;
+
+    /// <summary>
+    /// Calculates the number of bytes in a pixel row. A row holds the samples of every channel, in the order of the channel list.
     /// </summary>
     /// <param name="channels">The image channels array.</param>
     /// <param name="width">The width in pixels of a row.</param>
@@ -16,23 +41,9 @@ internal static class ExrUtils
     public static ulong CalculateBytesPerRow(IList<ExrChannelInfo> channels, uint width)
     {
         ulong bytesPerRow = 0;
-        foreach (ExrChannelInfo channelInfo in channels)
+        for (int i = 0; i < channels.Count; i++)
         {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("R", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("G", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("B", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
-            {
-                if (channelInfo.PixelType == ExrPixelType.Half)
-                {
-                    bytesPerRow += 2UL * width;
-                }
-                else
-                {
-                    bytesPerRow += 4UL * width;
-                }
-            }
+            bytesPerRow += (channels[i].PixelType == ExrPixelType.Half ? 2UL : 4UL) * width;
         }
 
         return bytesPerRow;
@@ -43,10 +54,14 @@ internal static class ExrUtils
     /// </summary>
     /// <param name="compression">The compression used.</param>
     /// <returns>Pixel rows in a block.</returns>
+    /// <remarks>
+    /// The decoder does not support DWAA, DWAB, HTJ2K and LJ2K. But the decoder needs their rows per block to find the size of the offset table.
+    /// </remarks>
     public static uint RowsPerBlock(ExrCompression compression) => compression switch
     {
         ExrCompression.Zip or ExrCompression.Pxr24 => 16,
-        ExrCompression.B44 or ExrCompression.B44A or ExrCompression.Piz => 32,
+        ExrCompression.B44 or ExrCompression.B44A or ExrCompression.Piz or Dwaa or Htj2k32 => 32,
+        Dwab or Htj2k256 or Lj2k => 256,
         _ => 1,
     };
 }

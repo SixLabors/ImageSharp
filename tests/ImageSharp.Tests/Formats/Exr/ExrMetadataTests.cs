@@ -28,7 +28,7 @@ public class ExrMetadataTests
     }
 
     [Theory]
-    [InlineData(TestImages.Exr.Uncompressed, 199, 297)]
+    [InlineData(TestImages.Exr.Uncompressed, 200, 298)]
     public void Identify_DetectsCorrectWidthAndHeight<TPixel>(string imagePath, int expectedWidth, int expectedHeight)
     {
         TestFile testFile = TestFile.Create(imagePath);

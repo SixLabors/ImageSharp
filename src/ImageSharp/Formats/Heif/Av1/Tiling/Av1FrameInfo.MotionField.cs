@@ -190,7 +190,7 @@ internal partial class Av1FrameInfo
 
         this.temporalMotionField = temporalMotionField;
 
-        // AV1 examines LAST, BWDREF, ALTREF2, ALTREF, and LAST2 in this normative order and admits at most three
+        // AV1 checks LAST, BWDREF, ALTREF2, ALTREF, and LAST2 in this normative order and admits at most three
         // projection sources. LAST always consumes the first budget position, forward references consume one only
         // when eligible projection succeeds, and LAST2 fills the final unused position in the reverse direction.
         int remainingProjectionCount = MotionFieldProjectionCount;

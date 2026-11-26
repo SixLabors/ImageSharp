@@ -19,8 +19,8 @@ public class Av1TransformTypeModelTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the energy projections, bit for bit, against a scalar transcription of
-    /// get_energy_distribution_finer() for every model block size and sample precision.
+    /// Verifies the energy projections, bit for bit, against a scalar transcription of the libaom finer energy distribution for every model block size and
+    /// sample precision.
     /// </summary>
     [Fact]
     public void EnergyDistributionMatchesReferenceAcrossHardwareWidths()

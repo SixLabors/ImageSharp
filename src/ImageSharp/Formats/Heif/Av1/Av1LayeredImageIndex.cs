@@ -41,12 +41,22 @@ internal readonly struct Av1LayeredImageIndex
     /// </summary>
     /// <param name="itemSize">The complete logical image-item payload size.</param>
     /// <param name="selector">The requested spatial layer, or <see langword="null"/> to decode the final layer.</param>
-    /// <returns>The cumulative payload size through the selected layer, or the complete item size for final-layer decoding.</returns>
-    public int GetPayloadLength(int itemSize, Av1LayerSelector? selector)
+    /// <param name="handling">The segment integrity mode.</param>
+    /// <param name="imageExists">
+    /// A value indicating whether the caller keeps an image without this item. If <see langword="true"/>, the mode controls whether layer sizes that do not fit
+    /// the item, or a selector without its layer, throw. If <see langword="false"/>, they throw in each mode.
+    /// </param>
+    /// <param name="payloadLength">
+    /// Receives the cumulative payload size through the selected layer, or the complete item size for final-layer decoding.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the layers fit the item. <see langword="false"/> if the method reported an invalid layer layout and the mode ignores it. The
+    /// item then gives no frame.
+    /// </returns>
+    public bool TryGetPayloadLength(int itemSize, Av1LayerSelector? selector, SegmentIntegrityHandling handling, bool imageExists, out int payloadLength)
     {
-        int selectedLayer = selector is null || selector.Value.LayerId == Av1LayerSelector.AllLayers
-            ? -1
-            : selector.Value.LayerId;
+        payloadLength = 0;
+        int selectedLayer = selector is null || selector.Value.LayerId == Av1LayerSelector.AllLayers ? -1 : selector.Value.LayerId;
 
         uint remainingSize = (uint)itemSize;
         uint selectedPayloadSize = 0;
@@ -76,7 +86,8 @@ internal readonly struct Av1LayeredImageIndex
             {
                 // Every explicit layer must leave at least one byte for the final implicit layer. A zero entry instead identifies the current layer as final
                 // and consumes the complete remainder.
-                throw new InvalidImageContentException($"AV1 layered-image layer {layer} does not fit within the item payload.");
+                handling.ThrowOrIgnoreImageDataError(imageExists, $"AV1 layered-image layer {layer} does not fit within the item payload.");
+                return false;
             }
 
             if (selectedLayer < 0 || layer <= selectedLayer)
@@ -99,9 +110,11 @@ internal readonly struct Av1LayeredImageIndex
 
         if (selectedLayer >= layerCount)
         {
-            throw new InvalidImageContentException($"AV1 layer selector requests layer {selectedLayer}, but the item contains {layerCount} layers.");
+            handling.ThrowOrIgnoreImageDataError(imageExists, $"AV1 layer selector requests layer {selectedLayer}, but the item contains {layerCount} layers.");
+            return false;
         }
 
-        return selectedLayer < 0 ? itemSize : (int)selectedPayloadSize;
+        payloadLength = selectedLayer < 0 ? itemSize : (int)selectedPayloadSize;
+        return true;
     }
 }

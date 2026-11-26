@@ -139,7 +139,7 @@ public class Av1ForwardQuantizerTests
     }
 
     /// <summary>
-    /// Mirrors av1_quantize_fp_no_qmatrix from current libaom without sharing the production traversal.
+    /// Mirrors the current libaom fast quantizer without a quantization matrix, without sharing the production traversal.
     /// </summary>
     private static ushort QuantizeReference(
         ReadOnlySpan<int> coefficients,
@@ -156,8 +156,7 @@ public class Av1ForwardQuantizerTests
         quantizedCoefficients.Clear();
         dequantizedCoefficients.Clear();
 
-        // av1_build_quantizer(): qrounding_factor_fp is 64, and 64 - 16 * (7 - sharpness) / 7 for a sharpness above
-        // zero and a nonzero quantizer.
+        // The libaom fast quantizer rounding factor is 64, and 64 - 16 * (7 - sharpness) / 7 for a sharpness above zero and a nonzero quantizer.
         int roundingFactor = sharpness != 0 && qIndex != 0 ? 64 - (16 * (7 - sharpness) / 7) : 64;
         int logScale = transformSize.GetScale();
         int dcDequantizer = Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, bitDepth);

@@ -84,7 +84,7 @@ public class Av1FilmGrainEncoderTests
                 encoder.EncodeNextFrame(frame.Frames.RootFrame, sample, forceKeyFrame: false);
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             ObuFilmGrainParameters grain = decoder.FrameHeader!.FilmGrainParameters;
             Assert.True(grain.ApplyGrain);
             Assert.Equal(expectedSeed, grain.GrainSeed);

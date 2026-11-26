@@ -160,7 +160,7 @@ public class Av1TilingTests
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub, isAnnexB: false);
+        obuReader.ReadAll(ref bitStreamReader, dataSize, stub);
         Av1FrameDecoderStub frameDecoder = new();
         using Av1TileReader tileReader = new(
             Configuration.Default,

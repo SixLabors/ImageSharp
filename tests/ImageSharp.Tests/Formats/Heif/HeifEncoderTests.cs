@@ -143,8 +143,6 @@ public partial class HeifEncoderTests
         Dictionary<uint, byte[]> payloads = [];
         HeifItem gridItem = new(Heif4CharCode.Grid, 1);
         gridItem.SetExtent(new Size(outputWidth, outputHeight));
-        items.Add(gridItem);
-        HeifItemLink gridLink = new(Heif4CharCode.Dimg, gridItem.Id);
         for (int tileIndex = 0; tileIndex < tileSizes.Length; tileIndex++)
         {
             Size tileSize = tileSizes[tileIndex];
@@ -166,12 +164,11 @@ public partial class HeifEncoderTests
 
             tileItem.SetExtent(tileSize);
             items.Add(tileItem);
-            gridLink.DestinationIds.Add(itemId);
             payloads.Add(itemId, payload.ToArray());
         }
 
-        List<HeifItemLink> links = [gridLink];
-        GridHeifItemDecoder<Rgba32> decoder = new(items.ToDictionary(item => item.Id), links, ReadItem, tileItemIds: null);
+        // The decode plan gives the tiles to the grid decoder in row order. No alpha item premultiplies a tile.
+        GridHeifItemDecoder<Rgba32> decoder = new([.. items], new bool[items.Count], ReadItem);
         Span<byte> descriptor = [0, 0, 1, 1, 0, outputWidth, 0, outputHeight];
         using Image<Rgba32> result = new(outputWidth, outputHeight);
         decoder.DecodeItemData(
@@ -430,9 +427,8 @@ public partial class HeifEncoderTests
     }
 
     /// <summary>
-    /// Verifies that an encoding without options uses the avifenc defaults: full range, and the automatic format of
-    /// avifReadImage(), which is 4:0:0 for a grayscale source, the internal sampling of a JPEG source, and 4:4:4
-    /// otherwise.
+    /// Verifies that an encoding without options uses the avifenc defaults: full range, and the automatic format that avifenc selects, which is 4:0:0 for a
+    /// grayscale source, the internal sampling of a JPEG source, and 4:4:4 otherwise.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, HeifChromaSubsampling.Yuv444)]
@@ -945,11 +941,9 @@ public partial class HeifEncoderTests
 
         image.Save(stream, encoder);
 
-        // Without lookahead the key frames fall exactly on the interval. The lookahead can place one early at a
-        // scene cut, so there the gap only stays below the interval. Each color key frame forces an alpha key frame.
-        // In good-quality coding the forced key frame is still pending when the next interval starts, so the next
-        // alpha frame is a key frame too. Reference: avifEncoderDataShouldForceKeyframeForAlpha() and
-        // detect_app_forced_key() in find_next_key_frame().
+        // Without lookahead the key frames fall exactly on the interval. The lookahead can place one early at a scene cut, so there the gap only stays below
+        // the interval. Each color key frame forces an alpha key frame. In good-quality coding the forced key frame is still pending when the next interval
+        // starts, so the next alpha frame is a key frame too.
         HeifSequence sequence = ParseSequence(stream.ToArray());
         bool goodQuality = speed <= HeifEncodingSpeed.Level6;
         bool lookahead = speed <= HeifEncodingSpeed.Level6 && !withAlpha;
@@ -1021,8 +1015,8 @@ public partial class HeifEncoderTests
         {
             HeifSequenceSample sample = track.Samples[1];
             using Av1Decoder decoder = new(Configuration.Default);
-            decoder.DecodeSequenceReference(file.AsSpan((int)track.Samples[0].Offset, track.Samples[0].Length).ToArray(), null, null);
-            decoder.DecodeSequenceReference(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)track.Samples[0].Offset, track.Samples[0].Length).ToArray(), null, null, null, false, out _);
+            decoder.DecodePayload(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null, null, false, out _);
             Assert.Equal(2, decoder.FrameHeader.TilesInfo.TileColumnCount);
         }
 
@@ -1281,7 +1275,7 @@ public partial class HeifEncoderTests
         HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
         using (Av1Decoder decoder = new(Configuration.Default))
         {
-            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null, null, false, out _);
             Assert.True(decoder.FrameHeader.QuantizationParameters.IsUsingQMatrix);
         }
 
@@ -1334,7 +1328,7 @@ public partial class HeifEncoderTests
         HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
         using (Av1Decoder decoder = new(Configuration.Default))
         {
-            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null, null, false, out _);
             ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
             Assert.True(segmentation.Enabled);
 
@@ -1345,9 +1339,8 @@ public partial class HeifEncoderTests
                 deltas[segment] = segmentation.GetFeatureData(segment, (int)ObuSegmentationLevelFeature.AlternativeQuantizer);
             }
 
-            // Complexity coding uses five segments, where variance coding uses eight. The rate factors fall from
-            // segment 0 to segment 4, so the quantizer deltas rise: segments 0 to 2 get more bits than the frame and
-            // segment 4 fewer. Reference: AQ_C_SEGMENTS and aq_c_q_adj_factor.
+            // Complexity coding uses five segments, where variance coding uses eight. The rate factors fall from segment 0 to segment 4, so the quantizer
+            // deltas rise: segments 0 to 2 get more bits than the frame and segment 4 fewer.
             Assert.Equal(4, segmentation.LastActiveSegmentId);
             Assert.Equal(0, deltas[3]);
             Assert.True(deltas[0] <= deltas[1] && deltas[1] <= deltas[2] && deltas[2] <= 0);
@@ -1394,7 +1387,7 @@ public partial class HeifEncoderTests
         HeifSequenceSample first = ParseSequence(file).ColorTrack.Samples[0];
         using (Av1Decoder decoder = new(Configuration.Default))
         {
-            decoder.DecodeSequenceReference(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)first.Offset, first.Length).ToArray(), null, null, null, false, out _);
             ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
             Assert.True(segmentation.Enabled);
             Assert.Equal(7, segmentation.LastActiveSegmentId);
@@ -1480,7 +1473,7 @@ public partial class HeifEncoderTests
             using Av1Decoder decoder = new(Configuration.Default);
             foreach (HeifSequenceSample sample in ParseSequence(file).ColorTrack.Samples)
             {
-                decoder.DecodeSequenceReference(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null);
+                decoder.DecodePayload(file.AsSpan((int)sample.Offset, sample.Length).ToArray(), null, null, null, false, out _);
                 if (!decoder.FrameHeader!.ShowExistingFrame)
                 {
                     Assert.InRange(
@@ -1722,10 +1715,10 @@ public partial class HeifEncoderTests
         HeifSequenceSample[] samples = ParseSequence(file).ColorTrack.Samples;
         using (Av1Decoder decoder = new(Configuration.Default))
         {
-            decoder.DecodeSequenceReference(file.AsSpan((int)samples[0].Offset, samples[0].Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)samples[0].Offset, samples[0].Length).ToArray(), null, null, null, false, out _);
             Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
 
-            decoder.DecodeSequenceReference(file.AsSpan((int)samples[1].Offset, samples[1].Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan((int)samples[1].Offset, samples[1].Length).ToArray(), null, null, null, false, out _);
             ObuSegmentationParameters segmentation = decoder.FrameHeader.SegmentationParameters;
             Assert.True(segmentation.Enabled);
             Assert.Equal(2, segmentation.LastActiveSegmentId);
@@ -1927,7 +1920,7 @@ public partial class HeifEncoderTests
             using Av1Decoder decoder = new(Configuration.Default);
             for (int layer = 0; layer < extents.Length; layer++)
             {
-                decoder.DecodeSequenceReference(file.AsSpan(extents[layer].Offset, extents[layer].Length).ToArray(), null, null);
+                decoder.DecodePayload(file.AsSpan(extents[layer].Offset, extents[layer].Length).ToArray(), null, null, null, false, out _);
                 ObuFrameHeader frameHeader = decoder.FrameHeader!;
                 Assert.Equal(layer, frameHeader.SpatialId);
                 Assert.Equal(sizes[layer].Width, frameHeader.FrameSize.FrameWidth);
@@ -2176,7 +2169,7 @@ public partial class HeifEncoderTests
     [InlineData(4096, 2048, 1, 2)]
     public void AutoTilingMatchesLibavifTileConfiguration(int width, int height, int expectedRowsLog2, int expectedColumnsLog2)
     {
-        // Expected values follow avifSetTileConfiguration() with libavif's automatic tiling budget of 8 threads.
+        // Expected values follow the automatic tiling of libavif with a budget of 8 threads.
         (int rowsLog2, int columnsLog2) = HeifEncoderCore.GetAutomaticTileConfiguration(new Size(width, height));
 
         Assert.Equal(expectedRowsLog2, rowsLog2);
@@ -2699,7 +2692,7 @@ public partial class HeifEncoderTests
         int[] qIndices = new int[layers.Length];
         for (int layer = 0; layer < layers.Length; layer++)
         {
-            decoder.DecodeSequenceReference(file.AsSpan(layers[layer].Offset, layers[layer].Length).ToArray(), null, null);
+            decoder.DecodePayload(file.AsSpan(layers[layer].Offset, layers[layer].Length).ToArray(), null, null, null, false, out _);
             ObuFrameHeader frameHeader = decoder.FrameHeader!;
             Assert.Equal(layer == 0 ? ObuFrameType.KeyFrame : ObuFrameType.InterFrame, frameHeader.FrameType);
             Assert.Equal(layer, frameHeader.SpatialId);
@@ -2788,13 +2781,7 @@ public partial class HeifEncoderTests
         };
 
         tileItem.SetExtent(new Size(width, height));
-        HeifItemLink gridLink = new(Heif4CharCode.Dimg, gridItem.Id);
-        gridLink.DestinationIds.Add(tileItem.Id);
-        GridHeifItemDecoder<Rgba32> decoder = new(
-            new Dictionary<uint, HeifItem> { [gridItem.Id] = gridItem, [tileItem.Id] = tileItem },
-            [gridLink],
-            ReadItem,
-            tileItemIds: null);
+        GridHeifItemDecoder<Rgba32> decoder = new([tileItem], [false], ReadItem);
 
         byte[] descriptor = new byte[8];
         BinaryPrimitives.WriteUInt16BigEndian(descriptor.AsSpan(4), (ushort)width);

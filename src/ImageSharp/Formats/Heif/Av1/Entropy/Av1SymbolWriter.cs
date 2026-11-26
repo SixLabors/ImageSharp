@@ -399,7 +399,14 @@ internal sealed class Av1SymbolWriter : IDisposable
             // room for it, the buffer grows to twice its length plus one word, and the caller gets the new buffer.
             if (this.position + sizeof(ulong) > output.Length)
             {
-                output = this.GrowTileBuffer(checked((2 * this.tileBuffer.Length) + sizeof(ulong)));
+                // The coded size of a tile depends on the image data, so no up-front bound limits the new length.
+                long length = (2L * this.tileBuffer.Length) + sizeof(ulong);
+                if (length > int.MaxValue)
+                {
+                    InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)length, int.MaxValue);
+                }
+
+                output = this.GrowTileBuffer((int)length);
             }
 
             int readyByteCount = (s >> 3) + 1;

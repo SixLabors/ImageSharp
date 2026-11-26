@@ -21,8 +21,7 @@ public class Av1IntraBlockOperatorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies every seed against get_identity_hash_value() and get_xor_hash_value_hbd(), for row lengths that end
-    /// in every vector tail.
+    /// Verifies every seed against the libaom identity hash and high-bit-depth XOR hash values, for row lengths that end in every vector tail.
     /// </summary>
     [Fact]
     public void SeedRowsMatchReferenceAcrossHardwareWidths()

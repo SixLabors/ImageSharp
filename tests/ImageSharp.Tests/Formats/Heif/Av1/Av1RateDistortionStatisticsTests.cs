@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies the sharpness 3 smoothing charges against libaom's adjust_rdcost() and adjust_cost().
+/// Verifies the sharpness 3 smoothing charges against libaom.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1RateDistortionStatisticsTests
@@ -22,7 +22,7 @@ public class Av1RateDistortionStatisticsTests
     private const long Offset = 40;
 
     /// <summary>
-    /// Verifies that the adjust_rdcost() charge adds the offset to the distortion and prices the cost again.
+    /// Verifies that the charge on the rate-distortion cost adds the offset to the distortion and prices the cost again.
     /// </summary>
     [Fact]
     public void SmoothingOffsetAddsDistortionAndPricesCostAgain()
@@ -36,8 +36,7 @@ public class Av1RateDistortionStatisticsTests
     }
 
     /// <summary>
-    /// Verifies that the motion_mode_rd() charge prices the cost again and adds the priced offset to a valid luma
-    /// cost only.
+    /// Verifies that the charge of the motion mode search prices the cost again and adds the priced offset to a valid luma cost only.
     /// </summary>
     /// <param name="lumaCost">The luma cost before the charge.</param>
     /// <param name="expectedLumaCost">The luma cost after the charge.</param>

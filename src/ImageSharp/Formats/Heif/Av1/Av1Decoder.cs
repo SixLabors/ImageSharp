@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -116,7 +117,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     public Av1Decoder(Configuration configuration)
-        : this(configuration, 0, SegmentIntegrityHandling.Strict)
+        : this(configuration, 0, SegmentIntegrityHandling.Strict, false)
     {
     }
 
@@ -126,14 +127,19 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
     /// <param name="integrityHandling">
-    /// The segment integrity mode. In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, a damaged or truncated
-    /// payload keeps every superblock that decodes before the damage, and the frame completes. The other modes throw.
+    /// The segment integrity mode. In the <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, a damaged or truncated payload keeps every superblock
+    /// that decodes before the damage, and the frame completes. The other modes throw.
     /// </param>
-    public Av1Decoder(Configuration configuration, byte operatingPointIndex, SegmentIntegrityHandling integrityHandling)
+    /// <param name="imageExists">
+    /// A value indicating whether the caller keeps an image without the payloads of this decoder. Examples are the canvas of a grid, an image sequence, and the
+    /// color image of an alpha plane. If <see langword="true"/>, a payload with damage before its decoded image data gives no frame in the
+    /// <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode. If <see langword="false"/>, that damage throws in each mode.
+    /// </param>
+    public Av1Decoder(Configuration configuration, byte operatingPointIndex, SegmentIntegrityHandling integrityHandling, bool imageExists)
     {
         this.configuration = configuration;
         this.integrityHandling = integrityHandling;
-        this.obuReader = new(operatingPointIndex, this.referenceFrames) { IntegrityHandling = integrityHandling };
+        this.obuReader = new(operatingPointIndex, this.referenceFrames) { IntegrityHandling = integrityHandling, ImageExists = imageExists };
         this.cdefDecoder = new(configuration.MemoryAllocator);
         this.restorationBoundary = new(configuration.MemoryAllocator);
         this.restorationDecoder = new(configuration.MemoryAllocator);
@@ -201,8 +207,12 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="profile">The source profile selected for conversion, or null to preserve source colors.</param>
     /// <param name="alphaFrame">The decoder-owned auxiliary frame, or null for opaque pixels.</param>
     /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
-    /// <returns>The effective CICP description of the decoded sample.</returns>
-    public CicpProfile DecodeSequenceFrame<TPixel>(
+    /// <param name="effectiveColorProfile">Receives the effective CICP description of the decoded sample.</param>
+    /// <returns>
+    /// <see langword="true"/> if the sample decodes into the destination. <see langword="false"/> if the decoder reported damage, the mode ignores it, and the
+    /// sample gives no frame. The destination then keeps its pixels.
+    /// </returns>
+    public bool DecodeSequenceFrame<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
@@ -212,15 +222,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         HeifPixelTransform transform,
         IccProfile? profile,
         Av1FrameBuffer<byte>? alphaFrame,
-        bool premultiplied)
+        bool premultiplied,
+        [NotNullWhen(true)] out CicpProfile? effectiveColorProfile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        CicpProfile effectiveColorProfile = this.DecodePayload(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            null,
-            requireShownFrame: true);
+        if (!this.DecodePayload(buffer, containerColorProfile, codecConfiguration, null, true, out effectiveColorProfile))
+        {
+            return false;
+        }
 
         Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
         Size codedSize = new(
@@ -229,8 +238,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
         if (codedSize != expectedCodedSize)
         {
-            throw new InvalidImageContentException(
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                this.obuReader.ImageExists,
                 "The decoded image-sequence sample dimensions do not match its visual sample entry.");
+
+            return false;
         }
 
         // The conversion uses the presentation range of the container when it has one. It does not change the reconstructed reference state.
@@ -249,25 +261,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             this.ChromaUpsampling,
             containerColorProfile?.FullRange ?? outputFrame.FrameBuffer.ColorConfig.ColorRange);
 
-        return effectiveColorProfile;
+        return true;
     }
-
-    /// <summary>
-    /// Decodes one non-presented AV1 image-sequence sample while retaining its reference state.
-    /// </summary>
-    /// <param name="buffer">The complete AV1 sample payload.</param>
-    /// <param name="containerColorProfile">The container color description.</param>
-    /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
-    public void DecodeSequenceReference(
-        Span<byte> buffer,
-        CicpProfile? containerColorProfile,
-        Av1CodecConfiguration? codecConfiguration)
-        => _ = this.DecodePayload(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            null,
-            requireShownFrame: false);
 
     /// <summary>
     /// Decodes the next visible monochrome AV1 sequence sample into native samples.
@@ -276,30 +271,36 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="containerColorProfile">The container color description.</param>
     /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
     /// <param name="expectedCodedSize">The required coded dimensions.</param>
-    /// <returns>The auxiliary frame retained by this decoder until the next sample is decoded or the decoder is disposed.</returns>
-    public Av1FrameBuffer<byte> DecodeSequenceAlpha(
+    /// <returns>
+    /// The auxiliary frame. The decoder keeps this frame until it decodes the next sample, or until the caller disposes the decoder. The value is
+    /// <see langword="null"/> if the decoder reported damage, the mode ignores it, and the sample gives no frame.
+    /// </returns>
+    public Av1FrameBuffer<byte>? DecodeSequenceAlpha(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         Size expectedCodedSize)
     {
-        _ = this.DecodePayload(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            null,
-            requireShownFrame: true);
+        if (!this.DecodePayload(buffer, containerColorProfile, codecConfiguration, null, true, out _))
+        {
+            return null;
+        }
 
         Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
         Av1FrameBuffer<byte> frame = outputFrame.FrameBuffer;
         if (frame.Width != expectedCodedSize.Width || frame.Height != expectedCodedSize.Height)
         {
-            throw new InvalidImageContentException("The decoded alpha sample dimensions do not match its visual sample entry.");
+            this.integrityHandling.ThrowOrIgnoreImageDataError(
+                this.obuReader.ImageExists,
+                "The decoded alpha sample dimensions do not match its visual sample entry.");
+
+            return null;
         }
 
         if (frame.ColorFormat != Av1ColorFormat.Yuv400)
         {
-            throw new InvalidImageContentException("An AV1 alpha sample must be monochrome.");
+            this.integrityHandling.ThrowOrIgnoreImageDataError(this.obuReader.ImageExists, "An AV1 alpha sample must be monochrome.");
+            return null;
         }
 
         return frame;
@@ -309,54 +310,29 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// Parses every coded frame in an AV1 payload and returns the final shown frame's native component planes.
     /// </summary>
     /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
-    /// <param name="containerColorProfile">
-    /// The container color description that supplies unspecified sequence-header color information.
-    /// </param>
-    /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
-    /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
-    /// <param name="layeredImageIndex">The byte boundaries of a layered AV1 image item, or <see langword="null"/>.</param>
-    /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
-    public Av1FrameBuffer<byte> DecodeFrameBuffer(
-        Span<byte> buffer,
-        CicpProfile? containerColorProfile,
-        Av1CodecConfiguration? codecConfiguration,
-        out CicpProfile effectiveColorProfile,
-        Av1LayeredImageIndex? layeredImageIndex)
-        => this.DecodeFrameBuffer(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            out effectiveColorProfile,
-            out _,
-            layeredImageIndex);
-
-    /// <summary>
-    /// Parses every coded frame in an AV1 payload and returns the native planes and header of the final shown frame.
-    /// </summary>
-    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
     /// <param name="containerColorProfile">The container color description that supplies unspecified sequence-header color information.</param>
     /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
-    /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
-    /// <param name="frameHeader">Receives the frame header of the final shown frame.</param>
-    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
-    /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
-    private Av1FrameBuffer<byte> DecodeFrameBuffer(
+    /// <param name="effectiveColorProfile">
+    /// Receives the effective CICP description of the native planes, or <see langword="null"/> when the payload gives no frame.
+    /// </param>
+    /// <param name="layeredImageIndex">The byte boundaries of a layered AV1 image item, or <see langword="null"/>.</param>
+    /// <returns>
+    /// The reconstructed native frame buffer. Ownership transfers to the caller. The value is <see langword="null"/> if the decoder reported damage, the mode
+    /// ignores it, and the payload gives no frame.
+    /// </returns>
+    public Av1FrameBuffer<byte>? DecodeFrameBuffer(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
-        out CicpProfile effectiveColorProfile,
-        out ObuFrameHeader frameHeader,
+        out CicpProfile? effectiveColorProfile,
         Av1LayeredImageIndex? layeredImageIndex)
     {
-        effectiveColorProfile = this.DecodePayload(
-            buffer,
-            containerColorProfile,
-            codecConfiguration,
-            layeredImageIndex,
-            requireShownFrame: true);
+        if (!this.DecodePayload(buffer, containerColorProfile, codecConfiguration, layeredImageIndex, true, out effectiveColorProfile))
+        {
+            return null;
+        }
 
         using Av1ReferenceFrame outputFrame = this.referenceFrames.TakeOutput();
-        frameHeader = outputFrame.FrameHeader;
         return outputFrame.TakeFrameBuffer();
     }
 
@@ -367,19 +343,27 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="containerColorProfile">The container color description.</param>
     /// <param name="codecConfiguration">The AV1 codec configuration.</param>
     /// <param name="layeredImageIndex">The optional layer byte boundaries.</param>
-    /// <param name="requireShownFrame">Whether the payload must produce a shown frame.</param>
-    /// <returns>The effective CICP description.</returns>
-    private CicpProfile DecodePayload(
+    /// <param name="requireShownFrame">
+    /// Whether the payload must produce a shown frame. The value is <see langword="false"/> for a non-presented image-sequence sample. The decoder then keeps
+    /// only its reference state.
+    /// </param>
+    /// <param name="effectiveColorProfile">Receives the effective CICP description.</param>
+    /// <returns>
+    /// <see langword="true"/> if the payload decodes. <see langword="false"/> if the decoder reported damage, the mode ignores it, and the payload gives no
+    /// frame.
+    /// </returns>
+    public bool DecodePayload(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         Av1LayeredImageIndex? layeredImageIndex,
-        bool requireShownFrame)
+        bool requireShownFrame,
+        [NotNullWhen(true)] out CicpProfile? effectiveColorProfile)
     {
+        effectiveColorProfile = null;
         this.codecConfiguration = codecConfiguration;
         this.containerColorProfile = containerColorProfile;
         this.validatedSequenceHeader = null;
-        this.obuReader.ResetMetadata();
         this.SequenceHeader = null;
         this.FrameHeader = null;
         this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
@@ -395,15 +379,17 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
         try
         {
+            bool decoded;
             if (layeredImageIndex is null)
             {
                 Av1BitStreamReader reader = new(buffer);
-                this.obuReader.ReadAll(ref reader, buffer.Length, this, false);
+                decoded = this.obuReader.ReadAll(ref reader, buffer.Length, this);
             }
             else
             {
+                decoded = true;
                 int layerOffset = 0;
-                for (int layer = 0; layer < Av1Constants.MaxSpatialLayerCount - 1 && layerOffset < buffer.Length; layer++)
+                for (int layer = 0; decoded && layer < Av1Constants.MaxSpatialLayerCount - 1 && layerOffset < buffer.Length; layer++)
                 {
                     uint declaredLayerSize = layer switch
                     {
@@ -421,49 +407,56 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                     // reported the truncation, so the layer that crosses the end keeps the bytes that remain.
                     int layerSize = Math.Min((int)declaredLayerSize, buffer.Length - layerOffset);
                     Av1BitStreamReader layerReader = new(buffer.Slice(layerOffset, layerSize));
-                    this.obuReader.ReadAll(ref layerReader, layerSize, this, false);
+                    decoded = this.obuReader.ReadAll(ref layerReader, layerSize, this);
                     layerOffset += layerSize;
                 }
 
-                if (layerOffset < buffer.Length)
+                if (decoded && layerOffset < buffer.Length)
                 {
                     Span<byte> finalLayer = buffer[layerOffset..];
                     Av1BitStreamReader finalLayerReader = new(finalLayer);
-                    this.obuReader.ReadAll(ref finalLayerReader, finalLayer.Length, this, false);
+                    decoded = this.obuReader.ReadAll(ref finalLayerReader, finalLayer.Length, this);
                 }
             }
 
-            ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader
-                ?? throw new InvalidImageContentException("The AV1 payload contains no sequence header.");
-
-            if (requireShownFrame)
+            if (!decoded)
             {
-                _ = this.referenceFrames.ResolveOutput();
+                // The OBU reader reported the damage and reset its session. The mode ignores the damage, and the payload gives no frame. The decoder cannot use
+                // the state of the stopped payload again. This is the same as after a failed payload.
+                this.ResetSession();
+                return false;
+            }
+
+            // The checks that follow find a payload that gives no presentable frame. The mode can ignore the error only when the caller keeps an image without
+            // the payload.
+            ObuSequenceHeader? sequenceHeader = this.obuReader.SequenceHeader;
+            if (sequenceHeader is null)
+            {
+                this.integrityHandling.ThrowOrIgnoreImageDataError(this.obuReader.ImageExists, "The AV1 payload contains no sequence header.");
+                return false;
+            }
+
+            if (requireShownFrame && this.referenceFrames.OutputFrame is null)
+            {
+                // The payload decoded its frames, so the reference state stays valid for later samples.
+                this.integrityHandling.ThrowOrIgnoreImageDataError(this.obuReader.ImageExists, "The AV1 payload did not produce a shown frame.");
+                return false;
             }
 
             // The returned profile is the effective CICP description that conversion uses. It includes container values that legally replaced unspecified
             // bitstream fields. It also gives bitstream-only color metadata to callers.
             ObuColorConfig effectiveColorConfig = sequenceHeader.ColorConfig;
-            return new CicpProfile(
+            effectiveColorProfile = new CicpProfile(
                 (byte)effectiveColorConfig.ColorPrimaries,
                 (byte)effectiveColorConfig.TransferCharacteristics,
                 (byte)effectiveColorConfig.MatrixCoefficients,
                 effectiveColorConfig.ColorRange);
+
+            return true;
         }
         catch
         {
-            // A failed frame can own pooled neighbor contexts, and earlier layers own reconstructed references and published CDF snapshots. After a failed
-            // non-transactional frame transition, none of them can be used again.
-            this.frameDecodeState?.Dispose();
-            this.frameDecodeState = null;
-            this.obuReader.Reset();
-            this.entropyContexts?.Reset();
-            this.entropySequenceHeader = null;
-            this.SequenceHeader = null;
-            this.FrameHeader = null;
-            this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
-            this.FrameInfo?.ReleaseOwner();
-            this.FrameInfo = null;
+            this.ResetSession();
             throw;
         }
         finally
@@ -477,17 +470,47 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     }
 
     /// <summary>
+    /// Releases the frame state and resets the decoder session after a payload stops at damage.
+    /// </summary>
+    /// <remarks>
+    /// A failed frame can own pooled neighbor contexts. Earlier layers own reconstructed references and published CDF snapshots. After a failed
+    /// non-transactional frame transition, the decoder cannot use any of these items again.
+    /// </remarks>
+    private void ResetSession()
+    {
+        this.frameDecodeState?.Dispose();
+        this.frameDecodeState = null;
+        this.obuReader.Reset();
+        this.entropyContexts?.Reset();
+        this.entropySequenceHeader = null;
+        this.SequenceHeader = null;
+        this.FrameHeader = null;
+        this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
+        this.FrameInfo?.ReleaseOwner();
+        this.FrameInfo = null;
+    }
+
+    /// <summary>
     /// Validates the active sequence against its container declarations before reconstruction begins.
     /// </summary>
+    /// <remarks>
+    /// The method returns the damage and does not report it. The OBU reader reports the damage one time, through the damage route of its payload.
+    /// </remarks>
     /// <param name="sequenceHeader">The active sequence header.</param>
-    private void ValidateSequence(ObuSequenceHeader sequenceHeader)
+    /// <returns>The message of the mismatch, or <see langword="null"/> when the sequence matches its container.</returns>
+    private string? ValidateSequence(ObuSequenceHeader sequenceHeader)
     {
         if (ReferenceEquals(this.validatedSequenceHeader, sequenceHeader))
         {
-            return;
+            return null;
         }
 
-        this.codecConfiguration?.Validate(sequenceHeader);
+        string? damage = this.codecConfiguration?.Validate(sequenceHeader);
+        if (damage is not null)
+        {
+            return damage;
+        }
+
         CicpProfile? colorProfile = this.containerColorProfile;
 
         if (colorProfile is not null)
@@ -505,7 +528,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             }
             else if (colorConfig.ColorPrimaries != containerColorPrimaries)
             {
-                throw new InvalidImageContentException("The HEIF CICP color primaries do not match the AV1 sequence header.");
+                return "The HEIF CICP color primaries do not match the AV1 sequence header.";
             }
 
             if (colorConfig.TransferCharacteristics == ObuTransferCharacteristics.Unspecified)
@@ -514,7 +537,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             }
             else if (colorConfig.TransferCharacteristics != containerTransferCharacteristics)
             {
-                throw new InvalidImageContentException("The HEIF CICP transfer characteristics do not match the AV1 sequence header.");
+                return "The HEIF CICP transfer characteristics do not match the AV1 sequence header.";
             }
 
             if (colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Unspecified)
@@ -523,12 +546,13 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             }
             else if (colorConfig.MatrixCoefficients != containerMatrixCoefficients)
             {
-                throw new InvalidImageContentException("The HEIF CICP matrix coefficients do not match the AV1 sequence header.");
+                return "The HEIF CICP matrix coefficients do not match the AV1 sequence header.";
             }
         }
 
         // The same sequence header governs subsequent layered frames until another header OBU replaces it.
         this.validatedSequenceHeader = sequenceHeader;
+        return null;
     }
 
     /// <summary>
@@ -536,24 +560,26 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="tileData">The entropy-coded tile payload.</param>
     /// <param name="tileNum">The raster-order tile index.</param>
-    public void ReadTile(Span<byte> tileData, int tileNum)
+    /// <returns>
+    /// The message of a sequence that does not match its container, or <see langword="null"/>. The decoder checks the sequence before the first tile of a
+    /// frame. As a result, the frame holds no decoded tile when the method returns a message.
+    /// </returns>
+    public string? ReadTile(Span<byte> tileData, int tileNum)
     {
         FrameDecodeState frameDecodeState;
         if (this.frameDecodeState is null)
         {
             ObuSequenceHeader sequenceHeader = this.obuReader.CurrentSequenceHeader;
             ObuFrameHeader frameHeader = this.obuReader.CurrentFrameHeader;
-            this.ValidateSequence(sequenceHeader);
+            string? damage = this.ValidateSequence(sequenceHeader);
+            if (damage is not null)
+            {
+                return damage;
+            }
 
-            // Sequence dimensions are an upper bound, not an allocation request. The code checks the active upscaled frame before it rents its syntax state. A
-            // small frame can legally belong to a much larger sequence envelope.
-            Av1FrameBuffer<byte>.ValidateDimensions(
-                sequenceHeader,
-                sequenceHeader.ColorConfig.GetColorFormat(),
-                false,
-                frameHeader.FrameSize.SuperResolutionUpscaledWidth,
-                frameHeader.FrameSize.FrameHeight);
-
+            // The sequence dimensions are an upper limit, not an allocation request. The OBU reader compared the active upscaled frame with the contiguous
+            // frame limit when it checked the frame header. As a result, the frame state that this method rents fits. A small frame can legally be part of a
+            // much larger sequence envelope.
             if (!ReferenceEquals(this.entropySequenceHeader, sequenceHeader))
             {
                 if (this.entropySequenceHeader is not null)
@@ -571,15 +597,12 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             byte? primaryReferenceSlot = frameHeader.PrimaryReferenceSlot;
             if (primaryReferenceSlot is not null)
             {
-                // The uncompressed-header parser validates slot occupancy. This code checks entropy ownership, because only the reconstructed frame owner knows
-                // if that slot kept a completed CDF snapshot.
-                Av1ReferenceFrame? primaryReference = this.referenceFrames.Resolve(primaryReferenceSlot.Value);
-                if (primaryReference is null || primaryReference.EntropyContext is null)
-                {
-                    throw new InvalidImageContentException("The AV1 primary reference has no retained entropy context.");
-                }
-
+                // The uncompressed-header parser checks the slot occupancy. A slot holds only a frame that CompleteFrame committed with a refresh role. Each
+                // such frame keeps a completed CDF snapshot. Presentation-only frames never go into a slot. As a result, file data cannot select a primary
+                // reference without an entropy context.
+                Av1ReferenceFrame primaryReference = this.referenceFrames.ResolveRequired(primaryReferenceSlot.Value);
                 primaryReferenceContext = primaryReference.EntropyContext;
+                DebugGuard.NotNull(primaryReferenceContext);
             }
 
             // Every tile group in a frame contributes to the same mode-info and coefficient state.
@@ -657,19 +680,20 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         }
 
         frameDecodeState.TileReader.ReadTile(tileData, tileNum);
+        return null;
     }
 
     /// <summary>
     /// Completes the current frame after the parser reads all of its tile payloads. The method presents a shown existing frame, or reconstructs a new frame
     /// from its tiles.
     /// </summary>
-    public void CompleteFrame()
+    /// <returns>
+    /// The message of a sequence that does not match its container, or <see langword="null"/>. The method then releases the frame without a presentation.
+    /// </returns>
+    public string? CompleteFrame()
     {
-        ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader
-            ?? throw new InvalidImageContentException("An AV1 frame cannot complete before its sequence header.");
-
-        ObuFrameHeader frameHeader = this.obuReader.FrameHeader
-            ?? throw new InvalidImageContentException("An AV1 frame cannot complete before its frame header.");
+        ObuSequenceHeader sequenceHeader = this.obuReader.CurrentSequenceHeader;
+        ObuFrameHeader frameHeader = this.obuReader.CurrentFrameHeader;
 
         Av1FrameBuffer<byte>? frameBuffer = null;
         Av1FrameDecoder? frameDecoder = null;
@@ -678,7 +702,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
         try
         {
-            this.ValidateSequence(sequenceHeader);
+            string? damage = this.ValidateSequence(sequenceHeader);
+            if (damage is not null)
+            {
+                return damage;
+            }
 
             if (frameHeader.ShowExistingFrame)
             {
@@ -710,17 +738,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
                 this.SequenceHeader = sequenceHeader;
                 this.FrameHeader = existingFrameHeader;
-                return;
+                return null;
             }
 
-            FrameDecodeState? activeFrameDecodeState = this.frameDecodeState;
-            if (activeFrameDecodeState is null)
-            {
-                throw new InvalidImageContentException("The AV1 frame completed without tile syntax.");
-            }
-
+            // The OBU reader completes a frame without an existing-frame display only after it gave each tile of the frame to ReadTile. A frame has at least
+            // one tile. The first ReadTile call creates the frame state.
+            DebugGuard.IsTrue(this.frameDecodeState.HasValue, nameof(this.frameDecodeState), "A completed frame has tile syntax.");
+            FrameDecodeState activeFrame = this.frameDecodeState.GetValueOrDefault();
             this.frameDecodeState = null;
-            FrameDecodeState activeFrame = activeFrameDecodeState.Value;
             frameBuffer = activeFrame.FrameBuffer;
             frameDecoder = activeFrame.FrameDecoder;
             tileReader = activeFrame.TileReader;
@@ -804,6 +829,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             frameInfo.AddOwner();
             this.FrameInfo?.ReleaseOwner();
             this.FrameInfo = frameInfo;
+            return null;
         }
         finally
         {

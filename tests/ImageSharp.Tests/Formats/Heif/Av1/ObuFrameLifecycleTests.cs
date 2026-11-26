@@ -18,8 +18,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class ObuFrameLifecycleTests
 {
-    private const int NoFailingReaderIndex = -1;
-
     /// <summary>
     /// The operating point in the fixture sequence header that selects both spatial layers.
     /// </summary>
@@ -55,7 +53,7 @@ public class ObuFrameLifecycleTests
     ];
 
     /// <summary>
-    /// Verifies that a bounded progressive payload is consumed completely and assigns fresh tile state to each coded frame.
+    /// Verifies that a bounded progressive payload is consumed completely and that one tile reader completes each coded frame.
     /// </summary>
     [Fact]
     public void ReadAllConsumesBothProgressiveFrames()
@@ -67,23 +65,24 @@ public class ObuFrameLifecycleTests
         Av1BitStreamReader reader = new(bitStream);
         using Av1ReferenceFrameStore referenceFrames = new();
         ObuReader obuReader = new(ProgressiveOperatingPointIndex, referenceFrames);
-        LifecycleTileReaderFactory factory = new(obuReader, referenceFrames, NoFailingReaderIndex);
+        LifecycleTileReader tileReader = new(obuReader, referenceFrames);
 
-        obuReader.ReadAll(ref reader, bitStream.Length, factory.Create, isAnnexB: false);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileReader);
 
-        ObuFrameHeader secondFrameHeader = Assert.IsType<ObuFrameHeader>(factory.Readers[1].CompletedFrameHeader);
+        Assert.Equal(2, tileReader.CompletedFrameHeaders.Count);
+        ObuFrameHeader firstFrameHeader = tileReader.CompletedFrameHeaders[0];
+        ObuFrameHeader secondFrameHeader = tileReader.CompletedFrameHeaders[1];
 
         Assert.Equal(bitStream.Length * 8, reader.BitPosition);
-        Assert.Equal(2, factory.Readers.Count);
-        Assert.NotSame(factory.Readers[0], factory.Readers[1]);
-        Assert.All(factory.Readers, frameReader => Assert.Equal(1, frameReader.TileCount));
-        Assert.All(factory.Readers, frameReader => Assert.Equal(1, frameReader.CompletionCount));
-        Assert.All(factory.Readers, frameReader => Assert.Equal(1, frameReader.TileCountAtCompletion));
-        Assert.Equal(temporalId, factory.Readers[0].CompletedTemporalId);
-        Assert.Equal(baseSpatialId, factory.Readers[0].CompletedSpatialId);
-        Assert.Equal(temporalId, factory.Readers[1].CompletedTemporalId);
-        Assert.Equal(enhancementSpatialId, factory.Readers[1].CompletedSpatialId);
-        Assert.True(factory.Readers[1].SelectedReferencesWereRetained);
+        Assert.Equal(2, tileReader.TileCount);
+
+        // Each frame has one tile, so the reader holds one more tile at each completion.
+        Assert.Equal([1, 2], tileReader.TileCountsAtCompletion);
+        Assert.Equal(temporalId, firstFrameHeader.TemporalId);
+        Assert.Equal(baseSpatialId, firstFrameHeader.SpatialId);
+        Assert.Equal(temporalId, secondFrameHeader.TemporalId);
+        Assert.Equal(enhancementSpatialId, secondFrameHeader.SpatialId);
+        Assert.True(tileReader.SelectedReferencesWereRetained);
         Assert.Equal(ObuFrameType.InterFrame, secondFrameHeader.FrameType);
         Assert.Equal(ProgressiveImageWidth, secondFrameHeader.FrameSize.SuperResolutionUpscaledWidth);
         Assert.Equal(ProgressiveImageHeight, secondFrameHeader.FrameSize.FrameHeight);
@@ -102,7 +101,7 @@ public class ObuFrameLifecycleTests
         // A standalone frame-header OBU selects retained slot zero. The payload contains show_existing_frame, the
         // three-bit slot index, and the required trailing-one bit; no tile-group OBU follows it.
         byte[] showExistingFrame = [0x1A, 0x01, 0x88];
-        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, SegmentIntegrityHandling.Strict);
+        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, SegmentIntegrityHandling.Strict, false);
         using ImageFrame<Rgba32> reconstructed = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
         decoder.DecodeSequenceFrame(
             bitStream,
@@ -114,7 +113,8 @@ public class ObuFrameLifecycleTests
             default,
             null,
             null,
-            false);
+            false,
+            out _);
 
         using ImageFrame<Rgba32> existing = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
         decoder.DecodeSequenceFrame(
@@ -127,7 +127,8 @@ public class ObuFrameLifecycleTests
             default,
             null,
             null,
-            false);
+            false,
+            out _);
 
         Assert.Equal(reconstructed.Size, existing.Size);
         for (int row = 0; row < reconstructed.Height; row++)
@@ -170,7 +171,7 @@ public class ObuFrameLifecycleTests
     /// <returns>The presented frame.</returns>
     private static Image<Rgba32> DecodeProgressiveStream(byte[] bitStream, SegmentIntegrityHandling integrityHandling)
     {
-        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, integrityHandling);
+        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex, integrityHandling, false);
         Image<Rgba32> image = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
         try
         {
@@ -185,7 +186,8 @@ public class ObuFrameLifecycleTests
                 default,
                 null,
                 null,
-                false);
+                false,
+                out _);
 
             return image;
         }
@@ -197,126 +199,54 @@ public class ObuFrameLifecycleTests
     }
 
     /// <summary>
-    /// Creates and retains one recording tile reader for every coded frame requested by the OBU parser.
-    /// </summary>
-    private sealed class LifecycleTileReaderFactory
-    {
-        private readonly ObuReader obuReader;
-        private readonly Av1ReferenceFrameStore referenceFrames;
-        private readonly int failingReaderIndex;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LifecycleTileReaderFactory"/> class.
-        /// </summary>
-        /// <param name="obuReader">The parser that owns the current frame-header state.</param>
-        /// <param name="referenceFrames">The reconstructed reference map shared with the parser.</param>
-        /// <param name="failingReaderIndex">The zero-based reader index whose tile validation should fail.</param>
-        public LifecycleTileReaderFactory(
-            ObuReader obuReader,
-            Av1ReferenceFrameStore referenceFrames,
-            int failingReaderIndex)
-        {
-            this.obuReader = obuReader;
-            this.referenceFrames = referenceFrames;
-            this.failingReaderIndex = failingReaderIndex;
-        }
-
-        /// <summary>
-        /// Gets the tile readers created in coded-frame order.
-        /// </summary>
-        public List<LifecycleTileReader> Readers { get; } = [];
-
-        /// <summary>
-        /// Creates a fresh recording tile reader for the parser's current coded frame.
-        /// </summary>
-        /// <returns>The fresh tile reader.</returns>
-        public LifecycleTileReader Create()
-        {
-            LifecycleTileReader reader = new(
-                this.obuReader,
-                this.referenceFrames,
-                this.Readers.Count == this.failingReaderIndex);
-
-            this.Readers.Add(reader);
-            return reader;
-        }
-    }
-
-    /// <summary>
     /// Records tile-reader ownership and the frame-header state observable at completion.
     /// </summary>
     private sealed class LifecycleTileReader : IAv1TileReader
     {
         private readonly ObuReader obuReader;
         private readonly Av1ReferenceFrameStore referenceFrames;
-        private readonly bool failTileValidation;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LifecycleTileReader"/> class.
         /// </summary>
         /// <param name="obuReader">The parser whose current frame header is captured at completion.</param>
         /// <param name="referenceFrames">The reconstructed reference map shared with the parser.</param>
-        /// <param name="failTileValidation">A value indicating whether tile validation should fail.</param>
-        public LifecycleTileReader(
-            ObuReader obuReader,
-            Av1ReferenceFrameStore referenceFrames,
-            bool failTileValidation)
+        public LifecycleTileReader(ObuReader obuReader, Av1ReferenceFrameStore referenceFrames)
         {
             this.obuReader = obuReader;
             this.referenceFrames = referenceFrames;
-            this.failTileValidation = failTileValidation;
         }
 
         /// <summary>
-        /// Gets the number of tile payloads delivered to this frame reader.
+        /// Gets the number of tile payloads delivered to this reader.
         /// </summary>
         public int TileCount { get; private set; }
 
         /// <summary>
-        /// Gets the number of frame-completion notifications delivered to this frame reader.
+        /// Gets the number of delivered tile payloads at each frame completion, in coded-frame order.
         /// </summary>
-        public int CompletionCount { get; private set; }
+        public List<int> TileCountsAtCompletion { get; } = [];
 
         /// <summary>
-        /// Gets the number of delivered tile payloads observed when the frame was completed.
+        /// Gets the frame header of each successful completion, in coded-frame order.
         /// </summary>
-        public int TileCountAtCompletion { get; private set; }
-
-        /// <summary>
-        /// Gets the primary frame-header OBU temporal identifier observed at completion.
-        /// </summary>
-        public int CompletedTemporalId { get; private set; }
-
-        /// <summary>
-        /// Gets the primary frame-header OBU spatial identifier observed at completion.
-        /// </summary>
-        public int CompletedSpatialId { get; private set; }
-
-        /// <summary>
-        /// Gets the frame header observed at successful completion.
-        /// </summary>
-        public ObuFrameHeader CompletedFrameHeader { get; private set; }
+        public List<ObuFrameHeader> CompletedFrameHeaders { get; } = [];
 
         /// <summary>
         /// Gets a value indicating whether every inter-reference role resolved to a retained reconstructed owner before
-        /// the completed frame changed the reference map.
+        /// the last completed frame changed the reference map.
         /// </summary>
         public bool SelectedReferencesWereRetained { get; private set; }
 
         /// <inheritdoc/>
-        public void ReadTile(Span<byte> tileData, int tileNum)
+        public string ReadTile(Span<byte> tileData, int tileNum)
         {
             this.TileCount++;
-            if (this.failTileValidation)
-            {
-                // The final tile owns the remaining declared OBU payload. A trailing-symbol or entropy validation
-                // failure therefore originates at this boundary and must prevent the later completion callback.
-                throw new InvalidImageContentException("The test tile payload failed validation.");
-            }
+            return null;
         }
 
         /// <inheritdoc/>
-        public void CompleteFrame()
+        public string CompleteFrame()
         {
             ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(this.obuReader.SequenceHeader);
             ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(this.obuReader.FrameHeader);
@@ -354,12 +284,10 @@ public class ObuFrameLifecycleTests
                 referenceFrame.Dispose();
             }
 
-            this.TileCountAtCompletion = this.TileCount;
-            this.CompletedTemporalId = frameHeader.TemporalId;
-            this.CompletedSpatialId = frameHeader.SpatialId;
-            this.CompletedFrameHeader = frameHeader;
+            this.TileCountsAtCompletion.Add(this.TileCount);
+            this.CompletedFrameHeaders.Add(frameHeader);
             this.SelectedReferencesWereRetained = selectedReferencesWereRetained;
-            this.CompletionCount++;
+            return null;
         }
     }
 }

@@ -132,64 +132,92 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
         this.sourceRectangle = sourceRectangle;
         this.destinationRectangle = destinationRectangle;
 
-        // As in ResizeProcessor, the horizontal kernels start at multiples of 4 pixels, so that the 4-pixel loads of the
-        // horizontal operators start on a cache line. The vertical kernels keep their exact starts.
-        BoxResampler resampler = default;
-        this.horizontalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Width, sourceRectangle.Width, configuration.MemoryAllocator, true);
-        this.verticalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Height, sourceRectangle.Height, configuration.MemoryAllocator, false);
+        try
+        {
+            // As in ResizeProcessor, the horizontal kernels start at multiples of 4 pixels, so that the 4-pixel loads of the
+            // horizontal operators start on a cache line. The vertical kernels keep their exact starts.
+            BoxResampler resampler = default;
+            this.horizontalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Width, sourceRectangle.Width, configuration.MemoryAllocator, true);
+            this.verticalKernels = ResizeKernelMap.Calculate(in resampler, outputSize.Height, sourceRectangle.Height, configuration.MemoryAllocator, false);
 
-        // Retaining one complete maximum-diameter band is sufficient for every vertical kernel that crosses a
-        // window boundary. Those first-pass rows can be copied forward instead of normalized and filtered again.
-        this.windowBandHeight = this.verticalKernels.MaxDiameter;
+            // Retaining one complete maximum-diameter band is sufficient for every vertical kernel that crosses a
+            // window boundary. Those first-pass rows can be copied forward instead of normalized and filtered again.
+            this.windowBandHeight = this.verticalKernels.MaxDiameter;
 
-        // As in ResizeWorker, the first pass is stored as [window Y][destination X]. Bounding the source-Y dimension by
-        // the configured working-buffer limit keeps memory independent of the complete alpha-plane size.
-        int workingBufferLimitInBytes = Math.Min(
-            configuration.WorkingBufferSizeHintInBytes,
-            configuration.MemoryAllocator.GetBufferCapacityInBytes());
+            // As in ResizeWorker, the first pass is stored as [window Y][destination X]. Bounding the source-Y dimension by
+            // the configured working-buffer limit keeps memory independent of the complete alpha-plane size.
+            int workingBufferLimitInBytes = Math.Min(
+                configuration.WorkingBufferSizeHintInBytes,
+                configuration.MemoryAllocator.GetBufferCapacityInBytes());
 
-        int windowBandCount = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
-            this.windowBandHeight,
-            destinationRectangle.Width,
-            workingBufferLimitInBytes);
+            int windowBandCount = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
+                this.windowBandHeight,
+                destinationRectangle.Width,
+                workingBufferLimitInBytes);
 
-        // The window holds a whole number of bands. Thus Slide keeps exactly one overlap band and fills the rest of the
-        // window with rows that are new to the first pass.
-        this.workerHeight = Math.Min(sourceRectangle.Height, windowBandCount * this.windowBandHeight);
+            // The window holds a whole number of bands. Thus Slide keeps exactly one overlap band and fills the rest of the
+            // window with rows that are new to the first pass.
+            this.workerHeight = (int)Math.Min(sourceRectangle.Height, (long)windowBandCount * this.windowBandHeight);
 
-        // The first pass writes every pixel of a window row before the vertical pass reads it, so the buffer needs no clear.
-        this.firstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>(checked(this.workerHeight * destinationRectangle.Width));
+            // The minimum of two window bands can be more than the working-buffer limit. Then the element count can be more than int allows.
+            long firstPassLength = (long)this.workerHeight * destinationRectangle.Width;
+            if (firstPassLength > int.MaxValue)
+            {
+                InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)firstPassLength, int.MaxValue);
+            }
 
-        // The horizontal operators read PaddedLength taps. A kernel at the end of the row reads up to
-        // PaddedLength - MaxDiameter pixels after the row, with the weight zero. These pixels must be finite. The clean
-        // buffer gives them the value zero, and the conversion of a source row never writes them.
-        //
-        // Each row has the source pixels and then this padding. The stride rounds the row up to a multiple of
-        // 4 pixels (64 bytes), so that the second row starts on a 64-byte boundary when the first row does.
-        // The memory allocator does not align its buffers, so the buffer has 15 more floats. The rows start at the
-        // first 64-byte boundary in the buffer, 0 to 15 floats after its start.
-        int padding = this.horizontalKernels.PaddedLength - this.horizontalKernels.MaxDiameter;
-        this.sourceRowStride = ((sourceRectangle.Width + padding + 3) & ~3) * 4;
-        this.componentOwner = configuration.MemoryAllocator.Allocate<float>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
-        this.sourceRowsOwner = configuration.MemoryAllocator.Allocate<float>((this.sourceRowStride * 2) + 15, AllocationOptions.Clean);
-        this.resultVectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(destinationRectangle.Width);
-        this.alphaOwner = configuration.MemoryAllocator.Allocate<L16>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
-        this.currentWindow = new RowInterval(0, this.workerHeight);
-        this.CalculateFirstPassValues(this.currentWindow);
+            // The first pass writes every pixel of a window row before the vertical pass reads it, so the buffer needs no clear.
+            this.firstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>((int)firstPassLength);
+
+            // The horizontal operators read PaddedLength taps. A kernel at the end of the row reads up to
+            // PaddedLength - MaxDiameter pixels after the row, with the weight zero. These pixels must be finite. The clean
+            // buffer gives them the value zero, and the conversion of a source row never writes them.
+            //
+            // Each row has the source pixels and then this padding. The stride rounds the row up to a multiple of
+            // 4 pixels (64 bytes), so that the second row starts on a 64-byte boundary when the first row does.
+            // The memory allocator does not align its buffers, so the buffer has 15 more floats. The rows start at the
+            // first 64-byte boundary in the buffer, 0 to 15 floats after its start.
+            // A very wide source can make the two rows longer than int allows, so the length is checked in long.
+            int padding = this.horizontalKernels.PaddedLength - this.horizontalKernels.MaxDiameter;
+            long sourceRowStride = (((long)sourceRectangle.Width + padding + 3) & ~3L) * 4;
+            long sourceRowsLength = (sourceRowStride * 2) + 15;
+            if (sourceRowsLength > int.MaxValue)
+            {
+                InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)sourceRowsLength, int.MaxValue);
+            }
+
+            this.sourceRowStride = (int)sourceRowStride;
+            this.componentOwner = configuration.MemoryAllocator.Allocate<float>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
+            this.sourceRowsOwner = configuration.MemoryAllocator.Allocate<float>((int)sourceRowsLength, AllocationOptions.Clean);
+            this.resultVectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(destinationRectangle.Width);
+            this.alphaOwner = configuration.MemoryAllocator.Allocate<L16>(Math.Max(sourceRectangle.Width, destinationRectangle.Width));
+            this.currentWindow = new RowInterval(0, this.workerHeight);
+            this.CalculateFirstPassValues(this.currentWindow);
+        }
+        catch
+        {
+            // The caller receives no worker when the construction fails, so it cannot call Dispose.
+            // Dispose releases the owners that the constructor allocated before the failure. It skips the owners that are still null.
+            this.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
     /// Releases all allocator-owned working buffers.
     /// </summary>
+    /// <remarks>
+    /// The constructor also calls this method when it fails. Then some owners are still null.
+    /// </remarks>
     public override void Dispose()
     {
-        this.firstPassBuffer.Dispose();
-        this.componentOwner.Dispose();
-        this.sourceRowsOwner.Dispose();
-        this.resultVectorOwner.Dispose();
-        this.alphaOwner.Dispose();
-        this.horizontalKernels.Dispose();
-        this.verticalKernels.Dispose();
+        this.firstPassBuffer?.Dispose();
+        this.componentOwner?.Dispose();
+        this.sourceRowsOwner?.Dispose();
+        this.resultVectorOwner?.Dispose();
+        this.alphaOwner?.Dispose();
+        this.horizontalKernels?.Dispose();
+        this.verticalKernels?.Dispose();
     }
 
     /// <summary>

@@ -48,7 +48,9 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     {
         this.leftLength = leftSize;
         this.topLength = topSize;
-        int totalLength = checked(leftSize + topSize);
+
+        // Each edge is at most 16384 values for a frame of Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension, so the sum fits in int.
+        int totalLength = leftSize + topSize;
 
         // Both context edges have the picture lifetime. One clean allocation holds both edges and gives them their zero start state.
         this.owner = configuration.MemoryAllocator.Allocate<T>(totalLength, AllocationOptions.Clean);
@@ -65,7 +67,9 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     {
         this.leftLength = leftSize;
         this.topLength = topSize;
-        this.memory = memory[..checked(leftSize + topSize)];
+
+        // Each edge is at most 16384 values for a frame of Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension, so the sum fits in int.
+        this.memory = memory[..(leftSize + topSize)];
     }
 
     /// <summary>

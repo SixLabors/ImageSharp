@@ -30,6 +30,11 @@ internal ref struct Av1SymbolDecoder
     private Av1SymbolReader reader;
 
     /// <summary>
+    /// A value indicating whether a coefficient Golomb code exceeded its 20-bit limit in the current tile.
+    /// </summary>
+    private bool hasInvalidGolombCode;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct for one AV1 tile.
     /// </summary>
     /// <param name="configuration">The configuration providing temporary memory.</param>
@@ -66,11 +71,19 @@ internal ref struct Av1SymbolDecoder
     private static ReadOnlySpan<int> IntraModeContext => [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
 
     /// <summary>
-    /// Validates that range decoding remained within the bounded tile payload and consumed the required trailing-one bit.
+    /// Checks the tile entropy stream one time after the tile. The method reports an invalid coefficient Golomb code. It also reports a range decoder that
+    /// went outside the bounded tile payload, or that did not read the necessary trailing one bit.
     /// </summary>
     /// <param name="integrityHandling">The segment integrity mode that decides if a damaged tile stream throws.</param>
     public readonly void ValidateTrailingBits(SegmentIntegrityHandling integrityHandling)
-        => this.reader.ValidateTrailingBits(integrityHandling);
+    {
+        if (this.hasInvalidGolombCode)
+        {
+            integrityHandling.ThrowOrIgnoreImageDataError("The AV1 coefficient Golomb code exceeds its 20-bit limit.");
+        }
+
+        this.reader.ValidateTrailingBits(integrityHandling);
+    }
 
     /// <summary>
     /// Reads a fixed-width CDEF strength index.
@@ -1659,8 +1672,11 @@ internal ref struct Av1SymbolDecoder
     /// <summary>
     /// Reads the unsigned exponential-Golomb suffix used for coefficient levels beyond the base range.
     /// </summary>
+    /// <remarks>
+    /// AV1 limits the unary prefix to 20 bits. A longer prefix sets a flag that <see cref="ValidateTrailingBits(SegmentIntegrityHandling)"/> reports one time
+    /// for the tile. The read then stops the prefix at 20 bits, so the value stays inside the range of a valid code.
+    /// </remarks>
     /// <returns>The decoded nonnegative suffix value.</returns>
-    /// <exception cref="InvalidImageContentException">The unary prefix exceeds the AV1 coefficient limit.</exception>
     public int ReadGolomb()
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -1674,7 +1690,9 @@ internal ref struct Av1SymbolDecoder
             ++length;
             if (length > 20)
             {
-                throw new InvalidImageContentException("The AV1 coefficient Golomb code exceeds its 20-bit limit.");
+                this.hasInvalidGolombCode = true;
+                length = 20;
+                break;
             }
         }
 

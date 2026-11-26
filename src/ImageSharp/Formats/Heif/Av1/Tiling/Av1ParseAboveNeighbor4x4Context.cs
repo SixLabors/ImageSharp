@@ -48,7 +48,10 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     {
         this.contextLength = modeInfoColumnCount;
         int regionCount = PlaneContextRegionStart + planesCount;
-        int totalLength = checked(regionCount * modeInfoColumnCount);
+
+        // frame_width_minus_1 has at most 16 bits, so the frame width is at most 65536.
+        // Thus the aligned column count is at most 16384 and the product fits in int.
+        int totalLength = regionCount * modeInfoColumnCount;
 
         // Every region spans the same aligned frame width and shares the tile-reader lifetime.
         // Each byte holds a transform extent up to 128, a five-bit partition mask, or three level bits and a two-bit DC sign.

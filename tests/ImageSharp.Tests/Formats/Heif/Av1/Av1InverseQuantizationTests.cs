@@ -36,8 +36,8 @@ public class Av1InverseQuantizationTests
         Av1InverseQuantizer.TransformParameters matrix = new(
             quantizer, mode, Av1TransformType.DctDct, Av1TransformSize.Size4x4, Av1Plane.Y);
 
-        // quant_common.c's qindex-23 tables supply the three DC/AC pairs above. Its level-zero luma matrix
-        // begins with weights 32 and 43; the rounded AC values are independently fixed in the theory data.
+        // The libaom qindex-23 tables supply the three DC/AC pairs above. The libaom level-zero luma matrix begins with weights 32 and 43; the rounded AC
+        // values are independently fixed in the theory data.
         Assert.Equal(7 * dc, matrix.Dequantize(7, 0, false));
         Assert.Equal(11 * weightedAc, matrix.Dequantize(11, 1, false));
         Assert.Equal(-11 * weightedAc, matrix.Dequantize(11, 1, true));

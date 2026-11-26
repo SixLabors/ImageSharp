@@ -59,8 +59,8 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Verifies the 4x4 mode-estimation DCT against a scalar transcription of aom_fdct4x4_lp_c() for eight-bit
-    /// residuals, where libaom's C and x86 forms agree.
+    /// Verifies the 4x4 mode-estimation DCT against a scalar transcription of the libaom low-precision 4x4 DCT for eight-bit residuals, where libaom's C and
+    /// x86 forms agree.
     /// </summary>
     private static void AssertModeEstimationDct()
     {
@@ -123,7 +123,7 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Computes the 4x4 forward DCT with the arithmetic of aom_fdct4x4_lp_c().
+    /// Computes the 4x4 forward DCT with the arithmetic of the libaom low-precision C function.
     /// </summary>
     /// <param name="input">The residual samples.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -191,15 +191,15 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Rounds a Q14 product to an integer, as fdct_round_shift() does.
+    /// Rounds a Q14 product to the nearest integer, as the libaom forward DCT does.
     /// </summary>
     /// <param name="value">The Q14 product.</param>
     /// <returns>The rounded integer.</returns>
     private static long ReferenceRoundShift(long value) => (value + 8192) >> 14;
 
     /// <summary>
-    /// Verifies the mode-estimation Hadamard coefficients, in order, against a scalar transcription of
-    /// aom_hadamard_lp_8x8_c() and the sixteen-bit 16x16 combine, including residuals that wrap sixteen-bit lanes.
+    /// Verifies the mode-estimation Hadamard coefficients, in order, against a scalar transcription of the libaom low-precision 8x8 Hadamard and the
+    /// sixteen-bit 16x16 combine, including residuals that wrap sixteen-bit lanes.
     /// </summary>
     /// <param name="size">The square transform width, eight or sixteen.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
@@ -260,7 +260,7 @@ public class Av1ForwardTransformTests
                 ReferenceHadamardColumn8(buffer, column, 8, buffer2, 8 * column);
             }
 
-            // aom_hadamard_lp_8x8_c() transposes its output to match the SSE2 layout.
+            // The libaom low-precision 8x8 Hadamard transposes its output to match the SSE2 layout.
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -304,7 +304,7 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Transforms one column with the sixteen-bit butterflies of hadamard_col8().
+    /// Transforms one column with the sixteen-bit butterflies of the libaom 8x8 Hadamard.
     /// </summary>
     /// <param name="source">The source samples.</param>
     /// <param name="offset">The column's first sample.</param>

@@ -19,24 +19,15 @@ internal struct HeifSequenceSample
     public int Length { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the file ends before the end of the sample. If this value is true, <see cref="Length"/> gives only the bytes
+    /// that the file holds.
+    /// </summary>
+    public bool IsTruncated { get; set; }
+
+    /// <summary>
     /// Gets or sets the sample duration in media-time-scale units.
     /// </summary>
     public uint Duration { get; set; }
-
-    /// <summary>
-    /// Gets or sets the signed offset from decode time to composition time in media-time-scale units.
-    /// </summary>
-    public long CompositionOffset { get; set; }
-
-    /// <summary>
-    /// Gets or sets the computed composition time in media-time-scale units.
-    /// </summary>
-    public long CompositionTime { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the sample is decoded only as a reference and is not presented.
-    /// </summary>
-    public bool IsHidden { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether decoding can begin at this sample.

@@ -124,6 +124,18 @@ internal static class Av1Math
     }
 
     /// <summary>
+    /// Aligns a 64-bit value upward to a multiple of a power of two.
+    /// </summary>
+    /// <param name="value">The value to align.</param>
+    /// <param name="n">The base-two alignment exponent.</param>
+    /// <returns>The aligned value.</returns>
+    public static long AlignPowerOf2(long value, int n)
+    {
+        long mask = (1L << n) - 1;
+        return (value + mask) & ~mask;
+    }
+
+    /// <summary>
     /// Divides a value by a power of two with nearest-integer rounding.
     /// </summary>
     /// <param name="value">The value.</param>

@@ -81,6 +81,12 @@ public class HeifSequenceParserTests
     private static ReadOnlySpan<byte> DefaultAv1Configuration => [0x81, 0, 0, 0];
 
     /// <summary>
+    /// Gets the minimal AV1CodecConfigurationBox payload of an alpha track. AVIF requires a monochrome alpha plane. Thus the third byte sets mono_chrome (0x10)
+    /// and the 4:0:0 subsampling flags subsampling_x and subsampling_y (0x0C).
+    /// </summary>
+    private static ReadOnlySpan<byte> DefaultAlphaAv1Configuration => [0x81, 0, 0x1C, 0];
+
+    /// <summary>
     /// Verifies that identification transfers bounded sequence, track property, metadata-item, and frame-timing
     /// information from the parser into the public image metadata model.
     /// </summary>
@@ -347,6 +353,52 @@ public class HeifSequenceParserTests
         Assert.Equal(AlphaTrackId, sequence.AlphaTrack.Id);
         Assert.True(sequence.AlphaTrack.IsAlpha);
         Assert.True(sequence.ColorTrack.IsPremultiplied);
+    }
+
+    /// <summary>
+    /// Verifies that the parser rejects two image tracks with the same identifier. ISO/IEC 14496-12, section 8.3.2 gives each track a unique track_ID.
+    /// </summary>
+    [Fact]
+    public void ParseRejectsDuplicateTrackIdentifiers()
+    {
+        byte[] data = CreateSequenceFileWithAlpha(SyntheticChunkOffset, SyntheticMovieTimescale, 0);
+
+        // The alpha track header is the second track header. The test writes the identifier of the color track into it. The track_ID comes after the box type,
+        // the version and flags, and the 32-bit creation and modification times.
+        int firstTrackHeader = data.AsSpan().IndexOf("tkhd"u8);
+        int secondTrackHeader = firstTrackHeader + 4 + data.AsSpan(firstTrackHeader + 4).IndexOf("tkhd"u8);
+        Assert.True(firstTrackHeader >= 0 && secondTrackHeader > firstTrackHeader + 4);
+        Assert.Equal(AlphaTrackId, BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(secondTrackHeader + 16)));
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(secondTrackHeader + 16), ColorTrackId);
+
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
+        stream.Position = BoxHeaderLength;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data), 0));
+    }
+
+    /// <summary>
+    /// Verifies that the file offsets (construction method 0) of track-level Exif and XMP items are relative to the start of the HEIF file. The HEIF file
+    /// starts after the start of the stream.
+    /// </summary>
+    [Fact]
+    public void ParseReadsTrackMetadataRelativeToFileStart()
+    {
+        const int fileStartOffset = 16;
+
+        byte[] file = CreateSequenceFile(SyntheticChunkOffset, trackMetadata: true);
+        byte[] data = new byte[fileStartOffset + file.Length];
+        file.CopyTo(data, fileStartOffset);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
+        stream.Position = fileStartOffset + BoxHeaderLength;
+
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(file), fileStartOffset);
+
+        HeifSequenceMetadata metadata = Assert.IsType<HeifSequenceMetadata>(sequence.ColorTrack.Metadata);
+        Assert.Equal(TrackExifData.ToArray(), metadata.ExifData);
+        Assert.Equal(TrackXmpData.ToArray(), metadata.XmpData);
     }
 
     /// <summary>
@@ -1138,7 +1190,11 @@ public class HeifSequenceParserTests
         WriteUInt16(writer, noColorTable);
 
         long configuration = BeginBox(writer, Heif4CharCode.Av1C);
-        ReadOnlySpan<byte> configurationPayload = av1Configuration is null ? DefaultAv1Configuration : av1Configuration;
+        ReadOnlySpan<byte> configurationPayload = av1Configuration;
+        if (av1Configuration is null)
+        {
+            configurationPayload = alpha ? DefaultAlphaAv1Configuration : DefaultAv1Configuration;
+        }
 
         writer.Write(configurationPayload);
         EndBox(writer, configuration);

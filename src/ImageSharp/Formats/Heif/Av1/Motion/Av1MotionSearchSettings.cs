@@ -340,7 +340,7 @@ internal readonly struct Av1MotionSearchSettings
     }
 
     /// <summary>
-    /// The finest displacement examined by a fractional search.
+    /// The finest displacement that a fractional search checks.
     /// </summary>
     public enum SearchPrecision
     {
@@ -402,7 +402,7 @@ internal readonly struct Av1MotionSearchSettings
     public FractionalSearchMethod FractionalMethod { get; }
 
     /// <summary>
-    /// Gets the finest displacement examined by the fractional search.
+    /// Gets the finest displacement that the fractional search checks.
     /// </summary>
     public SearchPrecision FractionalPrecision { get; }
 
@@ -546,7 +546,7 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="frameLowMotion">The percentage of low-motion blocks in the preceding frame.</param>
     /// <param name="sourceSad">The source-change classification.</param>
     /// <param name="sourceVariance">The normalized source variance.</param>
-    /// <returns>The finest displacement to examine.</returns>
+    /// <returns>The finest displacement to check.</returns>
     public SearchPrecision GetEstimatedFractionalPrecision(
         Av1BlockSize blockSize,
         Point integerVector,

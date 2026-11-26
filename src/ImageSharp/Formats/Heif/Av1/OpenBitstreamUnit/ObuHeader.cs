@@ -4,42 +4,69 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 /// <summary>
-/// Contains the parsed header and payload size of an AV1 open bitstream unit.
+/// Gives the header fields and the byte boundaries of one AV1 open bitstream unit in a bounded payload.
 /// </summary>
-internal sealed class ObuHeader
+internal readonly struct ObuHeader
 {
     /// <summary>
-    /// Gets or sets the number of bytes occupied by the fixed OBU header and optional extension.
+    /// Initializes a new instance of the <see cref="ObuHeader"/> struct.
     /// </summary>
-    public int Size { get; set; }
+    /// <param name="type">The OBU type.</param>
+    /// <param name="extension">The extension byte, or <c>-1</c> when the header has no extension.</param>
+    /// <param name="hasSizeField">A value indicating whether the header has an obu_size field.</param>
+    /// <param name="payloadOffset">The offset of the payload from the first header byte.</param>
+    /// <param name="payloadLength">The number of payload bytes in the data.</param>
+    public ObuHeader(ObuType type, int extension, bool hasSizeField, int payloadOffset, int payloadLength)
+    {
+        this.Type = type;
+        this.Extension = extension;
+        this.HasSizeField = hasSizeField;
+        this.PayloadOffset = payloadOffset;
+        this.PayloadLength = payloadLength;
+    }
 
     /// <summary>
-    /// Gets or sets the OBU payload type.
+    /// Gets the OBU type.
     /// </summary>
-    public ObuType Type { get; set; }
+    public ObuType Type { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the OBU carries an explicit payload-size field.
+    /// Gets the extension byte, or <c>-1</c> when the header has no extension.
     /// </summary>
-    public bool HasSize { get; set; }
+    public int Extension { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the OBU carries temporal and spatial identifiers.
+    /// Gets a value indicating whether the header has an extension byte.
     /// </summary>
-    public bool HasExtension { get; set; }
+    public bool HasExtension => this.Extension >= 0;
 
     /// <summary>
-    /// Gets or sets the temporal-layer identifier.
+    /// Gets the temporal-layer identifier. AV1 section 5.3.3 stores it in bits 5 to 7 of the extension byte.
     /// </summary>
-    public int TemporalId { get; set; }
+    public int TemporalId => this.HasExtension ? this.Extension >> 5 : 0;
 
     /// <summary>
-    /// Gets or sets the spatial-layer identifier.
+    /// Gets the spatial-layer identifier. AV1 section 5.3.3 stores it in bits 3 and 4 of the extension byte.
     /// </summary>
-    public int SpatialId { get; set; }
+    public int SpatialId => this.HasExtension ? (this.Extension >> 3) & 0x03 : 0;
 
     /// <summary>
-    /// Gets or sets the OBU payload size, in bytes.
+    /// Gets a value indicating whether the header has an obu_size field.
     /// </summary>
-    public int PayloadSize { get; set; }
+    public bool HasSizeField { get; }
+
+    /// <summary>
+    /// Gets the offset of the payload from the first header byte.
+    /// </summary>
+    public int PayloadOffset { get; }
+
+    /// <summary>
+    /// Gets the number of payload bytes in the data.
+    /// </summary>
+    public int PayloadLength { get; }
+
+    /// <summary>
+    /// Gets the number of bytes from the first header byte to the end of the payload.
+    /// </summary>
+    public int Size => this.PayloadOffset + this.PayloadLength;
 }

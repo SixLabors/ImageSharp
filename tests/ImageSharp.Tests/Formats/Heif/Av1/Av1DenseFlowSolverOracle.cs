@@ -7,10 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Refines one patch's flow vector with a direct transcription of the reference decoder.
 /// </summary>
 /// <remarks>
-/// Written as the plainest possible form of the reference rather than as fast code, so that it is
-/// easy to compare with the C source line by line. Reference: aom_compute_flow_at_point_c(),
-/// sobel_filter(), compute_flow_matrix(), invert_2x2(), compute_flow_vector(),
-/// get_cubic_kernel_int() and get_cubic_value_int().
+/// Written as the plainest possible form of the reference rather than as fast code, so that it is easy to compare with the libaom C source line by line.
 /// </remarks>
 internal static class Av1DenseFlowSolverOracle
 {

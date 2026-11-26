@@ -100,7 +100,13 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         int allocationHeight,
         FrameBufferKind kind)
     {
-        ValidateDimensions(sequenceHeader, maxColorFormat, is16BitPipeline, allocationWidth, allocationHeight);
+        if (!HasValidDimensions(sequenceHeader, maxColorFormat, is16BitPipeline, allocationWidth, allocationHeight))
+        {
+            // The reconstruction operators need one contiguous owner, so that the code can address each padded row directly. The OBU reader reports a coded
+            // frame that is larger than this limit as damage of its frame header. Other callers, for example an alpha grid canvas, get the frame size from
+            // container properties.
+            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder frame limit.");
+        }
 
         this.MemoryAllocator = allocator;
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
@@ -129,12 +135,17 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         this.OriginX = border;
         this.OriginY = border;
 
-        FrameBufferLayout layout = CreateFrameBufferLayout(
+        // The reconstruction layout has the widest border. As a result, the HasValidDimensions test also sets the limit for a presentation layout or a
+        // restoration layout.
+        bool hasLayout = TryCreateFrameBufferLayout(
             allocationWidth,
             allocationHeight,
             colorFormat,
             this.storageElementsPerSample,
-            kind);
+            kind,
+            out FrameBufferLayout layout);
+
+        DebugGuard.IsTrue(hasLayout, nameof(allocationWidth), "The constructor checked the frame dimensions.");
 
         // One allocation owns every component plane. A restoration frame keeps its capacity across frames. Its new storage starts cleared, so unwritten
         // alignment and border slots cannot expose pooled data.
@@ -234,14 +245,15 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     public MemoryAllocator MemoryAllocator { get; }
 
     /// <summary>
-    /// Validates that the requested frame planes fit the decoder's contiguous ownership contract.
+    /// Determines whether the requested reconstruction frame planes fit the contiguous ownership contract of the decoder.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining bit depth and chroma layout.</param>
     /// <param name="maxColorFormat">The color format required by the frame.</param>
     /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
     /// <param name="allocationWidth">The active luma width required by the allocation.</param>
     /// <param name="allocationHeight">The active luma height required by the allocation.</param>
-    public static void ValidateDimensions(
+    /// <returns><see langword="true"/> when one contiguous allocation can hold the padded planes.</returns>
+    public static bool HasValidDimensions(
         ObuSequenceHeader sequenceHeader,
         Av1ColorFormat maxColorFormat,
         bool is16BitPipeline,
@@ -249,17 +261,9 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         int allocationHeight)
     {
         int bytesPerSample = sequenceHeader.ColorConfig.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
-        int storageElementsPerSample = Math.Max(
-            (bytesPerSample + Unsafe.SizeOf<T>() - 1) / Unsafe.SizeOf<T>(),
-            1);
-
+        int storageElementsPerSample = Math.Max((bytesPerSample + Unsafe.SizeOf<T>() - 1) / Unsafe.SizeOf<T>(), 1);
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
-        _ = CreateFrameBufferLayout(
-            allocationWidth,
-            allocationHeight,
-            colorFormat,
-            storageElementsPerSample,
-            FrameBufferKind.Reconstruction);
+        return TryCreateFrameBufferLayout(allocationWidth, allocationHeight, colorFormat, storageElementsPerSample, FrameBufferKind.Reconstruction, out _);
     }
 
     /// <summary>
@@ -328,12 +332,16 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         if (retainedPlanes is null || this.Width != source.Width || this.Height != source.Height ||
             this.ColorFormat != source.ColorFormat || this.BytesPerSample != source.BytesPerSample)
         {
-            FrameBufferLayout layout = CreateFrameBufferLayout(
+            // The source frame passed the reconstruction check, and the restoration border is narrower.
+            bool hasLayout = TryCreateFrameBufferLayout(
                 source.Width,
                 source.Height,
                 source.ColorFormat,
                 source.storageElementsPerSample,
-                FrameBufferKind.Restoration);
+                FrameBufferKind.Restoration,
+                out FrameBufferLayout layout);
+
+            DebugGuard.IsTrue(hasLayout, nameof(source), "The source frame passed the reconstruction dimension check.");
 
             FramePlanes activePlanes = retainedPlanes.GetValueOrDefault();
             if (retainedPlanes is null || !activePlanes.CanHold(layout))
@@ -729,14 +737,15 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <param name="colorFormat">The sampling layout, which decides the chroma plane sizes.</param>
     /// <param name="storageElementsPerSample">The number of <typeparamref name="T"/> elements occupied by one logical sample.</param>
     /// <param name="kind">The frame use, which selects the border and the alignment.</param>
-    /// <returns>The plane sizes, offsets and total storage length in <typeparamref name="T"/> elements.</returns>
-    /// <exception cref="InvalidImageContentException">The padded frame planes cannot be represented as one contiguous allocation.</exception>
-    private static FrameBufferLayout CreateFrameBufferLayout(
+    /// <param name="layout">Receives the plane sizes, offsets and total storage length in <typeparamref name="T"/> elements.</param>
+    /// <returns><see langword="true"/> when one contiguous allocation can hold the padded frame planes.</returns>
+    private static bool TryCreateFrameBufferLayout(
         int width,
         int height,
         Av1ColorFormat colorFormat,
         int storageElementsPerSample,
-        FrameBufferKind kind)
+        FrameBufferKind kind,
+        out FrameBufferLayout layout)
     {
         // Reconstruction and restoration frames round both dimensions up to a multiple of eight samples, but use different borders. A presentation frame rounds
         // only an odd final row or column up to an even count. Its rows align to 16 bytes at either bit depth.
@@ -772,13 +781,14 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             ? lumaElementCount
             : chromaRedOffset + chromaElementCount;
 
+        // The reconstruction operators need one contiguous owner, so that the code can address each padded row directly.
         if (storageLength >= int.MaxValue)
         {
-            // Reconstruction operators require one contiguous owner so every padded row remains directly addressable.
-            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder frame limit.");
+            layout = default;
+            return false;
         }
 
-        return new FrameBufferLayout(
+        layout = new FrameBufferLayout(
             (int)lumaStorageWidth,
             (int)lumaElementCount,
             (int)chromaStorageWidth,
@@ -786,6 +796,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             (int)chromaBlueOffset,
             (int)chromaRedOffset,
             (int)storageLength);
+
+        return true;
     }
 
     /// <summary>

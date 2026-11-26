@@ -68,16 +68,6 @@ internal sealed class HeifItem
     public string? ContentEncoding { get; set; }
 
     /// <summary>
-    /// Gets or sets the extension type of the item information entry.
-    /// </summary>
-    public uint ExtensionType { get; set; }
-
-    /// <summary>
-    /// Gets or sets the URI type of a uri item.
-    /// </summary>
-    public string? UriType { get; set; }
-
-    /// <summary>
     /// Gets or sets the registered auxiliary type associated with this image item.
     /// </summary>
     public string? AuxiliaryType { get; set; }
@@ -204,11 +194,6 @@ internal sealed class HeifItem
     public byte? UniformChannelBitDepth { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of bits in a single pixel.
-    /// </summary>
-    public int BitsPerPixel { get; set; }
-
-    /// <summary>
     /// Gets the spatial extent of this item.
     /// </summary>
     public Size Extent { get; private set; }
@@ -222,6 +207,12 @@ internal sealed class HeifItem
     /// Gets the list of data locations for this item.
     /// </summary>
     public List<HeifLocation> DataLocations { get; } = [];
+
+    /// <summary>
+    /// Gets or sets the number of item data bytes that the file holds. <see cref="HeifItemDataSource.ValidateExtents"/> sets the value before the decoder
+    /// reads the item. If the file is truncated, the value is less than the declared length.
+    /// </summary>
+    public int DataLength { get; set; }
 
     /// <summary>
     /// Gets the serialized ICC payload used while sizing and writing an encoded item.

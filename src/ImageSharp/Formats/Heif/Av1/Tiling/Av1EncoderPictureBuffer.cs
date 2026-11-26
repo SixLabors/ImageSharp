@@ -113,76 +113,65 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 ? 0
                 : lumaTopLength >> (colorConfig.SubSamplingX ? 1 : 0);
 
+            // A frame is at most Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension, so each context edge is at most 16384 values.
+            // The tile grid is at most Av1Constants.MaxTileColumnCount x Av1Constants.MaxTileRowCount. Thus the regions up to the palette
+            // region end below 1 << 31.
             int tileCount = frameHeader.TilesInfo.TileColumnCount * frameHeader.TilesInfo.TileRowCount;
-            int lumaContextLength = checked(lumaLeftLength + lumaTopLength);
-            int chromaContextLength = checked(chromaLeftLength + chromaTopLength);
-            int byteContextLengthPerTile = checked((2 * lumaContextLength) + (2 * chromaContextLength));
-            int partitionContextLength = checked(tileCount * lumaContextLength);
-            int segmentationLength = checked(this.modeInfo.ModeInfoColumnCount * this.modeInfo.ModeInfoRowCount);
+            int lumaContextLength = lumaLeftLength + lumaTopLength;
+            int chromaContextLength = chromaLeftLength + chromaTopLength;
+            int byteContextLengthPerTile = (2 * lumaContextLength) + (2 * chromaContextLength);
+            int partitionContextLength = tileCount * lumaContextLength;
+            int segmentationLength = this.modeInfo.ModeInfoColumnCount * this.modeInfo.ModeInfoRowCount;
             int partitionContextSize = Unsafe.SizeOf<Av1PartitionContext>();
-            int partitionStorageOffset = checked(
-                ((segmentationLength + partitionContextSize - 1) / partitionContextSize) * partitionContextSize);
-
-            int partitionStorageLength = checked(
-                partitionContextLength * Unsafe.SizeOf<Av1PartitionContext>());
-
-            int byteContextStorageOffset = checked(partitionStorageOffset + partitionStorageLength);
-            int byteContextStorageLength = checked(tileCount * byteContextLengthPerTile);
-            int byteContextStorageEnd = checked(byteContextStorageOffset + byteContextStorageLength);
+            int partitionStorageOffset = ((segmentationLength + partitionContextSize - 1) / partitionContextSize) * partitionContextSize;
+            int partitionStorageLength = partitionContextLength * Unsafe.SizeOf<Av1PartitionContext>();
+            int byteContextStorageOffset = partitionStorageOffset + partitionStorageLength;
+            int byteContextStorageLength = tileCount * byteContextLengthPerTile;
+            int byteContextStorageEnd = byteContextStorageOffset + byteContextStorageLength;
             int paletteLeftLength = alignedModeInfoRowCount;
             int paletteTopLength = this.modeInfo.ModeInfoStride;
-            int paletteContextLength = checked(paletteLeftLength + paletteTopLength);
+            int paletteContextLength = paletteLeftLength + paletteTopLength;
             int paletteStorageOffset = allocateScreenContentState
                 ? Av1Math.AlignPowerOf2(byteContextStorageEnd, 1)
                 : byteContextStorageEnd;
 
-            int paletteStorageLength = allocateScreenContentState
-                ? checked(tileCount * paletteContextLength * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
-                : 0;
-
-            int paletteStorageEnd = checked(paletteStorageOffset + paletteStorageLength);
-            int blockPaletteStorageLength = allocateScreenContentState
-                ? checked(this.modeInfo.Allocation.Length * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
-                : 0;
-
-            int paletteTokenStorageOffset = checked(paletteStorageEnd + blockPaletteStorageLength);
+            // The palette, block and vector regions grow with the frame area and can exceed int.MaxValue bytes, so they use long. The limit
+            // check on the total length keeps every offset and length below inside int.
+            long paletteStorageLength = allocateScreenContentState ? (long)tileCount * paletteContextLength * Unsafe.SizeOf<Av1EncoderPaletteInfo>() : 0;
+            long paletteStorageEnd = paletteStorageOffset + paletteStorageLength;
+            long blockPaletteStorageLength = allocateScreenContentState ? (long)this.modeInfo.Allocation.Length * Unsafe.SizeOf<Av1EncoderPaletteInfo>() : 0;
+            long paletteTokenStorageOffset = paletteStorageEnd + blockPaletteStorageLength;
 
             // Each of the two palette planes needs at most one packed token per sample. The capacity rounds both dimensions up to the maximum
             // superblock size, so it is large enough for both supported superblock sizes.
-            int paletteTokenStorageLength = allocateScreenContentState
-                ? checked(
-                    Av1Math.AlignPowerOf2(width, Av1Constants.MaxSuperBlockSizeLog2) *
+            long paletteTokenStorageLength = allocateScreenContentState
+                ? (long)Av1Math.AlignPowerOf2(width, Av1Constants.MaxSuperBlockSizeLog2) *
                     Av1Math.AlignPowerOf2(height, Av1Constants.MaxSuperBlockSizeLog2) *
-                    Math.Min(2, colorConfig.PlaneCount))
+                    Math.Min(2, colorConfig.PlaneCount)
                 : 0;
 
-            int paletteTokenStorageEnd = checked(paletteTokenStorageOffset + paletteTokenStorageLength);
-            int blockEncodingStorageLength = checked(this.modeInfo.Allocation.Length * Av1EncoderBlockStruct.StorageSize);
-            int blockEncodingStorageEnd = checked(paletteTokenStorageEnd + blockEncodingStorageLength);
+            long paletteTokenStorageEnd = paletteTokenStorageOffset + paletteTokenStorageLength;
+            long blockEncodingStorageLength = (long)this.modeInfo.Allocation.Length * Av1EncoderBlockStruct.StorageSize;
+            long blockEncodingStorageEnd = paletteTokenStorageEnd + blockEncodingStorageLength;
             int displacementVectorLength = allocateMotionVectorState ? this.modeInfo.Allocation.Length : 0;
-            int displacementVectorStorageOffset = allocateMotionVectorState
-                ? Av1Math.AlignPowerOf2(blockEncodingStorageEnd, 1)
-                : blockEncodingStorageEnd;
-
-            int displacementVectorStorageLength = checked(
-                displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>());
-
-            int displacementVectorStorageEnd = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
-            int referenceContextStorageLength = checked(
-                displacementVectorLength * Unsafe.SizeOf<Av1EncoderReferenceContext>());
-
-            int referenceContextStorageEnd = checked(displacementVectorStorageEnd + referenceContextStorageLength);
-            int tileStateStorageOffset = Av1Math.AlignPowerOf2(referenceContextStorageEnd, 2);
+            long displacementVectorStorageOffset = allocateMotionVectorState ? Av1Math.AlignPowerOf2(blockEncodingStorageEnd, 1) : blockEncodingStorageEnd;
+            long displacementVectorStorageLength = (long)displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>();
+            long displacementVectorStorageEnd = displacementVectorStorageOffset + displacementVectorStorageLength;
+            long referenceContextStorageLength = (long)displacementVectorLength * Unsafe.SizeOf<Av1EncoderReferenceContext>();
+            long referenceContextStorageEnd = displacementVectorStorageEnd + referenceContextStorageLength;
+            long tileStateStorageOffset = Av1Math.AlignPowerOf2(referenceContextStorageEnd, 2);
             int cdefPresetLength = tileCount * Av1Constants.CdefUnitsPerSuperblock;
             int tileStateLength = cdefPresetLength + (2 * tileCount);
             int tileStateStorageLength = tileStateLength * sizeof(int);
-            int restorationStorageOffset = checked(tileStateStorageOffset + tileStateStorageLength);
+            long restorationStorageOffset = tileStateStorageOffset + tileStateStorageLength;
             InlineArray3<int> restorationLengthStorage = default;
             Span<int> restorationLengths = restorationLengthStorage;
             int restorationUnitCount = 0;
             int restorationReferenceCount = 0;
             if (sequenceHeader.EnableRestoration)
             {
+                // The smallest unit is 64x64 samples, so each plane has at most 1024 x 1024 units. The tile grid gives at most 4096 x 3
+                // references. Thus the counts and the restoration byte length stay inside int.
                 int minimumUnitSize = 1 << sequenceHeader.SuperblockSizeLog2;
                 for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
                 {
@@ -192,24 +181,26 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                     int planeHeight = Av1Math.DivideLog2Ceiling(height, subY);
                     int columns = Math.Max(1, (planeWidth + (minimumUnitSize >> 1)) / minimumUnitSize);
                     int rows = Math.Max(1, (planeHeight + (minimumUnitSize >> 1)) / minimumUnitSize);
-                    restorationLengths[plane] = checked(columns * rows);
-                    restorationUnitCount = checked(restorationUnitCount + restorationLengths[plane]);
+                    restorationLengths[plane] = columns * rows;
+                    restorationUnitCount += restorationLengths[plane];
                 }
 
-                restorationReferenceCount = checked(tileCount * colorConfig.PlaneCount);
+                restorationReferenceCount = tileCount * colorConfig.PlaneCount;
             }
 
-            int restorationStorageLength = checked((restorationUnitCount + restorationReferenceCount) * Unsafe.SizeOf<Av1LoopRestorationUnit>());
-            int stateStorageLength = checked(restorationStorageOffset + restorationStorageLength);
+            int restorationStorageLength = (restorationUnitCount + restorationReferenceCount) * Unsafe.SizeOf<Av1LoopRestorationUnit>();
+            long stateStorageLength = restorationStorageOffset + restorationStorageLength;
+            if (stateStorageLength > int.MaxValue)
+            {
+                InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)stateStorageLength, int.MaxValue);
+            }
 
             // One clean allocation holds the segmentation map and every tile edge for the life of the picture. The partition region begins at
             // its native alignment. The CDEF presets, the previous quantizers and the encoded tile lengths share one aligned integer region at
             // the end. This avoids separate managed arrays for every picture.
-            this.stateStorage = configuration.MemoryAllocator.Allocate<byte>(
-                stateStorageLength,
-                AllocationOptions.Clean);
+            this.stateStorage = configuration.MemoryAllocator.Allocate<byte>((int)stateStorageLength, AllocationOptions.Clean);
 
-            this.stateMemory = this.stateStorage.Memory[..stateStorageLength];
+            this.stateMemory = this.stateStorage.Memory[..(int)stateStorageLength];
             Memory<byte> stateStorage = this.stateMemory;
             this.partitionContextMemory = new ByteMemoryManager<Av1PartitionContext>(
                 stateStorage.Slice(partitionStorageOffset, partitionStorageLength));
@@ -226,12 +217,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             if (allocateScreenContentState)
             {
                 // Palette entries contain 16-bit colors, so their packed typed region begins at an even byte offset.
-                ByteMemoryManager<Av1EncoderPaletteInfo> paletteMemory = new(
-                    stateStorage.Slice(paletteStorageOffset, paletteStorageLength));
+                ByteMemoryManager<Av1EncoderPaletteInfo> paletteMemory = new(stateStorage.Slice(paletteStorageOffset, (int)paletteStorageLength));
 
                 paletteStorage = paletteMemory.Memory;
-                ByteMemoryManager<Av1EncoderPaletteInfo> blockPaletteMemory = new(
-                    stateStorage.Slice(paletteStorageEnd, blockPaletteStorageLength));
+                ByteMemoryManager<Av1EncoderPaletteInfo> blockPaletteMemory = new(stateStorage.Slice((int)paletteStorageEnd, (int)blockPaletteStorageLength));
 
                 blockPalettes = blockPaletteMemory.Memory;
                 this.paletteContexts = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>[tileCount];
@@ -246,7 +235,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             // The final syntax parameters use their own eight-byte entries, so frequent neighbor lookups keep the compact mode-information
             // layout. This typed view borrows the same owner of the picture state.
             ByteMemoryManager<Av1EncoderBlockStruct> blockEncodingMemory = new(
-                stateStorage.Slice(paletteTokenStorageEnd, blockEncodingStorageLength));
+                stateStorage.Slice((int)paletteTokenStorageEnd, (int)blockEncodingStorageLength));
 
             Memory<Av1EncoderReferenceContext> referenceContexts = Memory<Av1EncoderReferenceContext>.Empty;
             if (allocateMotionVectorState)
@@ -254,11 +243,11 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 // Each component lies strictly inside plus or minus 16384. Two signed 16-bit fields hold both inter and intra-block-copy vectors
                 // without a larger compact mode-information entry.
                 ByteMemoryManager<Av1EncoderDisplacementVector> displacementVectorMemory = new(
-                    stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
+                    stateStorage.Slice((int)displacementVectorStorageOffset, (int)displacementVectorStorageLength));
 
                 displacementVectors = displacementVectorMemory.Memory;
                 ByteMemoryManager<Av1EncoderReferenceContext> referenceContextMemory = new(
-                    stateStorage.Slice(displacementVectorStorageEnd, referenceContextStorageLength));
+                    stateStorage.Slice((int)displacementVectorStorageEnd, (int)referenceContextStorageLength));
 
                 referenceContexts = referenceContextMemory.Memory;
             }
@@ -281,8 +270,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 intraBlockCopySearch = new Av1IntraBlockCopySearchIndex(levels, width, height, maximumHashBlockSize);
             }
 
-            ByteMemoryManager<int> tileStateMemory = new(
-                stateStorage.Slice(tileStateStorageOffset, tileStateStorageLength));
+            ByteMemoryManager<int> tileStateMemory = new(stateStorage.Slice((int)tileStateStorageOffset, tileStateStorageLength));
 
             Memory<int> tileState = tileStateMemory.Memory;
             Memory<int> cdefPreset = tileState[..cdefPresetLength];
@@ -295,8 +283,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             {
                 // The unit decisions and the tile histories share the existing picture owner. The smallest allowed unit size sets the capacity.
                 // Larger units use a shorter prefix.
-                ByteMemoryManager<Av1LoopRestorationUnit> restorationMemory = new(
-                    stateStorage.Slice(restorationStorageOffset, restorationStorageLength));
+                ByteMemoryManager<Av1LoopRestorationUnit> restorationMemory = new(stateStorage.Slice((int)restorationStorageOffset, restorationStorageLength));
 
                 Memory<Av1LoopRestorationUnit> restorationStorage = restorationMemory.Memory;
                 Span<int> unitOffsets = restorationUnitOffsets;
@@ -406,7 +393,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 ReferenceContexts = referenceContexts,
                 BlockEncodings = blockEncodingMemory.Memory,
                 BlockPalettes = blockPalettes,
-                PaletteTokens = stateStorage.Slice(paletteTokenStorageOffset, paletteTokenStorageLength),
+                PaletteTokens = stateStorage.Slice((int)paletteTokenStorageOffset, (int)paletteTokenStorageLength),
                 IntraBlockCopySearch = intraBlockCopySearch,
                 ModeInfoStride = this.modeInfo.ModeInfoStride,
                 Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,

@@ -23,8 +23,7 @@ public class Av1FlowFieldTests
     private static readonly double[] UpperPhase = [-9 / 128.0, 111 / 128.0, 29 / 128.0, -3 / 128.0];
 
     /// <summary>
-    /// Verifies both passes bit for bit against the sequential tap sums of upscale_flow_component(), for widths that
-    /// end in every vector tail.
+    /// Verifies both passes bit for bit against the sequential tap sums of the libaom flow upscale, for widths that end in every vector tail.
     /// </summary>
     [Fact]
     public void UpscalePassesMatchReferenceAcrossHardwareWidths()

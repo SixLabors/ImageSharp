@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -77,18 +78,23 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         int subsamplingY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
         Size codedSize = Av1EncoderFrame<TSample>.GetCodedSize(width, height);
         Size lumaSize = Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, 0, 0, lumaBorder);
-        int lumaElementCount = checked(lumaSize.Width * lumaSize.Height);
+
+        // A bordered plane of a frame of up to Av1Constants.MaxFrameDimension x Av1Constants.MaxFrameDimension can hold more than int.MaxValue
+        // samples, so the layout uses long. The limit check on the total length keeps every offset and length below inside int.
+        long lumaElementCount = (long)lumaSize.Width * lumaSize.Height;
         Size chromaSize = colorFormat == Av1ColorFormat.Yuv400
             ? Size.Empty
             : Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY, lumaBorder);
 
-        int chromaElementCount = checked(chromaSize.Width * chromaSize.Height);
-        int planeAlignment = Math.Max(PlaneAlignmentBytes / Unsafe.SizeOf<TSample>(), 1);
-        int chromaBlueOffset = Align(lumaElementCount, planeAlignment);
-        int chromaRedOffset = Align(checked(chromaBlueOffset + chromaElementCount), planeAlignment);
-        int storageLength = colorFormat == Av1ColorFormat.Yuv400
-            ? lumaElementCount
-            : checked(chromaRedOffset + chromaElementCount);
+        long chromaElementCount = (long)chromaSize.Width * chromaSize.Height;
+        int planeAlignmentLog2 = BitOperations.Log2((uint)Math.Max(PlaneAlignmentBytes / Unsafe.SizeOf<TSample>(), 1));
+        long chromaBlueOffset = Av1Math.AlignPowerOf2(lumaElementCount, planeAlignmentLog2);
+        long chromaRedOffset = Av1Math.AlignPowerOf2(chromaBlueOffset + chromaElementCount, planeAlignmentLog2);
+        long storageLength = colorFormat == Av1ColorFormat.Yuv400 ? lumaElementCount : chromaRedOffset + chromaElementCount;
+        if (storageLength > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)storageLength, int.MaxValue);
+        }
 
         // The component planes share one contiguous frame allocation. Their offsets keep the 32-byte plane alignment.
         // Each plane is a slice of the allocation, so a kernel addresses the whole bordered plane with its stride.
@@ -104,12 +110,12 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         else
         {
             previous?.Dispose();
-            owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength, AllocationOptions.Clean);
+            owner = configuration.MemoryAllocator.Allocate<TSample>((int)storageLength, AllocationOptions.Clean);
         }
 
         Memory<TSample> storage = owner.Memory;
         Av1PlaneRegion<TSample> lumaRegion = new(
-            storage[..lumaElementCount],
+            storage[..(int)lumaElementCount],
             lumaSize.Width,
             new Rectangle(lumaBorder, lumaBorder, codedSize.Width, codedSize.Height));
 
@@ -123,8 +129,8 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
                 codedSize.Width >> subsamplingX,
                 codedSize.Height >> subsamplingY);
 
-            chromaBlueRegion = new(storage.Slice(chromaBlueOffset, chromaElementCount), chromaSize.Width, chromaBounds);
-            chromaRedRegion = new(storage.Slice(chromaRedOffset, chromaElementCount), chromaSize.Width, chromaBounds);
+            chromaBlueRegion = new(storage.Slice((int)chromaBlueOffset, (int)chromaElementCount), chromaSize.Width, chromaBounds);
+            chromaRedRegion = new(storage.Slice((int)chromaRedOffset, (int)chromaElementCount), chromaSize.Width, chromaBounds);
         }
 
         this.owner = owner;
@@ -168,13 +174,4 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         this.owner?.Dispose();
         this.owner = null;
     }
-
-    /// <summary>
-    /// Aligns an element offset to the next component-plane boundary.
-    /// </summary>
-    /// <param name="value">The element offset.</param>
-    /// <param name="alignment">The plane alignment in elements, a power of two.</param>
-    /// <returns>The smallest multiple of <paramref name="alignment"/> that is not less than <paramref name="value"/>.</returns>
-    private static int Align(int value, int alignment)
-        => checked((value + alignment - 1) & -alignment);
 }

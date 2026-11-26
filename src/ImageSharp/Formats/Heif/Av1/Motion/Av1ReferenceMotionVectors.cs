@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 internal struct Av1ReferenceMotionVectors
 {
     /// <summary>
-    /// The number of surrounding mode-information rows and columns examined by the spatial search.
+    /// The number of surrounding mode-information rows and columns that the spatial search checks.
     /// </summary>
     private const int ReferenceSearchDistance = 3;
 

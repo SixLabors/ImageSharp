@@ -89,14 +89,16 @@ internal sealed class Av1CodecConfiguration
         // item, which the decoder presents on its own.
         ReadOnlySpan<byte> configObus = boxBuffer[FixedHeaderSize..];
 
-        // The configuration OBUs belong to the property box, not to image data. A truncated configuration OBU throws in every mode.
-        int sequenceHeaderCount = ScanObus(
+        // The configuration OBUs belong to the property box, not to image data. A truncated configuration OBU throws in each mode. The strict mode and the
+        // absent image make each scan error throw, so the scan never stops early.
+        _ = ScanObus(
             configObus,
             true,
-            true,
             SegmentIntegrityHandling.Strict,
+            false,
             "AV1 codec configuration",
             options,
+            out int sequenceHeaderCount,
             out int configSequenceHeaderOffset,
             out int configSequenceHeaderLength,
             out this.configSequenceHeaderExtension,
@@ -229,177 +231,135 @@ internal sealed class Av1CodecConfiguration
     }
 
     /// <summary>
-    /// Validates the AV1 image item OBU layout and metadata against its item properties and configuration record.
-    /// </summary>
-    /// <param name="itemData">The complete AV1 image item payload.</param>
-    /// <param name="itemContentLightLevel">
-    /// The content light-level property associated with the image item, or <see langword="null"/> when absent.
-    /// </param>
-    /// <param name="itemMasteringDisplayColorVolume">
-    /// The mastering-display property associated with the image item, or <see langword="null"/> when absent.
-    /// </param>
-    /// <param name="options">The general options governing metadata validation.</param>
-    /// <param name="contentLightLevel">
-    /// Receives the content light-level metadata carried by the combined configuration and item OBUs.
-    /// </param>
-    /// <param name="masteringDisplayColorVolume">
-    /// Receives the mastering-display metadata carried by the combined configuration and item OBUs.
-    /// </param>
-    public void ValidateItemData(
-        ReadOnlySpan<byte> itemData,
-        HeifContentLightLevel? itemContentLightLevel,
-        HeifMasteringDisplayColorVolume? itemMasteringDisplayColorVolume,
-        DecoderOptions options,
-        out HeifContentLightLevel? contentLightLevel,
-        out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
-        => this.ValidateData(
-            itemData,
-            true,
-            "AV1 image item",
-            itemContentLightLevel,
-            itemMasteringDisplayColorVolume,
-            options,
-            out contentLightLevel,
-            out masteringDisplayColorVolume);
-
-    /// <summary>
-    /// Validates one AV1 track sample against its sync-sample declaration, sample-entry metadata, and configuration record.
-    /// </summary>
-    /// <param name="sampleData">The complete AV1 sample payload.</param>
-    /// <param name="isSyncSample">Indicates that the sample is declared as a random-access point.</param>
-    /// <param name="sampleContentLightLevel">
-    /// The content light-level property associated with the sample entry, or <see langword="null"/> when absent.
-    /// </param>
-    /// <param name="sampleMasteringDisplayColorVolume">
-    /// The mastering-display property associated with the sample entry, or <see langword="null"/> when absent.
-    /// </param>
-    /// <param name="options">The general options governing metadata validation.</param>
-    /// <param name="contentLightLevel">
-    /// Receives the content light-level metadata carried by the combined configuration and sample OBUs.
-    /// </param>
-    /// <param name="masteringDisplayColorVolume">
-    /// Receives the mastering-display metadata carried by the combined configuration and sample OBUs.
-    /// </param>
-    public void ValidateSampleData(
-        ReadOnlySpan<byte> sampleData,
-        bool isSyncSample,
-        HeifContentLightLevel? sampleContentLightLevel,
-        HeifMasteringDisplayColorVolume? sampleMasteringDisplayColorVolume,
-        DecoderOptions options,
-        out HeifContentLightLevel? contentLightLevel,
-        out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
-        => this.ValidateData(
-            sampleData,
-            isSyncSample,
-            "AV1 track sample",
-            sampleContentLightLevel,
-            sampleMasteringDisplayColorVolume,
-            options,
-            out contentLightLevel,
-            out masteringDisplayColorVolume);
-
-    /// <summary>
-    /// Validates one bounded AV1 payload while applying the item or track sequence-header requirement.
+    /// Validates the OBU layout and metadata of one AV1 image item or track sample against its container properties and configuration record.
     /// </summary>
     /// <param name="data">The complete bounded AV1 payload.</param>
-    /// <param name="sequenceHeaderRequired">Indicates that exactly one sequence header is required.</param>
+    /// <param name="sequenceHeaderRequired">
+    /// Indicates that exactly one sequence header is required. The value is <see langword="true"/> for an image item and for a sync sample.
+    /// </param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    /// <param name="containerContentLightLevel">The content light-level property associated with the payload.</param>
-    /// <param name="containerMasteringDisplayColorVolume">The mastering-display property associated with the payload.</param>
+    /// <param name="containerContentLightLevel">
+    /// The content light-level property associated with the item or sample entry, or <see langword="null"/> when absent.
+    /// </param>
+    /// <param name="containerMasteringDisplayColorVolume">
+    /// The mastering-display property associated with the item or sample entry, or <see langword="null"/> when absent.
+    /// </param>
     /// <param name="options">The general options governing metadata validation.</param>
-    /// <param name="contentLightLevel">Receives validated OBU content light-level metadata.</param>
-    /// <param name="masteringDisplayColorVolume">Receives validated OBU mastering-display metadata.</param>
-    private void ValidateData(
+    /// <param name="imageExists">
+    /// A value indicating whether the caller keeps an image without this payload. If <see langword="true"/>, the mode controls whether damaged payload data
+    /// throws. If <see langword="false"/>, damaged payload data throws in each mode.
+    /// </param>
+    /// <param name="contentLightLevel">Receives the content light-level metadata carried by the combined configuration and payload OBUs.</param>
+    /// <param name="masteringDisplayColorVolume">Receives the mastering-display metadata carried by the combined configuration and payload OBUs.</param>
+    /// <returns>
+    /// <see langword="true"/> if the payload is valid. <see langword="false"/> if the method reported damaged payload data and the mode ignores it. The caller
+    /// then decodes no frame from the payload.
+    /// </returns>
+    public bool ValidateData(
         ReadOnlySpan<byte> data,
         bool sequenceHeaderRequired,
         string sourceName,
         HeifContentLightLevel? containerContentLightLevel,
         HeifMasteringDisplayColorVolume? containerMasteringDisplayColorVolume,
         DecoderOptions options,
+        bool imageExists,
         out HeifContentLightLevel? contentLightLevel,
         out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
     {
-        int sequenceHeaderCount = ScanObus(
+        contentLightLevel = null;
+        masteringDisplayColorVolume = null;
+        SegmentIntegrityHandling handling = options.SegmentIntegrityHandling;
+        if (!ScanObus(
             data,
             false,
-            false,
-            options.SegmentIntegrityHandling,
+            handling,
+            imageExists,
             sourceName,
             options,
+            out int sequenceHeaderCount,
             out int dataSequenceHeaderOffset,
             out int dataSequenceHeaderLength,
             out int dataSequenceHeaderExtension,
             out HeifContentLightLevel? dataObuContentLightLevel,
-            out HeifMasteringDisplayColorVolume? dataObuMasteringDisplayColorVolume);
+            out HeifMasteringDisplayColorVolume? dataObuMasteringDisplayColorVolume))
+        {
+            return false;
+        }
 
+        // The checks that follow find damage before the AV1 decoder reads the payload. As a result, the payload holds no decoded image data yet. The mode can
+        // ignore the damage only when the caller keeps an image without the payload.
         if (sequenceHeaderCount > 1 || (sequenceHeaderRequired && sequenceHeaderCount != 1))
         {
             string requirement = sequenceHeaderRequired ? "exactly one" : "at most one";
-            throw new InvalidImageContentException($"The {sourceName} contains {sequenceHeaderCount} sequence header OBUs instead of {requirement}.");
+            handling.ThrowOrIgnoreImageDataError(
+                imageExists,
+                $"The {sourceName} contains {sequenceHeaderCount} sequence header OBUs instead of {requirement}.");
+
+            return false;
         }
 
         if (this.configSequenceHeader.Length != 0 && dataSequenceHeaderOffset >= 0)
         {
-            ReadOnlySpan<byte> dataSequenceHeader = data.Slice(
-                dataSequenceHeaderOffset,
-                dataSequenceHeaderLength);
+            ReadOnlySpan<byte> dataSequenceHeader = data.Slice(dataSequenceHeaderOffset, dataSequenceHeaderLength);
 
             // The code compares the extension and the payload, not the encoded OBU size. Configuration OBUs must carry a size field. The final OBU of a payload
             // can omit it. Different legal LEB128 widths do not change the repeated Sequence Header OBU.
             if (this.configSequenceHeaderExtension != dataSequenceHeaderExtension
                 || !this.configSequenceHeader.AsSpan().SequenceEqual(dataSequenceHeader))
             {
-                throw new InvalidImageContentException(
+                handling.ThrowOrIgnoreImageDataError(
+                    imageExists,
                     $"The AV1 codec configuration sequence header does not match the {sourceName} sequence header.");
+
+                return false;
             }
         }
 
-        contentLightLevel = null;
-        masteringDisplayColorVolume = null;
         if (options.SkipMetadata)
         {
-            return;
+            return true;
         }
 
-        try
+        // Each check that follows compares optional metadata. A conflict is damaged ancillary data. The method reports the conflict and discards the OBU
+        // metadata. The conflict has no effect on the OBU framing checks and the sequence-header checks that come before.
+        string? metadataError = null;
+        if (!ContentLightLevelMatchesProperty(this.configContentLightLevel, containerContentLightLevel))
         {
-            ValidateContentLightLevel(this.configContentLightLevel, containerContentLightLevel, "AV1 codec configuration");
-            ValidateContentLightLevel(dataObuContentLightLevel, containerContentLightLevel, sourceName);
-            ValidateMasteringDisplayColorVolume(
-                this.configMasteringDisplayColorVolume,
-                containerMasteringDisplayColorVolume,
-                "AV1 codec configuration");
-
-            ValidateMasteringDisplayColorVolume(
-                dataObuMasteringDisplayColorVolume,
-                containerMasteringDisplayColorVolume,
-                sourceName);
-
-            if (this.configContentLightLevel is not null
-                && dataObuContentLightLevel is not null
-                && !ContentLightLevelsMatch(this.configContentLightLevel.Value, dataObuContentLightLevel.Value))
-            {
-                throw new InvalidImageContentException(
-                    $"The AV1 codec configuration and {sourceName} contain conflicting content light-level metadata.");
-            }
-
-            if (this.configMasteringDisplayColorVolume is not null
-                && dataObuMasteringDisplayColorVolume is not null
-                && this.configMasteringDisplayColorVolume.Value != dataObuMasteringDisplayColorVolume.Value)
-            {
-                throw new InvalidImageContentException(
-                    $"The AV1 codec configuration and {sourceName} contain conflicting mastering-display metadata.");
-            }
-
-            // Configuration OBUs precede the payload OBUs. Thus, when both sequences repeat the same metadata type, the payload OBU supplies the effective
-            // value.
-            contentLightLevel = dataObuContentLightLevel ?? this.configContentLightLevel;
-            masteringDisplayColorVolume = dataObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
+            metadataError = "The AV1 codec configuration content light-level metadata does not match the image-item property.";
         }
-        catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
+        else if (!ContentLightLevelMatchesProperty(dataObuContentLightLevel, containerContentLightLevel))
         {
-            // Conflicting optional OBU metadata is discarded without weakening OBU framing or sequence-header checks.
+            metadataError = $"The {sourceName} content light-level metadata does not match the image-item property.";
         }
+        else if (!MasteringDisplayColorVolumeMatchesProperty(this.configMasteringDisplayColorVolume, containerMasteringDisplayColorVolume))
+        {
+            metadataError = "The AV1 codec configuration mastering-display metadata does not match the image-item property.";
+        }
+        else if (!MasteringDisplayColorVolumeMatchesProperty(dataObuMasteringDisplayColorVolume, containerMasteringDisplayColorVolume))
+        {
+            metadataError = $"The {sourceName} mastering-display metadata does not match the image-item property.";
+        }
+        else if (!ContentLightLevelMatchesProperty(this.configContentLightLevel, dataObuContentLightLevel))
+        {
+            metadataError = $"The AV1 codec configuration and {sourceName} contain conflicting content light-level metadata.";
+        }
+        else if (this.configMasteringDisplayColorVolume is not null
+            && dataObuMasteringDisplayColorVolume is not null
+            && this.configMasteringDisplayColorVolume.Value != dataObuMasteringDisplayColorVolume.Value)
+        {
+            metadataError = $"The AV1 codec configuration and {sourceName} contain conflicting mastering-display metadata.";
+        }
+
+        if (metadataError is not null)
+        {
+            handling.ThrowOrIgnoreAncillaryError(metadataError);
+            return true;
+        }
+
+        // The configuration OBUs come before the payload OBUs. When the two sequences have the same metadata type, the payload OBU gives the effective value.
+        contentLightLevel = dataObuContentLightLevel ?? this.configContentLightLevel;
+        masteringDisplayColorVolume = dataObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
+        return true;
     }
 
     /// <summary>
@@ -421,8 +381,12 @@ internal sealed class Av1CodecConfiguration
     /// <summary>
     /// Validates the configuration fields against the sequence header that describes the coded image item.
     /// </summary>
+    /// <remarks>
+    /// The method returns the damage and does not report it. The AV1 OBU reader reports the damage one time, through the damage route of its payload.
+    /// </remarks>
     /// <param name="sequenceHeader">The decoded AV1 sequence header.</param>
-    public void Validate(ObuSequenceHeader sequenceHeader)
+    /// <returns>The message of the mismatch, or <see langword="null"/> when the fields match.</returns>
+    public string? Validate(ObuSequenceHeader sequenceHeader)
     {
         ObuOperatingPoint operatingPoint = sequenceHeader.OperatingPoint[0];
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
@@ -443,24 +407,30 @@ internal sealed class Av1CodecConfiguration
             || this.ChromaSubsamplingY != colorConfig.SubSamplingY
             || (hasChromaSamplePosition && this.ChromaSamplePosition != (byte)colorConfig.ChromaSamplePosition))
         {
-            throw new InvalidImageContentException("The AV1 item configuration does not match its sequence header.");
+            return "The AV1 item configuration does not match its sequence header.";
         }
+
+        return null;
     }
 
     /// <summary>
     /// Scans a low-overhead AV1 OBU sequence and locates its still-image description metadata.
     /// </summary>
     /// <param name="data">The complete bounded OBU sequence.</param>
-    /// <param name="requireSizeFields">Indicates that every OBU must carry its registered payload-size field.</param>
-    /// <param name="sequenceHeaderMustBeFirst">
-    /// Indicates that a sequence-header OBU, when present, must be the first OBU in the sequence.
+    /// <param name="isConfiguration">
+    /// A value indicating whether the data are the configuration OBUs of the property box. If <see langword="true"/>, each OBU must have its payload-size
+    /// field, and the first OBU must be a sequence-header OBU. A truncated OBU then throws. If <see langword="false"/>, the data are an item payload or a
+    /// sample payload. The AV1 decoder reports a truncated payload OBU one time, after it decodes the bytes that the payload holds. As a result, the scan keeps
+    /// those bytes and does not report the truncated OBU.
     /// </param>
-    /// <param name="payloadIntegrity">
-    /// The segment integrity mode for an OBU payload that ends after the data. In the
-    /// <see cref="SegmentIntegrityHandling.IgnoreImageData"/> mode, that OBU is the last one, and the scan keeps the bytes that the data holds.
+    /// <param name="payloadIntegrity">The segment integrity mode for an OBU header that is not valid.</param>
+    /// <param name="imageExists">
+    /// A value indicating whether the caller keeps an image without this data. If <see langword="true"/>, the mode controls whether an invalid OBU header
+    /// throws. If <see langword="false"/>, an invalid OBU header throws in each mode.
     /// </param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
     /// <param name="options">The general options governing metadata validation.</param>
+    /// <param name="sequenceHeaderCount">Receives the number of sequence-header OBUs in the sequence.</param>
     /// <param name="sequenceHeaderOffset">Receives the first sequence-header payload offset, or <c>-1</c>.</param>
     /// <param name="sequenceHeaderLength">Receives the first sequence-header payload length.</param>
     /// <param name="sequenceHeaderExtension">Receives the first sequence-header extension byte, or <c>-1</c>.</param>
@@ -470,14 +440,18 @@ internal sealed class Av1CodecConfiguration
     /// <param name="masteringDisplayColorVolume">
     /// Receives the mastering-display metadata carried by the sequence, or <see langword="null"/> when absent.
     /// </param>
-    /// <returns>The number of sequence-header OBUs in the sequence.</returns>
-    private static int ScanObus(
+    /// <returns>
+    /// <see langword="true"/> if the scan reached the end of the data. <see langword="false"/> if the scan reported an invalid OBU header and the mode ignores
+    /// it.
+    /// </returns>
+    private static bool ScanObus(
         ReadOnlySpan<byte> data,
-        bool requireSizeFields,
-        bool sequenceHeaderMustBeFirst,
+        bool isConfiguration,
         SegmentIntegrityHandling payloadIntegrity,
+        bool imageExists,
         string sourceName,
         DecoderOptions options,
+        out int sequenceHeaderCount,
         out int sequenceHeaderOffset,
         out int sequenceHeaderLength,
         out int sequenceHeaderExtension,
@@ -489,74 +463,44 @@ internal sealed class Av1CodecConfiguration
         sequenceHeaderExtension = -1;
         contentLightLevel = null;
         masteringDisplayColorVolume = null;
-        int sequenceHeaderCount = 0;
+        sequenceHeaderCount = 0;
         int obuIndex = 0;
         int offset = 0;
         while (offset < data.Length)
         {
-            byte header = data[offset++];
-            if ((header & 0x80) != 0)
+            ObuFramingStatus framingStatus = ObuFramer.ReadObu(data[offset..], out ObuHeader obu);
+            if (framingStatus == ObuFramingStatus.Truncated)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains an OBU with a set forbidden header bit.");
-            }
-
-            // The scan ignores obu_reserved_1bit, as AV1 decoders do. The bit does not change the OBU boundary or the decoded syntax. Thus the bounded
-            // container scan must not reject data that the production parser accepts.
-            ObuType type = (ObuType)((header >> 3) & 0x0F);
-            bool hasExtension = (header & 0x04) != 0;
-            bool hasSizeField = (header & 0x02) != 0;
-            int extension = -1;
-            if (hasExtension)
-            {
-                if (offset >= data.Length)
+                // The data ends inside the OBU header or its size field. No OBU follows it.
+                if (isConfiguration)
                 {
-                    // Truncated image data ends inside the OBU header. No OBU follows it.
-                    payloadIntegrity.ThrowOrIgnoreImageDataError(
-                        $"The {sourceName} contains a truncated OBU extension header.");
-
-                    break;
+                    throw new InvalidImageContentException(ObuFramer.GetMessage(framingStatus));
                 }
 
-                // The scan reads extension_header_reserved_3bits with the extension byte and ignores it.
-                extension = data[offset++];
+                break;
             }
 
-            if (requireSizeFields && !hasSizeField)
+            if (framingStatus is ObuFramingStatus.ForbiddenBit or ObuFramingStatus.InvalidSize)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains an OBU without its required payload-size field.");
+                // The scan runs before the AV1 decoder reads the data, so the data holds no decoded image yet. The bytes that remain have no OBU boundary, so
+                // the scan stops here.
+                payloadIntegrity.ThrowOrIgnoreImageDataError(imageExists, ObuFramer.GetMessage(framingStatus));
+                return false;
             }
 
-            int payloadLength;
-            if (hasSizeField)
+            if (isConfiguration && (!obu.HasSizeField || framingStatus == ObuFramingStatus.PayloadTruncated))
             {
-                if (!TryReadObuPayloadLength(data, ref offset, sourceName, out payloadLength))
-                {
-                    // Truncated image data ends inside the size field. No OBU follows it.
-                    payloadIntegrity.ThrowOrIgnoreImageDataError(
-                        $"The {sourceName} contains a truncated OBU payload length.");
+                string message = obu.HasSizeField
+                    ? ObuFramer.GetMessage(framingStatus)
+                    : $"The {sourceName} contains an OBU without its required payload-size field.";
 
-                    break;
-                }
-            }
-            else
-            {
-                // Low-overhead image item syntax lets only the final OBU omit its size. The remaining item bytes are then the payload of that OBU. They cannot
-                // contain another OBU.
-                payloadLength = data.Length - offset;
+                throw new InvalidImageContentException(message);
             }
 
-            if (payloadLength > data.Length - offset)
+            int payloadOffset = offset + obu.PayloadOffset;
+            if (obu.Type == ObuType.SequenceHeader)
             {
-                // Truncated image data ends inside this OBU. The AV1 decoder applies the same mode to the same OBU.
-                payloadIntegrity.ThrowOrIgnoreImageDataError(
-                    $"The {sourceName} contains an OBU payload that exceeds its data boundary.");
-
-                payloadLength = data.Length - offset;
-            }
-
-            if (type == ObuType.SequenceHeader)
-            {
-                if (sequenceHeaderMustBeFirst && obuIndex != 0)
+                if (isConfiguration && obuIndex != 0)
                 {
                     throw new InvalidImageContentException($"The {sourceName} contains a sequence header OBU after another OBU.");
                 }
@@ -564,78 +508,48 @@ internal sealed class Av1CodecConfiguration
                 sequenceHeaderCount++;
                 if (sequenceHeaderOffset < 0)
                 {
-                    sequenceHeaderOffset = offset;
-                    sequenceHeaderLength = payloadLength;
-                    sequenceHeaderExtension = extension;
+                    sequenceHeaderOffset = payloadOffset;
+                    sequenceHeaderLength = obu.PayloadLength;
+                    sequenceHeaderExtension = obu.Extension;
                 }
             }
-            else if (type == ObuType.Metadata && !options.SkipMetadata)
+            else if (obu.Type == ObuType.Metadata && !options.SkipMetadata)
             {
-                try
+                string? metadataError = ReadHdrMetadata(
+                    data.Slice(payloadOffset, obu.PayloadLength),
+                    sourceName,
+                    out HeifContentLightLevel? obuContentLightLevel,
+                    out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
+
+                if (metadataError is null && !ContentLightLevelMatchesProperty(obuContentLightLevel, contentLightLevel))
                 {
-                    ReadHdrMetadata(
-                        data.Slice(offset, payloadLength),
-                        sourceName,
-                        out HeifContentLightLevel? obuContentLightLevel,
-                        out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
-
-                    if (obuContentLightLevel is not null)
-                    {
-                        if (contentLightLevel is not null
-                            && !ContentLightLevelsMatch(contentLightLevel.Value, obuContentLightLevel.Value))
-                        {
-                            throw new InvalidImageContentException($"The {sourceName} contains conflicting content light-level metadata OBUs.");
-                        }
-
-                        contentLightLevel = obuContentLightLevel;
-                    }
-
-                    if (obuMasteringDisplayColorVolume is not null)
-                    {
-                        if (masteringDisplayColorVolume is not null
-                            && masteringDisplayColorVolume.Value != obuMasteringDisplayColorVolume.Value)
-                        {
-                            throw new InvalidImageContentException($"The {sourceName} contains conflicting mastering-display metadata OBUs.");
-                        }
-
-                        masteringDisplayColorVolume = obuMasteringDisplayColorVolume;
-                    }
+                    metadataError = $"The {sourceName} contains conflicting content light-level metadata OBUs.";
                 }
-                catch (Exception ex) when (options.SegmentIntegrityHandling.ShouldIgnoreAncillaryError(ex))
+
+                if (metadataError is null
+                    && obuMasteringDisplayColorVolume is not null
+                    && masteringDisplayColorVolume is not null
+                    && masteringDisplayColorVolume.Value != obuMasteringDisplayColorVolume.Value)
                 {
-                    // The image-data scan still bounds the OBU payload. Only its invalid optional metadata is discarded.
+                    metadataError = $"The {sourceName} contains conflicting mastering-display metadata OBUs.";
+                }
+
+                if (metadataError is not null)
+                {
+                    // The scan still sets the bounds of the OBU payload. The mode discards only the invalid optional metadata of the OBU.
+                    options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError(metadataError);
+                }
+                else
+                {
+                    contentLightLevel = obuContentLightLevel ?? contentLightLevel;
+                    masteringDisplayColorVolume = obuMasteringDisplayColorVolume ?? masteringDisplayColorVolume;
                 }
             }
 
-            offset += payloadLength;
+            offset += obu.Size;
             obuIndex++;
         }
 
-        return sequenceHeaderCount;
-    }
-
-    /// <summary>
-    /// Reads a bounded AV1 little-endian base-128 OBU payload length.
-    /// </summary>
-    /// <param name="data">The complete bounded OBU sequence.</param>
-    /// <param name="offset">The current byte offset, advanced past the encoded length.</param>
-    /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    /// <param name="payloadLength">Receives the payload length representable by the current item buffer.</param>
-    /// <returns><see langword="false"/> when the data ends inside the length. Otherwise <see langword="true"/>.</returns>
-    private static bool TryReadObuPayloadLength(ReadOnlySpan<byte> data, ref int offset, string sourceName, out int payloadLength)
-    {
-        if (!TryReadLeb128(data, ref offset, sourceName, "OBU payload length", out ulong value))
-        {
-            payloadLength = 0;
-            return false;
-        }
-
-        if (value > int.MaxValue)
-        {
-            throw new InvalidImageContentException($"The {sourceName} contains an OBU payload too large to buffer.");
-        }
-
-        payloadLength = (int)value;
         return true;
     }
 
@@ -646,7 +560,12 @@ internal sealed class Av1CodecConfiguration
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
     /// <param name="contentLightLevel">Receives decoded content light-level metadata when present.</param>
     /// <param name="masteringDisplayColorVolume">Receives decoded mastering-display metadata when present.</param>
-    public static void ReadHdrMetadata(
+    /// <returns>The error message, or <see langword="null"/> when the metadata is valid or is not HDR metadata.</returns>
+    /// <remarks>
+    /// This scan is the only parse and the only report of HDR metadata. The AV1 OBU reader checks the other metadata types and the metadata type field. The
+    /// OBU reader reports their damage one time.
+    /// </remarks>
+    public static string? ReadHdrMetadata(
         ReadOnlySpan<byte> payload,
         string sourceName,
         out HeifContentLightLevel? contentLightLevel,
@@ -654,34 +573,41 @@ internal sealed class Av1CodecConfiguration
     {
         contentLightLevel = null;
         masteringDisplayColorVolume = null;
-        int offset = 0;
-        if (!TryReadLeb128(payload, ref offset, sourceName, "metadata type", out ulong metadataType))
+        if (ObuFramer.TryReadLeb128(payload, out uint metadataType, out int offset) != ObuFramingStatus.Complete)
         {
-            throw new InvalidImageContentException($"The {sourceName} contains a truncated metadata type.");
+            // Without a valid type, the payload is not HDR metadata that this scan can read.
+            return null;
         }
 
-        if (metadataType != (ulong)ObuMetadataType.HdrCll
-            && metadataType != (ulong)ObuMetadataType.HdrMdcv)
+        if (metadataType != (uint)ObuMetadataType.HdrCll
+            && metadataType != (uint)ObuMetadataType.HdrMdcv)
         {
-            return;
+            return null;
         }
 
-        int metadataLength = metadataType == (ulong)ObuMetadataType.HdrCll ? 4 : 24;
+        int metadataLength = metadataType == (uint)ObuMetadataType.HdrCll ? 4 : 24;
         if (payload.Length - offset <= metadataLength)
         {
-            throw new InvalidImageContentException($"The {sourceName} contains truncated HDR metadata or no trailing bits.");
+            return $"The {sourceName} contains truncated HDR metadata or no trailing bits.";
+        }
+
+        // Both fixed HDR structures end on a byte boundary. The scan accepts zero padding after the necessary 0x80 byte. As a result, the code finds the last
+        // nonzero byte. It does not assume that the OBU payload ends directly after trailing_bits().
+        ReadOnlySpan<byte> trailingData = payload[(offset + metadataLength)..];
+        int lastNonzeroIndex = trailingData.LastIndexOfAnyExcept((byte)0);
+        if (lastNonzeroIndex < 0 || trailingData[lastNonzeroIndex] != 0x80)
+        {
+            return $"The {sourceName} HDR metadata has invalid trailing bits.";
         }
 
         ReadOnlySpan<byte> metadataData = payload.Slice(offset, metadataLength);
-        ValidateByteAlignedMetadataTrailingBits(payload[(offset + metadataLength)..], sourceName);
-
-        if (metadataType == (ulong)ObuMetadataType.HdrCll)
+        if (metadataType == (uint)ObuMetadataType.HdrCll)
         {
             contentLightLevel = new HeifContentLightLevel(
                 BinaryPrimitives.ReadUInt16BigEndian(metadataData),
                 BinaryPrimitives.ReadUInt16BigEndian(metadataData[2..]));
 
-            return;
+            return null;
         }
 
         const float chromaticityScale = 1F / 65536F;
@@ -709,91 +635,20 @@ internal sealed class Av1CodecConfiguration
                 BinaryPrimitives.ReadUInt16BigEndian(metadataData[14..]) * chromaticityScale),
             BinaryPrimitives.ReadUInt32BigEndian(metadataData[16..]) * maximumLuminanceScale,
             BinaryPrimitives.ReadUInt32BigEndian(metadataData[20..]) * minimumLuminanceScale);
+
+        return null;
     }
 
     /// <summary>
-    /// Validates the trailing bits of byte-aligned fixed-length AV1 metadata.
-    /// </summary>
-    /// <param name="trailingData">The metadata payload bytes following its fixed fields.</param>
-    /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    private static void ValidateByteAlignedMetadataTrailingBits(ReadOnlySpan<byte> trailingData, string sourceName)
-    {
-        byte lastNonzeroByte = 0;
-        for (int i = trailingData.Length - 1; i >= 0; i--)
-        {
-            if (trailingData[i] != 0)
-            {
-                lastNonzeroByte = trailingData[i];
-                break;
-            }
-        }
-
-        // Both fixed HDR structures end on a byte boundary. Zero padding after the required 0x80 byte is accepted. Thus the code finds the last nonzero byte.
-        // It does not assume that the OBU payload ends directly after trailing_bits().
-        if (lastNonzeroByte != 0x80)
-        {
-            throw new InvalidImageContentException($"The {sourceName} HDR metadata has invalid trailing bits.");
-        }
-    }
-
-    /// <summary>
-    /// Reads a bounded AV1 little-endian base-128 value.
-    /// </summary>
-    /// <param name="data">The complete bounded byte sequence.</param>
-    /// <param name="offset">The current byte offset, advanced past the encoded value.</param>
-    /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    /// <param name="valueName">The value description used by invalid-content errors.</param>
-    /// <param name="value">Receives the decoded unsigned value.</param>
-    /// <returns><see langword="false"/> when the data ends inside the value. Otherwise <see langword="true"/>.</returns>
-    private static bool TryReadLeb128(
-        ReadOnlySpan<byte> data,
-        ref int offset,
-        string sourceName,
-        string valueName,
-        out ulong value)
-    {
-        value = 0;
-        for (int byteIndex = 0; byteIndex < 8; byteIndex++)
-        {
-            if (offset >= data.Length)
-            {
-                return false;
-            }
-
-            byte current = data[offset++];
-            value |= (ulong)(current & 0x7F) << (byteIndex * 7);
-            if ((current & 0x80) == 0)
-            {
-                if (value > uint.MaxValue)
-                {
-                    throw new InvalidImageContentException($"The {sourceName} contains a {valueName} larger than the AV1 32-bit limit.");
-                }
-
-                return true;
-            }
-        }
-
-        throw new InvalidImageContentException($"The {sourceName} contains an unterminated {valueName}.");
-    }
-
-    /// <summary>
-    /// Validates content light-level metadata against the corresponding image-item property when both are present.
+    /// Determines whether content light-level metadata matches a related value when both values are present.
     /// </summary>
     /// <param name="obuContentLightLevel">The value carried by an AV1 metadata OBU.</param>
-    /// <param name="itemContentLightLevel">The value carried by the associated image-item property.</param>
-    /// <param name="sourceName">The OBU source description used by invalid-content errors.</param>
-    private static void ValidateContentLightLevel(
-        HeifContentLightLevel? obuContentLightLevel,
-        HeifContentLightLevel? itemContentLightLevel,
-        string sourceName)
-    {
-        if (obuContentLightLevel is not null
-            && itemContentLightLevel is not null
-            && !ContentLightLevelsMatch(obuContentLightLevel.Value, itemContentLightLevel.Value))
-        {
-            throw new InvalidImageContentException($"The {sourceName} content light-level metadata does not match the image-item property.");
-        }
-    }
+    /// <param name="itemContentLightLevel">The value carried by the associated image-item property or by another AV1 metadata OBU.</param>
+    /// <returns><see langword="true"/> when either value is absent or both values are equal.</returns>
+    private static bool ContentLightLevelMatchesProperty(HeifContentLightLevel? obuContentLightLevel, HeifContentLightLevel? itemContentLightLevel)
+        => obuContentLightLevel is null
+            || itemContentLightLevel is null
+            || ContentLightLevelsMatch(obuContentLightLevel.Value, itemContentLightLevel.Value);
 
     /// <summary>
     /// Determines whether two content light-level descriptions carry the same observable values.
@@ -808,23 +663,17 @@ internal sealed class Av1CodecConfiguration
     }
 
     /// <summary>
-    /// Validates mastering-display metadata against the corresponding image-item property when both are present.
+    /// Determines whether mastering-display metadata matches the related image-item property when both values are present.
     /// </summary>
     /// <param name="obuColorVolume">The value carried by an AV1 metadata OBU.</param>
     /// <param name="itemColorVolume">The value carried by the associated image-item property.</param>
-    /// <param name="sourceName">The OBU source description used by invalid-content errors.</param>
-    private static void ValidateMasteringDisplayColorVolume(
+    /// <returns><see langword="true"/> when either value is absent or both values are equal within their fixed-point precision.</returns>
+    private static bool MasteringDisplayColorVolumeMatchesProperty(
         HeifMasteringDisplayColorVolume? obuColorVolume,
-        HeifMasteringDisplayColorVolume? itemColorVolume,
-        string sourceName)
-    {
-        if (obuColorVolume is not null
-            && itemColorVolume is not null
-            && !MasteringDisplayColorVolumesMatch(obuColorVolume.Value, itemColorVolume.Value))
-        {
-            throw new InvalidImageContentException($"The {sourceName} mastering-display metadata does not match the image-item property.");
-        }
-    }
+        HeifMasteringDisplayColorVolume? itemColorVolume)
+        => obuColorVolume is null
+            || itemColorVolume is null
+            || MasteringDisplayColorVolumesMatch(obuColorVolume.Value, itemColorVolume.Value);
 
     /// <summary>
     /// Determines whether AV1 and ISOBMFF mastering-display values agree within their fixed-point precision.

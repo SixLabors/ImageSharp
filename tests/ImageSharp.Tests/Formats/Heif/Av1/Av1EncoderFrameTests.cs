@@ -372,12 +372,12 @@ public class Av1EncoderFrameTests
         using Av1Decoder decoder = new(Configuration.Default);
         using MemoryStream sample = new();
         encoder.EncodeKeyFrame(frames.Frames[0], sample);
-        decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+        decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
         for (int i = 1; i < frames.Frames.Count; i++)
         {
             sample.SetLength(0);
             bool keyFrame = encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false);
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
 
             Assert.Equal(i % interval == 0, keyFrame);
             Assert.Equal((uint)(i % interval), decoder.FrameHeader.OrderHint);
@@ -470,7 +470,7 @@ public class Av1EncoderFrameTests
         long start = 0;
         foreach (long end in sampleEnds)
         {
-            decoder.DecodeSequenceReference(data.AsSpan((int)start, (int)(end - start)), null, null);
+            decoder.DecodePayload(data.AsSpan((int)start, (int)(end - start)), null, null, null, false, out _);
             Assert.False(decoder.FrameHeader.SegmentationParameters.Enabled);
             start = end;
         }
@@ -532,7 +532,7 @@ public class Av1EncoderFrameTests
                 encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false);
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             segmented |= decoder.FrameHeader!.SegmentationParameters.Enabled;
             AssertDecodedLumaMatchesEncoder(encoder, decoder, width, height);
         }
@@ -578,7 +578,7 @@ public class Av1EncoderFrameTests
                 encoder.EncodeNextFrame(image.Frames.RootFrame, sample, forceKeyFrame: false);
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             Assert.True(decoder.FrameHeader!.DeltaQParameters.IsPresent);
             AssertDecodedLumaMatchesEncoder(encoder, decoder, image.Width, image.Height);
         }
@@ -620,7 +620,7 @@ public class Av1EncoderFrameTests
                 Assert.False(encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false));
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             Assert.True(decoder.FrameHeader!.CodedLossless);
             AssertDecodedLumaMatchesEncoder(encoder, decoder, frames.Width, frames.Height);
 
@@ -674,7 +674,7 @@ public class Av1EncoderFrameTests
                 Assert.False(encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false));
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             if (bitRate)
             {
                 int baseQIndex = decoder.FrameHeader!.QuantizationParameters.BaseQIndex;
@@ -728,7 +728,7 @@ public class Av1EncoderFrameTests
         foreach (long end in sampleEnds)
         {
             Assert.True(end > start);
-            decoder.DecodeSequenceReference(data.AsSpan((int)start, (int)(end - start)), null, null);
+            decoder.DecodePayload(data.AsSpan((int)start, (int)(end - start)), null, null, null, false, out _);
             if (!decoder.FrameHeader!.ShowExistingFrame)
             {
                 rateModelChose |= decoder.FrameHeader.QuantizationParameters.BaseQIndex != Av1QuantizationLookup.GetQIndex(Quantizer);
@@ -796,7 +796,7 @@ public class Av1EncoderFrameTests
                 encoder.EncodeNextFrame(frames.Frames[i], sample, forceKeyFrame: false);
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             int baseQIndex = decoder.FrameHeader!.QuantizationParameters.BaseQIndex;
             if (bitRate)
             {
@@ -861,7 +861,7 @@ public class Av1EncoderFrameTests
                 scaleDenominator: 1,
                 qualityChanged: true);
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             if (bitRate)
             {
                 int baseQIndex = decoder.FrameHeader!.QuantizationParameters.BaseQIndex;
@@ -928,7 +928,7 @@ public class Av1EncoderFrameTests
             // its frame, whose header carries the extension byte with the layer.
             byte[] bytes = sample.ToArray();
             Assert.Equal(layer == 0 ? 0x12 : 0x36, bytes[0]);
-            decoder.DecodeSequenceReference(bytes, null, null);
+            decoder.DecodePayload(bytes, null, null, null, false, out _);
             ObuFrameHeader frameHeader = decoder.FrameHeader!;
             Assert.Equal(layer, frameHeader.SpatialId);
             int baseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
@@ -1012,7 +1012,7 @@ public class Av1EncoderFrameTests
                 denominator,
                 qualityChanged: true);
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             ObuFrameHeader frameHeader = decoder.FrameHeader!;
             int width = ((image.Width * numerator) + denominator - 1) / denominator;
             int height = ((image.Height * numerator) + denominator - 1) / denominator;
@@ -1202,7 +1202,7 @@ public class Av1EncoderFrameTests
                 Assert.False(encoder.EncodeNextFrame(source.Frames.RootFrame, sample, forceKeyFrame: false));
             }
 
-            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            decoder.DecodePayload(sample.ToArray(), null, null, null, false, out _);
             Assert.True(Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).EnableIntraEdgeFilter);
             Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             Assert.Equal(width, decoded.Width);
@@ -1517,8 +1517,7 @@ public class Av1EncoderFrameTests
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
-    // The profile occupies the upper three bits of the second byte. An 8x8 frame fits level 2.0, index zero,
-    // which libaom's set_bitstream_level_tier infers from the frame size.
+    // The profile occupies the upper three bits of the second byte. An 8x8 frame fits level 2.0, index zero, which libaom infers from the frame size.
     [Theory]
     [InlineData(EightBit, Yuv400, 0x00, 0x1C)]
     [InlineData(TwelveBit, Yuv422, 0x40, 0x68)]
@@ -1547,7 +1546,7 @@ public class Av1EncoderFrameTests
         Assert.Equal([0x81, expectedProfileAndLevel, expectedColorFlags, 0x00], fixedHeader);
         Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions(Configuration.Default));
         Assert.True(configuration.HasMatchingImageConfiguration(parsed));
-        parsed.Validate(sequenceHeader);
+        Assert.Null(parsed.Validate(sequenceHeader));
     }
 
     [Fact]

@@ -22,8 +22,7 @@ public class Av1ScreenContentColorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the counts, dominant values and dilated blocks against the scalar definitions of
-    /// av1_count_colors_with_threshold(), av1_find_dominant_value() and av1_dilate_block().
+    /// Verifies the counts, dominant values and dilated blocks against the scalar libaom definitions.
     /// </summary>
     [Fact]
     public void ColorKernelsMatchReferenceAcrossHardwareWidths()

@@ -7,11 +7,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Finds corners with a direct transcription of the reference detector.
 /// </summary>
 /// <remarks>
-/// This is the oracle that the corner detector is measured against, so it is deliberately written
-/// as the plainest possible form of the reference rather than as fast code. The suppression keeps
-/// the two cursors of the reference, so it checks the restructured form of the port rather than
-/// repeating it. Reference: fast9_detect(), fast9_corner_score(), aom_nonmax_suppression() and
-/// compute_corner_list().
+/// This is the oracle that the corner detector is measured against, so it is deliberately written as the plainest possible form of the reference rather than as
+/// fast code. The suppression keeps the two cursors of the reference, so it checks the restructured form of the port rather than repeating it. The reference is
+/// the libaom corner detector.
 /// </remarks>
 internal static class Av1CornerDetectorOracle
 {

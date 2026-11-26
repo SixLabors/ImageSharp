@@ -42,15 +42,10 @@ internal readonly struct PngPhysical
     /// <summary>
     /// Parses the PhysicalChunkData from the given buffer.
     /// </summary>
-    /// <param name="data">The data buffer.</param>
+    /// <param name="data">The data buffer. It has <see cref="Size"/> bytes.</param>
     /// <returns>The parsed PhysicalChunkData.</returns>
     public static PngPhysical Parse(ReadOnlySpan<byte> data)
     {
-        if (data.Length < 9)
-        {
-            PngThrowHelper.ThrowInvalidImageContentException("pHYs chunk is too short");
-        }
-
         uint hResolution = BinaryPrimitives.ReadUInt32BigEndian(data[..4]);
         uint vResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(4, 4));
         byte unit = data[8];

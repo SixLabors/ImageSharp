@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.IO.Hashing;
@@ -68,6 +69,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private PngHeader header;
 
     /// <summary>
+    /// A value that tells if the decoder read the IHDR chunk.
+    /// </summary>
+    private bool hasHeader;
+
+    /// <summary>
     /// The png animation control.
     /// </summary>
     private AnimationControl animationControl;
@@ -128,6 +134,21 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private IMemoryOwner<byte>? dataCrcBuffer;
 
     /// <summary>
+    /// The stream position after the payload of the image data chunk that the inflater reads, or -1 when the inflater reads no chunk.
+    /// </summary>
+    private long imageDataChunkEnd = -1;
+
+    /// <summary>
+    /// The type of the chunks of the compressed stream that the inflater reads: IDAT or fdAT.
+    /// </summary>
+    private PngChunkType imageDataChunkType;
+
+    /// <summary>
+    /// The delegate that gives the inflater the next chunk of the compressed stream. One instance serves each frame.
+    /// </summary>
+    private readonly Func<int> readNextDataChunk;
+
+    /// <summary>
     /// The maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
     /// </summary>
     private readonly int maxUncompressedLength;
@@ -152,6 +173,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
+        this.readNextDataChunk = this.ReadNextDataChunk;
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
@@ -164,6 +186,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
+        this.readNextDataChunk = this.ReadNextDataChunk;
     }
 
     /// <inheritdoc/>
@@ -205,37 +228,33 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             ReadCicpChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
-                            frameCount++;
-                            currentFrame = null;
-                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
-                            break;
-                        case PngChunkType.FrameData:
                         {
-                            ValidateFrameDataChunk(chunk);
-
-                            if (frameCount > this.maxFrames)
+                            if (!this.TryReadFrameControlChunk(chunk.Data.GetSpan(), image is not null, ++frameCount, out FrameControl frameControl))
                             {
+                                // The frame limit or the mode ends the decode. The decoder keeps the frames that it decoded.
                                 goto EOF;
                             }
 
-                            if (currentFrame is not null)
-                            {
-                                // The frame of the current fcTL chunk already read its zlib stream, which starts in the
-                                // first fdAT chunk. A later fdAT chunk holds only data after the end of that stream.
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
+                            currentFrameControl = frameControl;
+                            currentFrame = null;
+                            break;
+                        }
 
+                        case PngChunkType.FrameData:
+                        {
+                            // The default image comes before each animation frame.
                             if (image is null)
                             {
                                 PngThrowHelper.ThrowMissingDefaultData();
                             }
 
-                            if (currentFrameControl is null)
+                            if (!this.TryStartFrameData(chunk, currentFrame is not null))
                             {
-                                PngThrowHelper.ThrowMissingFrameControl();
+                                break;
                             }
 
+                            // The IDAT chunk sets the frame control of the default image, so a frame control exists here.
+                            Debug.Assert(currentFrameControl.HasValue, "The default image has a frame control.");
                             this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
                             this.currentStream.Position += 4;
@@ -243,7 +262,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 chunk.Length - 4,
                                 currentFrame,
                                 pngMetadata,
-                                this.ReadNextFrameDataChunk,
+                                PngChunkType.FrameData,
                                 currentFrameControl.Value,
                                 cancellationToken);
 
@@ -269,21 +288,18 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
-                            if (image is null)
-                            {
-                                // PLTE and tRNS precede IDAT. Validate the required indexed palette before
-                                // allocating pixel storage.
-                                this.AssignColorPalette<TPixel>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
-                                this.InitializeImage(metadata, currentFrameControl.Value, out image);
-                            }
+                            pngMetadata.AnimateRootFrame = currentFrameControl.HasValue;
+                            currentFrameControl = this.GetDefaultImageFrameControl(currentFrameControl);
+
+                            // PLTE and tRNS come before IDAT. The decoder checks the palette of an indexed image before it allocates the pixels.
+                            this.AssignColorPalette<TPixel>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
+                            this.InitializeImage(metadata, currentFrameControl.Value, out image);
 
                             this.ReadScanlines(
                                 chunk.Length,
                                 image.Frames.RootFrame,
                                 pngMetadata,
-                                this.ReadNextDataChunk,
+                                PngChunkType.Data,
                                 currentFrameControl.Value,
                                 cancellationToken);
                             if (pngMetadata.AnimateRootFrame)
@@ -321,13 +337,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
-                                () => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
+                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.End:
                             goto EOF;
                         case PngChunkType.ProprietaryApple:
-                            this.ReadCgbiChunk();
+                            // GetDefaultImageFrameControl checks the header of a CgBI image at the first IDAT chunk.
+                            this.isCgbi = true;
                             break;
                     }
                 }
@@ -373,6 +389,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
         FrameControl? currentFrameControl = null;
+        bool frameStarted = false;
         Span<byte> buffer = stackalloc byte[20];
 
         this.currentStream.Skip(8);
@@ -392,72 +409,57 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Physical:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Gamma:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Cicp:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             ReadCicpChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
-                            ++frameCount;
-                            if (frameCount > this.maxFrames)
+                        {
+                            if (!this.TryReadFrameControlChunk(chunk.Data.GetSpan(), framesMetadata.Count > 0, ++frameCount, out FrameControl frameControl))
                             {
-                                break;
-                            }
-
-                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
-
-                            break;
-                        case PngChunkType.FrameData:
-                            ValidateFrameDataChunk(chunk);
-
-                            if (frameCount > this.maxFrames)
-                            {
-                                // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
-                                // restores the stream position to the start of the fdAT data after CRC validation.
-                                this.SkipChunkDataAndCrc(chunk);
-                                this.SkipRemainingFrameDataChunks(buffer);
-                                break;
-                            }
-
-                            if (this.colorMetadataOnly)
-                            {
+                                // The frame limit or the mode ends the read. Identify keeps the frames that it read.
                                 goto EOF;
                             }
 
-                            if (currentFrameControl is null)
+                            currentFrameControl = frameControl;
+                            frameStarted = false;
+                            break;
+                        }
+
+                        case PngChunkType.FrameData:
+                            // The default image comes before each animation frame.
+                            if (framesMetadata.Count == 0)
                             {
-                                PngThrowHelper.ThrowMissingFrameControl();
+                                PngThrowHelper.ThrowMissingDefaultData();
                             }
 
-                            InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
+                            if (!this.TryStartFrameData(chunk, frameStarted))
+                            {
+                                break;
+                            }
 
-                            // Skip data for this and all remaining FrameData chunks belonging to the same frame
-                            // (comparable to how Decode consumes them via ReadScanlines + ReadNextFrameDataChunk).
-                            this.SkipChunkDataAndCrc(chunk);
-                            this.SkipRemainingFrameDataChunks(buffer);
+                            // The IDAT chunk sets the frame control of the default image, so a frame control exists here.
+                            Debug.Assert(currentFrameControl.HasValue, "The default image has a frame control.");
+                            InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
+                            frameStarted = true;
+
+                            // Identify skips the data of the frame. Decode reads the same chunks through ReadScanlines.
+                            this.SkipFrameData(chunk);
                             break;
                         case PngChunkType.Data:
+                            if (framesMetadata.Count > 0)
+                            {
+                                // The first IDAT chunk starts the zlib stream of the default image. Identify skips the other IDAT chunks.
+                                this.SkipChunkDataAndCrc(chunk);
+                                break;
+                            }
+
+                            pngMetadata.AnimateRootFrame = currentFrameControl.HasValue;
+                            currentFrameControl = this.GetDefaultImageFrameControl(currentFrameControl);
 
                             // Spec says tRNS must be before IDAT so safe to exit.
                             if (this.colorMetadataOnly)
@@ -465,18 +467,18 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 goto EOF;
                             }
 
-                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
-                            if (framesMetadata.Count == 0)
-                            {
-                                InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
+                            InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
-                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
-                                this.AssignColorPalette<RgbaVector>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
-                            }
+                            // The specification puts the PLTE and tRNS chunks before IDAT, so the decoder read them before this point. Identify has no
+                            // destination pixel format. RgbaVector keeps the converted colors as unassociated floating-point values.
+                            this.AssignColorPalette<RgbaVector>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
 
                             this.SkipChunkDataAndCrc(chunk);
+                            if (frameCount > this.maxFrames)
+                            {
+                                goto EOF;
+                            }
+
                             break;
                         case PngChunkType.Palette:
                             this.palette = [.. chunk.Data.GetSpan()];
@@ -494,59 +496,27 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.Text:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.CompressedText:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.InternationalText:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Exif:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
-                            }
-
                             this.ReadExifChunk(metadata, chunk);
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.Options.SegmentIntegrityHandling.ExecuteAncillarySegmentAction(
-                                () => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
+                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.End:
                             goto EOF;
 
                         case PngChunkType.ProprietaryApple:
-                            this.ReadCgbiChunk();
-                            break;
-
-                        default:
-                            if (this.colorMetadataOnly)
-                            {
-                                this.SkipChunkDataAndCrc(chunk);
-                            }
-
+                            // GetDefaultImageFrameControl checks the header of a CgBI image at the first IDAT chunk.
+                            this.isCgbi = true;
                             break;
                     }
                 }
@@ -557,7 +527,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             }
 
             EOF:
-            if (this.header.Width == 0 && this.header.Height == 0)
+            if (!this.hasHeader)
             {
                 PngThrowHelper.ThrowInvalidHeader();
             }
@@ -569,6 +539,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             this.scanline?.Dispose();
             this.previousScanline?.Dispose();
             this.dataCrcBuffer?.Dispose();
+            this.nextChunk?.Data?.Dispose();
         }
     }
 
@@ -600,18 +571,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the data chunk containing gamma data.
+    /// Reads the data chunk that contains gamma data.
     /// </summary>
     /// <param name="pngMetadata">The metadata to read to.</param>
-    /// <param name="data">The data containing physical data.</param>
+    /// <param name="data">The gamma data. It has 4 bytes.</param>
     private static void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
-        if (data.Length < 4)
-        {
-            // Ignore invalid gamma chunks.
-            return;
-        }
-
         // For example, a gamma of 1/2.2 would be stored as 45455.
         // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
         pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) * 1e-5F;
@@ -632,8 +597,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
 
-        this.bytesPerPixel = this.CalculateBytesPerPixel();
-        this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
+        // PngHeader.Validate makes sure that the scanline and its filter type byte fit in an int.
+        this.bytesPerPixel = PngHeader.CalculateBytesPerPixel(this.header.ColorType, this.header.BitDepth);
+        this.bytesPerScanline = (int)PngHeader.CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
 
         this.previousScanline?.Dispose();
         this.scanline?.Dispose();
@@ -695,90 +661,65 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Calculates the correct number of bytes per pixel for the given color type.
-    /// </summary>
-    /// <returns>The <see cref="int"/></returns>
-    private int CalculateBytesPerPixel()
-        => this.pngColorType
-        switch
-        {
-            PngColorType.Grayscale => this.header.BitDepth == 16 ? 2 : 1,
-            PngColorType.GrayscaleWithAlpha => this.header.BitDepth == 16 ? 4 : 2,
-            PngColorType.Palette => 1,
-            PngColorType.Rgb => this.header.BitDepth == 16 ? 6 : 3,
-            _ => this.header.BitDepth == 16 ? 8 : 4,
-        };
-
-    /// <summary>
-    /// Calculates the scanline length.
-    /// </summary>
-    /// <param name="width">The width of the row.</param>
-    /// <param name="bitDepth">The number of bits per sample.</param>
-    /// <param name="bytesPerPixel">The number of bytes per pixel.</param>
-    /// <returns>
-    /// The <see cref="int"/> representing the length.
-    /// </returns>
-    internal static int CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
-    {
-        int mod = bitDepth == 16 ? 16 : 8;
-        long scanlineLength = (long)width * bitDepth * bytesPerPixel;
-
-        long amount = scanlineLength % mod;
-        if (amount != 0)
-        {
-            scanlineLength += mod - amount;
-        }
-
-        scanlineLength /= mod;
-        if (scanlineLength >= int.MaxValue)
-        {
-            PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
-        }
-
-        return (int)scanlineLength;
-    }
-
-    /// <summary>
     /// Reads the scanlines within the image.
     /// </summary>
+    /// <remarks>
+    /// The compressed data starts at the stream position and continues in the chunks of the same type that follow. After the decode, the stream is at the start
+    /// of the next chunk header, or <see cref="nextChunk"/> holds the next chunk.
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="chunkLength">The length of the chunk that containing the compressed scanline data.</param>
-    /// <param name="image"> The pixel data.</param>
-    /// <param name="pngMetadata">The png metadata</param>
-    /// <param name="getData">A delegate to get more data from the inner stream when chunk boundaries are crossed.</param>
-    /// <param name="frameControl">The frame control</param>
+    /// <param name="chunkLength">The length of the chunk that contains the compressed scanline data.</param>
+    /// <param name="image">The pixel data.</param>
+    /// <param name="pngMetadata">The PNG metadata.</param>
+    /// <param name="chunkType">The type of the chunks that hold the compressed data: IDAT or fdAT.</param>
+    /// <param name="frameControl">The frame control.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void ReadScanlines<TPixel>(
         int chunkLength,
         ImageFrame<TPixel> image,
         PngMetadata pngMetadata,
-        Func<int> getData,
+        PngChunkType chunkType,
         in FrameControl frameControl,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // CgBI IDATs wrap a raw DEFLATE payload directly (no zlib CMF/FLG header
-        // and no Adler-32 trailer); skip the zlib header parser entirely.
+        // The inflater reads the payload of the first chunk from the stream position. Then it gets each later payload from the next chunk of the same type.
+        this.imageDataChunkEnd = this.currentStream.Position + chunkLength;
+        this.imageDataChunkType = chunkType;
+
         if (this.isCgbi)
         {
-            using ChunkedReadStream segmentStream = new(this.currentStream, getData);
+            // CgBI IDAT chunks hold a raw DEFLATE stream with no zlib CMF and FLG header and no Adler-32 trailer. Thus the decoder does not use the zlib header
+            // parser.
+            using ChunkedReadStream segmentStream = new(this.currentStream, this.readNextDataChunk);
             segmentStream.SetCurrentSegmentLength(chunkLength);
             using DeflateStream cgbiDataStream = new(segmentStream, CompressionMode.Decompress, leaveOpen: true);
             this.DecodeFromDeflate(cgbiDataStream, image, pngMetadata, frameControl, cancellationToken);
-            return;
         }
-
-        using ZlibInflateReader inflateStream = new(this.currentStream, getData);
-        if (!inflateStream.AllocateNewBytes(chunkLength, false))
+        else
         {
-            // The zlib header is part of the image data. A missing or bad header is damaged image data.
-            // No row decodes. The frame region gets the same pixels as for data that ends before the first row.
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data does not start with a valid zlib header.");
-            ClearUndecodedPixels(frameControl, image, -1, (int)frameControl.YOffset);
-            return;
+            using ZlibInflateReader inflateStream = new(this.currentStream, this.readNextDataChunk);
+            if (inflateStream.AllocateNewBytes(chunkLength))
+            {
+                this.DecodeFromDeflate(inflateStream.CompressedStream, image, pngMetadata, frameControl, cancellationToken);
+            }
+            else
+            {
+                // The zlib header is part of the image data. A missing header, or a header that is not valid, is damaged image data. No row decodes. The frame
+                // region gets the same pixels as for data that ends before the first row.
+                this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data does not start with a valid zlib header.");
+                ClearUndecodedPixels(frameControl, image, -1, (int)frameControl.YOffset);
+            }
         }
 
-        this.DecodeFromDeflate(inflateStream.CompressedStream!, image, pngMetadata, frameControl, cancellationToken);
+        // The inflater can stop inside the last chunk that it reads. After the last row, it does not read the Adler-32 checksum and the data after it. Damaged
+        // data also stops it early. The decoder skips the rest of that chunk and its CRC. The next chunk header comes after the CRC.
+        if (this.imageDataChunkEnd >= 0)
+        {
+            this.currentStream.Position = this.imageDataChunkEnd;
+            this.currentStream.Skip(4);
+            this.imageDataChunkEnd = -1;
+        }
     }
 
     private void DecodeFromDeflate<TPixel>(
@@ -853,12 +794,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         int currentRow = (int)frameControl.YOffset;
         int height = (int)frameControl.YMax;
 
+        // Each row of the frame has the same length: one filter type byte, then the row data.
+        int bytesPerFrameScanline = (int)PngHeader.CalculateScanlineLength((int)frameControl.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
+
         Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
 
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int bytesPerFrameScanline = CalculateScanlineLength((int)frameControl.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
             Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
             Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
 
@@ -892,7 +835,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                 default:
                     // A filter type that is not valid is damaged image data. Stop at this row.
-                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Unknown filter type.");
+                    this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("Unknown filter type.");
                     ClearUndecodedPixels(frameControl, imageFrame, -1, currentRow);
                     return;
             }
@@ -978,7 +921,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         while (true)
         {
-            int numColumns = Adam7.ComputeColumns(width, pass);
+            int numColumns = Adam7.ComputeBlockWidth(width, pass);
 
             if (numColumns == 0)
             {
@@ -989,7 +932,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            int bytesPerInterlaceScanline = CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
+            int bytesPerInterlaceScanline = (int)PngHeader.CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
 
             while (currentRow < endRow)
             {
@@ -1028,7 +971,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                     default:
                         // A filter type that is not valid is damaged image data. Stop at this row.
-                        this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("Unknown filter type.");
+                        this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("Unknown filter type.");
                         ClearUndecodedPixels(frameControl, imageFrame, pass, currentRow);
                         return;
                 }
@@ -1150,7 +1093,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 int count = compressedStream.Read(scanline[bytesRead..]);
                 if (count <= 0)
                 {
-                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data ends before the last scanline.");
+                    this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data ends before the last scanline.");
                     return false;
                 }
 
@@ -1160,7 +1103,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         catch (InvalidDataException ex)
         {
             // The inflater found a deflate block that is not valid.
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data is damaged.", ex);
+            this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The PNG image data is damaged.", ex);
             return false;
         }
 
@@ -1386,16 +1329,49 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads a header chunk from the data.
+    /// Reads the fcTL chunk that starts an animation frame, and applies the frame limit of the decode.
     /// </summary>
-    /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
-    private FrameControl ReadFrameControlChunk(ReadOnlySpan<byte> data)
+    /// <remarks>
+    /// <para>
+    /// Each fcTL chunk starts one frame. When a frame exists, the fcTL chunk of the frame after <see cref="maxFrames"/> ends the read of the chunks. Before a
+    /// frame exists, the decoder reads each fcTL chunk, so the default image always decodes.
+    /// </para>
+    /// <para>
+    /// Before a frame exists, the frame control can define the pixel buffer of the image. Thus a damaged chunk at that point is a structural error in each
+    /// mode. After a frame exists, a damaged chunk is damaged image data.
+    /// </para>
+    /// </remarks>
+    /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> that contains the data.</param>
+    /// <param name="imageExists">A value that tells if a frame exists.</param>
+    /// <param name="frameCount">The number of fcTL chunks to this chunk, this chunk included.</param>
+    /// <param name="frameControl">The frame control. If the return value is <see langword="false"/>, the default value.</param>
+    /// <returns>
+    /// <see langword="true"/> if the chunk starts a frame. <see langword="false"/> if the frame is past the frame limit, or if the chunk is damaged and the
+    /// mode ignores image data errors. The decoder then reads no more chunks.
+    /// </returns>
+    private bool TryReadFrameControlChunk(ReadOnlySpan<byte> data, bool imageExists, uint frameCount, out FrameControl frameControl)
     {
-        FrameControl fcTL = FrameControl.Parse(data);
+        frameControl = default;
+        if (frameCount > this.maxFrames && imageExists)
+        {
+            return false;
+        }
 
-        fcTL.Validate(this.header);
+        string message = "The frame control chunk does not contain enough data!";
+        if (data.Length >= FrameControl.Size)
+        {
+            FrameControl parsed = FrameControl.Parse(data);
+            if (parsed.IsValid(this.header))
+            {
+                frameControl = parsed;
+                return true;
+            }
 
-        return fcTL;
+            message = "The frame control chunk has a frame region outside the image, or a dispose or blend operation that is not valid.";
+        }
+
+        this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError(imageExists, message);
+        return false;
     }
 
     /// <summary>
@@ -1405,7 +1381,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
     private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
-        if (!Equals(this.header, default(PngHeader)))
+        if (this.hasHeader)
         {
             PngThrowHelper.ThrowInvalidHeader();
         }
@@ -1413,6 +1389,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         this.header = PngHeader.Parse(data);
 
         this.header.Validate();
+        this.hasHeader = true;
 
         pngMetadata.BitDepth = (PngBitDepth)this.header.BitDepth;
         pngMetadata.ColorType = this.header.ColorType;
@@ -1420,37 +1397,43 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         this.pngColorType = this.header.ColorType;
         this.Dimensions = new Size(this.header.Width, this.header.Height);
-
-        // Apple's pngcrush emits the CgBI chunk before IHDR, so the header
-        // compatibility check is deferred until both chunks have been seen.
-        if (this.isCgbi)
-        {
-            ThrowIfInvalidCgbiContent(this.header);
-        }
     }
 
     /// <summary>
-    /// Marks the image as CgBI and validates a header that has already been read.
+    /// Checks the chunks before the first IDAT chunk, and gets the frame control of the default image.
     /// </summary>
-    private void ReadCgbiChunk()
+    /// <remarks>
+    /// <para>
+    /// Apple's pngcrush writes the CgBI chunk before IHDR, and other tools can write it after IHDR. Both chunks come before the first IDAT chunk, so the
+    /// decoder checks the CgBI header there, before it allocates the image.
+    /// </para>
+    /// <para>
+    /// An fcTL chunk before the first IDAT chunk makes the default image the first frame. Its frame region is the whole image: offset 0, and the width and
+    /// height of IHDR. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control Chunk": https://www.w3.org/TR/png-3/#fcTL-chunk.
+    /// </para>
+    /// </remarks>
+    /// <param name="frameControl">The fcTL chunk before the first IDAT chunk, or <see langword="null"/>.</param>
+    /// <returns>The frame control of the default image.</returns>
+    private FrameControl GetDefaultImageFrameControl(FrameControl? frameControl)
     {
-        this.isCgbi = true;
-
-        // Although Apple's pngcrush normally writes CgBI before IHDR, accepting the
-        // reverse order must apply the same compatibility validation.
-        if (!Equals(this.header, default(PngHeader)))
-        {
-            ThrowIfInvalidCgbiContent(this.header);
-        }
-    }
-
-    private static void ThrowIfInvalidCgbiContent(in PngHeader header)
-    {
-        if (header.BitDepth != 8 || (header.ColorType is not PngColorType.Rgb and not PngColorType.RgbWithAlpha))
+        if (this.isCgbi && (this.header.BitDepth != 8 || (this.header.ColorType is not PngColorType.Rgb and not PngColorType.RgbWithAlpha)))
         {
             PngThrowHelper.ThrowInvalidImageContentException(
-                $"CgBI is only supported for 8-bit truecolor images. Was bit depth '{header.BitDepth}', color type '{header.ColorType}'.");
+                $"CgBI is only supported for 8-bit truecolor images. Was bit depth '{this.header.BitDepth}', color type '{this.header.ColorType}'.");
         }
+
+        if (frameControl is null)
+        {
+            return new FrameControl((uint)this.header.Width, (uint)this.header.Height);
+        }
+
+        FrameControl value = frameControl.Value;
+        if (value.XOffset != 0 || value.YOffset != 0 || value.Width != (uint)this.header.Width || value.Height != (uint)this.header.Height)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("The frame control chunk of the default image must have offset 0 and the image size.");
+        }
+
+        return value;
     }
 
     /// <summary>
@@ -1507,7 +1490,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
-        if (keywordEnd < 0 || keywordEnd + 2 > data.Length)
+        if (keywordEnd + 2 > data.Length)
         {
             return; // Not enough data for keyword + null + compression method.
         }
@@ -1576,15 +1559,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// Reads the CICP color profile chunk.
     /// </summary>
     /// <param name="metadata">The metadata.</param>
-    /// <param name="data">The bytes containing the profile.</param>
+    /// <param name="data">The profile data. It has 4 bytes.</param>
     private static void ReadCicpChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
     {
-        if (data.Length < 4)
-        {
-            // Ignore invalid cICP chunks.
-            return;
-        }
-
         byte colorPrimaries = data[0];
         byte transferFunction = data[1];
         byte matrixCoefficients = data[2];
@@ -1634,7 +1611,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         if (zeroIndex + 1 >= data.Length)
         {
-            this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read PNG ICC compression method.");
+            this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Not enough data to read PNG ICC compression method.");
             return;
         }
 
@@ -1659,9 +1636,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
             using ZlibInflateReader inflateStream = new(bufferedStream);
 
-            if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+            if (!inflateStream.AllocateNewBytes(compressedData.Length))
             {
-                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG ICC profile.");
+                this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG ICC profile.");
                 return;
             }
 
@@ -1674,15 +1651,20 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 // Probe once only at the limit to distinguish exact output from excess decompressed data.
                 if (bytesRead == profileLength && inflateStream.CompressedStream.ReadByte() != -1)
                 {
-                    this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid PNG ICC profile.");
+                    this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid PNG ICC profile.");
                     return;
                 }
 
-                metadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling.IgnoresAncillaryErrors());
+                metadata.IccProfile = reader.ToProfile(this.segmentIntegrityHandling.IgnoresAncillaryErrors());
             }
             catch (InvalidDataException ex)
             {
-                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG ICC profile.", ex);
+                this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG ICC profile.", ex);
+            }
+            catch (InvalidIccProfileException ex)
+            {
+                // The ICC reader rejects a profile that is too large or not valid. The profile is ancillary data.
+                this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid PNG ICC profile.", ex);
             }
         }
     }
@@ -1705,7 +1687,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             using ZlibInflateReader inflateStream = new(bufferedStream);
 
             Span<byte> destUncompressedData = destBuffer.GetSpan();
-            if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+            if (!inflateStream.AllocateNewBytes(compressedData.Length))
             {
                 uncompressedBytesArray = [];
                 return false;
@@ -1733,7 +1715,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 // ICC and text chunks are already bounded in memory, so rejecting their compressed contents
                 // does not lose the next chunk boundary. Apply the ancillary policy without keeping partial output.
-                this.Options.SegmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG metadata.", ex);
+                this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("Invalid compressed PNG metadata.", ex);
                 uncompressedBytesArray = [];
                 return false;
             }
@@ -1794,7 +1776,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
-        if (zeroIndexKeyword < 0 || zeroIndexKeyword + 4 > data.Length)
+        if (zeroIndexKeyword + 4 > data.Length)
         {
             return; // Not enough data for keyword + null + flag + method + language.
         }
@@ -1877,9 +1859,16 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the next data chunk.
+    /// Reads the header of the next chunk of a compressed stream, and moves the stream to the compressed data in it.
     /// </summary>
-    /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
+    /// <remarks>
+    /// The compressed stream of the default image is the data of the consecutive IDAT chunks. The compressed stream of an animation frame is the data of the
+    /// consecutive fdAT chunks, after the 4-byte sequence number of each chunk. See PNG Third Edition, section 11.2.3 "IDAT Image data" and section 11.3.6.3
+    /// "fdAT Frame Data Chunk". A chunk can have no compressed data. The method skips such a chunk, because a return value of 0 tells the inflater that the
+    /// compressed stream ended. <see cref="imageDataChunkType"/> gives the chunk type of the stream. A chunk of another type, or a damaged fdAT chunk, ends the
+    /// compressed stream. <see cref="nextChunk"/> then keeps that chunk for the chunk loop.
+    /// </remarks>
+    /// <returns>The number of compressed bytes in the next chunk, or 0 if the compressed stream has no more chunks.</returns>
     private int ReadNextDataChunk()
     {
         if (this.nextChunk != null)
@@ -1888,126 +1877,121 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         Span<byte> buffer = stackalloc byte[20];
-
-        // The compressed stream is the concatenation of the payloads of all consecutive data chunks, and the
-        // specification permits zero-length data chunks. A return value of 0 tells the inflater that the
-        // compressed stream has ended, so empty chunks are skipped rather than reported.
+        PngChunkType type = this.imageDataChunkType;
+        int sequenceLength = type is PngChunkType.FrameData ? sizeof(uint) : 0;
         while (true)
         {
-            // Skip the CRC of the previous chunk.
-            int length = this.currentStream.Read(buffer, 0, 4);
-            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
+            // The stream is at the end of the data of the previous chunk. The method skips its CRC.
+            this.imageDataChunkEnd = -1;
+            if (this.currentStream.Read(buffer, 0, 4) == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
             {
                 return 0;
             }
 
-            if (chunk.Type is not PngChunkType.Data)
-            {
-                // Only IDAT payloads belong to this stream. Frame data must return to the outer loop
-                // for its own framing checks.
-                this.nextChunk = chunk;
-                return 0;
-            }
-
-            chunk.Data?.Dispose();
-            if (chunk.Length > 0)
-            {
-                return chunk.Length;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Reads the next animated frame data chunk.
-    /// </summary>
-    /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
-    private int ReadNextFrameDataChunk()
-    {
-        if (this.nextChunk != null)
-        {
-            return 0;
-        }
-
-        Span<byte> buffer = stackalloc byte[20];
-
-        // As with data chunks, frame data chunks with no payload after the sequence number are valid and are
-        // skipped, so that a return value of 0 only ever means that the frame's compressed stream has ended.
-        while (true)
-        {
-            // Skip the CRC of the previous chunk.
-            int length = this.currentStream.Read(buffer, 0, 4);
-            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
-            {
-                return 0;
-            }
-
-            if (chunk.Type is not PngChunkType.FrameData)
+            if (chunk.Type != type || (sequenceLength > 0 && !this.TryValidateFrameDataChunk(chunk)))
             {
                 this.nextChunk = chunk;
                 return 0;
             }
 
-            chunk.Data?.Dispose();
-
-            // A short fdAT chunk holds no compressed data. A missing sequence number is a structural error in
-            // every mode. The check occurs here, before the frame reports truncated image data.
-            ValidateFrameDataChunk(chunk);
-
-            this.currentStream.Position += 4; // Skip sequence number
-            int dataLength = chunk.Length - 4;
+            this.currentStream.Skip(sequenceLength);
+            int dataLength = chunk.Length - sequenceLength;
             if (dataLength > 0)
             {
+                this.imageDataChunkEnd = this.currentStream.Position + dataLength;
                 return dataLength;
             }
         }
     }
 
     /// <summary>
-    /// Skips any remaining <see cref="PngChunkType.FrameData"/> chunks belonging to the current frame.
-    /// This mirrors how <see cref="ReadNextFrameDataChunk"/> is used during decoding:
-    /// consecutive fdAT chunks are consumed until a non-fdAT chunk is encountered,
-    /// which is stored in <see cref="nextChunk"/> for the next iteration.
+    /// Skips the data of an fdAT chunk, and the data of each fdAT chunk after it.
     /// </summary>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void SkipRemainingFrameDataChunks(Span<byte> buffer)
+    /// <remarks>
+    /// The consecutive fdAT chunks hold the compressed stream of one frame. The method reads them through <see cref="ReadNextDataChunk"/>, as the inflater
+    /// does, so <see cref="nextChunk"/> then keeps the chunk after them.
+    /// </remarks>
+    /// <param name="chunk">The fdAT chunk. The stream is at the start of its data.</param>
+    private void SkipFrameData(in PngChunk chunk)
     {
-        while (this.TryReadChunk(buffer, out PngChunk chunk))
+        this.currentStream.Skip(chunk.Length);
+        this.imageDataChunkType = PngChunkType.FrameData;
+
+        int length;
+        while ((length = this.ReadNextDataChunk()) > 0)
         {
-            if (chunk.Type is PngChunkType.FrameData && chunk.Length >= sizeof(uint))
-            {
-                chunk.Data?.Dispose();
-                this.SkipChunkDataAndCrc(chunk);
-            }
-            else
-            {
-                // Preserve other chunks, including malformed fdAT, for validation by the outer chunk loop.
-                this.nextChunk = chunk;
-                return;
-            }
+            this.currentStream.Skip(length);
         }
     }
 
     /// <summary>
-    /// Checks the required sequence number before consuming a frame data chunk.
+    /// Checks an fdAT chunk of the chunk loop before the decoder reads the frame data in it.
     /// </summary>
-    /// <param name="chunk">The frame data chunk.</param>
-    private static void ValidateFrameDataChunk(in PngChunk chunk)
-    {
-        // A missing sequence number is a structural error in every integrity mode.
-        if (chunk.Length < sizeof(uint))
-        {
-            PngThrowHelper.ThrowInvalidImageContentException("The frame data chunk does not contain a sequence number.");
-        }
-    }
-
-    /// <summary>
-    /// Reads a chunk from the stream.
-    /// </summary>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <param name="chunk">The image format chunk.</param>
+    /// <param name="chunk">The fdAT chunk. The stream is at the start of its data.</param>
+    /// <param name="frameStarted">A value that tells if an earlier fdAT chunk started the data of the current frame.</param>
     /// <returns>
-    /// The <see cref="PngChunk"/>.
+    /// <see langword="true"/> if the chunk starts the data of the current frame. Otherwise <see langword="false"/>, and the method skipped the chunk.
     /// </returns>
+    private bool TryStartFrameData(in PngChunk chunk, bool frameStarted)
+    {
+        if (!this.TryValidateFrameDataChunk(chunk))
+        {
+            // The damaged chunk breaks the compressed data of its frame. The fdAT chunks after it hold only a part of that data, so the decoder skips them too.
+            this.SkipFrameData(chunk);
+            return false;
+        }
+
+        if (frameStarted)
+        {
+            // The compressed stream of the current frame starts in an earlier fdAT chunk, and the stream ended. This chunk holds only data after the end of
+            // that stream.
+            this.SkipChunkDataAndCrc(chunk);
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks the sequence number of an fdAT chunk.
+    /// </summary>
+    /// <remarks>
+    /// An fdAT chunk starts with a 4-byte sequence number. See PNG Third Edition, section 11.3.6.3 "fdAT Frame Data Chunk":
+    /// https://www.w3.org/TR/png-3/#fdAT-chunk. The default image comes before each fdAT chunk, so a chunk without a sequence number is damaged image data.
+    /// </remarks>
+    /// <param name="chunk">The fdAT chunk.</param>
+    /// <returns>
+    /// <see langword="true"/> if the chunk has a sequence number. <see langword="false"/> if it does not and the mode ignores image data errors. The caller
+    /// then skips the chunk.
+    /// </returns>
+    private bool TryValidateFrameDataChunk(in PngChunk chunk)
+    {
+        if (chunk.Length >= sizeof(uint))
+        {
+            return true;
+        }
+
+        this.segmentIntegrityHandling.ThrowOrIgnoreImageDataError("The frame data chunk does not contain a sequence number.");
+        return false;
+    }
+
+    /// <summary>
+    /// Reads the next chunk that the decoder uses.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The method reads the data of the chunk and checks its CRC. The inflater reads the data of IDAT and fdAT chunks from the stream. Thus the stream stays at
+    /// the start of the data of these chunks.
+    /// </para>
+    /// <para>
+    /// The method skips each chunk that the decoder does not use (see <see cref="IsUsedChunk"/>). It reads no data of such a chunk into memory. When the mode
+    /// checks the CRC of the chunk, the method streams the data through the CRC. Otherwise it moves the stream past the data and the CRC. The method also skips
+    /// an ancillary chunk with a data length that is not valid for its type.
+    /// </para>
+    /// </remarks>
+    /// <param name="buffer">A temporary buffer of at least 8 bytes.</param>
+    /// <param name="chunk">The chunk. If the return value is <see langword="false"/>, the default value.</param>
+    /// <returns><see langword="true"/> if the method reads a chunk. <see langword="false"/> if no chunk follows.</returns>
     private bool TryReadChunk(Span<byte> buffer, out PngChunk chunk)
     {
         if (this.nextChunk != null)
@@ -2019,141 +2003,209 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return true;
         }
 
-        if (this.currentStream.Position >= this.currentStream.Length - 1)
+        while (this.TryReadChunkHeader(buffer, out int length, out PngChunkType type))
         {
-            // IEND
-            chunk = default;
-            return false;
-        }
-
-        // Capture the current position so we can revert back to it if we fail to read a valid chunk.
-        long position = this.currentStream.Position;
-
-        if (!this.TryReadChunkLength(buffer, out int length))
-        {
-            // IEND
-            chunk = default;
-            return false;
-        }
-
-        while (length < 0)
-        {
-            // Not a valid chunk so try again until we reach a known chunk.
-            if (!this.TryReadChunkLength(buffer, out length))
+            // IHDR is the first chunk. See PNG Third Edition, section 5.6 "Chunk ordering". Apple's pngcrush writes the CgBI chunk before IHDR.
+            if (!this.hasHeader && type is not PngChunkType.Header and not PngChunkType.ProprietaryApple)
             {
-                // IEND
-                chunk = default;
-                return false;
-            }
-        }
-
-        PngChunkType type;
-
-        // Loop until we get a chunk type that is valid.
-        while (true)
-        {
-            if (!this.TryReadChunkType(buffer, out type))
-            {
-                // The stream ends inside the chunk type. This ends the chunk sequence.
-                chunk = default;
-                return false;
+                PngThrowHelper.ThrowInvalidHeader();
             }
 
-            if (!IsValidChunkType(type))
+            // The decoder cannot decode an image with a critical chunk that it does not know. See PNG Third Edition, section 5.4 "Chunk naming conventions".
+            if (!IsAncillary(type)
+                && type is not PngChunkType.Header and not PngChunkType.Palette and not PngChunkType.Data and not PngChunkType.End
+                and not PngChunkType.ProprietaryApple)
             {
-                // The chunk type is invalid.
-                // Revert back to the next byte past the previous position and try again.
-                this.currentStream.Position = ++position;
+                PngThrowHelper.ThrowUnknownCriticalChunk(GetChunkTypeName(type));
+            }
 
-                // If we are now at the end of the stream, we're done.
-                if (this.currentStream.Position >= this.currentStream.Length)
+            long available = this.currentStream.Length - this.currentStream.Position;
+            if (type is PngChunkType.Data or PngChunkType.FrameData)
+            {
+                // The inflater reads the data later. Data that ends early is truncated image data, and the scanline reader reports it. The color metadata read
+                // stops at the first image data chunk, so it needs no CRC.
+                chunk = new PngChunk((int)Math.Min(length, available), type);
+                if (!this.colorMetadataOnly && chunk.IsCritical(this.segmentIntegrityHandling))
                 {
-                    chunk = default;
-                    return false;
+                    long dataStart = this.currentStream.Position;
+                    this.ValidateChunkCrc(chunk, buffer);
+                    this.currentStream.Position = dataStart;
                 }
 
-                // Read the next chunk’s length.
-                if (!this.TryReadChunkLength(buffer, out length))
+                return true;
+            }
+
+            if (!this.IsUsedChunk(type))
+            {
+                // The color metadata read checks no CRC, as for the image data chunks. The decode checks the CRC without a copy of the data. Data that ends
+                // early fails the CRC check.
+                PngChunk skipped = new(length, type);
+                if (!this.colorMetadataOnly && skipped.IsCritical(this.segmentIntegrityHandling))
                 {
-                    chunk = default;
-                    return false;
+                    this.ValidateChunkCrc(skipped, buffer);
+                }
+                else
+                {
+                    this.currentStream.Skip(length);
+                    this.currentStream.Skip(4);
                 }
 
-                while (length < 0)
-                {
-                    if (!this.TryReadChunkLength(buffer, out length))
-                    {
-                        chunk = default;
-                        return false;
-                    }
-                }
-
-                // Continue to try reading the next chunk.
                 continue;
             }
 
-            // We have a valid chunk type.
-            break;
+            // The decoder needs the data of a critical chunk. A critical chunk with complete data and a missing CRC reports a CRC error in the CRC check below.
+            // An ancillary chunk also needs its 4 CRC bytes, so that a profile or text from a truncated stream does not reach the metadata.
+            if (length > (IsAncillary(type) ? available - sizeof(uint) : available))
+            {
+                // No chunk follows a chunk that ends after the end of the stream.
+                string message = $"The PNG {GetChunkTypeName(type)} chunk ends after the end of the stream.";
+                if (!IsAncillary(type))
+                {
+                    PngThrowHelper.ThrowInvalidImageContentException(message);
+                }
+
+                this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError(message);
+                this.currentStream.Position = this.currentStream.Length;
+                break;
+            }
+
+            chunk = new PngChunk(length, type, this.ReadChunkData(length));
+
+            try
+            {
+                if (chunk.IsCritical(this.segmentIntegrityHandling))
+                {
+                    this.ValidateChunkCrc(chunk, buffer);
+                }
+                else
+                {
+                    this.currentStream.Skip(4);
+                }
+            }
+            catch
+            {
+                // The caller owns the chunk data only after this method returns. The CRC read can throw first, for example when the stream observes a
+                // cancellation request. Thus the method disposes the data here.
+                chunk.Data.Dispose();
+                throw;
+            }
+
+            if (IsValidChunkLength(type, length))
+            {
+                return true;
+            }
+
+            // The CRC check comes first, so a chunk with damaged bytes reports the CRC error. A length error stops the decode for a critical chunk, and skips
+            // an ancillary chunk.
+            chunk.Data.Dispose();
+            string lengthMessage = $"The PNG {GetChunkTypeName(type)} chunk has a data length of {length}, which is not valid for the chunk type.";
+            if (!IsAncillary(type))
+            {
+                PngThrowHelper.ThrowInvalidImageContentException(lengthMessage);
+            }
+
+            this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError(lengthMessage);
         }
 
-        // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
-        // We can skip most other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly &&
-            type != PngChunkType.Header &&
-            type != PngChunkType.Transparency &&
-            type != PngChunkType.Palette &&
-            type != PngChunkType.AnimationControl &&
-            type != PngChunkType.FrameControl)
-        {
-            chunk = new PngChunk(length, type);
-            return true;
-        }
-
-        // A chunk might report a length that exceeds the length of the stream.
-        // Take the minimum of the two values to ensure we don't read past the end of the stream.
-        position = this.currentStream.Position;
-        long available = this.currentStream.Length - position;
-
-        // These chunks can carry profiles. Require the declared payload and all four CRC bytes.
-        // The integrity policy controls the CRC comparison.
-        if (type is PngChunkType.Exif or PngChunkType.EmbeddedColorProfile or PngChunkType.Text
-            or PngChunkType.CompressedText or PngChunkType.InternationalText && length > available - sizeof(uint))
-        {
-            this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The PNG metadata chunk is incomplete.");
-
-            this.currentStream.Position = this.currentStream.Length;
-            chunk = default;
-            return false;
-        }
-
-        // The inflater reads the payload of an image data chunk from the stream later. The CRC check reads it in
-        // blocks only, so the chunk needs no buffer of its own.
-        if (type is PngChunkType.Data or PngChunkType.FrameData)
-        {
-            chunk = new PngChunk((int)Math.Min(length, available), type);
-            this.ValidateImageDataChunk(chunk, buffer, position);
-            return true;
-        }
-
-        chunk = new PngChunk(
-            length: (int)Math.Min(length, available),
-            type: type,
-            data: this.ReadChunkData(length));
-
-        try
-        {
-            this.ValidateChunk(chunk, buffer);
-        }
-        catch
-        {
-            // The caller owns the chunk data only after this method returns. The CRC read can throw first, for example
-            // when the stream observes a cancellation request, so dispose the data here.
-            chunk.Data?.Dispose();
-            throw;
-        }
-
-        return true;
+        chunk = default;
+        return false;
     }
+
+    /// <summary>
+    /// Gets a value that tells if the decoder uses the data of a chunk type. The IDAT and fdAT chunks are not part of the check, because the inflater reads
+    /// their data from the stream.
+    /// </summary>
+    /// <remarks>
+    /// The color metadata read uses only the chunks that define the pixel format and the frames: IHDR, PLTE, tRNS, acTL and fcTL. The decode also uses the
+    /// metadata chunks, IEND and CgBI.
+    /// </remarks>
+    /// <param name="type">The chunk type.</param>
+    /// <returns><see langword="true"/> if the decoder uses the data. Otherwise <see langword="false"/>.</returns>
+    private bool IsUsedChunk(PngChunkType type)
+        => type is PngChunkType.Header or PngChunkType.Palette or PngChunkType.Transparency or PngChunkType.AnimationControl
+            or PngChunkType.FrameControl
+        || (!this.colorMetadataOnly
+            && type is PngChunkType.Physical or PngChunkType.Gamma or PngChunkType.Cicp or PngChunkType.Text or PngChunkType.CompressedText
+                or PngChunkType.InternationalText or PngChunkType.Exif or PngChunkType.EmbeddedColorProfile or PngChunkType.End
+                or PngChunkType.ProprietaryApple);
+
+    /// <summary>
+    /// Reads the length and the type of the next chunk.
+    /// </summary>
+    /// <remarks>
+    /// The length is at most 2^31-1, and each byte of the type is an ASCII letter. See PNG Third Edition, section 5.3 "Chunk layout":
+    /// https://www.w3.org/TR/png-3/#5Chunk-layout. The <see cref="SegmentIntegrityHandling.Strict"/> mode stops with an error for a header that is not valid.
+    /// The other modes look for the next valid header, one byte at a time, from the byte after the start of the damaged header.
+    /// </remarks>
+    /// <param name="buffer">A temporary buffer of at least 8 bytes.</param>
+    /// <param name="length">The data length of the chunk.</param>
+    /// <param name="type">The chunk type.</param>
+    /// <returns><see langword="true"/> if the method reads a header. <see langword="false"/> at the end of the stream.</returns>
+    private bool TryReadChunkHeader(Span<byte> buffer, out int length, out PngChunkType type)
+    {
+        while (true)
+        {
+            long position = this.currentStream.Position;
+            if (this.currentStream.Read(buffer, 0, 8) != 8)
+            {
+                length = 0;
+                type = default;
+                return false;
+            }
+
+            length = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            type = (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
+            if (length >= 0 && IsValidChunkType(type))
+            {
+                return true;
+            }
+
+            this.segmentIntegrityHandling.ThrowOrIgnoreAncillaryError("The PNG chunk header is not valid.");
+            this.currentStream.Position = position + 1;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value that tells if a data length is valid for the chunk type.
+    /// </summary>
+    /// <remarks>
+    /// The limits come from the chunk layouts of PNG Third Edition, section 11 "Chunk specifications", for each chunk that the decoder reads. The IHDR, acTL,
+    /// pHYs, gAMA and cICP chunks have a fixed length. A tRNS chunk holds at most one alpha value for each of the 256 palette entries. A tEXt chunk holds a
+    /// keyword of at least 1 byte and a null separator. A zTXt or iCCP chunk holds a keyword of at least 1 byte, a null separator, the compression method and a
+    /// zlib stream. An iTXt chunk holds a keyword of at least 1 byte, a null separator, 2 compression bytes and 2 more null separators. The first 4 bytes of
+    /// an eXIf chunk hold the byte order and the integer 42. The minimum length does not include the zlib stream. The zlib decoder reports a short zlib
+    /// stream. The decoder checks the fcTL and fdAT chunks as image data, in <see cref="TryReadFrameControlChunk"/> and
+    /// <see cref="TryValidateFrameDataChunk"/>.
+    /// </remarks>
+    /// <param name="type">The chunk type.</param>
+    /// <param name="length">The data length of the chunk.</param>
+    /// <returns><see langword="true"/> if the length is valid. Otherwise <see langword="false"/>.</returns>
+    private static bool IsValidChunkLength(PngChunkType type, int length)
+        => type switch
+        {
+            PngChunkType.Header => length == PngHeader.Size,
+            PngChunkType.AnimationControl => length == AnimationControl.Size,
+            PngChunkType.Physical => length == PngPhysical.Size,
+            PngChunkType.Gamma or PngChunkType.Cicp => length == 4,
+            PngChunkType.Transparency => length <= 256,
+            PngChunkType.Text => length >= 2,
+            PngChunkType.CompressedText or PngChunkType.EmbeddedColorProfile => length >= 3,
+            PngChunkType.InternationalText => length >= 6,
+            PngChunkType.Exif => length >= 4,
+            _ => true,
+        };
+
+    /// <summary>
+    /// Gets a value that tells if a chunk type is ancillary.
+    /// </summary>
+    /// <remarks>
+    /// Bit 5 of the first type byte is the ancillary bit, so an ancillary chunk type starts with a lowercase letter. See PNG Third Edition, section 5.4 "Chunk
+    /// naming conventions". The type value holds the first type byte in its high byte.
+    /// </remarks>
+    /// <param name="type">The chunk type.</param>
+    /// <returns><see langword="true"/> if the chunk type is ancillary. Otherwise <see langword="false"/>.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static bool IsAncillary(PngChunkType type) => ((uint)type & 0x2000_0000U) != 0;
 
     /// <summary>
     /// Determines whether the 4-byte chunk type is valid (all ASCII letters).
@@ -2182,50 +2234,41 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         => (b >= (byte)'A' && b <= (byte)'Z') || (b >= (byte)'a' && b <= (byte)'z');
 
     /// <summary>
-    /// Validates the png chunk.
+    /// Gets the four letters of a chunk type for an error message.
     /// </summary>
-    /// <param name="chunk">The <see cref="PngChunk"/>.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ValidateChunk(in PngChunk chunk, Span<byte> buffer)
+    /// <param name="type">The chunk type.</param>
+    /// <returns>The four letters.</returns>
+    private static string GetChunkTypeName(PngChunkType type)
     {
-        uint inputCrc = this.ReadChunkCrc(buffer);
-        if (chunk.IsCritical(this.segmentIntegrityHandling))
-        {
-            Span<byte> chunkType = stackalloc byte[4];
-            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
-
-            this.crc32.Reset();
-            this.crc32.Append(chunkType);
-            this.crc32.Append(chunk.Data.GetSpan());
-
-            if (this.crc32.GetCurrentHashAsUInt32() != inputCrc)
-            {
-                string chunkTypeName = Encoding.ASCII.GetString(chunkType);
-                PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
-            }
-        }
+        Span<byte> name = stackalloc byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(name, (uint)type);
+        return Encoding.ASCII.GetString(name);
     }
 
     /// <summary>
-    /// Validates the CRC of an image data chunk, then restores the stream position to the start of the payload.
+    /// Checks the CRC of a chunk, and reads the CRC from the stream.
     /// </summary>
     /// <remarks>
-    /// The payload goes through <see cref="dataCrcBuffer"/> in blocks of the stream buffer size, so each block is one
-    /// copy from the stream buffer. When the integrity handling ignores image data errors, the check reads nothing.
+    /// The CRC covers the chunk type and the chunk data. See PNG Third Edition, section 5.3 "Chunk layout". A chunk with no data in memory, an image data chunk
+    /// or a chunk that the decoder skips, has its data in the stream. The method then reads the data through <see cref="dataCrcBuffer"/> in blocks of the
+    /// stream buffer size. Each block is one copy from the stream buffer.
     /// </remarks>
-    /// <param name="chunk">The image data chunk.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <param name="payloadStart">The stream position of the first payload byte.</param>
-    private void ValidateImageDataChunk(in PngChunk chunk, Span<byte> buffer, long payloadStart)
+    /// <param name="chunk">
+    /// The chunk. For a chunk with data in memory, the stream is at the CRC. For a chunk with no data in memory, the stream is at the start of the data.
+    /// </param>
+    /// <param name="buffer">A temporary buffer of at least 4 bytes.</param>
+    private void ValidateChunkCrc(in PngChunk chunk, Span<byte> buffer)
     {
-        if (chunk.IsCritical(this.segmentIntegrityHandling))
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)chunk.Type);
+        this.crc32.Reset();
+        this.crc32.Append(buffer[..4]);
+
+        if (chunk.Data is not null)
         {
-            Span<byte> chunkType = stackalloc byte[4];
-            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
-
-            this.crc32.Reset();
-            this.crc32.Append(chunkType);
-
+            this.crc32.Append(chunk.Data.GetSpan());
+        }
+        else
+        {
             this.dataCrcBuffer ??= this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
             Span<byte> block = this.dataCrcBuffer.GetSpan();
             int remaining = chunk.Length;
@@ -2240,15 +2283,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 this.crc32.Append(block[..read]);
                 remaining -= read;
             }
-
-            if (this.crc32.GetCurrentHashAsUInt32() != this.ReadChunkCrc(buffer))
-            {
-                PngThrowHelper.ThrowInvalidChunkCrc(Encoding.ASCII.GetString(chunkType));
-            }
         }
 
-        // The inflater reads the payload from its start.
-        this.currentStream.Position = payloadStart;
+        if (this.crc32.GetCurrentHashAsUInt32() != this.ReadChunkCrc(buffer))
+        {
+            PngThrowHelper.ThrowInvalidChunkCrc(GetChunkTypeName(chunk.Type));
+        }
     }
 
     /// <summary>
@@ -2281,7 +2321,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <summary>
     /// Reads the chunk data from the stream.
     /// </summary>
-    /// <param name="length">The length of the chunk data to read.</param>
+    /// <param name="length">The length of the chunk data to read. The stream holds at least this number of bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     private IMemoryOwner<byte> ReadChunkData(int length)
     {
@@ -2291,9 +2331,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         // We rent the buffer here to return it afterwards in Decode()
-        // We don't want to throw a degenerated memory exception here as we want to allow partial decoding
-        // so limit the length.
-        length = (int)Math.Min(length, this.currentStream.Length - this.currentStream.Position);
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
         try
@@ -2309,53 +2346,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         return buffer;
-    }
-
-    /// <summary>
-    /// Attempts to read the chunk type of the next chunk.
-    /// </summary>
-    /// <remarks>
-    /// A stream that ends inside the chunk type ends the chunk sequence, as a stream that ends inside the chunk length
-    /// does. When this cuts the image data short, the scanline reader reports the damage.
-    /// </remarks>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <param name="type">The chunk type. If the return value is <see langword="false"/>, this parameter is the default value.</param>
-    /// <returns>
-    /// <see langword="true"/> if the method reads the chunk type. Otherwise, <see langword="false"/>.
-    /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private bool TryReadChunkType(Span<byte> buffer, out PngChunkType type)
-    {
-        if (this.currentStream.Read(buffer, 0, 4) == 4)
-        {
-            type = (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
-            return true;
-        }
-
-        type = default;
-        return false;
-    }
-
-    /// <summary>
-    /// Attempts to read the length of the next chunk.
-    /// </summary>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <param name="result">The result length. If the return type is <see langword="false"/> this parameter is passed uninitialized.</param>
-    /// <returns>
-    /// Whether the length was read.
-    /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private bool TryReadChunkLength(Span<byte> buffer, out int result)
-    {
-        if (this.currentStream.Read(buffer, 0, 4) == 4)
-        {
-            result = BinaryPrimitives.ReadInt32BigEndian(buffer);
-
-            return true;
-        }
-
-        result = default;
-        return false;
     }
 
     /// <summary>

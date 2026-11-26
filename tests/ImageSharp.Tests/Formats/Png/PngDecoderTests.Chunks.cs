@@ -87,22 +87,22 @@ public partial class PngDecoderTests
     [Fact]
     public void Decode_TruncatedPhysChunk_ExceptionIsThrown()
     {
-        // 24 bytes — PNG signature + truncated pHYs chunk
-        byte[] payload = Convert.FromHexString(
-            "89504e470d0a1a0a3030303070485973" +
-            "3030303030303030");
+        // The data is the PNG signature and IHDR, then a pHYs chunk that declares more data than the stream holds. IHDR is the first chunk: PNG Third Edition,
+        // section 5.6 "Chunk ordering".
+        byte[] payload = [.. Raw1X1PngIhdrAndpHYs.AsSpan(0, 33), .. Convert.FromHexString("30303030704859733030303030303030")];
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
-        using MemoryStream stream = new(payload);
-        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, payload));
 
-        Assert.Equal("pHYs chunk is too short", exception.Message);
+        Assert.Equal("The PNG pHYs chunk ends after the end of the stream.", exception.Message);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/3093
     [Fact]
     public void Decode_TruncatedFrameControlChunk_ExceptionIsThrown()
     {
-        // PNG signature + truncated frame control chunk
+        // The data is the PNG signature, damaged bytes, and then a truncated frame control chunk. No IHDR chunk comes before the frame control chunk, so the
+        // header error comes first.
         byte[] payload = Convert.FromHexString(
             "89504e470d0a1a0a424d3a00000000007f000000000028030405060000000100" +
             "000101002000000000000000000000000000ff00006663544cff190000000000" +
@@ -110,6 +110,24 @@ public partial class PngDecoderTests
 
         using MemoryStream stream = new(payload);
         InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
+
+        Assert.Equal("PNG Image must contain a header chunk and it must be located before any other chunks.", exception.Message);
+    }
+
+    /// <summary>
+    /// Verifies that the decoder throws for a complete frame control chunk with less than 26 data bytes before the first frame. See PNG Third Edition, section
+    /// 11.3.6.2 "fcTL Frame Control Chunk".
+    /// </summary>
+    [Fact]
+    public void Decode_ShortFrameControlChunk_ExceptionIsThrown()
+    {
+        using MemoryStream stream = new();
+        stream.Write(Raw1X1PngIhdrAndpHYs, 0, 33);
+        WriteChunkWithCrc(stream, "fcTL", new byte[10]);
+        stream.Write(Raw1X1PngIdatAndIend);
+        byte[] payload = stream.ToArray();
+
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(payload));
 
         Assert.Equal("The frame control chunk does not contain enough data!", exception.Message);
     }
@@ -369,7 +387,8 @@ public partial class PngDecoderTests
     }
 
     /// <summary>
-    /// Rejects stored frame chunks without a complete sequence number, including chunks within compressed data.
+    /// Verifies that the decoder rejects stored frame chunks without a complete sequence number when the integrity mode does not ignore image data errors. This
+    /// also applies to such chunks inside compressed data. The root frame decodes before these chunks, so they are damaged image data.
     /// </summary>
     /// <param name="path">The malformed APNG input.</param>
     /// <param name="integrity">The segment integrity policy.</param>
@@ -380,9 +399,6 @@ public partial class PngDecoderTests
     [InlineData(TestImages.Png.FdatShort0, SegmentIntegrityHandling.IgnoreAncillary)]
     [InlineData(TestImages.Png.FdatShort3, SegmentIntegrityHandling.IgnoreAncillary)]
     [InlineData(TestImages.Png.FdatTruncatedSequenceBetween, SegmentIntegrityHandling.IgnoreAncillary)]
-    [InlineData(TestImages.Png.FdatShort0, SegmentIntegrityHandling.IgnoreImageData)]
-    [InlineData(TestImages.Png.FdatShort3, SegmentIntegrityHandling.IgnoreImageData)]
-    [InlineData(TestImages.Png.FdatTruncatedSequenceBetween, SegmentIntegrityHandling.IgnoreImageData)]
     public void DecodeAndIdentify_FrameDataWithoutSequenceNumber_ThrowsInvalidImageContentException(string path, SegmentIntegrityHandling integrity)
     {
         byte[] data = TestFile.Create(path).Bytes;
@@ -394,6 +410,56 @@ public partial class PngDecoderTests
 
         Assert.Equal("The frame data chunk does not contain a sequence number.", exception.Message);
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    /// <summary>
+    /// Verifies that the decoder skips stored frame chunks without a complete sequence number when the integrity mode ignores image data errors. The result
+    /// matches the decode of the same file without the short fdAT chunks. A short chunk inside the compressed data of a frame ends that data. Thus the
+    /// reference also drops the fdAT chunk after it in the same frame. See PNG Third Edition, section 11.3.6.3 "fdAT Frame Data Chunk".
+    /// </summary>
+    /// <param name="path">The malformed APNG input.</param>
+    [Theory]
+    [InlineData(TestImages.Png.FdatShort0)]
+    [InlineData(TestImages.Png.FdatShort3)]
+    [InlineData(TestImages.Png.FdatTruncatedSequenceBetween)]
+    public void Decode_FrameDataWithoutSequenceNumber_IgnoreImageData_SkipsChunk(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        using MemoryStream reference = new();
+        reference.Write(data, 0, 8);
+        int offset = 8;
+        bool dropNextFrameData = false;
+        while (offset < data.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(offset, 4));
+            string type = Encoding.ASCII.GetString(data, offset + 4, 4);
+            int chunkLength = length + 12;
+            bool drop = false;
+            if (type == "fdAT")
+            {
+                drop = length < sizeof(uint) || dropNextFrameData;
+                dropNextFrameData = length < sizeof(uint);
+            }
+            else
+            {
+                dropNextFrameData = false;
+            }
+
+            if (!drop)
+            {
+                reference.Write(data, offset, chunkLength);
+            }
+
+            offset += chunkLength;
+        }
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(ignore, reference.ToArray());
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, data);
+        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+        Assert.Equal(expected.Frames.Count, Image.Identify(ignore, data).FrameMetadataCollection.Count);
     }
 
     /// <summary>
@@ -649,6 +715,242 @@ public partial class PngDecoderTests
         });
 
         Assert.Equal("The PNG image data ends before the last scanline.", exception.Message);
+    }
+
+    /// <summary>
+    /// Verifies that a damaged fcTL or fdAT chunk of the third APNG frame is damaged image data. In the Strict and IgnoreAncillary modes, the decoder throws. In
+    /// the IgnoreImageData mode, the decoder keeps the first two frames. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control Chunk" and section
+    /// 11.3.6.3 "fdAT Frame Data Chunk".
+    /// </summary>
+    /// <param name="damage">The damage to the chunks of the third frame.</param>
+    [Theory]
+    [InlineData("ZeroWidth")]
+    [InlineData("OffsetWraps")]
+    [InlineData("ShortFrameData")]
+    public void Decode_DamagedLaterFrameChunk_KeepsDecodedFrames(string damage)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(16, 16, 6);
+        for (int i = 0; i < 2; i++)
+        {
+            using Image<Rgba32> frame = CreateOpaqueNoiseImage(16, 16, 7 + i);
+            source.Frames.AddFrame(frame.Frames.RootFrame);
+        }
+
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] original = encoded.ToArray();
+
+        // The test copies each chunk. It changes the third fcTL chunk or the last fdAT chunk, and gives it a valid CRC.
+        using MemoryStream damaged = new();
+        damaged.Write(original, 0, 8);
+        int offset = 8;
+        int frameControlCount = 0;
+        int frameDataCount = 0;
+        bool changed = false;
+        while (offset < original.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(original.AsSpan(offset, 4));
+            string type = Encoding.ASCII.GetString(original, offset + 4, 4);
+            byte[] data = original.AsSpan(offset + 8, length).ToArray();
+            offset += length + 12;
+
+            if (type == "fcTL" && ++frameControlCount == 3 && damage != "ShortFrameData")
+            {
+                // The fcTL data is the sequence number, then width, height, x offset and y offset, as 4-byte values. The 64-bit sum of a 0xFFFFFFF0 x offset
+                // and a width of 16 is more than the image width. The 32-bit sum wraps to 0.
+                int field = damage == "ZeroWidth" ? 4 : 12;
+                BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(field), damage == "ZeroWidth" ? 0 : 0xFFFFFFF0);
+                changed = true;
+            }
+            else if (type == "fdAT" && ++frameDataCount == 2 && damage == "ShortFrameData")
+            {
+                // The second fdAT chunk holds the data of the third frame. The first frame uses IDAT. A chunk with 2 data bytes has no 4-byte sequence number.
+                data = data[..2];
+                changed = true;
+            }
+
+            WriteChunkWithCrc(damaged, type, data);
+        }
+
+        Assert.True(changed);
+        byte[] bytes = damaged.ToArray();
+
+        foreach (SegmentIntegrityHandling handling in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary })
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, bytes));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, bytes);
+            });
+        }
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(original);
+        expected.Frames.RemoveFrame(2);
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        Assert.Equal(2, Image.Identify(ignore, bytes).FrameMetadataCollection.Count);
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, bytes);
+        Assert.Equal(2, actual.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that an fcTL chunk before the first IDAT chunk covers the whole image. That frame control belongs to the default image, so its offset is 0 and
+    /// its size is the IHDR size. See PNG Third Edition, section 11.3.6.2 "fcTL Frame Control Chunk". The default image defines the canvas, so the decoder
+    /// throws in each mode.
+    /// </summary>
+    [Fact]
+    public void DecodeAndIdentify_DefaultImageFrameRegionNotWholeImage_ThrowsInvalidImageContentException()
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(16, 16, 10);
+        using (Image<Rgba32> frame = CreateOpaqueNoiseImage(16, 16, 11))
+        {
+            source.Frames.AddFrame(frame.Frames.RootFrame);
+        }
+
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] original = encoded.ToArray();
+
+        // The test copies each chunk. It gives the first fcTL chunk, which comes before IDAT, an x offset of 1 and a width of 15. The region stays inside the
+        // image. The fcTL data is the sequence number, then width, height, x offset and y offset, as 4-byte values.
+        using MemoryStream damaged = new();
+        damaged.Write(original, 0, 8);
+        int offset = 8;
+        bool changed = false;
+        while (offset < original.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(original.AsSpan(offset, 4));
+            string type = Encoding.ASCII.GetString(original, offset + 4, 4);
+            byte[] data = original.AsSpan(offset + 8, length).ToArray();
+            offset += length + 12;
+
+            if (type == "fcTL" && !changed)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), 15);
+                BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(12), 1);
+                changed = true;
+            }
+
+            WriteChunkWithCrc(damaged, type, data);
+        }
+
+        Assert.True(changed);
+        byte[] bytes = damaged.ToArray();
+
+        foreach (SegmentIntegrityHandling handling in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, bytes));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, bytes);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the load of a PNG with an iCCP chunk through the pixel format of the image succeeds. That load first reads the color metadata only, and that
+    /// read skips the iCCP chunk. The iCCP chunk here holds a damaged zlib stream, so the default mode ignores it in the decode.
+    /// </summary>
+    [Fact]
+    public void Load_ColorProfileChunk_DecodesInImagePixelFormat()
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 12);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+
+        // The iCCP data is the keyword "p", a null separator, compression method 0, and a zlib stream. The zlib stream has a valid header and a deflate block
+        // of the reserved block type 3.
+        byte[] data = InsertChunkAfterHeader(encoded.ToArray(), "iCCP", [(byte)'p', 0, 0, 0x78, 0x9C, 0x07, 0, 0, 0, 0]);
+
+        using Image image = Image.Load(data);
+        Image<Rgba32> actual = Assert.IsType<Image<Rgba32>>(image);
+        ImageComparer.Exact.VerifySimilarity(source, actual);
+    }
+
+    /// <summary>
+    /// Verifies that IHDR is the first chunk and has a width and a height of at least 1. See PNG Third Edition, section 5.6 "Chunk ordering" and section 11.2.1
+    /// "IHDR Image header".
+    /// </summary>
+    /// <param name="damage">The damage to the header.</param>
+    [Theory]
+    [InlineData("DataBeforeHeader")]
+    [InlineData("ZeroWidth")]
+    public void DecodeAndIdentify_InvalidHeader_ThrowsInvalidImageContentException(string damage)
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 13);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] original = encoded.ToArray();
+
+        // The IHDR chunk is 25 bytes after the 8-byte signature. The encoder writes the IEND chunk, 12 bytes, last.
+        using MemoryStream damaged = new();
+        damaged.Write(original, 0, 8);
+        if (damage == "DataBeforeHeader")
+        {
+            damaged.Write(original, 33, original.Length - 45);
+            damaged.Write(original, 8, 25);
+            damaged.Write(original, original.Length - 12, 12);
+        }
+        else
+        {
+            byte[] header = original.AsSpan(16, 13).ToArray();
+            BinaryPrimitives.WriteInt32BigEndian(header, 0);
+            WriteChunkWithCrc(damaged, "IHDR", header);
+            damaged.Write(original, 33, original.Length - 33);
+        }
+
+        byte[] bytes = damaged.ToArray();
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(bytes));
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(bytes);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a critical chunk that the decoder does not know stops the decode. The first letter of the chunk type is uppercase, so the chunk is critical.
+    /// See PNG Third Edition, section 5.4 "Chunk naming conventions".
+    /// </summary>
+    [Fact]
+    public void DecodeAndIdentify_UnknownCriticalChunk_ThrowsNotSupportedException()
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 14);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] bytes = InsertChunkAfterHeader(encoded.ToArray(), "TEST", [0]);
+
+        Assert.Throws<NotSupportedException>(() => Image.Identify(bytes));
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(bytes);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that an acTL chunk with less than 8 data bytes is damaged ancillary data. See PNG Third Edition, section 11.3.6.1 "acTL Animation Control Chunk".
+    /// The Strict mode throws. The other modes skip the chunk.
+    /// </summary>
+    [Fact]
+    public void Decode_ShortAnimationControlChunk_FollowsIntegrityPolicy()
+    {
+        using Image<Rgba32> source = CreateOpaqueNoiseImage(8, 8, 15);
+        using MemoryStream encoded = new();
+        source.SaveAsPng(encoded, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] bytes = InsertChunkAfterHeader(encoded.ToArray(), "acTL", [0, 0, 0, 1]);
+
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, bytes);
+        });
+
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+        using Image<Rgba32> actual = Image.Load<Rgba32>(ignore, bytes);
+        ImageComparer.Exact.VerifySimilarity(source, actual);
     }
 
     /// <summary>
@@ -908,6 +1210,23 @@ public partial class PngDecoderTests
         crc.Append(data);
         BinaryPrimitives.WriteUInt32BigEndian(buffer, crc.GetCurrentHashAsUInt32());
         stream.Write(buffer);
+    }
+
+    /// <summary>
+    /// Inserts a chunk with a valid CRC directly after the IHDR chunk of an encoded PNG.
+    /// </summary>
+    /// <param name="png">The encoded PNG.</param>
+    /// <param name="type">The four-letter chunk type.</param>
+    /// <param name="data">The chunk data.</param>
+    /// <returns>The new PNG.</returns>
+    private static byte[] InsertChunkAfterHeader(byte[] png, string type, ReadOnlySpan<byte> data)
+    {
+        // The 13-byte IHDR data with its length, type and CRC follows the 8-byte signature, so the chunk ends at 33.
+        using MemoryStream result = new();
+        result.Write(png, 0, 33);
+        WriteChunkWithCrc(result, type, data);
+        result.Write(png, 33, png.Length - 33);
+        return result.ToArray();
     }
 
     private static string GetChunkTypeName(uint value)

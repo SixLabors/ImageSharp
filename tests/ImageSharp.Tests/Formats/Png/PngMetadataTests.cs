@@ -293,12 +293,15 @@ public class PngMetadataTests
         TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
-        Assert.Throws<InvalidIccProfileException>(() =>
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, testFile.Bytes);
         });
 
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, testFile.Bytes));
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
+
+        exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.Bytes));
+        Assert.IsType<InvalidIccProfileException>(exception.InnerException);
     }
 
     [Fact]

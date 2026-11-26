@@ -94,34 +94,21 @@ internal readonly struct FrameControl
     public Rectangle Bounds => new((int)this.XOffset, (int)this.YOffset, (int)this.Width, (int)this.Height);
 
     /// <summary>
-    /// Validates the APng fcTL.
+    /// Gets a value that tells if the frame control is valid for the image header.
     /// </summary>
-    /// <param name="header">The header.</param>
-    /// <exception cref="NotSupportedException">
-    /// Thrown if the image does pass validation.
-    /// </exception>
-    public void Validate(PngHeader header)
-    {
-        if (this.Width == 0)
-        {
-            PngThrowHelper.ThrowInvalidParameter(this.Width, "Expected > 0");
-        }
-
-        if (this.Height == 0)
-        {
-            PngThrowHelper.ThrowInvalidParameter(this.Height, "Expected > 0");
-        }
-
-        if (this.XMax > header.Width)
-        {
-            PngThrowHelper.ThrowInvalidParameter(this.XOffset, this.Width, $"The x-offset plus width > {nameof(PngHeader)}.{nameof(PngHeader.Width)}");
-        }
-
-        if (this.YMax > header.Height)
-        {
-            PngThrowHelper.ThrowInvalidParameter(this.YOffset, this.Height, $"The y-offset plus height > {nameof(PngHeader)}.{nameof(PngHeader.Height)}");
-        }
-    }
+    /// <remarks>
+    /// The region must have pixels and must be inside the canvas. The sums use 64-bit values, so a large offset cannot wrap and pass the check. The blend_op
+    /// value is 0 or 1. <see cref="Parse"/> maps each dispose_op value to a valid disposal mode, so the method does not check it. See PNG Third Edition,
+    /// section 11.3.6.2 "fcTL Frame Control Chunk": https://www.w3.org/TR/png-3/#fcTL-chunk.
+    /// </remarks>
+    /// <param name="header">The image header.</param>
+    /// <returns><see langword="true"/> if the frame control is valid. Otherwise <see langword="false"/>.</returns>
+    public bool IsValid(PngHeader header)
+        => this.Width > 0
+        && this.Height > 0
+        && (ulong)this.XOffset + this.Width <= (uint)header.Width
+        && (ulong)this.YOffset + this.Height <= (uint)header.Height
+        && this.BlendMode is FrameBlendMode.Source or FrameBlendMode.Over;
 
     /// <summary>
     /// Writes the fcTL to the given buffer.
@@ -137,23 +124,25 @@ internal readonly struct FrameControl
         BinaryPrimitives.WriteUInt16BigEndian(buffer[20..22], this.DelayNumerator);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[22..24], this.DelayDenominator);
 
-        buffer[24] = (byte)(this.DisposalMode - 1);
+        // APNG has no unspecified disposal. The method writes dispose_op 0, APNG_DISPOSE_OP_NONE, the same value as for DoNotDispose. See PNG Third Edition,
+        // section 11.3.6.2 "fcTL Frame Control Chunk". Older ImageSharp versions wrote 255, which is not valid. Parse still reads that value from their files.
+        buffer[24] = (byte)(this.DisposalMode is FrameDisposalMode.Unspecified ? 0 : this.DisposalMode - 1);
         buffer[25] = (byte)this.BlendMode;
     }
 
     /// <summary>
     /// Parses the APngFrameControl from the given data buffer.
     /// </summary>
-    /// <param name="data">The data to parse.</param>
+    /// <remarks>
+    /// The dispose_op values 0, 1 and 2 map to <see cref="FrameDisposalMode.DoNotDispose"/>, <see cref="FrameDisposalMode.RestoreToBackground"/> and
+    /// <see cref="FrameDisposalMode.RestoreToPrevious"/>. Older ImageSharp versions wrote dispose_op 255 for <see cref="FrameDisposalMode.Unspecified"/>, and
+    /// decoded each value more than 2 as no disposal. Thus a value more than 2 maps to <see cref="FrameDisposalMode.DoNotDispose"/>, so the files of these
+    /// versions decode with the same pixels.
+    /// </remarks>
+    /// <param name="data">The data to parse. It has at least <see cref="Size"/> bytes.</param>
     /// <returns>The parsed fcTL.</returns>
     public static FrameControl Parse(ReadOnlySpan<byte> data)
-    {
-        if (data.Length < Size)
-        {
-            PngThrowHelper.ThrowInvalidImageContentException("The frame control chunk does not contain enough data!");
-        }
-
-        return new FrameControl(
+        => new(
             sequenceNumber: BinaryPrimitives.ReadUInt32BigEndian(data[..4]),
             width: BinaryPrimitives.ReadUInt32BigEndian(data[4..8]),
             height: BinaryPrimitives.ReadUInt32BigEndian(data[8..12]),
@@ -161,7 +150,6 @@ internal readonly struct FrameControl
             yOffset: BinaryPrimitives.ReadUInt32BigEndian(data[16..20]),
             delayNumerator: BinaryPrimitives.ReadUInt16BigEndian(data[20..22]),
             delayDenominator: BinaryPrimitives.ReadUInt16BigEndian(data[22..24]),
-            disposalMode: (FrameDisposalMode)(data[24] + 1),
+            disposalMode: data[24] <= 2 ? (FrameDisposalMode)(data[24] + 1) : FrameDisposalMode.DoNotDispose,
             blendMode: (FrameBlendMode)data[25]);
-    }
 }

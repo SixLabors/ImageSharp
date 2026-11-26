@@ -81,32 +81,83 @@ internal readonly struct PngHeader
     public PngInterlaceMode InterlaceMethod { get; }
 
     /// <summary>
-    /// Validates the png header.
+    /// Gets the number of bytes of one pixel. A pixel of less than 8 bits gets 1 byte.
     /// </summary>
-    /// <exception cref="NotSupportedException">
-    /// Thrown if the image does pass validation.
-    /// </exception>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitDepth">The number of bits of one sample.</param>
+    /// <returns>The number of bytes.</returns>
+    public static int CalculateBytesPerPixel(PngColorType colorType, int bitDepth)
+        => colorType switch
+        {
+            PngColorType.Grayscale => bitDepth == 16 ? 2 : 1,
+            PngColorType.GrayscaleWithAlpha => bitDepth == 16 ? 4 : 2,
+            PngColorType.Palette => 1,
+            PngColorType.Rgb => bitDepth == 16 ? 6 : 3,
+
+            // PngColorType.RgbWithAlpha
+            _ => bitDepth == 16 ? 8 : 4,
+        };
+
+    /// <summary>
+    /// Gets the number of bytes of a scanline, without the filter type byte.
+    /// </summary>
+    /// <remarks>
+    /// Samples of less than 8 bits pack into bytes, and the last byte of a scanline can have unused bits. See PNG Third Edition, section 7.2 "Scanlines":
+    /// https://www.w3.org/TR/png-3/#7Scanline. Only gray and palette pixels have less than 8 bits, and these pixels have 1 byte per pixel. The calculation uses
+    /// 64-bit values, so a large width cannot wrap. <see cref="Validate"/> makes sure that the scanline of the image width fits in an <see cref="int"/>.
+    /// </remarks>
+    /// <param name="width">The number of pixels of the scanline.</param>
+    /// <param name="bitDepth">The number of bits of one sample.</param>
+    /// <param name="bytesPerPixel">The number of bytes of one pixel.</param>
+    /// <returns>The number of bytes.</returns>
+    public static long CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
+        => bitDepth < 8 ? (((long)width * bitDepth) + 7) / 8 : (long)width * bytesPerPixel;
+
+    /// <summary>
+    /// Checks the values of the header.
+    /// </summary>
+    /// <remarks>
+    /// The checks use the rules of PNG Third Edition, section 11.2.1 "IHDR Image header": https://www.w3.org/TR/png-3/#11IHDR
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">A value of the header is not valid.</exception>
     public void Validate()
     {
+        // The width and the height are 1 to 2^31-1. Parse reads them as signed values, so a value more than 2^31-1 is less than 0.
+        if (this.Width <= 0 || this.Height <= 0)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid image dimensions. Was '{this.Width}x{this.Height}'.");
+        }
+
         if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[] supportedBitDepths))
         {
-            throw new NotSupportedException($"Invalid or unsupported color type. Was '{this.ColorType}'.");
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid or unsupported color type. Was '{this.ColorType}'.");
         }
 
         if (supportedBitDepths.AsSpan().IndexOf(this.BitDepth) == -1)
         {
-            throw new NotSupportedException($"Invalid or unsupported bit depth. Was '{this.BitDepth}'.");
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid or unsupported bit depth. Was '{this.BitDepth}'.");
+        }
+
+        if (this.CompressionMethod != 0)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid compression method. Expected 0. Was '{this.CompressionMethod}'.");
         }
 
         if (this.FilterMethod != 0)
         {
-            throw new NotSupportedException($"Invalid filter method. Expected 0. Was '{this.FilterMethod}'.");
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid filter method. Expected 0. Was '{this.FilterMethod}'.");
         }
 
         // The png specification only defines 'None' and 'Adam7' as interlaced methods.
         if (this.InterlaceMethod is not PngInterlaceMode.None and not PngInterlaceMode.Adam7)
         {
-            throw new NotSupportedException($"Invalid interlace method. Expected 'None' or 'Adam7'. Was '{this.InterlaceMethod}'.");
+            PngThrowHelper.ThrowInvalidImageContentException($"Invalid interlace method. Expected 'None' or 'Adam7'. Was '{this.InterlaceMethod}'.");
+        }
+
+        // The decoder holds a scanline and its filter type byte in one buffer, so their length must fit in an int.
+        if (CalculateScanlineLength(this.Width, this.BitDepth, CalculateBytesPerPixel(this.ColorType, this.BitDepth)) >= int.MaxValue)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
         }
     }
 

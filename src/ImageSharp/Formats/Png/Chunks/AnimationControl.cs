@@ -38,7 +38,7 @@ internal readonly struct AnimationControl
     /// <summary>
     /// Parses the APngAnimationControl from the given data buffer.
     /// </summary>
-    /// <param name="data">The data to parse.</param>
+    /// <param name="data">The data to parse. It has <see cref="Size"/> bytes.</param>
     /// <returns>The parsed acTL.</returns>
     public static AnimationControl Parse(ReadOnlySpan<byte> data)
         => new(

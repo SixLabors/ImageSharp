@@ -134,8 +134,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression,
-            EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
-            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight)
+            EncodingWidth = IconDirEntry.ClampEncodingDimension(metadata.EncodingWidth),
+            EncodingHeight = IconDirEntry.ClampEncodingDimension(metadata.EncodingHeight)
         };
     }
 
@@ -154,8 +154,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     {
         float ratioX = destination.Width / (float)source.Width;
         float ratioY = destination.Height / (float)source.Height;
-        this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
-        this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.EncodingWidth = IconDirEntry.ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
+        this.EncodingHeight = IconDirEntry.ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
         this.ColorTable = null;
     }
 
@@ -190,8 +190,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 
         return new IconDirEntry
         {
-            Width = ClampEncodingDimension(this.EncodingWidth ?? size.Width),
-            Height = ClampEncodingDimension(this.EncodingHeight ?? size.Height),
+            Width = IconDirEntry.ClampEncodingDimension(this.EncodingWidth ?? size.Width),
+            Height = IconDirEntry.ClampEncodingDimension(this.EncodingHeight ?? size.Height),
             Planes = this.HotspotX,
             BitCount = this.HotspotY,
             ColorCount = colorCount
@@ -262,37 +262,4 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             ColorType = color
         };
     }
-
-    /// <summary>
-    /// Scales an encoded dimension after an image transform.
-    /// </summary>
-    /// <param name="value">The encoded source dimension.</param>
-    /// <param name="destination">The full destination dimension.</param>
-    /// <param name="ratio">The destination-to-source scale ratio.</param>
-    /// <returns>The encoded destination dimension.</returns>
-    private static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
-    {
-        if (value is null)
-        {
-            return ClampEncodingDimension(destination);
-        }
-
-        // A stored zero represents 256 pixels, so scaling must expand it before applying the transform ratio.
-        int source = value.Value is 0 ? 256 : value.Value;
-        return ClampEncodingDimension(MathF.Ceiling(source * ratio));
-    }
-
-    /// <summary>
-    /// Converts a pixel dimension to the one-byte CUR representation.
-    /// </summary>
-    /// <param name="dimension">The pixel dimension.</param>
-    /// <returns>The encoded dimension.</returns>
-    private static byte ClampEncodingDimension(float? dimension)
-        => dimension switch
-        {
-            // Encoding dimensions can be between 0-256 where 0 means 256 or greater.
-            > 255 => 0,
-            <= 255 and >= 1 => (byte)dimension,
-            _ => 0
-        };
 }

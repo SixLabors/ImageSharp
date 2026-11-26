@@ -12,12 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Ico;
 public sealed class IcoImageFormatDetector : IImageFormatDetector
 {
     /// <inheritdoc/>
-    public int HeaderSize => IconDir.Size + IconDirEntry.Size;
+    public int HeaderSize => IconDir.MinHeaderSize;
 
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        format = this.IsSupportedFileFormat(header) ? IcoFormat.Instance : null;
+        format = IsSupportedFileFormat(header) ? IcoFormat.Instance : null;
         return format is not null;
     }
 
@@ -26,24 +26,8 @@ public sealed class IcoImageFormatDetector : IImageFormatDetector
     /// </summary>
     /// <param name="header">The candidate file header.</param>
     /// <returns><see langword="true"/> when the header identifies ICO data.</returns>
-    private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-    {
-        if (header.Length < this.HeaderSize)
-        {
-            return false;
-        }
-
-        IconDir dir = IconDir.Parse(header);
-        if (dir is not { Reserved: 0, Type: IconFileType.ICO } || dir.Count is 0)
-        {
-            return false;
-        }
-
-        IconDirEntry entry = IconDirEntry.Parse(header[IconDir.Size..]);
-
-        // The first payload must begin after the complete directory, even when the caller supplied only the detection prefix.
-        return entry is { Reserved: 0, Planes: 0 or 1, BitCount: 1 or 4 or 8 or 16 or 24 or 32 }
-            && entry.BytesInRes is not 0
-            && entry.ImageOffset >= IconDir.Size + (dir.Count * IconDirEntry.Size);
-    }
+    private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
+        => IconDir.TryParseFirstEntry(header, IconFileType.ICO, out IconDirEntry entry)
+            && entry.Planes is 0 or 1
+            && entry.BitCount is 1 or 4 or 8 or 16 or 24 or 32;
 }

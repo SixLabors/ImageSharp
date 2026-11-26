@@ -78,6 +78,40 @@ internal struct IconDirEntry
     }
 
     /// <summary>
+    /// Converts a pixel dimension to the one-byte value of <see cref="Width"/> or <see cref="Height"/>.
+    /// </summary>
+    /// <param name="dimension">The pixel dimension.</param>
+    /// <returns>The encoded dimension. Zero means 256 pixels or more.</returns>
+    public static byte ClampEncodingDimension(float? dimension)
+        => dimension switch
+        {
+            // ICONDIRENTRY stores each dimension in one byte, and 0 means 256 pixels or more:
+            // https://learn.microsoft.com/en-us/previous-versions/ms997538(v=msdn.10)
+            > 255 => 0,
+            >= 1 => (byte)dimension,
+            _ => 0
+        };
+
+    /// <summary>
+    /// Scales an encoded dimension after an image transform.
+    /// </summary>
+    /// <param name="value">The encoded source dimension, or <see langword="null"/> if the metadata does not set it.</param>
+    /// <param name="destination">The full destination dimension.</param>
+    /// <param name="ratio">The destination-to-source scale ratio.</param>
+    /// <returns>The encoded destination dimension.</returns>
+    public static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
+    {
+        if (value is null)
+        {
+            return ClampEncodingDimension(destination);
+        }
+
+        // A stored zero means 256 pixels, so the scale expands it before it applies the transform ratio.
+        int source = value.Value is 0 ? 256 : value.Value;
+        return ClampEncodingDimension(MathF.Ceiling(source * ratio));
+    }
+
+    /// <summary>
     /// Parses an icon directory entry from its byte representation.
     /// </summary>
     /// <param name="data">The icon directory entry data.</param>

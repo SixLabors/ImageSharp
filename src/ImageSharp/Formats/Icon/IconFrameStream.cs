@@ -4,11 +4,11 @@
 namespace SixLabors.ImageSharp.Formats.Icon;
 
 /// <summary>
-/// Exposes one ICO or CUR directory entry as an isolated seekable stream.
+/// Exposes one ICO or CUR directory entry, or one ANI frame-resource chunk, as an isolated seekable stream.
 /// </summary>
 /// <remarks>
-/// Embedded decoders accept seek offsets from their own headers. Bounding those seeks to <c>BytesInRes</c>
-/// prevents a malformed BMP or PNG payload from consuming an adjacent icon resource.
+/// Embedded decoders accept seek offsets from their own headers. This stream limits those seeks to <c>BytesInRes</c>, or to the RIFF chunk of an ANI frame
+/// resource. Thus a malformed payload cannot read an adjacent resource.
 /// </remarks>
 internal sealed class IconFrameStream : Stream
 {

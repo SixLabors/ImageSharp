@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 public class QoiImageFormatDetector : IImageFormatDetector
 {
     /// <inheritdoc/>
-    public int HeaderSize => 14;
+    public int HeaderSize => QoiConstants.HeaderSize;
 
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
@@ -21,5 +21,5 @@ public class QoiImageFormatDetector : IImageFormatDetector
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-        => header.Length >= this.HeaderSize && QoiConstants.Magic.SequenceEqual(header[..4]);
+        => header.Length >= this.HeaderSize && QoiConstants.Magic.SequenceEqual(header[..QoiConstants.Magic.Length]);
 }

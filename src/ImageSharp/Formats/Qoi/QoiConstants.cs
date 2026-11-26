@@ -7,6 +7,12 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 
 internal static class QoiConstants
 {
+    /// <summary>
+    /// The size of the header in bytes: the magic "qoif", the big-endian uint32 width and height, the channels byte and the color space byte. See The Quite OK
+    /// Image Format Specification, Version 1.0, qoi_header.
+    /// </summary>
+    public const int HeaderSize = 14;
+
     private static readonly byte[] SMagic = Encoding.UTF8.GetBytes("qoif");
 
     /// <summary>
